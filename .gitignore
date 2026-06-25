@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDEs and editors
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+
+# Java and Maven build output
+target/
+build/
+out/
+*.class
+
+# Maven wrapper binary cache
+.mvn/wrapper/maven-wrapper.jar
+
+# Logs and runtime files
+logs/
+*.log
+*.pid
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+application-local.yaml
+application-local.yml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.swp
+*~
