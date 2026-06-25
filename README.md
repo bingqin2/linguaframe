@@ -99,12 +99,15 @@ cd LinguaFrame
 ./mvnw test
 ```
 
-After the root runtime is added, expected commands should become:
+Local Docker runtime commands:
 
 ```bash
-docker compose config
-docker compose up --build
+docker compose --env-file .env.example config
+docker compose --env-file .env.example build linguaframe-backend
+docker compose --env-file .env.example up
 ```
+
+The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, and the Spring Boot backend. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
 
 ## Runtime Configuration
 

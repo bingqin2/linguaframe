@@ -1,0 +1,13 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: LinguaFrame
+
+linguaframe:
+  storage:
+    endpoint: ${MINIO_ENDPOINT:http://minio:9000}
+    bucket: ${MINIO_BUCKET:linguaframe-artifacts}
+    access-key: ${MINIO_ROOT_USER:linguaframe}
+    secret-key: ${MINIO_ROOT_PASSWORD:}

@@ -114,3 +114,26 @@ Notes:
 
 - This slice intentionally did not add application API controllers.
 - Future upload/job APIs should appear in the generated OpenAPI document automatically.
+
+## 2026-06-25
+
+Work:
+
+- Added root Docker Compose runtime skeleton for MySQL, Redis, RabbitMQ, MinIO, and the backend.
+- Added `.env.example` with local development placeholders.
+- Added backend multi-stage Dockerfile using Java 21.
+- Added Docker Spring profile placeholders for container runtime.
+- Documented local Docker runtime commands in `README.md`.
+
+Validation:
+
+- `docker compose config` failed before implementation because no root Compose file existed.
+- `docker compose --env-file .env.example config --services` returned `minio`, `mysql`, `rabbitmq`, `redis`, and `linguaframe-backend`.
+- `docker compose --env-file .env.example config` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed and built `linguaframe-linguaframe-backend:latest`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with `Tests run: 6, Failures: 0, Errors: 0`.
+
+Notes:
+
+- This slice intentionally did not add database migrations, storage client code, queue consumers, upload APIs, or worker behavior.
+- Real local secrets should live in `.env`, which is ignored by git.
