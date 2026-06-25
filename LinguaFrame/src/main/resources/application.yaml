@@ -8,6 +8,11 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:linguaframe}
+    password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
   servlet:
     multipart:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:100MB}
@@ -28,8 +33,11 @@ linguaframe:
     max-file-size-mb: ${LINGUAFRAME_MEDIA_MAX_FILE_SIZE_MB:100}
     max-duration-seconds: ${LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS:120}
   worker:
-    max-retries: 2
-    stage-timeout-seconds: 600
+    max-retries: ${LINGUAFRAME_WORKER_MAX_RETRIES:2}
+    stage-timeout-seconds: ${LINGUAFRAME_WORKER_STAGE_TIMEOUT_SECONDS:600}
+    dispatch-enabled: ${LINGUAFRAME_WORKER_DISPATCH_ENABLED:false}
+    dispatch-batch-size: ${LINGUAFRAME_WORKER_DISPATCH_BATCH_SIZE:10}
+    dispatch-interval-ms: ${LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS:5000}
   cost:
     enabled: true
   database:
@@ -46,6 +54,9 @@ linguaframe:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:linguaframe}
     password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
+    job-exchange: ${RABBITMQ_JOB_EXCHANGE:linguaframe.jobs}
+    job-queue: ${RABBITMQ_JOB_QUEUE:linguaframe.localization.jobs}
+    job-routing-key: ${RABBITMQ_JOB_ROUTING_KEY:localization.queued}
   storage:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
     bucket: ${MINIO_BUCKET:linguaframe-artifacts}

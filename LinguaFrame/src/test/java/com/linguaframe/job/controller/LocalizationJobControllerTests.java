@@ -1,7 +1,11 @@
 package com.linguaframe.job.controller;
 
+import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
+import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
@@ -33,8 +37,11 @@ class LocalizationJobControllerTests {
     @Autowired
     private LocalizationJobRepository jobRepository;
 
+    @Autowired
+    private JobDispatchEventRepository dispatchEventRepository;
+
     @Test
-    void returnsQueuedLocalizationJob() throws Exception {
+    void returnsQueuedLocalizationJobWithDispatchState() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T15:00:00Z");
         videoRepository.save(new VideoRecord(
                 "job-controller-video",
@@ -52,13 +59,57 @@ class LocalizationJobControllerTests {
                 LocalizationJobStatus.QUEUED,
                 createdAt
         ));
+        dispatchEventRepository.save(new JobDispatchEventRecord(
+                "job-controller-dispatch-event",
+                "job-controller-job",
+                JobDispatchEventType.LOCALIZATION_JOB_QUEUED,
+                "{\"jobId\":\"job-controller-job\"}",
+                JobDispatchEventStatus.PENDING,
+                0,
+                createdAt,
+                null,
+                null,
+                createdAt,
+                createdAt
+        ));
 
         mockMvc.perform(get("/api/jobs/{jobId}", "job-controller-job"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobId").value("job-controller-job"))
                 .andExpect(jsonPath("$.videoId").value("job-controller-video"))
                 .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
-                .andExpect(jsonPath("$.status").value("QUEUED"));
+                .andExpect(jsonPath("$.status").value("QUEUED"))
+                .andExpect(jsonPath("$.dispatchStatus").value("PENDING"))
+                .andExpect(jsonPath("$.dispatchAttempts").value(0))
+                .andExpect(jsonPath("$.dispatchedAt").doesNotExist());
+    }
+
+    @Test
+    void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
+        videoRepository.save(new VideoRecord(
+                "job-controller-video-no-dispatch",
+                "sample.mp4",
+                "video/mp4",
+                123L,
+                "source-videos/job-controller-video-no-dispatch/sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-job-no-dispatch",
+                "job-controller-video-no-dispatch",
+                "zh-CN",
+                LocalizationJobStatus.QUEUED,
+                createdAt
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}", "job-controller-job-no-dispatch"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-no-dispatch"))
+                .andExpect(jsonPath("$.dispatchStatus").doesNotExist())
+                .andExpect(jsonPath("$.dispatchAttempts").value(0))
+                .andExpect(jsonPath("$.dispatchedAt").doesNotExist());
     }
 
     @Test

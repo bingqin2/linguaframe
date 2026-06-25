@@ -6,3 +6,12 @@ spring:
     driver-class-name: org.h2.Driver
   flyway:
     enabled: true
+
+management:
+  health:
+    rabbit:
+      enabled: false
+
+linguaframe:
+  worker:
+    dispatch-enabled: false

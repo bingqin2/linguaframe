@@ -3,6 +3,7 @@ package com.linguaframe.media.service.impl;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
@@ -32,17 +33,20 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final ObjectStorageService objectStorageService;
     private final VideoRepository videoRepository;
     private final LocalizationJobRepository jobRepository;
+    private final JobDispatchOutboxService dispatchOutboxService;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
             ObjectStorageService objectStorageService,
             VideoRepository videoRepository,
-            LocalizationJobRepository jobRepository
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
         this.videoRepository = videoRepository;
         this.jobRepository = jobRepository;
+        this.dispatchOutboxService = dispatchOutboxService;
     }
 
     @Override
@@ -71,7 +75,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             throw new IllegalStateException("Failed to store source video.", ex);
         }
 
-        videoRepository.save(new VideoRecord(
+        VideoRecord video = new VideoRecord(
                 videoId,
                 filename,
                 validation.contentType(),
@@ -79,14 +83,17 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 objectKey,
                 MediaUploadStatus.UPLOADED,
                 createdAt
-        ));
-        jobRepository.save(new LocalizationJobRecord(
+        );
+        LocalizationJobRecord job = new LocalizationJobRecord(
                 jobId,
                 videoId,
                 normalizedTargetLanguage,
                 LocalizationJobStatus.QUEUED,
                 createdAt
-        ));
+        );
+        videoRepository.save(video);
+        jobRepository.save(job);
+        dispatchOutboxService.enqueueLocalizationJobQueued(video, job);
 
         return new MediaUploadVo(
                 videoId,

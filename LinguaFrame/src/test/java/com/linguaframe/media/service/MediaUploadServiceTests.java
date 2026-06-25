@@ -1,8 +1,13 @@
 package com.linguaframe.media.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
+import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.impl.JobDispatchOutboxServiceImpl;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.repository.VideoRepository;
@@ -33,6 +38,12 @@ class MediaUploadServiceTests {
     @Autowired
     private LocalizationJobRepository jobRepository;
 
+    @Autowired
+    private JobDispatchEventRepository dispatchEventRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void createsDurableVideoAndQueuedJob() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
@@ -40,7 +51,8 @@ class MediaUploadServiceTests {
                 new MediaUploadValidationServiceImpl(properties),
                 storageService,
                 videoRepository,
-                jobRepository
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
         );
         MockMultipartFile file = new MockMultipartFile("file", "C:\\tmp\\demo.mp4", "video/mp4", new byte[] {1, 2, 3});
 
@@ -57,6 +69,17 @@ class MediaUploadServiceTests {
         assertThat(storageService.lastCommand.objectKey()).isEqualTo(result.sourceObjectKey());
         assertThat(videoRepository.findById(result.videoId())).isPresent();
         assertThat(jobRepository.findById(result.jobId())).isPresent();
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .isPresent()
+                .get()
+                .satisfies(event -> {
+                    assertThat(event.status()).isEqualTo(JobDispatchEventStatus.PENDING);
+                    assertThat(event.eventType()).isEqualTo(JobDispatchEventType.LOCALIZATION_JOB_QUEUED);
+                    assertThat(event.payloadJson())
+                            .contains(result.jobId())
+                            .contains(result.videoId())
+                            .contains(result.sourceObjectKey());
+                });
     }
 
     @Test
@@ -66,7 +89,8 @@ class MediaUploadServiceTests {
                 new MediaUploadValidationServiceImpl(properties),
                 storageService,
                 videoRepository,
-                jobRepository
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
         );
         MockMultipartFile file = new MockMultipartFile("file", "notes.txt", "text/plain", new byte[] {1});
 
@@ -83,7 +107,8 @@ class MediaUploadServiceTests {
                 new MediaUploadValidationServiceImpl(properties),
                 storageService,
                 videoRepository,
-                jobRepository
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
         );
         MockMultipartFile file = new MockMultipartFile("file", "demo.mp4", "video/mp4", new byte[] {1});
 

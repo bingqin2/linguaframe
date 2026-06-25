@@ -27,6 +27,9 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getMedia().getMaxDurationSeconds()).isEqualTo(120);
         assertThat(properties.getWorker().getMaxRetries()).isEqualTo(2);
         assertThat(properties.getWorker().getStageTimeoutSeconds()).isEqualTo(600);
+        assertThat(properties.getWorker().isDispatchEnabled()).isFalse();
+        assertThat(properties.getWorker().getDispatchBatchSize()).isEqualTo(10);
+        assertThat(properties.getWorker().getDispatchIntervalMs()).isEqualTo(5000L);
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
@@ -39,6 +42,9 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getRabbitmq().getPort()).isEqualTo(5672);
         assertThat(properties.getRabbitmq().getUsername()).isEqualTo("linguaframe");
         assertThat(properties.getRabbitmq().getPassword()).isEqualTo("linguaframe_dev_password");
+        assertThat(properties.getRabbitmq().getJobExchange()).isEqualTo("linguaframe.jobs");
+        assertThat(properties.getRabbitmq().getJobQueue()).isEqualTo("linguaframe.localization.jobs");
+        assertThat(properties.getRabbitmq().getJobRoutingKey()).isEqualTo("localization.queued");
         assertThat(properties.getStorage().getEndpoint()).isEqualTo("http://localhost:9000");
         assertThat(properties.getStorage().getBucket()).isEqualTo("linguaframe-artifacts");
         assertThat(properties.getStorage().getAccessKey()).isEqualTo("linguaframe");
@@ -51,7 +57,9 @@ class LinguaFramePropertiesTests {
                 .withPropertyValues(
                         "linguaframe.media.max-file-size-mb=0",
                         "linguaframe.worker.max-retries=-1",
-                        "linguaframe.worker.stage-timeout-seconds=0"
+                        "linguaframe.worker.stage-timeout-seconds=0",
+                        "linguaframe.worker.dispatch-batch-size=0",
+                        "linguaframe.worker.dispatch-interval-ms=0"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
@@ -74,6 +82,9 @@ class LinguaFramePropertiesTests {
                         "linguaframe.rabbitmq.port=0",
                         "linguaframe.rabbitmq.username=",
                         "linguaframe.rabbitmq.password=",
+                        "linguaframe.rabbitmq.job-exchange=",
+                        "linguaframe.rabbitmq.job-queue=",
+                        "linguaframe.rabbitmq.job-routing-key=",
                         "linguaframe.storage.endpoint=",
                         "linguaframe.storage.bucket=",
                         "linguaframe.storage.access-key=",

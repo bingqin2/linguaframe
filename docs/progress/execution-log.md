@@ -197,3 +197,43 @@ Notes:
 
 - This slice intentionally does not publish RabbitMQ messages, run a worker, inspect video duration with FFmpeg, call OpenAI, generate subtitles, or create TTS output.
 - Controller tests replace object storage with a mock service; Docker Compose verification covers production wiring separately.
+
+## 2026-06-26
+
+Work:
+
+- Added Spring AMQP dependency and environment-backed RabbitMQ job routing configuration.
+- Added a durable `job_dispatch_events` outbox table and JDBC repository.
+- Wired media upload intake to create a pending localization dispatch event in the same transaction as the video and job records.
+- Added a RabbitMQ publisher boundary, durable direct exchange/queue/binding configuration, and conditional scheduled dispatcher.
+- Added dispatcher failure accounting for publisher errors and malformed payloads.
+- Extended `GET /api/jobs/{jobId}` with dispatch status, attempts, and dispatched timestamp visibility.
+- Added `mock-maker-subclass` test resource after Microsoft JDK 21 could not self-attach Mockito inline mock maker in this environment.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` initially failed in sandbox because Mockito inline self-attach could not initialize.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` passed after adding `mock-maker-subclass`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with escalation before feature implementation with `Tests run: 29, Failures: 0, Errors: 0`; escalation was required because `RANDOM_PORT` tests bind localhost sockets.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` failed before implementation because dispatch and RabbitMQ routing getters did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=UploadIntakeSchemaTests,JobDispatchEventRepositoryTests` failed before implementation because dispatch event domain types and repository did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=UploadIntakeSchemaTests,JobDispatchEventRepositoryTests` passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=MediaUploadServiceTests` failed before implementation because `MediaUploadServiceImpl` did not accept an outbox dependency.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=MediaUploadServiceTests,MediaUploadControllerTests` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=JobDispatchServiceTests,RabbitJobQueueConfigurationTests` failed before implementation because dispatcher and Rabbit topology types did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=JobDispatchServiceTests,RabbitJobQueueConfigurationTests` passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` failed before implementation because the job response did not include dispatch fields.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` failed during final verification because the test profile included the RabbitMQ health indicator and dispatcher tests shared H2 state; the test profile now disables Rabbit health and dispatcher tests clean their tables.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed after final fixes with `Tests run: 39, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed and built `linguaframe-linguaframe-backend:latest`.
+- `git diff --check` passed.
+
+Notes:
+
+- Upload success remains independent from RabbitMQ availability; RabbitMQ publishing is handled asynchronously from durable outbox state.
+- The dispatcher is enabled by default only in Docker runtime config and disabled in the test profile.
+- This slice intentionally does not execute media processing workers, FFmpeg, OpenAI, subtitles, or TTS.

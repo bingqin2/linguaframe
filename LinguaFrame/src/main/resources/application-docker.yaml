@@ -11,8 +11,19 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   flyway:
     enabled: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:linguaframe}
+    password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
 
 linguaframe:
+  worker:
+    max-retries: ${LINGUAFRAME_WORKER_MAX_RETRIES:2}
+    stage-timeout-seconds: ${LINGUAFRAME_WORKER_STAGE_TIMEOUT_SECONDS:600}
+    dispatch-enabled: ${LINGUAFRAME_WORKER_DISPATCH_ENABLED:true}
+    dispatch-batch-size: ${LINGUAFRAME_WORKER_DISPATCH_BATCH_SIZE:10}
+    dispatch-interval-ms: ${LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS:5000}
   database:
     host: ${MYSQL_HOST:mysql}
     port: ${MYSQL_PORT:3306}
@@ -27,6 +38,9 @@ linguaframe:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:linguaframe}
     password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
+    job-exchange: ${RABBITMQ_JOB_EXCHANGE:linguaframe.jobs}
+    job-queue: ${RABBITMQ_JOB_QUEUE:linguaframe.localization.jobs}
+    job-routing-key: ${RABBITMQ_JOB_ROUTING_KEY:localization.queued}
   storage:
     endpoint: ${MINIO_ENDPOINT:http://minio:9000}
     bucket: ${MINIO_BUCKET:linguaframe-artifacts}

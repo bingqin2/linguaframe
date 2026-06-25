@@ -97,6 +97,16 @@ public class LinguaFrameProperties {
         @Max(86400)
         private int stageTimeoutSeconds = 600;
 
+        private boolean dispatchEnabled = false;
+
+        @Min(1)
+        @Max(1000)
+        private int dispatchBatchSize = 10;
+
+        @Min(100)
+        @Max(600000)
+        private long dispatchIntervalMs = 5000L;
+
         public int getMaxRetries() {
             return maxRetries;
         }
@@ -111,6 +121,30 @@ public class LinguaFrameProperties {
 
         public void setStageTimeoutSeconds(int stageTimeoutSeconds) {
             this.stageTimeoutSeconds = stageTimeoutSeconds;
+        }
+
+        public boolean isDispatchEnabled() {
+            return dispatchEnabled;
+        }
+
+        public void setDispatchEnabled(boolean dispatchEnabled) {
+            this.dispatchEnabled = dispatchEnabled;
+        }
+
+        public int getDispatchBatchSize() {
+            return dispatchBatchSize;
+        }
+
+        public void setDispatchBatchSize(int dispatchBatchSize) {
+            this.dispatchBatchSize = dispatchBatchSize;
+        }
+
+        public long getDispatchIntervalMs() {
+            return dispatchIntervalMs;
+        }
+
+        public void setDispatchIntervalMs(long dispatchIntervalMs) {
+            this.dispatchIntervalMs = dispatchIntervalMs;
         }
     }
 
@@ -227,6 +261,15 @@ public class LinguaFrameProperties {
         @NotBlank
         private String password = "linguaframe_dev_password";
 
+        @NotBlank
+        private String jobExchange = "linguaframe.jobs";
+
+        @NotBlank
+        private String jobQueue = "linguaframe.localization.jobs";
+
+        @NotBlank
+        private String jobRoutingKey = "localization.queued";
+
         public String getHost() {
             return host;
         }
@@ -257,6 +300,30 @@ public class LinguaFrameProperties {
 
         public void setPassword(String password) {
             this.password = password;
+        }
+
+        public String getJobExchange() {
+            return jobExchange;
+        }
+
+        public void setJobExchange(String jobExchange) {
+            this.jobExchange = jobExchange;
+        }
+
+        public String getJobQueue() {
+            return jobQueue;
+        }
+
+        public void setJobQueue(String jobQueue) {
+            this.jobQueue = jobQueue;
+        }
+
+        public String getJobRoutingKey() {
+            return jobRoutingKey;
+        }
+
+        public void setJobRoutingKey(String jobRoutingKey) {
+            this.jobRoutingKey = jobRoutingKey;
         }
     }
 

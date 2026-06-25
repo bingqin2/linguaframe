@@ -31,8 +31,16 @@ class UploadIntakeSchemaTests {
                         """)
                 .query(Integer.class)
                 .single();
+        Integer dispatchEventTableCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_name = 'job_dispatch_events'
+                        """)
+                .query(Integer.class)
+                .single();
 
         assertThat(videoTableCount).isEqualTo(1);
         assertThat(jobTableCount).isEqualTo(1);
+        assertThat(dispatchEventTableCount).isEqualTo(1);
     }
 }

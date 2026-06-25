@@ -119,6 +119,9 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.media.max-duration-seconds`
 - `linguaframe.worker.max-retries`
 - `linguaframe.worker.stage-timeout-seconds`
+- `linguaframe.worker.dispatch-enabled`
+- `linguaframe.worker.dispatch-batch-size`
+- `linguaframe.worker.dispatch-interval-ms`
 - `linguaframe.cost.enabled`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
@@ -131,6 +134,9 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.rabbitmq.port`
 - `linguaframe.rabbitmq.username`
 - `linguaframe.rabbitmq.password`
+- `linguaframe.rabbitmq.job-exchange`
+- `linguaframe.rabbitmq.job-queue`
+- `linguaframe.rabbitmq.job-routing-key`
 - `linguaframe.storage.endpoint`
 - `linguaframe.storage.bucket`
 - `linguaframe.storage.access-key`
@@ -178,7 +184,24 @@ curl http://localhost:8080/api/media/uploads/{videoId}
 curl http://localhost:8080/api/jobs/{jobId}
 ```
 
-This intake slice does not start RabbitMQ workers, FFmpeg, OpenAI processing, subtitles, or TTS.
+## Job Queue Dispatch
+
+Successful uploads also create a durable `job_dispatch_events` outbox record in the same transaction as the video and job records. Upload success does not require RabbitMQ to be reachable.
+
+The Docker profile enables a scheduled dispatcher by default:
+
+```text
+LINGUAFRAME_WORKER_DISPATCH_ENABLED=true
+LINGUAFRAME_WORKER_DISPATCH_BATCH_SIZE=10
+LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS=5000
+RABBITMQ_JOB_EXCHANGE=linguaframe.jobs
+RABBITMQ_JOB_QUEUE=linguaframe.localization.jobs
+RABBITMQ_JOB_ROUTING_KEY=localization.queued
+```
+
+The dispatcher declares a durable direct exchange, queue, and binding, then publishes pending localization job messages asynchronously. `GET /api/jobs/{jobId}` includes `dispatchStatus`, `dispatchAttempts`, and `dispatchedAt` for operator visibility.
+
+This queue dispatch slice does not run a media worker, FFmpeg, OpenAI processing, subtitles, or TTS.
 
 ## Resume Target
 
