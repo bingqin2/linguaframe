@@ -8,12 +8,16 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
 class OpenApiDocumentationTests {
 
     @LocalServerPort
@@ -38,6 +42,19 @@ class OpenApiDocumentationTests {
         assertThat(info.get("title")).isEqualTo("LinguaFrame API");
         assertThat(info.get("version")).isEqualTo("0.0.1");
         assertThat((String) info.get("description")).contains("video localization");
+
+        assertThat(body.get("paths")).isInstanceOf(Map.class);
+        Map<?, ?> paths = (Map<?, ?>) body.get("paths");
+        Set<String> pathNames = paths.keySet().stream()
+                .map(String::valueOf)
+                .collect(Collectors.toSet());
+        assertThat(pathNames)
+                .contains(
+                        "/api/media/uploads/validate",
+                        "/api/media/uploads",
+                        "/api/media/uploads/{videoId}",
+                        "/api/jobs/{jobId}"
+                );
     }
 
     @Test

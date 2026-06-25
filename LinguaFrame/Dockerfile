@@ -4,12 +4,9 @@ WORKDIR /workspace
 
 COPY pom.xml pom.xml
 COPY LinguaFrame/pom.xml LinguaFrame/pom.xml
-
-RUN mvn -pl LinguaFrame -am dependency:go-offline -DskipTests
-
 COPY LinguaFrame/src LinguaFrame/src
 
-RUN mvn -pl LinguaFrame -am package -DskipTests
+RUN mvn -pl LinguaFrame -am package -Dmaven.test.skip=true
 
 FROM eclipse-temurin:21-jre
 

@@ -162,6 +162,24 @@ curl http://localhost:8080/api/runtime/dependencies
 
 The response includes MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. It intentionally excludes passwords, access keys, and secret keys.
 
+## Media Upload Intake
+
+The backend can validate and accept a source video upload:
+
+```bash
+curl -F "file=@sample.mp4" http://localhost:8080/api/media/uploads/validate
+curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" http://localhost:8080/api/media/uploads
+```
+
+Successful uploads store the source video in object storage, create a durable `UPLOADED` video record, and create a `QUEUED` localization job:
+
+```bash
+curl http://localhost:8080/api/media/uploads/{videoId}
+curl http://localhost:8080/api/jobs/{jobId}
+```
+
+This intake slice does not start RabbitMQ workers, FFmpeg, OpenAI processing, subtitles, or TTS.
+
 ## Resume Target
 
 ```text

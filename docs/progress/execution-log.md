@@ -163,3 +163,37 @@ Notes:
 
 - This slice intentionally did not open network connections to MySQL, Redis, RabbitMQ, or MinIO.
 - The runtime summary endpoint must remain secret-free as more providers are added.
+
+## 2026-06-25
+
+Work:
+
+- Added JDBC, Flyway, MySQL runtime, H2 test, and MinIO client dependencies for upload intake.
+- Added Flyway schema for `videos` and `localization_jobs`.
+- Added repositories for durable upload and queued localization job records.
+- Added media upload validation, object storage boundary, MinIO storage implementation, and upload orchestration.
+- Added `POST /api/media/uploads/validate`, `POST /api/media/uploads`, `GET /api/media/uploads/{videoId}`, and `GET /api/jobs/{jobId}`.
+- Documented upload limit environment variables and media upload intake commands.
+- Simplified the backend Dockerfile package path after `dependency:go-offline` proved too expensive for container verification.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed before implementation with `Tests run: 9, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=UploadIntakeSchemaTests` failed before implementation because Spring JDBC `JdbcClient` was missing.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=UploadIntakeSchemaTests` passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='*RepositoryTests'` failed before implementation because repository records, enums, and repositories did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='*RepositoryTests'` passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='MediaUpload*ServiceTests'` failed before implementation because validation, storage, and upload service types did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='MediaUpload*ServiceTests'` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='MediaUploadControllerTests,LocalizationJobControllerTests,OpenApiDocumentationTests'` failed before implementation because upload and job API paths returned `404`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest='MediaUploadControllerTests,LocalizationJobControllerTests,OpenApiDocumentationTests'` passed with `Tests run: 9, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed after implementation with `Tests run: 29, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` was interrupted after the original Dockerfile spent over nine minutes in `dependency:go-offline` dependency resolution without reaching package.
+- `docker compose --env-file .env.example build linguaframe-backend` passed after simplifying the Dockerfile and built `linguaframe-linguaframe-backend:latest`.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice intentionally does not publish RabbitMQ messages, run a worker, inspect video duration with FFmpeg, call OpenAI, generate subtitles, or create TTS output.
+- Controller tests replace object storage with a mock service; Docker Compose verification covers production wiring separately.

@@ -1,6 +1,17 @@
 spring:
   application:
     name: LinguaFrame
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:linguaframe}?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+    username: ${MYSQL_USER:linguaframe}
+    password: ${MYSQL_PASSWORD:linguaframe_dev_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:100MB}
+      max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:100MB}
 
 management:
   endpoints:
@@ -14,8 +25,8 @@ management:
 
 linguaframe:
   media:
-    max-file-size-mb: 100
-    max-duration-seconds: 120
+    max-file-size-mb: ${LINGUAFRAME_MEDIA_MAX_FILE_SIZE_MB:100}
+    max-duration-seconds: ${LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS:120}
   worker:
     max-retries: 2
     stage-timeout-seconds: 600

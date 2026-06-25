@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: LinguaFrame
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:linguaframe}?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC
+    username: ${MYSQL_USER:linguaframe}
+    password: ${MYSQL_PASSWORD:linguaframe_dev_password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
 
 linguaframe:
   database:
