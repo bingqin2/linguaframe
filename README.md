@@ -106,6 +106,20 @@ docker compose config
 docker compose up --build
 ```
 
+## Runtime Configuration
+
+Default backend configuration lives in `LinguaFrame/src/main/resources/application.yaml`. Local development overrides live in `LinguaFrame/src/main/resources/application-local.yaml`.
+
+The current `linguaframe` configuration surface is bound to `LinguaFrameProperties`:
+
+- `linguaframe.media.max-file-size-mb`
+- `linguaframe.media.max-duration-seconds`
+- `linguaframe.worker.max-retries`
+- `linguaframe.worker.stage-timeout-seconds`
+- `linguaframe.cost.enabled`
+
+Do not commit API keys, storage credentials, database passwords, or provider secrets.
+
 ## Resume Target
 
 ```text

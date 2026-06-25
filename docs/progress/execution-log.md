@@ -74,3 +74,23 @@ Validation:
 Notes:
 
 - This slice intentionally did not add database, queue, object storage, OpenAI, Docker, frontend, upload, or worker behavior.
+
+## 2026-06-25
+
+Work:
+
+- Added typed `LinguaFrameProperties` binding for media, worker, and cost configuration.
+- Enabled configuration properties scanning from the Spring Boot application entry point.
+- Added validation coverage for invalid numeric runtime settings.
+- Documented the current runtime configuration surface in `README.md`.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` failed before implementation with `cannot find symbol` for `LinguaFrameProperties`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with `Tests run: 4, Failures: 0, Errors: 0`.
+
+Notes:
+
+- This slice intentionally did not add external service dependencies or upload/worker behavior.
+- Future upload validation should consume `LinguaFrameProperties.Media` instead of duplicating media limits.
