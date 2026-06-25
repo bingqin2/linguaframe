@@ -94,3 +94,23 @@ Notes:
 
 - This slice intentionally did not add external service dependencies or upload/worker behavior.
 - Future upload validation should consume `LinguaFrameProperties.Media` instead of duplicating media limits.
+
+## 2026-06-25
+
+Work:
+
+- Added Springdoc OpenAPI Web MVC UI dependency using version `2.8.17`.
+- Added `OpenApiConfiguration` with LinguaFrame API title, version, and description.
+- Added HTTP coverage for `/v3/api-docs` and `/swagger-ui/index.html`.
+- Documented local API documentation URLs in `README.md`.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=OpenApiDocumentationTests` failed before implementation because the documentation endpoints returned `404 NOT_FOUND`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=OpenApiDocumentationTests` passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with `Tests run: 6, Failures: 0, Errors: 0`.
+
+Notes:
+
+- This slice intentionally did not add application API controllers.
+- Future upload/job APIs should appear in the generated OpenAPI document automatically.

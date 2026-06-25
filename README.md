@@ -120,6 +120,20 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 
 Do not commit API keys, storage credentials, database passwords, or provider secrets.
 
+## API Documentation
+
+When the backend is running, OpenAPI documentation is available at:
+
+```bash
+curl http://localhost:8080/v3/api-docs
+```
+
+Swagger UI is available in the browser:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
 ## Resume Target
 
 ```text
