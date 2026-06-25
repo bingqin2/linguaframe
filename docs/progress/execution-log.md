@@ -56,3 +56,21 @@ Validation:
 Notes:
 
 - This slice restores root-level Maven commands without reintroducing the earlier no-op root build.
+
+## 2026-06-25
+
+Work:
+
+- Added backend runtime foundation dependencies for Web, Validation, and Actuator.
+- Added actuator health coverage through `ActuatorHealthTests`.
+- Added base and local Spring configuration using the `linguaframe` prefix.
+- Documented root-level test, run, and health-check commands.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=ActuatorHealthTests` passed.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with `Tests run: 2, Failures: 0, Errors: 0`.
+
+Notes:
+
+- This slice intentionally did not add database, queue, object storage, OpenAI, Docker, frontend, upload, or worker behavior.

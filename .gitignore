@@ -30,8 +30,10 @@ logs/
 .env.*
 !.env.example
 *.local
-application-local.yaml
-application-local.yml
+application-*.local.yaml
+application-*.local.yml
+application-secret.yaml
+application-secret.yml
 
 # Temporary files
 tmp/

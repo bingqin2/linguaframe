@@ -87,7 +87,10 @@ Run Maven commands from the repository root:
 ```bash
 mvn test
 mvn -pl LinguaFrame spring-boot:run
+curl http://localhost:8080/actuator/health
 ```
+
+The health endpoint should return a JSON body with `"status":"UP"` once the backend is running.
 
 If root Maven is unavailable, the backend module can still be run directly:
 

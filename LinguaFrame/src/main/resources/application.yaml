@@ -1,3 +1,23 @@
 spring:
   application:
     name: LinguaFrame
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+linguaframe:
+  media:
+    max-file-size-mb: 100
+    max-duration-seconds: 120
+  worker:
+    max-retries: 2
+    stage-timeout-seconds: 600
+  cost:
+    enabled: true
