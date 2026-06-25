@@ -237,3 +237,34 @@ Notes:
 - Upload success remains independent from RabbitMQ availability; RabbitMQ publishing is handled asynchronously from durable outbox state.
 - The dispatcher is enabled by default only in Docker runtime config and disabled in the test profile.
 - This slice intentionally does not execute media processing workers, FFmpeg, OpenAI, subtitles, or TTS.
+
+## 2026-06-26
+
+Work:
+
+- Added worker execution configuration and Docker/runtime environment wiring.
+- Added durable job execution fields, retry count, and `job_timeline_events` through Flyway V3.
+- Added job execution service, smoke pipeline stage, and RabbitMQ worker listener gated by `linguaframe.worker.execution-enabled`.
+- Extended `GET /api/jobs/{jobId}` with execution metadata and ordered timeline events.
+- Added `POST /api/jobs/{jobId}/retry` for failed jobs, including retry state reset and a new pending dispatch event.
+- Updated README worker lifecycle documentation and plan status.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed before implementation with `Tests run: 39, Failures: 0, Errors: 0`; escalation was required because `RANDOM_PORT` tests bind localhost sockets.
+- `mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` passed after adding worker execution properties.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_WORKER_EXECUTION_ENABLED=true`.
+- `mvn -pl LinguaFrame test -Dtest=UploadIntakeSchemaTests,LocalizationJobRepositoryTests,JobTimelineEventRepositoryTests` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobExecutionServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobWorkerTests` passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` first failed because job reads omitted `retryCount` and failure fields, and `POST /api/jobs/{jobId}/retry` returned `404`; it passed after API implementation with `Tests run: 6, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=JobTimelineEventRepositoryTests` first failed because SQL `NULL duration_ms` mapped to `0`; it passed after fixing `ResultSet#wasNull` ordering.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed after implementation with `Tests run: 54, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed and built `linguaframe-linguaframe-backend:latest`.
+- `git diff --check` passed.
+
+Notes:
+
+- The worker lifecycle is observable and retryable, but still uses a deterministic smoke stage only.
+- This slice intentionally does not run FFmpeg, OpenAI calls, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.

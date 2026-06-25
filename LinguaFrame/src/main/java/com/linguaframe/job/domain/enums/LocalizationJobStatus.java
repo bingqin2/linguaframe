@@ -2,5 +2,10 @@ package com.linguaframe.job.domain.enums;
 
 public enum LocalizationJobStatus {
 
-    QUEUED
+    QUEUED,
+    RETRYING,
+    PROCESSING,
+    COMPLETED,
+    FAILED,
+    CANCELLED
 }

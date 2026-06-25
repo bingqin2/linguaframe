@@ -122,6 +122,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.worker.dispatch-enabled`
 - `linguaframe.worker.dispatch-batch-size`
 - `linguaframe.worker.dispatch-interval-ms`
+- `linguaframe.worker.execution-enabled`
+- `linguaframe.worker.smoke-stage-duration-ms`
 - `linguaframe.cost.enabled`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
@@ -199,9 +201,30 @@ RABBITMQ_JOB_QUEUE=linguaframe.localization.jobs
 RABBITMQ_JOB_ROUTING_KEY=localization.queued
 ```
 
-The dispatcher declares a durable direct exchange, queue, and binding, then publishes pending localization job messages asynchronously. `GET /api/jobs/{jobId}` includes `dispatchStatus`, `dispatchAttempts`, and `dispatchedAt` for operator visibility.
+The dispatcher declares a durable direct exchange, queue, and binding, then publishes pending localization job messages asynchronously.
 
-This queue dispatch slice does not run a media worker, FFmpeg, OpenAI processing, subtitles, or TTS.
+## Worker Execution Lifecycle
+
+The Docker profile enables a RabbitMQ worker listener by default:
+
+```text
+LINGUAFRAME_WORKER_EXECUTION_ENABLED=true
+LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS=0
+```
+
+The worker consumes queued localization messages, claims only `QUEUED` or `RETRYING` jobs, runs a deterministic smoke stage, records timeline events, and marks jobs `COMPLETED` or `FAILED`. Local and test profiles keep worker execution disabled unless explicitly overridden.
+
+`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
+
+Failed jobs can be retried:
+
+```bash
+curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
+```
+
+Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
+
+This worker execution MVP does not run FFmpeg, OpenAI processing, subtitle generation, or TTS. The smoke stage exists to prove the queue-to-worker lifecycle before real media stages are added.
 
 ## Resume Target
 

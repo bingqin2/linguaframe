@@ -38,9 +38,34 @@ class UploadIntakeSchemaTests {
                         """)
                 .query(Integer.class)
                 .single();
+        Integer timelineEventTableCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM information_schema.tables
+                        WHERE table_name = 'job_timeline_events'
+                        """)
+                .query(Integer.class)
+                .single();
+        Integer executionColumnCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM information_schema.columns
+                        WHERE table_name = 'localization_jobs'
+                          AND column_name IN (
+                              'started_at',
+                              'completed_at',
+                              'failed_at',
+                              'failure_stage',
+                              'failure_reason',
+                              'retry_count',
+                              'updated_at'
+                          )
+                        """)
+                .query(Integer.class)
+                .single();
 
         assertThat(videoTableCount).isEqualTo(1);
         assertThat(jobTableCount).isEqualTo(1);
         assertThat(dispatchEventTableCount).isEqualTo(1);
+        assertThat(timelineEventTableCount).isEqualTo(1);
+        assertThat(executionColumnCount).isEqualTo(7);
     }
 }

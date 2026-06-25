@@ -30,6 +30,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().isDispatchEnabled()).isFalse();
         assertThat(properties.getWorker().getDispatchBatchSize()).isEqualTo(10);
         assertThat(properties.getWorker().getDispatchIntervalMs()).isEqualTo(5000L);
+        assertThat(properties.getWorker().isExecutionEnabled()).isFalse();
+        assertThat(properties.getWorker().getSmokeStageDurationMs()).isEqualTo(0L);
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
@@ -59,7 +61,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.max-retries=-1",
                         "linguaframe.worker.stage-timeout-seconds=0",
                         "linguaframe.worker.dispatch-batch-size=0",
-                        "linguaframe.worker.dispatch-interval-ms=0"
+                        "linguaframe.worker.dispatch-interval-ms=0",
+                        "linguaframe.worker.smoke-stage-duration-ms=-1"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();

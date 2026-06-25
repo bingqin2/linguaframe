@@ -107,6 +107,12 @@ public class LinguaFrameProperties {
         @Max(600000)
         private long dispatchIntervalMs = 5000L;
 
+        private boolean executionEnabled = false;
+
+        @Min(0)
+        @Max(60000)
+        private long smokeStageDurationMs = 0L;
+
         public int getMaxRetries() {
             return maxRetries;
         }
@@ -145,6 +151,22 @@ public class LinguaFrameProperties {
 
         public void setDispatchIntervalMs(long dispatchIntervalMs) {
             this.dispatchIntervalMs = dispatchIntervalMs;
+        }
+
+        public boolean isExecutionEnabled() {
+            return executionEnabled;
+        }
+
+        public void setExecutionEnabled(boolean executionEnabled) {
+            this.executionEnabled = executionEnabled;
+        }
+
+        public long getSmokeStageDurationMs() {
+            return smokeStageDurationMs;
+        }
+
+        public void setSmokeStageDurationMs(long smokeStageDurationMs) {
+            this.smokeStageDurationMs = smokeStageDurationMs;
         }
     }
 

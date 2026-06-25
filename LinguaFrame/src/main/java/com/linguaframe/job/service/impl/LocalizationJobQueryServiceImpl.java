@@ -1,9 +1,12 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
+import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
+import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import org.springframework.stereotype.Service;
@@ -15,13 +18,16 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
 
     private final LocalizationJobRepository jobRepository;
     private final JobDispatchEventRepository dispatchEventRepository;
+    private final JobTimelineEventRepository timelineEventRepository;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
-            JobDispatchEventRepository dispatchEventRepository
+            JobDispatchEventRepository dispatchEventRepository,
+            JobTimelineEventRepository timelineEventRepository
     ) {
         this.jobRepository = jobRepository;
         this.dispatchEventRepository = dispatchEventRepository;
+        this.timelineEventRepository = timelineEventRepository;
     }
 
     @Override
@@ -35,9 +41,30 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 record.targetLanguage(),
                 record.status(),
                 record.createdAt(),
+                record.startedAt(),
+                record.completedAt(),
+                record.failedAt(),
+                record.failureStage(),
+                record.failureReason(),
+                record.retryCount(),
                 dispatchEvent == null ? null : dispatchEvent.status(),
                 dispatchEvent == null ? 0 : dispatchEvent.attempts(),
-                dispatchEvent == null ? null : dispatchEvent.dispatchedAt()
+                dispatchEvent == null ? null : dispatchEvent.dispatchedAt(),
+                timelineEventRepository.findByJobId(jobId).stream()
+                        .map(this::toTimelineEventVo)
+                        .toList()
+        );
+    }
+
+    private JobTimelineEventVo toTimelineEventVo(JobTimelineEventRecord record) {
+        return new JobTimelineEventVo(
+                record.id(),
+                record.stage(),
+                record.status(),
+                record.message(),
+                record.durationMs(),
+                record.errorSummary(),
+                record.occurredAt()
         );
     }
 }

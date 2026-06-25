@@ -1,5 +1,6 @@
 package com.linguaframe.common.error;
 
+import com.linguaframe.job.domain.exception.JobStateConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +21,12 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiErrorVo> handleInvalidUpload(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ApiErrorVo("UPLOAD_VALIDATION_FAILED", ex.getMessage()));
+    }
+
+    @ExceptionHandler(JobStateConflictException.class)
+    public ResponseEntity<ApiErrorVo> handleJobConflict(JobStateConflictException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiErrorVo("CONFLICT", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
