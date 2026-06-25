@@ -6,3 +6,27 @@ linguaframe:
   media:
     max-file-size-mb: 100
     max-duration-seconds: 120
+  worker:
+    max-retries: 2
+    stage-timeout-seconds: 600
+  cost:
+    enabled: true
+  database:
+    host: ${MYSQL_HOST:localhost}
+    port: ${MYSQL_PORT:3306}
+    name: ${MYSQL_DATABASE:linguaframe}
+    username: ${MYSQL_USER:linguaframe}
+    password: ${MYSQL_PASSWORD:linguaframe_dev_password}
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:linguaframe}
+    password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
+  storage:
+    endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
+    bucket: ${MINIO_BUCKET:linguaframe-artifacts}
+    access-key: ${MINIO_ROOT_USER:linguaframe}
+    secret-key: ${MINIO_ROOT_PASSWORD:linguaframe_minio_password}

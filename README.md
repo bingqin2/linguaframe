@@ -120,6 +120,21 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.worker.max-retries`
 - `linguaframe.worker.stage-timeout-seconds`
 - `linguaframe.cost.enabled`
+- `linguaframe.database.host`
+- `linguaframe.database.port`
+- `linguaframe.database.name`
+- `linguaframe.database.username`
+- `linguaframe.database.password`
+- `linguaframe.redis.host`
+- `linguaframe.redis.port`
+- `linguaframe.rabbitmq.host`
+- `linguaframe.rabbitmq.port`
+- `linguaframe.rabbitmq.username`
+- `linguaframe.rabbitmq.password`
+- `linguaframe.storage.endpoint`
+- `linguaframe.storage.bucket`
+- `linguaframe.storage.access-key`
+- `linguaframe.storage.secret-key`
 
 Do not commit API keys, storage credentials, database passwords, or provider secrets.
 
@@ -136,6 +151,16 @@ Swagger UI is available in the browser:
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
+
+## Runtime Dependency Summary
+
+The backend exposes a non-secret dependency summary for local readiness checks:
+
+```bash
+curl http://localhost:8080/api/runtime/dependencies
+```
+
+The response includes MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. It intentionally excludes passwords, access keys, and secret keys.
 
 ## Resume Target
 

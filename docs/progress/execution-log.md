@@ -137,3 +137,29 @@ Notes:
 
 - This slice intentionally did not add database migrations, storage client code, queue consumers, upload APIs, or worker behavior.
 - Real local secrets should live in `.env`, which is ignored by git.
+
+## 2026-06-25
+
+Work:
+
+- Added typed runtime dependency configuration for MySQL, Redis, RabbitMQ, and MinIO.
+- Added a sanitized `GET /api/runtime/dependencies` endpoint.
+- Added test coverage for dependency configuration validation and secret-free runtime summary output.
+- Documented the new runtime configuration keys and summary endpoint.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed before implementation with `Tests run: 6, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` failed before implementation because dependency configuration getters did not exist.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=RuntimeDependencyControllerTests` failed before implementation because `/api/runtime/dependencies` returned `404 NOT_FOUND`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=RuntimeDependencyControllerTests` passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed after implementation with `Tests run: 9, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed and built `linguaframe-linguaframe-backend:latest`.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice intentionally did not open network connections to MySQL, Redis, RabbitMQ, or MinIO.
+- The runtime summary endpoint must remain secret-free as more providers are added.

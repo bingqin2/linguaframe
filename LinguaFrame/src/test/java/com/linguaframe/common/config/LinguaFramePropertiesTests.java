@@ -28,6 +28,21 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().getMaxRetries()).isEqualTo(2);
         assertThat(properties.getWorker().getStageTimeoutSeconds()).isEqualTo(600);
         assertThat(properties.getCost().isEnabled()).isTrue();
+        assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
+        assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
+        assertThat(properties.getDatabase().getName()).isEqualTo("linguaframe");
+        assertThat(properties.getDatabase().getUsername()).isEqualTo("linguaframe");
+        assertThat(properties.getDatabase().getPassword()).isEqualTo("linguaframe_dev_password");
+        assertThat(properties.getRedis().getHost()).isEqualTo("localhost");
+        assertThat(properties.getRedis().getPort()).isEqualTo(6379);
+        assertThat(properties.getRabbitmq().getHost()).isEqualTo("localhost");
+        assertThat(properties.getRabbitmq().getPort()).isEqualTo(5672);
+        assertThat(properties.getRabbitmq().getUsername()).isEqualTo("linguaframe");
+        assertThat(properties.getRabbitmq().getPassword()).isEqualTo("linguaframe_dev_password");
+        assertThat(properties.getStorage().getEndpoint()).isEqualTo("http://localhost:9000");
+        assertThat(properties.getStorage().getBucket()).isEqualTo("linguaframe-artifacts");
+        assertThat(properties.getStorage().getAccessKey()).isEqualTo("linguaframe");
+        assertThat(properties.getStorage().getSecretKey()).isEqualTo("linguaframe_minio_password");
     }
 
     @Test
@@ -37,6 +52,32 @@ class LinguaFramePropertiesTests {
                         "linguaframe.media.max-file-size-mb=0",
                         "linguaframe.worker.max-retries=-1",
                         "linguaframe.worker.stage-timeout-seconds=0"
+                )
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasMessageContaining("linguaframe");
+                });
+    }
+
+    @Test
+    void rejectsInvalidRuntimeDependencyProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.database.host=",
+                        "linguaframe.database.port=0",
+                        "linguaframe.database.name=",
+                        "linguaframe.database.username=",
+                        "linguaframe.database.password=",
+                        "linguaframe.redis.host=",
+                        "linguaframe.redis.port=70000",
+                        "linguaframe.rabbitmq.host=",
+                        "linguaframe.rabbitmq.port=0",
+                        "linguaframe.rabbitmq.username=",
+                        "linguaframe.rabbitmq.password=",
+                        "linguaframe.storage.endpoint=",
+                        "linguaframe.storage.bucket=",
+                        "linguaframe.storage.access-key=",
+                        "linguaframe.storage.secret-key="
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();

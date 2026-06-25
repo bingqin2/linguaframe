@@ -3,6 +3,7 @@ package com.linguaframe.common.config;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -19,6 +20,18 @@ public class LinguaFrameProperties {
     @Valid
     private final Cost cost = new Cost();
 
+    @Valid
+    private final Database database = new Database();
+
+    @Valid
+    private final Redis redis = new Redis();
+
+    @Valid
+    private final Rabbitmq rabbitmq = new Rabbitmq();
+
+    @Valid
+    private final Storage storage = new Storage();
+
     public Media getMedia() {
         return media;
     }
@@ -29,6 +42,22 @@ public class LinguaFrameProperties {
 
     public Cost getCost() {
         return cost;
+    }
+
+    public Database getDatabase() {
+        return database;
+    }
+
+    public Redis getRedis() {
+        return redis;
+    }
+
+    public Rabbitmq getRabbitmq() {
+        return rabbitmq;
+    }
+
+    public Storage getStorage() {
+        return storage;
     }
 
     public static class Media {
@@ -95,6 +124,186 @@ public class LinguaFrameProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+    }
+
+    public static class Database {
+
+        @NotBlank
+        private String host = "localhost";
+
+        @Min(1)
+        @Max(65535)
+        private int port = 3306;
+
+        @NotBlank
+        private String name = "linguaframe";
+
+        @NotBlank
+        private String username = "linguaframe";
+
+        @NotBlank
+        private String password = "linguaframe_dev_password";
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+
+    public static class Redis {
+
+        @NotBlank
+        private String host = "localhost";
+
+        @Min(1)
+        @Max(65535)
+        private int port = 6379;
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+    }
+
+    public static class Rabbitmq {
+
+        @NotBlank
+        private String host = "localhost";
+
+        @Min(1)
+        @Max(65535)
+        private int port = 5672;
+
+        @NotBlank
+        private String username = "linguaframe";
+
+        @NotBlank
+        private String password = "linguaframe_dev_password";
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+    }
+
+    public static class Storage {
+
+        @NotBlank
+        private String endpoint = "http://localhost:9000";
+
+        @NotBlank
+        private String bucket = "linguaframe-artifacts";
+
+        @NotBlank
+        private String accessKey = "linguaframe";
+
+        @NotBlank
+        private String secretKey = "linguaframe_minio_password";
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public void setEndpoint(String endpoint) {
+            this.endpoint = endpoint;
+        }
+
+        public String getBucket() {
+            return bucket;
+        }
+
+        public void setBucket(String bucket) {
+            this.bucket = bucket;
+        }
+
+        public String getAccessKey() {
+            return accessKey;
+        }
+
+        public void setAccessKey(String accessKey) {
+            this.accessKey = accessKey;
+        }
+
+        public String getSecretKey() {
+            return secretKey;
+        }
+
+        public void setSecretKey(String secretKey) {
+            this.secretKey = secretKey;
         }
     }
 }
