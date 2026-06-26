@@ -129,3 +129,11 @@ Decision: Add model-call audit records and configurable cost estimates before th
 Reason: Job detail needs durable usage data before React can honestly show model calls and estimated cost.
 
 Impact: Demo jobs now expose provider/model/status/latency and estimated cost, while budget enforcement and quality evaluation remain separate future slices.
+
+## 2026-06-26
+
+Decision: Build the first React demo as a Vite work surface that consumes existing backend APIs through a same-origin `/api` proxy.
+
+Reason: The backend already exposes upload, job detail, retry, transcript, subtitle, artifact, cost, and model-call data. Reusing those APIs keeps the frontend slice focused on demo usability instead of expanding backend query scope.
+
+Impact: The browser demo tracks recent jobs in local storage until a server-side job list endpoint is added. Docker Compose now includes a `linguaframe-frontend` service that proxies `/api` to the backend container.

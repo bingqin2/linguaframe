@@ -22,6 +22,14 @@ Wait until the backend health endpoint is up:
 curl http://localhost:8080/actuator/health
 ```
 
+Open the browser demo:
+
+```text
+http://localhost:5173
+```
+
+The React demo uploads videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
+
 ## Successful Job Demo
 
 In another terminal, run:

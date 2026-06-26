@@ -20,6 +20,7 @@
     "@testing-library/user-event": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest"
   }

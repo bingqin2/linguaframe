@@ -29,7 +29,7 @@ Planned repository shape:
 └── .env.example       # Local configuration template
 ```
 
-The current repository starts with the Spring Boot backend under `LinguaFrame/`. The frontend, Docker Compose runtime, and environment template are planned foundation work.
+The current repository starts with the Spring Boot backend under `LinguaFrame/` and a React demo frontend under `frontend/`.
 
 ## Target Stack
 
@@ -109,7 +109,25 @@ docker compose --env-file .env.example build linguaframe-backend
 docker compose --env-file .env.example up
 ```
 
-The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, and the Spring Boot backend. The backend image copies the locally packaged Spring Boot jar, so run the Maven package command before rebuilding the image. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
+The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, the Spring Boot backend, and the Vite frontend. The backend image copies the locally packaged Spring Boot jar, so run the Maven package command before rebuilding the backend image. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
+
+React demo frontend commands:
+
+```bash
+cd frontend
+npm install
+npm run dev
+npm run test:run
+npm run build
+```
+
+With Docker Compose running, open:
+
+```text
+http://localhost:5173
+```
+
+The frontend calls backend APIs through the Vite `/api` proxy. In Docker, `linguaframe-frontend` proxies to `http://linguaframe-backend:8080`; in local development it defaults to `http://localhost:8080`.
 
 ## Runtime Configuration
 

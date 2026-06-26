@@ -568,3 +568,27 @@ Final verification:
 - `mvn -pl LinguaFrame test` passed on branch `model-call-audit-cost-mvp` with `Tests run: 140, Failures: 0, Errors: 0`.
 - Merged `model-call-audit-cost-mvp` back to `main` with merge commit `3a1757e`.
 - `mvn -pl LinguaFrame test` passed on `main` after merge with `Tests run: 140, Failures: 0, Errors: 0`.
+
+## 2026-06-26
+
+Work:
+
+- Added a React + Vite + TypeScript browser demo under `frontend/`.
+- Added typed frontend API functions for upload, job detail, retry, transcript, subtitles, artifacts, and artifact download URLs.
+- Added browser-local recent job storage.
+- Built the demo work surface for upload, manual job open, polling, status/timeline, usage summary, model-call records, failed-job retry, transcript/subtitle previews, artifact downloads, and audio/video previews.
+- Added a Docker Compose `linguaframe-frontend` service with same-origin `/api` proxying to the backend container.
+
+Validation:
+
+- `mvn -pl LinguaFrame test` passed before implementation with `Tests run: 140, Failures: 0, Errors: 0`.
+- `npm run test:run -- linguaframeApi` first failed because `frontend/src/api/linguaframeApi.ts` did not exist, then passed with `Tests run: 5`.
+- `npm run test:run -- recentJobs` first failed because `frontend/src/domain/recentJobs.ts` did not exist, then passed with `Tests run: 4`.
+- `npm run test:run -- App` first failed because the placeholder App had no upload, job-open, polling, retry, preview, or artifact UI, then passed with `Tests run: 7`.
+- `npm run test:run` passed with `Tests run: 16`.
+- `npm run build` passed.
+
+Notes:
+
+- The frontend uses local storage for recent uploaded/opened jobs because the backend does not yet expose `GET /api/jobs`.
+- The first browser screen is the actual demo workspace, not a marketing page.
