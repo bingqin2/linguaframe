@@ -62,13 +62,17 @@ Expected:
 
 - The script uploads a tiny sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=1`.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=2`.
+- Output includes `EXTRACTED_AUDIO audio.wav`.
+- Output includes `WORKER_SUMMARY worker-summary.json`.
+- The script downloads `/tmp/linguaframe-demo/audio.wav`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
-Inspect the downloaded artifact:
+Inspect the downloaded artifacts:
 
 ```bash
+file /tmp/linguaframe-demo/audio.wav
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
@@ -155,11 +159,12 @@ Expected:
 
 - Docker stack starts with `docker compose --env-file .env.example up --build`.
 - `scripts/demo/docker-e2e-success.sh` prints `status=COMPLETED`.
-- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=1`.
+- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=2`.
+- `/tmp/linguaframe-demo/audio.wav` is downloaded.
 - `/tmp/linguaframe-demo/worker-summary.json` is downloaded.
 - Forced smoke-stage failure produces `status=FAILED`.
 - Retry after disabling failure produces `status=COMPLETED`.
-- Job timeline includes worker receive, smoke stage, artifact summary, and completion events.
+- Job timeline includes worker receive, smoke stage, audio extraction, artifact summary, and completion events.
 
 ## Upload Smoke Test
 

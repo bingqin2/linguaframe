@@ -43,6 +43,11 @@ linguaframe:
     smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
   cost:
     enabled: true
+  ffmpeg:
+    binary-path: ${LINGUAFRAME_FFMPEG_BINARY_PATH:ffmpeg}
+    audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:false}
+    audio-timeout-seconds: ${LINGUAFRAME_FFMPEG_AUDIO_TIMEOUT_SECONDS:120}
+    work-dir: ${LINGUAFRAME_FFMPEG_WORK_DIR:/tmp/linguaframe-media}
   database:
     host: ${MYSQL_HOST:localhost}
     port: ${MYSQL_PORT:3306}

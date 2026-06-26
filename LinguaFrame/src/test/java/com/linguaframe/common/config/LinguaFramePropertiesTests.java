@@ -52,6 +52,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getStorage().getBucket()).isEqualTo("linguaframe-artifacts");
         assertThat(properties.getStorage().getAccessKey()).isEqualTo("linguaframe");
         assertThat(properties.getStorage().getSecretKey()).isEqualTo("linguaframe_minio_password");
+        assertThat(properties.getFfmpeg().getBinaryPath()).isEqualTo("ffmpeg");
+        assertThat(properties.getFfmpeg().isAudioEnabled()).isFalse();
+        assertThat(properties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(120);
+        assertThat(properties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/linguaframe-media");
     }
 
     @Test
@@ -66,6 +70,25 @@ class LinguaFramePropertiesTests {
     }
 
     @Test
+    void bindsFfmpegRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.ffmpeg.binary-path=/usr/bin/ffmpeg",
+                        "linguaframe.ffmpeg.audio-enabled=true",
+                        "linguaframe.ffmpeg.audio-timeout-seconds=30",
+                        "linguaframe.ffmpeg.work-dir=/tmp/custom-media"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getFfmpeg().getBinaryPath()).isEqualTo("/usr/bin/ffmpeg");
+                    assertThat(boundProperties.getFfmpeg().isAudioEnabled()).isTrue();
+                    assertThat(boundProperties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(30);
+                    assertThat(boundProperties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/custom-media");
+                });
+    }
+
+    @Test
     void rejectsInvalidRuntimeProperties() {
         contextRunner
                 .withPropertyValues(
@@ -74,7 +97,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.stage-timeout-seconds=0",
                         "linguaframe.worker.dispatch-batch-size=0",
                         "linguaframe.worker.dispatch-interval-ms=0",
-                        "linguaframe.worker.smoke-stage-duration-ms=-1"
+                        "linguaframe.worker.smoke-stage-duration-ms=-1",
+                        "linguaframe.ffmpeg.audio-timeout-seconds=0"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
@@ -103,7 +127,9 @@ class LinguaFramePropertiesTests {
                         "linguaframe.storage.endpoint=",
                         "linguaframe.storage.bucket=",
                         "linguaframe.storage.access-key=",
-                        "linguaframe.storage.secret-key="
+                        "linguaframe.storage.secret-key=",
+                        "linguaframe.ffmpeg.binary-path=",
+                        "linguaframe.ffmpeg.work-dir="
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();

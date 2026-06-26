@@ -17,3 +17,5 @@ linguaframe:
     dispatch-enabled: false
     execution-enabled: false
     smoke-stage-failure-enabled: false
+  ffmpeg:
+    audio-enabled: false

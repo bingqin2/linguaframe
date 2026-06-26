@@ -33,7 +33,25 @@ wait_for_backend() {
 create_demo_sample() {
   local path="$1"
   mkdir -p "$(dirname "$path")"
-  printf 'linguaframe demo sample\n' > "$path"
+  python3 - "$path" <<'PY'
+import math
+import struct
+import sys
+import wave
+
+path = sys.argv[1]
+sample_rate = 16000
+duration_seconds = 1
+frequency_hz = 440
+
+with wave.open(path, "wb") as wav:
+    wav.setnchannels(1)
+    wav.setsampwidth(2)
+    wav.setframerate(sample_rate)
+    for i in range(sample_rate * duration_seconds):
+        sample = int(0.2 * 32767 * math.sin(2 * math.pi * frequency_hz * i / sample_rate))
+        wav.writeframes(struct.pack("<h", sample))
+PY
 }
 
 extract_json_field() {
@@ -114,6 +132,28 @@ download_first_artifact() {
 
   artifacts_json="$(list_job_artifacts "$base_url" "$job_id")"
   artifact_id="$(printf '%s' "$artifacts_json" | python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["artifactId"])')"
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+}
+
+download_artifact_by_type() {
+  local base_url="$1"
+  local job_id="$2"
+  local artifact_type="$3"
+  local output_path="$4"
+  local artifact_id
+
+  artifact_id="$(list_job_artifacts "$base_url" "$job_id" | python3 -c '
+import json
+import sys
+
+target = sys.argv[1]
+for artifact in json.load(sys.stdin):
+    if artifact["type"] == target:
+        print(artifact["artifactId"])
+        raise SystemExit(0)
+raise SystemExit(1)
+' "$artifact_type")"
   mkdir -p "$(dirname "$output_path")"
   curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
