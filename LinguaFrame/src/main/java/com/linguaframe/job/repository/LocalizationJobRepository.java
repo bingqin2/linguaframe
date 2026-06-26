@@ -3,13 +3,16 @@ package com.linguaframe.job.repository;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.vo.LocalizationJobSummaryVo;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -90,6 +93,67 @@ public class LocalizationJobRepository {
                 .param("id", id)
                 .query(this::mapRow)
                 .optional();
+    }
+
+    public List<LocalizationJobSummaryVo> findSummaries(
+            LocalizationJobStatus status,
+            int limit,
+            int offset
+    ) {
+        String statusFilter = statusFilter(status);
+        return jdbcClient.sql("""
+                        SELECT
+                            jobs.id AS job_id,
+                            jobs.video_id,
+                            videos.original_filename,
+                            jobs.target_language,
+                            jobs.status,
+                            jobs.created_at,
+                            jobs.started_at,
+                            jobs.completed_at,
+                            jobs.failed_at,
+                            jobs.failure_stage,
+                            jobs.failure_reason,
+                            jobs.retry_count,
+                            COALESCE(SUM(model_call_records.estimated_cost_usd), 0) AS estimated_cost_usd
+                        FROM localization_jobs jobs
+                        JOIN videos ON videos.id = jobs.video_id
+                        LEFT JOIN model_call_records ON model_call_records.job_id = jobs.id
+                        %s
+                        GROUP BY
+                            jobs.id,
+                            jobs.video_id,
+                            videos.original_filename,
+                            jobs.target_language,
+                            jobs.status,
+                            jobs.created_at,
+                            jobs.started_at,
+                            jobs.completed_at,
+                            jobs.failed_at,
+                            jobs.failure_stage,
+                            jobs.failure_reason,
+                            jobs.retry_count
+                        ORDER BY jobs.created_at DESC, jobs.id DESC
+                        LIMIT :limit OFFSET :offset
+                        """.formatted(statusFilter))
+                .param("status", status == null ? null : status.name())
+                .param("limit", limit)
+                .param("offset", offset)
+                .query(this::mapSummaryRow)
+                .list();
+    }
+
+    public int countSummaries(LocalizationJobStatus status) {
+        String statusFilter = statusFilter(status);
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs jobs
+                        %s
+                        """.formatted(statusFilter))
+                .param("status", status == null ? null : status.name())
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
     }
 
     public boolean claimForExecution(String jobId, Instant now) {
@@ -189,6 +253,30 @@ public class LocalizationJobRepository {
                 rs.getInt("retry_count"),
                 rs.getTimestamp("updated_at").toInstant()
         );
+    }
+
+    private LocalizationJobSummaryVo mapSummaryRow(ResultSet rs, int rowNum) throws SQLException {
+        String failureStage = rs.getString("failure_stage");
+        BigDecimal estimatedCostUsd = rs.getBigDecimal("estimated_cost_usd");
+        return new LocalizationJobSummaryVo(
+                rs.getString("job_id"),
+                rs.getString("video_id"),
+                rs.getString("original_filename"),
+                rs.getString("target_language"),
+                LocalizationJobStatus.valueOf(rs.getString("status")),
+                rs.getTimestamp("created_at").toInstant(),
+                instantOrNull(rs.getTimestamp("started_at")),
+                instantOrNull(rs.getTimestamp("completed_at")),
+                instantOrNull(rs.getTimestamp("failed_at")),
+                failureStage == null ? null : LocalizationJobStage.valueOf(failureStage),
+                rs.getString("failure_reason"),
+                rs.getInt("retry_count"),
+                estimatedCostUsd == null ? BigDecimal.ZERO : estimatedCostUsd
+        );
+    }
+
+    private String statusFilter(LocalizationJobStatus status) {
+        return status == null ? "" : "WHERE jobs.status = :status";
     }
 
     private Timestamp timestampOrNull(Instant instant) {

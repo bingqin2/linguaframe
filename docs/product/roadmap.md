@@ -250,6 +250,8 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, retry, and cost/model-call visibility.
+
 Build:
 
 - React + Vite + TypeScript frontend.

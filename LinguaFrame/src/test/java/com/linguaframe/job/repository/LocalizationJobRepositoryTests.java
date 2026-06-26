@@ -1,16 +1,23 @@
 package com.linguaframe.job.repository;
 
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.entity.ModelCallRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.ModelCallStatus;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -25,6 +32,24 @@ class LocalizationJobRepositoryTests {
 
     @Autowired
     private LocalizationJobRepository jobRepository;
+
+    @Autowired
+    private ModelCallRepository modelCallRepository;
+
+    @Autowired
+    private JdbcClient jdbcClient;
+
+    @BeforeEach
+    void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM subtitle_segments").update();
+        jdbcClient.sql("DELETE FROM transcript_segments").update();
+        jdbcClient.sql("DELETE FROM job_artifacts").update();
+        jdbcClient.sql("DELETE FROM job_timeline_events").update();
+        jdbcClient.sql("DELETE FROM job_dispatch_events").update();
+        jdbcClient.sql("DELETE FROM localization_jobs").update();
+        jdbcClient.sql("DELETE FROM videos").update();
+    }
 
     @Test
     void savesAndFindsLocalizationJobRecord() {
@@ -139,10 +164,50 @@ class LocalizationJobRepositoryTests {
                 });
     }
 
+    @Test
+    void findsJobSummariesOrderedNewestFirstWithEstimatedCost() {
+        Instant base = Instant.parse("2026-06-26T13:00:00Z");
+        createJob("video-summary-old", "job-summary-old", LocalizationJobStatus.COMPLETED, base);
+        createJob("video-summary-newest", "job-summary-newest", LocalizationJobStatus.PROCESSING, base.plusSeconds(20));
+        createJob("video-summary-middle", "job-summary-middle", LocalizationJobStatus.FAILED, base.plusSeconds(10));
+        saveModelCall("model-call-newest-1", "job-summary-newest", new BigDecimal("0.00010000"), base.plusSeconds(21));
+        saveModelCall("model-call-newest-2", "job-summary-newest", new BigDecimal("0.00020000"), base.plusSeconds(22));
+        saveModelCall("model-call-middle-1", "job-summary-middle", new BigDecimal("0.00030000"), base.plusSeconds(11));
+
+        assertThat(jobRepository.findSummaries(null, 2, 0))
+                .extracting("jobId")
+                .containsExactly("job-summary-newest", "job-summary-middle");
+        assertThat(jobRepository.findSummaries(null, 2, 0).getFirst())
+                .satisfies(summary -> {
+                    assertThat(summary.videoId()).isEqualTo("video-summary-newest");
+                    assertThat(summary.filename()).isEqualTo("sample-video-summary-newest.mp4");
+                    assertThat(summary.status()).isEqualTo(LocalizationJobStatus.PROCESSING);
+                    assertThat(summary.estimatedCostUsd()).isEqualByComparingTo("0.00030000");
+                });
+    }
+
+    @Test
+    void findsJobSummariesFilteredByStatusAndCountsTotals() {
+        Instant base = Instant.parse("2026-06-26T14:00:00Z");
+        createJob("video-summary-queued", "job-summary-queued", LocalizationJobStatus.QUEUED, base);
+        createJob("video-summary-failed", "job-summary-failed", LocalizationJobStatus.FAILED, base.plusSeconds(10));
+        createJob("video-summary-completed", "job-summary-completed", LocalizationJobStatus.COMPLETED, base.plusSeconds(20));
+
+        assertThat(jobRepository.findSummaries(LocalizationJobStatus.FAILED, 20, 0))
+                .singleElement()
+                .satisfies(summary -> {
+                    assertThat(summary.jobId()).isEqualTo("job-summary-failed");
+                    assertThat(summary.status()).isEqualTo(LocalizationJobStatus.FAILED);
+                    assertThat(summary.filename()).isEqualTo("sample-video-summary-failed.mp4");
+                });
+        assertThat(jobRepository.countSummaries(null)).isEqualTo(3);
+        assertThat(jobRepository.countSummaries(LocalizationJobStatus.FAILED)).isEqualTo(1);
+    }
+
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
-                "sample.mp4",
+                "sample-" + videoId + ".mp4",
                 "video/mp4",
                 123L,
                 "source-videos/" + videoId + "/sample.mp4",
@@ -154,6 +219,27 @@ class LocalizationJobRepositoryTests {
                 videoId,
                 "zh-CN",
                 status,
+                createdAt
+        ));
+    }
+
+    private void saveModelCall(String id, String jobId, BigDecimal estimatedCostUsd, Instant createdAt) {
+        modelCallRepository.save(new ModelCallRecord(
+                id,
+                jobId,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                ModelCallStatus.SUCCEEDED,
+                125L,
+                1000,
+                500,
+                null,
+                null,
+                estimatedCostUsd,
+                null,
                 createdAt
         ));
     }

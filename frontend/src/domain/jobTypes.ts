@@ -39,6 +39,29 @@ export interface LocalizationJob {
   modelCalls: ModelCall[];
 }
 
+export interface LocalizationJobSummary {
+  jobId: string;
+  videoId: string;
+  filename: string;
+  targetLanguage: string;
+  status: LocalizationJobStatus;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  failedAt: string | null;
+  failureStage: LocalizationJobStage | null;
+  failureReason: string | null;
+  retryCount: number;
+  estimatedCostUsd: number;
+}
+
+export interface LocalizationJobList {
+  jobs: LocalizationJobSummary[];
+  limit: number;
+  offset: number;
+  total: number;
+}
+
 export type LocalizationJobStage =
   | 'WORKER_RECEIVED'
   | 'WORKER_SMOKE'

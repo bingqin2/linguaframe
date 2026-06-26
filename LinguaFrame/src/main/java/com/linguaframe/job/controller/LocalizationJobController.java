@@ -1,7 +1,9 @@
 package com.linguaframe.job.controller;
 
+import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
@@ -18,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -45,6 +48,15 @@ public class LocalizationJobController {
         this.artifactService = artifactService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
+    }
+
+    @GetMapping
+    public LocalizationJobListVo listJobs(
+            @RequestParam(required = false) LocalizationJobStatus status,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Integer offset
+    ) {
+        return queryService.listJobs(status, limit, offset);
     }
 
     @GetMapping("/{jobId}")

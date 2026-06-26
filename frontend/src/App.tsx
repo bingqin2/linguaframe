@@ -4,6 +4,8 @@ import { linguaFrameApi } from './api/linguaframeApi';
 import type {
   JobArtifact,
   LocalizationJob,
+  LocalizationJobStatus,
+  LocalizationJobSummary,
   MediaUpload,
   SubtitleSegment,
   TranscriptSegment
@@ -12,6 +14,16 @@ import { loadRecentJobs, RecentJob, saveRecentJob } from './domain/recentJobs';
 
 const POLL_INTERVAL_MS = 5000;
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
+const HISTORY_LIMIT = 20;
+const HISTORY_STATUSES: Array<LocalizationJobStatus | 'ALL'> = [
+  'ALL',
+  'QUEUED',
+  'RETRYING',
+  'PROCESSING',
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED'
+];
 
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
@@ -20,6 +32,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
     loadRecentJobs(window.localStorage)
   );
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<LocalizationJobStatus | 'ALL'>(
+    'ALL'
+  );
+  const [history, setHistory] = useState<LocalizationJobSummary[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [job, setJob] = useState<LocalizationJob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
@@ -55,6 +73,24 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     []
   );
 
+  const loadHistory = useCallback(async (status: LocalizationJobStatus | 'ALL') => {
+    setIsLoadingHistory(true);
+    try {
+      const result = await linguaFrameApi.listJobs({
+        status,
+        limit: HISTORY_LIMIT,
+        offset: 0
+      });
+      setHistory(result.jobs);
+      setHistoryError(null);
+    } catch (historyLoadError) {
+      setHistory([]);
+      setHistoryError(toErrorMessage(historyLoadError));
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
     const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
@@ -88,6 +124,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, []);
 
   useEffect(() => {
+    void loadHistory(historyStatusFilter);
+  }, [historyStatusFilter, loadHistory]);
+
+  useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status)) {
       return;
     }
@@ -117,6 +157,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setSelectedRecentJob(recentJob);
       await loadJob(upload.jobId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
+      await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
     } finally {
@@ -146,6 +187,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const retriedJob = await linguaFrameApi.retryJob(job.jobId);
       setJob(retriedJob);
       setError(null);
+      await loadHistory(historyStatusFilter);
     } catch (retryError) {
       setError(toErrorMessage(retryError));
     } finally {
@@ -159,6 +201,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTargetLanguage(recentJob.targetLanguage);
     await loadJob(recentJob.jobId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
+  }
+
+  async function openHistoryJob(historyJob: LocalizationJobSummary) {
+    setSelectedRecentJob(null);
+    setManualJobId(historyJob.jobId);
+    setTargetLanguage(historyJob.targetLanguage);
+    const nextJob = await loadJob(historyJob.jobId);
+    await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
   }
 
   return (
@@ -208,6 +258,59 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               Open job
             </button>
           </form>
+
+          <section className="panel" aria-label="Job history">
+            <div className="panel-heading">
+              <h2>Job history</h2>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={isLoadingHistory}
+                onClick={() => void loadHistory(historyStatusFilter)}
+              >
+                Refresh
+              </button>
+            </div>
+            <label>
+              History status
+              <select
+                value={historyStatusFilter}
+                onChange={(event) =>
+                  setHistoryStatusFilter(event.target.value as LocalizationJobStatus | 'ALL')
+                }
+              >
+                {HISTORY_STATUSES.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {historyError ? <p className="error-text">{historyError}</p> : null}
+            {isLoadingHistory ? <p className="muted">Loading history...</p> : null}
+            {!isLoadingHistory && history.length === 0 ? (
+              <p className="muted">No server jobs match this filter.</p>
+            ) : null}
+            {history.length > 0 ? (
+              <ul className="history-list" aria-label="Server job history">
+                {history.map((historyJob) => (
+                  <li key={historyJob.jobId}>
+                    <button type="button" onClick={() => void openHistoryJob(historyJob)}>
+                      <span className="history-title">
+                        <strong>{historyJob.filename}</strong>
+                        <span className="status-pill">{historyJob.status}</span>
+                      </span>
+                      <span className="history-meta">
+                        {historyJob.targetLanguage} · {formatCost(historyJob.estimatedCostUsd)} ·
+                        retry {historyJob.retryCount}
+                      </span>
+                      <small>{historyJob.jobId}</small>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
 
           <section className="panel">
             <h2>Recent jobs</h2>

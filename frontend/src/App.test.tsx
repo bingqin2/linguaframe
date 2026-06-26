@@ -4,16 +4,109 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
-import type { LocalizationJob, MediaUpload } from './domain/jobTypes';
+import type { LocalizationJob, LocalizationJobList, MediaUpload } from './domain/jobTypes';
 
 describe('App', () => {
   beforeEach(() => {
     vi.useRealTimers();
     window.localStorage.clear();
     vi.restoreAllMocks();
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+  });
+
+  test('loads server job history on startup', async () => {
+    const listJobs = vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'history-job',
+            videoId: 'history-video',
+            filename: 'history.mp4',
+            status: 'COMPLETED',
+            estimatedCostUsd: 0.00045
+          })
+        ],
+        total: 1
+      })
+    );
+
+    render(<App />);
+
+    const history = await screen.findByRole('region', { name: /job history/i });
+    const historyList = within(history).getByRole('list', { name: /server job history/i });
+    expect(within(history).getByText('history.mp4')).toBeInTheDocument();
+    expect(within(historyList).getByText('COMPLETED')).toBeInTheDocument();
+    expect(within(historyList).getByRole('button', { name: /history\.mp4/i })).toHaveTextContent(
+      '$0.00045000'
+    );
+    expect(listJobs).toHaveBeenCalledWith({ status: 'ALL', limit: 20, offset: 0 });
+  });
+
+  test('filters server job history by status', async () => {
+    const listJobs = vi
+      .spyOn(linguaFrameApi, 'listJobs')
+      .mockResolvedValueOnce(jobListFixture())
+      .mockResolvedValueOnce(
+        jobListFixture({
+          jobs: [
+            jobSummaryFixture({
+              jobId: 'failed-history-job',
+              filename: 'failed-history.mp4',
+              status: 'FAILED'
+            })
+          ],
+          total: 1
+        })
+      );
+
+    render(<App />);
+
+    await userEvent.selectOptions(screen.getByLabelText(/history status/i), 'FAILED');
+
+    await waitFor(() =>
+      expect(listJobs).toHaveBeenLastCalledWith({ status: 'FAILED', limit: 20, offset: 0 })
+    );
+    const history = screen.getByRole('region', { name: /job history/i });
+    expect(await within(history).findByText('failed-history.mp4')).toBeInTheDocument();
+  });
+
+  test('opens a server history job and loads its previews', async () => {
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'history-open-job',
+            videoId: 'history-open-video',
+            filename: 'open-me.mp4',
+            targetLanguage: 'ja'
+          })
+        ],
+        total: 1
+      })
+    );
+    const getJob = vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'history-open-job',
+        videoId: 'history-open-video',
+        targetLanguage: 'ja'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    const history = await screen.findByRole('region', { name: /job history/i });
+    await userEvent.click(within(history).getByRole('button', { name: /open-me.mp4/i }));
+
+    expect(await screen.findByRole('heading', { name: /job history-open-job/i })).toBeInTheDocument();
+    expect(getJob).toHaveBeenCalledWith('history-open-job');
+    expect(linguaFrameApi.listSubtitles).toHaveBeenCalledWith('history-open-job', 'ja');
   });
 
   test('uploads a video, stores it as a recent job, and selects the created job', async () => {
+    const listJobs = vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
     vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
@@ -32,10 +125,12 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
     expect(screen.getByText('sample.mp4')).toBeInTheDocument();
-    expect(screen.getByText('QUEUED')).toBeInTheDocument();
+    const selectedJob = screen.getByRole('region', { name: /selected job/i });
+    expect(within(selectedJob).getByText('QUEUED')).toBeInTheDocument();
     expect(JSON.parse(window.localStorage.getItem('linguaframe.recentJobs.v1') ?? '[]')).toEqual([
       expect.objectContaining({ jobId: 'job-1', filename: 'sample.mp4', targetLanguage: 'zh-CN' })
     ]);
+    expect(listJobs).toHaveBeenCalledTimes(2);
   });
 
   test('opens a known job id manually', async () => {
@@ -74,9 +169,15 @@ describe('App', () => {
 
     await user.type(screen.getByLabelText(/open job id/i), 'job-1');
     await user.click(screen.getByRole('button', { name: /open job/i }));
-    expect(await screen.findByText('PROCESSING')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('PROCESSING'))
+        .toBeInTheDocument()
+    );
 
-    expect(await screen.findByText('COMPLETED')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
+        .toBeInTheDocument()
+    );
 
     await new Promise((resolve) => window.setTimeout(resolve, 30));
     expect(getJob).toHaveBeenCalledTimes(2);
@@ -262,7 +363,58 @@ describe('App', () => {
     expect(screen.getByText('No subtitle segments yet.')).toBeInTheDocument();
     expect(screen.getByText('No artifacts yet.')).toBeInTheDocument();
   });
+
+  test('keeps manual job opening available when server history fails', async () => {
+    vi.spyOn(linguaFrameApi, 'listJobs').mockRejectedValue(new Error('History unavailable'));
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ jobId: 'manual-after-history-error' }));
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+
+    render(<App />);
+
+    const history = await screen.findByRole('region', { name: /job history/i });
+    expect(within(history).getByText('History unavailable')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'manual-after-history-error');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    expect(
+      await screen.findByRole('heading', { name: /job manual-after-history-error/i })
+    ).toBeInTheDocument();
+  });
 });
+
+function jobListFixture(overrides: Partial<LocalizationJobList> = {}): LocalizationJobList {
+  return {
+    jobs: [],
+    limit: 20,
+    offset: 0,
+    total: 0,
+    ...overrides
+  };
+}
+
+function jobSummaryFixture(
+  overrides: Partial<LocalizationJobList['jobs'][number]> = {}
+): LocalizationJobList['jobs'][number] {
+  return {
+    jobId: 'history-job-1',
+    videoId: 'history-video-1',
+    filename: 'history.mp4',
+    targetLanguage: 'zh-CN',
+    status: 'QUEUED',
+    createdAt: '2026-06-26T10:00:00Z',
+    startedAt: null,
+    completedAt: null,
+    failedAt: null,
+    failureStage: null,
+    failureReason: null,
+    retryCount: 0,
+    estimatedCostUsd: 0,
+    ...overrides
+  };
+}
 
 function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
   return {

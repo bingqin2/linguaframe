@@ -285,6 +285,15 @@ Cost rates default to `0` in `.env.example` because provider pricing changes. Tr
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary` and `modelCalls` for provider/model/status/latency, usage units, estimated cost, and safe error summaries.
 
+Recent localization jobs can be listed without a browser-local cache:
+
+```bash
+curl "http://localhost:8080/api/jobs?limit=20&offset=0"
+curl "http://localhost:8080/api/jobs?status=FAILED&limit=20&offset=0"
+```
+
+The list response is intentionally lightweight: each row includes source filename, job status, timestamps, retry count, failure summary, and estimated cost. Full timeline, artifact, transcript, subtitle, and model-call details still load from the selected job's detail endpoints.
+
 When transcription is enabled with `LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo`, the worker uses a deterministic demo transcription provider and stores:
 
 - `TRANSCRIPT_JSON` as `transcript.json`
