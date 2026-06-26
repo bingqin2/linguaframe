@@ -55,7 +55,7 @@ Alternatives considered:
 - Modify: `docker-compose.yml`
 - Modify: `LinguaFrame/src/main/java/com/linguaframe/job/service/impl/DemoTranslationProvider.java`
 - Create: `LinguaFrame/src/main/java/com/linguaframe/job/service/impl/OpenAiTranslationProvider.java`
-- Create: `LinguaFrame/src/test/java/com/linguaframe/job/service/OpenAiTranslationProviderTests.java`
+- Create: `LinguaFrame/src/test/java/com/linguaframe/job/service/impl/OpenAiTranslationProviderTests.java`
 - Modify: `LinguaFrame/src/test/java/com/linguaframe/common/config/LinguaFramePropertiesTests.java`
 - Modify: `LinguaFrame/src/test/java/com/linguaframe/job/service/TranslationProviderTests.java`
 - Modify: `README.md`
@@ -85,7 +85,7 @@ Alternatives considered:
 - `LinguaFrameProperties.Translation.OpenAi#getTimeoutSeconds(): int`
 - `DemoTranslationProvider` is active only when `linguaframe.translation.provider=demo` or the provider property is missing.
 
-- [ ] **Step 1: Write failing config and provider-selection tests**
+- [x] **Step 1: Write failing config and provider-selection tests**
 
 Extend `LinguaFramePropertiesTests#bindsDefaultRuntimeProperties` with:
 
@@ -130,7 +130,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test
 
 Expected: fail because OpenAI translation properties do not exist.
 
-- [ ] **Step 2: Add nested OpenAI properties**
+- [x] **Step 2: Add nested OpenAI properties**
 
 Add this shape under `LinguaFrameProperties.Translation`:
 
@@ -161,7 +161,7 @@ public static class OpenAi {
 
 Do not annotate `apiKey` or `model` with `@NotBlank` here because demo mode must boot without OpenAI secrets. The OpenAI provider constructor validates them only when the provider is selected.
 
-- [ ] **Step 3: Wire environment properties**
+- [x] **Step 3: Wire environment properties**
 
 Update all runtime YAML files with:
 
@@ -192,7 +192,7 @@ LINGUAFRAME_TRANSLATION_PROVIDER=demo
 
 Update `docker-compose.yml` backend environment to pass through the same four OpenAI values.
 
-- [ ] **Step 4: Make demo provider conditional**
+- [x] **Step 4: Make demo provider conditional**
 
 Annotate `DemoTranslationProvider`:
 
@@ -214,7 +214,7 @@ Expected: pass after property and conditional changes.
 
 **Files:**
 - Create: `LinguaFrame/src/main/java/com/linguaframe/job/service/impl/OpenAiTranslationProvider.java`
-- Create: `LinguaFrame/src/test/java/com/linguaframe/job/service/OpenAiTranslationProviderTests.java`
+- Create: `LinguaFrame/src/test/java/com/linguaframe/job/service/impl/OpenAiTranslationProviderTests.java`
 - Modify: `LinguaFrame/src/test/java/com/linguaframe/job/service/TranslationProviderTests.java`
 
 **Interfaces:**
@@ -223,7 +223,7 @@ Expected: pass after property and conditional changes.
 - Request target: `{baseUrl}/v1/responses`
 - Output contract: JSON object with `segments`, each item containing `index` and `text`.
 
-- [ ] **Step 1: Verify official API schema before implementation**
+- [x] **Step 1: Verify official API schema before implementation**
 
 Before writing the provider request DTOs, verify the current OpenAI Responses API request and response shape through the OpenAI developer docs MCP if it is available after restarting Codex, or through official OpenAI docs if browser access works.
 
@@ -235,7 +235,7 @@ The implementation must still satisfy these repo-level constraints even if the o
 - parse translated text from `output_text` or the documented message output text field.
 - keep all tests mocked and deterministic.
 
-- [ ] **Step 2: Write failing successful-translation test**
+- [x] **Step 2: Write failing successful-translation test**
 
 Create `OpenAiTranslationProviderTests#translatesWithResponsesApiAndPreservesTiming`.
 
@@ -268,7 +268,7 @@ mvn -pl LinguaFrame -Dtest=OpenAiTranslationProviderTests test
 
 Expected: fail because `OpenAiTranslationProvider` does not exist.
 
-- [ ] **Step 3: Implement provider skeleton and startup validation**
+- [x] **Step 3: Implement provider skeleton and startup validation**
 
 Create `OpenAiTranslationProvider`:
 
@@ -305,7 +305,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
 OpenAI translation provider requires OPENAI_API_KEY and OPENAI_TRANSLATION_MODEL.
 ```
 
-- [ ] **Step 4: Implement request generation**
+- [x] **Step 4: Implement request generation**
 
 Build a Responses API request with:
 
@@ -338,7 +338,7 @@ Build a Responses API request with:
 
 Keep DTOs as private records in `OpenAiTranslationProvider` unless they become too large.
 
-- [ ] **Step 5: Implement response parsing and validation**
+- [x] **Step 5: Implement response parsing and validation**
 
 Provider behavior:
 
@@ -362,7 +362,7 @@ OpenAI translation returned an unknown segment index: 9.
 
 Do not include raw response bodies in thrown messages.
 
-- [ ] **Step 6: Add failure-path tests**
+- [x] **Step 6: Add failure-path tests**
 
 Add tests for:
 
@@ -391,7 +391,7 @@ Expected: pass after provider implementation.
 - `TargetSubtitleExportPipelineStage` continues to consume only `TranslationProvider`.
 - Existing fake `RecordingTranslationProvider` tests stay valid.
 
-- [ ] **Step 1: Keep demo provider tests explicit**
+- [x] **Step 1: Keep demo provider tests explicit**
 
 Rename the current `TranslationProviderTests` class or test methods to make clear they cover the demo provider, for example:
 
@@ -401,7 +401,7 @@ class DemoTranslationProviderTests {
 
 If the filename changes, update the Maven test command accordingly.
 
-- [ ] **Step 2: Run focused regression tests**
+- [x] **Step 2: Run focused regression tests**
 
 Run:
 
@@ -411,7 +411,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,DemoTranslationProviderTes
 
 Expected: pass with no network calls.
 
-- [ ] **Step 3: Verify Docker config remains demo by default**
+- [x] **Step 3: Verify Docker config remains demo by default**
 
 Run:
 
@@ -443,7 +443,7 @@ docker compose --env-file .env.example up --build
 
 - Live OpenAI mode command uses a local `.env` file that is ignored by git.
 
-- [ ] **Step 1: Document safe local OpenAI setup**
+- [x] **Step 1: Document safe local OpenAI setup**
 
 Add README guidance:
 
@@ -458,7 +458,7 @@ LINGUAFRAME_TRANSLATION_ENABLED=true
 
 State that `OPENAI_TRANSLATION_MODEL` is intentionally user-configured because model availability changes.
 
-- [ ] **Step 2: Document live run commands**
+- [x] **Step 2: Document live run commands**
 
 Add the opt-in live translation run:
 
@@ -470,7 +470,7 @@ scripts/demo/docker-e2e-success.sh
 
 State that this command can call the OpenAI API and may consume credits.
 
-- [ ] **Step 3: Update agent docs and checklist**
+- [x] **Step 3: Update agent docs and checklist**
 
 Update `docs/agent/docker-e2e-demo.md` and `docs/agent/smoke-test-checklist.md` to distinguish:
 
@@ -478,7 +478,7 @@ Update `docs/agent/docker-e2e-demo.md` and `docs/agent/smoke-test-checklist.md` 
 - optional OpenAI translation validation.
 - expected output remains target subtitle JSON/SRT/VTT artifacts and subtitle preview.
 
-- [ ] **Step 4: Record decisions and verification**
+- [x] **Step 4: Record decisions and verification**
 
 Add to `docs/progress/decisions.md`:
 

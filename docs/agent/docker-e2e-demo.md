@@ -1,6 +1,6 @@
 # Docker E2E Demo
 
-This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate deterministic transcript/source subtitle/target subtitle artifacts, download those artifacts, and inspect the job timeline.
+This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate deterministic transcript/source subtitle/target subtitle artifacts, download those artifacts, and inspect the job timeline. The default `.env.example` path uses deterministic translation; OpenAI translation is an optional local `.env` mode.
 
 ## Start The Stack
 
@@ -81,7 +81,34 @@ ARTIFACT_ID=<artifact id from the artifact list>
 curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download" -o /tmp/linguaframe-demo/artifact.bin
 ```
 
-This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, and target subtitle export. It does not perform OpenAI transcription, TTS, or subtitle burn-in; target subtitles currently use deterministic demo translation.
+This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, and target subtitle export. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, TTS, or subtitle burn-in; target subtitles use deterministic demo translation.
+
+## Optional OpenAI Translation Demo
+
+Use this path only with a local `.env` file that contains real OpenAI credentials:
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TRANSLATION_MODEL=<model from current OpenAI docs>
+LINGUAFRAME_TRANSLATION_PROVIDER=openai
+LINGUAFRAME_TRANSLATION_ENABLED=true
+```
+
+Then run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+Expected output still includes `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, `TARGET_SUBTITLE_VTT`, and target subtitle preview JSON. This path can call OpenAI and may consume credits; never commit `.env`.
 
 ## Failure And Retry Demo
 

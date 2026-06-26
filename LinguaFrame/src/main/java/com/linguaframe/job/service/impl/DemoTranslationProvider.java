@@ -4,12 +4,14 @@ import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.TranslationProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
 @Component
+@ConditionalOnProperty(prefix = "linguaframe.translation", name = "provider", havingValue = "demo", matchIfMissing = true)
 public class DemoTranslationProvider implements TranslationProvider {
 
     private static final Map<String, String> ZH_CN_TRANSLATIONS = Map.of(

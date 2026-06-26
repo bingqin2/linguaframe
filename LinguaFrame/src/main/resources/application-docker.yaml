@@ -38,6 +38,11 @@ linguaframe:
   translation:
     enabled: ${LINGUAFRAME_TRANSLATION_ENABLED:true}
     provider: ${LINGUAFRAME_TRANSLATION_PROVIDER:demo}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_TRANSLATION_MODEL:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      timeout-seconds: ${OPENAI_TRANSLATION_TIMEOUT_SECONDS:60}
   database:
     host: ${MYSQL_HOST:mysql}
     port: ${MYSQL_PORT:3306}

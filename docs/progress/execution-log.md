@@ -437,3 +437,27 @@ Notes:
 
 - This slice does not call OpenAI. It deliberately uses deterministic demo translation so the Docker demo can verify target-language subtitle storage, preview, and artifact export without API keys or paid calls.
 - Real OpenAI translation, TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, and cost tracking remain later slices.
+
+## 2026-06-26
+
+Work:
+
+- Added OpenAI translation runtime configuration under `linguaframe.translation.openai` and environment pass-through for Docker.
+- Kept `LINGUAFRAME_TRANSLATION_PROVIDER=demo` as the default demo path and made the demo provider conditional.
+- Added `OpenAiTranslationProvider` behind the existing `TranslationProvider` interface.
+- Implemented mocked Responses API request/response handling, structured JSON output parsing, segment validation, sanitized HTTP errors, and timing preservation.
+- Documented safe local `.env` setup for optional live OpenAI translation.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test` first failed because `Translation#getOpenai()` did not exist, then passed after adding OpenAI translation properties.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,TranslationProviderTests test` passed before renaming the demo provider test class, with `Tests run: 10, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranslationProviderTests test` first failed because `OpenAiTranslationProvider` did not exist, then passed with `Tests run: 8, Failures: 0, Errors: 0`. A later production-timeout refinement briefly exposed a missing test Authorization header in the package-private mock constructor path; after adding the header to the test `RestClient`, the same command passed again with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,DemoTranslationProviderTests,OpenAiTranslationProviderTests,SubtitleServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 40, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 100, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_TRANSLATION_PROVIDER: demo`, `OPENAI_API_KEY: ""`, and `OPENAI_TRANSLATION_MODEL: ""`.
+
+Notes:
+
+- Official OpenAI docs URLs returned `Forbidden` from this terminal, and the OpenAI developer docs MCP was added globally but was not available until a future Codex restart. The implementation avoids hardcoding a model, keeps the model user-configured through `OPENAI_TRANSLATION_MODEL`, and tests the provider through mocked HTTP only.
+- This slice does not add OpenAI transcription, TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, or translation quality evaluation.

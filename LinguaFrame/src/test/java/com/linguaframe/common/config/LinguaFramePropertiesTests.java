@@ -60,6 +60,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getTranscription().getProvider()).isEqualTo("demo");
         assertThat(properties.getTranslation().isEnabled()).isFalse();
         assertThat(properties.getTranslation().getProvider()).isEqualTo("demo");
+        assertThat(properties.getTranslation().getOpenai().getApiKey()).isEmpty();
+        assertThat(properties.getTranslation().getOpenai().getModel()).isEmpty();
+        assertThat(properties.getTranslation().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
+        assertThat(properties.getTranslation().getOpenai().getTimeoutSeconds()).isEqualTo(60);
     }
 
     @Test
@@ -119,6 +123,28 @@ class LinguaFramePropertiesTests {
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getTranslation().isEnabled()).isTrue();
                     assertThat(boundProperties.getTranslation().getProvider()).isEqualTo("demo");
+                });
+    }
+
+    @Test
+    void bindsOpenAiTranslationRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.translation.enabled=true",
+                        "linguaframe.translation.provider=openai",
+                        "linguaframe.translation.openai.api-key=test-key",
+                        "linguaframe.translation.openai.model=test-model",
+                        "linguaframe.translation.openai.base-url=http://localhost:9999",
+                        "linguaframe.translation.openai.timeout-seconds=15"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getTranslation().getProvider()).isEqualTo("openai");
+                    assertThat(boundProperties.getTranslation().getOpenai().getApiKey()).isEqualTo("test-key");
+                    assertThat(boundProperties.getTranslation().getOpenai().getModel()).isEqualTo("test-model");
+                    assertThat(boundProperties.getTranslation().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
+                    assertThat(boundProperties.getTranslation().getOpenai().getTimeoutSeconds()).isEqualTo(15);
                 });
     }
 

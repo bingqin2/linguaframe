@@ -89,3 +89,11 @@ Decision: Add target-language subtitle generation with a deterministic demo tran
 Reason: The storage, preview, artifact export, and worker-stage behavior should be stable and testable without provider credentials, cost tracking, or paid API failures.
 
 Impact: Translation now sits behind `TranslationProvider`, and target subtitles are stored separately from source transcript segments. A later OpenAI integration can replace the demo provider without rewriting subtitle persistence or export.
+
+## 2026-06-26
+
+Decision: Add OpenAI translation as an opt-in provider behind `TranslationProvider` while keeping the Docker demo on deterministic translation by default.
+
+Reason: The project can now exercise a real language-model integration when local secrets are available, but routine demos and automated tests should remain reproducible, free of paid API calls, and safe to run without credentials.
+
+Impact: Real OpenAI translation can be exercised with local `.env` secrets, while the core demo and automated tests remain reproducible and cost-free.
