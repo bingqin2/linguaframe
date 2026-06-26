@@ -3,7 +3,9 @@ package com.linguaframe.job.service.impl;
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.JobTimelineEventVo;
+import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
@@ -16,6 +18,9 @@ import java.util.NoSuchElementException;
 
 @Service
 public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryService {
+
+    private static final int DEFAULT_LIST_LIMIT = 20;
+    private static final int MAX_LIST_LIMIT = 100;
 
     private final LocalizationJobRepository jobRepository;
     private final JobDispatchEventRepository dispatchEventRepository;
@@ -32,6 +37,18 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         this.dispatchEventRepository = dispatchEventRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.modelCallAuditService = modelCallAuditService;
+    }
+
+    @Override
+    public LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset) {
+        int normalizedLimit = normalizeLimit(limit);
+        int normalizedOffset = normalizeOffset(offset);
+        return new LocalizationJobListVo(
+                jobRepository.findSummaries(status, normalizedLimit, normalizedOffset),
+                normalizedLimit,
+                normalizedOffset,
+                jobRepository.countSummaries(status)
+        );
     }
 
     @Override
@@ -72,5 +89,19 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 record.errorSummary(),
                 record.occurredAt()
         );
+    }
+
+    private int normalizeLimit(Integer limit) {
+        if (limit == null || limit < 1 || limit > MAX_LIST_LIMIT) {
+            return DEFAULT_LIST_LIMIT;
+        }
+        return limit;
+    }
+
+    private int normalizeOffset(Integer offset) {
+        if (offset == null || offset < 0) {
+            return 0;
+        }
+        return offset;
     }
 }

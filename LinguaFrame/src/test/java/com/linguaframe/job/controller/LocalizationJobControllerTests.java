@@ -106,6 +106,76 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void listsLocalizationJobsOrderedNewestFirst() throws Exception {
+        Instant base = Instant.parse("2026-06-27T01:00:00Z");
+        createJob("video-list-old", "job-controller-list-old", "old.mp4", LocalizationJobStatus.COMPLETED, base);
+        createJob("video-list-new", "job-controller-list-new", "new.mp4", LocalizationJobStatus.PROCESSING, base.plusSeconds(20));
+        createJob("video-list-middle", "job-controller-list-middle", "middle.mp4", LocalizationJobStatus.FAILED, base.plusSeconds(10));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-list-new",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                125L,
+                1000,
+                500,
+                null,
+                null
+        ));
+
+        mockMvc.perform(get("/api/jobs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.limit").value(20))
+                .andExpect(jsonPath("$.offset").value(0))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.jobs[0].jobId").value("job-controller-list-new"))
+                .andExpect(jsonPath("$.jobs[0].videoId").value("video-list-new"))
+                .andExpect(jsonPath("$.jobs[0].filename").value("new.mp4"))
+                .andExpect(jsonPath("$.jobs[0].targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.jobs[0].status").value("PROCESSING"))
+                .andExpect(jsonPath("$.jobs[0].estimatedCostUsd").value(0.00045000))
+                .andExpect(jsonPath("$.jobs[1].jobId").value("job-controller-list-middle"))
+                .andExpect(jsonPath("$.jobs[2].jobId").value("job-controller-list-old"));
+    }
+
+    @Test
+    void listsLocalizationJobsFilteredByStatus() throws Exception {
+        Instant base = Instant.parse("2026-06-27T01:30:00Z");
+        createJob("video-filter-queued", "job-controller-list-filter-queued", "queued.mp4", LocalizationJobStatus.QUEUED, base);
+        createJob("video-filter-failed", "job-controller-list-filter-failed", "failed.mp4", LocalizationJobStatus.FAILED, base.plusSeconds(10));
+
+        mockMvc.perform(get("/api/jobs").param("status", "FAILED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.jobs[0].jobId").value("job-controller-list-filter-failed"))
+                .andExpect(jsonPath("$.jobs[0].status").value("FAILED"))
+                .andExpect(jsonPath("$.jobs[0].filename").value("failed.mp4"));
+    }
+
+    @Test
+    void rejectsInvalidJobListStatus() throws Exception {
+        mockMvc.perform(get("/api/jobs").param("status", "NOT_A_STATUS"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void normalizesInvalidJobListLimitAndOffset() throws Exception {
+        Instant base = Instant.parse("2026-06-27T02:00:00Z");
+        createJob("video-list-normalized", "job-controller-list-normalized", "normalized.mp4", LocalizationJobStatus.QUEUED, base);
+
+        mockMvc.perform(get("/api/jobs")
+                        .param("limit", "999")
+                        .param("offset", "-5"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.limit").value(20))
+                .andExpect(jsonPath("$.offset").value(0))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.jobs[0].jobId").value("job-controller-list-normalized"));
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithDispatchState() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T15:00:00Z");
         videoRepository.save(new VideoRecord(
@@ -444,9 +514,19 @@ class LocalizationJobControllerTests {
     }
 
     private void createJob(String videoId, String jobId, Instant createdAt) {
+        createJob(videoId, jobId, "sample.mp4", LocalizationJobStatus.QUEUED, createdAt);
+    }
+
+    private void createJob(
+            String videoId,
+            String jobId,
+            String filename,
+            LocalizationJobStatus status,
+            Instant createdAt
+    ) {
         videoRepository.save(new VideoRecord(
                 videoId,
-                "sample.mp4",
+                filename,
                 "video/mp4",
                 123L,
                 "source-videos/" + videoId + "/sample.mp4",
@@ -457,7 +537,7 @@ class LocalizationJobControllerTests {
                 jobId,
                 videoId,
                 "zh-CN",
-                LocalizationJobStatus.QUEUED,
+                status,
                 createdAt
         ));
     }
