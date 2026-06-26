@@ -1,6 +1,6 @@
 # Docker E2E Demo
 
-This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate transcript/source subtitle/target subtitle artifacts, download those artifacts, and inspect the job timeline. The default `.env.example` path uses deterministic transcription and translation; OpenAI transcription and translation are optional local `.env` modes.
+This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate transcript/source subtitle/target subtitle artifacts, optionally generate dubbing audio, download artifacts, and inspect the job timeline. The default `.env.example` path uses deterministic transcription and translation with TTS disabled; OpenAI transcription, translation, and TTS are optional local `.env` modes.
 
 ## Start The Stack
 
@@ -43,6 +43,8 @@ status=COMPLETED
 - TRANSCRIPT_SUBTITLE_EXPORT SUCCEEDED
 - TARGET_SUBTITLE_EXPORT STARTED
 - TARGET_SUBTITLE_EXPORT SUCCEEDED
+- DUBBING_AUDIO_GENERATION STARTED
+- DUBBING_AUDIO_GENERATION SUCCEEDED
 - ARTIFACT_SUMMARY STARTED
 - ARTIFACT_SUMMARY SUCCEEDED
 - COMPLETED SUCCEEDED
@@ -55,6 +57,13 @@ artifactCount=8
 - TARGET_SUBTITLE_SRT target-subtitles.srt
 - TARGET_SUBTITLE_VTT target-subtitles.vtt
 - WORKER_SUMMARY worker-summary.json
+```
+
+With the default `.env.example`, the dubbing stage is recorded and then skipped without creating an audio artifact. When `LINGUAFRAME_TTS_ENABLED=true`, expected output also includes:
+
+```text
+artifactCount=9
+- DUBBING_AUDIO dubbing-audio.mp3
 ```
 
 The script downloads generated artifacts to:
@@ -70,6 +79,8 @@ The script downloads generated artifacts to:
 /tmp/linguaframe-demo/worker-summary.json
 ```
 
+`dubbing-audio.mp3` is downloaded only when TTS is enabled.
+
 You can inspect artifact APIs manually:
 
 ```bash
@@ -81,7 +92,7 @@ ARTIFACT_ID=<artifact id from the artifact list>
 curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download" -o /tmp/linguaframe-demo/artifact.bin
 ```
 
-This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, and target subtitle export. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, TTS, or subtitle burn-in; transcript and target subtitles use deterministic demo providers.
+This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, target subtitle export, and optional deterministic TTS. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, OpenAI TTS, or subtitle burn-in; transcript and target subtitles use deterministic demo providers.
 
 ## Optional OpenAI Transcription Demo
 
@@ -138,6 +149,35 @@ scripts/demo/docker-e2e-success.sh
 ```
 
 Expected output still includes `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, `TARGET_SUBTITLE_VTT`, and target subtitle preview JSON. This path can call OpenAI and may consume credits; never commit `.env`.
+
+## Optional OpenAI TTS Demo
+
+Use this path only with a local `.env` file that contains real OpenAI credentials:
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_TIMEOUT_SECONDS=120
+LINGUAFRAME_TTS_ENABLED=true
+LINGUAFRAME_TTS_PROVIDER=openai
+```
+
+Then run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+Expected output includes `DUBBING_AUDIO dubbing-audio.mp3`. This MVP produces one continuous MP3 audio artifact; it does not do lip sync or audio/video mixing. This path can call OpenAI and may consume credits; never commit `.env`.
 
 ## Failure And Retry Demo
 

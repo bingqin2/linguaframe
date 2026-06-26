@@ -68,6 +68,13 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getTranslation().getOpenai().getModel()).isEmpty();
         assertThat(properties.getTranslation().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
         assertThat(properties.getTranslation().getOpenai().getTimeoutSeconds()).isEqualTo(60);
+        assertThat(properties.getTts().isEnabled()).isFalse();
+        assertThat(properties.getTts().getProvider()).isEqualTo("demo");
+        assertThat(properties.getTts().getOpenai().getApiKey()).isEmpty();
+        assertThat(properties.getTts().getOpenai().getModel()).isEmpty();
+        assertThat(properties.getTts().getOpenai().getVoice()).isEmpty();
+        assertThat(properties.getTts().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
+        assertThat(properties.getTts().getOpenai().getTimeoutSeconds()).isEqualTo(120);
     }
 
     @Test
@@ -171,6 +178,31 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getTranslation().getOpenai().getModel()).isEqualTo("test-model");
                     assertThat(boundProperties.getTranslation().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
                     assertThat(boundProperties.getTranslation().getOpenai().getTimeoutSeconds()).isEqualTo(15);
+                });
+    }
+
+    @Test
+    void bindsOpenAiTtsRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.tts.enabled=true",
+                        "linguaframe.tts.provider=openai",
+                        "linguaframe.tts.openai.api-key=test-key",
+                        "linguaframe.tts.openai.model=gpt-4o-mini-tts",
+                        "linguaframe.tts.openai.voice=alloy",
+                        "linguaframe.tts.openai.base-url=http://localhost:9999",
+                        "linguaframe.tts.openai.timeout-seconds=45"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getTts().isEnabled()).isTrue();
+                    assertThat(boundProperties.getTts().getProvider()).isEqualTo("openai");
+                    assertThat(boundProperties.getTts().getOpenai().getApiKey()).isEqualTo("test-key");
+                    assertThat(boundProperties.getTts().getOpenai().getModel()).isEqualTo("gpt-4o-mini-tts");
+                    assertThat(boundProperties.getTts().getOpenai().getVoice()).isEqualTo("alloy");
+                    assertThat(boundProperties.getTts().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
+                    assertThat(boundProperties.getTts().getOpenai().getTimeoutSeconds()).isEqualTo(45);
                 });
     }
 

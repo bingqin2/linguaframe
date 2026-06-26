@@ -6,6 +6,8 @@ import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
+import com.linguaframe.job.domain.bo.TtsRequestBo;
+import com.linguaframe.job.domain.bo.TtsResultBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
@@ -19,6 +21,7 @@ import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.TranscriptSubtitleExportPipelineStage;
 import com.linguaframe.job.service.impl.TargetSubtitleExportPipelineStage;
+import com.linguaframe.job.service.impl.DubbingAudioGenerationPipelineStage;
 import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
 import com.linguaframe.job.service.impl.AudioExtractionPipelineStage;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
@@ -532,6 +535,116 @@ class LocalizationJobExecutionServiceTests {
         }
     }
 
+    @Test
+    void dubbingAudioStageCreatesArtifactAfterTargetSubtitleExport(@TempDir Path tempDir) throws IOException {
+        Instant now = Instant.parse("2026-06-26T23:00:00Z");
+        createJob("execution-video-10", "execution-job-10", LocalizationJobStatus.QUEUED, now);
+        byte[] sourceBytes = new byte[] {1, 2, 3};
+        byte[] audioBytes = new byte[] {7, 8, 9};
+        RecordingObjectStorageService objectStorageService = new RecordingObjectStorageService(sourceBytes);
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingFfmpegAudioExtractionService audioExtractionService = new RecordingFfmpegAudioExtractionService(
+                new ExtractedAudioBo("audio.wav", "audio/wav", audioBytes)
+        );
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        RecordingTranscriptionProvider transcriptionProvider = new RecordingTranscriptionProvider();
+        RecordingTranscriptService transcriptService = new RecordingTranscriptService();
+        RecordingSubtitleExportService subtitleExportService = new RecordingSubtitleExportService();
+        RecordingTranslationProvider translationProvider = new RecordingTranslationProvider();
+        RecordingSubtitleService subtitleService = new RecordingSubtitleService();
+        RecordingTtsProvider ttsProvider = new RecordingTtsProvider();
+        properties.getFfmpeg().setAudioEnabled(true);
+        properties.getTranscription().setEnabled(true);
+        properties.getTranslation().setEnabled(true);
+        properties.getTts().setEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(
+                        new WorkerSmokePipelineStage(properties),
+                        new AudioExtractionPipelineStage(
+                                properties,
+                                objectStorageService,
+                                workDirectoryService,
+                                audioExtractionService,
+                                artifactService
+                        ),
+                        new TranscriptSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptionProvider,
+                                transcriptService,
+                                subtitleExportService
+                        ),
+                        new TargetSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptService,
+                                translationProvider,
+                                subtitleService,
+                                subtitleExportService
+                        ),
+                        new DubbingAudioGenerationPipelineStage(
+                                properties,
+                                artifactService,
+                                subtitleService,
+                                ttsProvider
+                        ),
+                        new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
+                ),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-10", "execution-video-10", now));
+
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+            assertThat(timelineEventRepository.findByJobId("execution-job-10"))
+                    .extracting(event -> event.stage() + ":" + event.status())
+                    .containsExactly(
+                            LocalizationJobStage.WORKER_RECEIVED + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
+                    );
+            assertThat(ttsProvider.request.jobId()).isEqualTo("execution-job-10");
+            assertThat(ttsProvider.request.language()).isEqualTo("zh-CN");
+            assertThat(ttsProvider.request.text()).isEqualTo("Translated first line\nTranslated second line");
+            assertThat(artifactService.commands)
+                    .extracting(CreateJobArtifactCommand::type)
+                    .containsExactly(
+                            JobArtifactType.EXTRACTED_AUDIO,
+                            JobArtifactType.TRANSCRIPT_JSON,
+                            JobArtifactType.SUBTITLE_SRT,
+                            JobArtifactType.SUBTITLE_VTT,
+                            JobArtifactType.TARGET_SUBTITLE_JSON,
+                            JobArtifactType.TARGET_SUBTITLE_SRT,
+                            JobArtifactType.TARGET_SUBTITLE_VTT,
+                            JobArtifactType.DUBBING_AUDIO,
+                            JobArtifactType.WORKER_SUMMARY
+                    );
+            CreateJobArtifactCommand command = artifactService.commands.get(7);
+            assertThat(command.filename()).isEqualTo("dubbing-audio.mp3");
+            assertThat(command.contentType()).isEqualTo("audio/mpeg");
+            assertThat(command.content()).containsExactly(5, 4, 3);
+        } finally {
+            properties.getFfmpeg().setAudioEnabled(false);
+            properties.getTranscription().setEnabled(false);
+            properties.getTranslation().setEnabled(false);
+            properties.getTts().setEnabled(false);
+        }
+    }
+
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
@@ -786,20 +899,33 @@ class LocalizationJobExecutionServiceTests {
 
         private String jobId;
         private String language;
+        private List<SubtitleSegmentVo> subtitles = List.of();
 
         @Override
         public List<SubtitleSegmentVo> replaceSubtitles(String jobId, String language, TranslationResultBo result) {
             this.jobId = jobId;
             this.language = language;
-            return List.of(
+            subtitles = List.of(
                     new SubtitleSegmentVo(language, 0, 0L, 1_200L, "Translated first line"),
                     new SubtitleSegmentVo(language, 1, 1_200L, 2_400L, "Translated second line")
             );
+            return subtitles;
         }
 
         @Override
         public List<SubtitleSegmentVo> listSubtitles(String jobId, String language) {
-            return List.of();
+            return subtitles;
+        }
+    }
+
+    private static class RecordingTtsProvider implements TtsProvider {
+
+        private TtsRequestBo request;
+
+        @Override
+        public TtsResultBo synthesize(TtsRequestBo request) {
+            this.request = request;
+            return new TtsResultBo(new byte[] {5, 4, 3}, "dubbing-audio.mp3", "audio/mpeg");
         }
     }
 }

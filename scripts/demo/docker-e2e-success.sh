@@ -18,6 +18,7 @@ VTT_PATH="${LINGUAFRAME_DEMO_VTT_PATH:-/tmp/linguaframe-demo/subtitles.vtt}"
 TARGET_SUBTITLE_JSON_PATH="${LINGUAFRAME_DEMO_TARGET_SUBTITLE_JSON_PATH:-/tmp/linguaframe-demo/target-subtitles.json}"
 TARGET_SRT_PATH="${LINGUAFRAME_DEMO_TARGET_SRT_PATH:-/tmp/linguaframe-demo/target-subtitles.srt}"
 TARGET_VTT_PATH="${LINGUAFRAME_DEMO_TARGET_VTT_PATH:-/tmp/linguaframe-demo/target-subtitles.vtt}"
+DUBBING_AUDIO_PATH="${LINGUAFRAME_DEMO_DUBBING_AUDIO_PATH:-/tmp/linguaframe-demo/dubbing-audio.mp3}"
 
 wait_for_backend "$BASE_URL"
 ensure_demo_sample "$SAMPLE_PATH"
@@ -43,6 +44,11 @@ download_artifact_by_type "$BASE_URL" "$job_id" SUBTITLE_VTT "$VTT_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_JSON "$TARGET_SUBTITLE_JSON_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_SRT "$TARGET_SRT_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_VTT "$TARGET_VTT_PATH"
+if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$DUBBING_AUDIO_PATH"; then
+  echo "Downloaded dubbing audio to $DUBBING_AUDIO_PATH"
+else
+  echo "No dubbing audio artifact found; TTS may be disabled"
+fi
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$ARTIFACT_PATH"
 echo "Downloaded extracted audio to $AUDIO_PATH"
 echo "Downloaded transcript JSON to $TRANSCRIPT_PATH"

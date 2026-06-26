@@ -133,6 +133,10 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.ffmpeg.work-dir`
 - `linguaframe.transcription.enabled`
 - `linguaframe.transcription.provider`
+- `linguaframe.translation.enabled`
+- `linguaframe.translation.provider`
+- `linguaframe.tts.enabled`
+- `linguaframe.tts.provider`
 - `linguaframe.cost.enabled`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
@@ -235,12 +239,17 @@ LINGUAFRAME_TRANSCRIPTION_ENABLED=true
 LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo
 LINGUAFRAME_TRANSLATION_ENABLED=true
 LINGUAFRAME_TRANSLATION_PROVIDER=demo
+LINGUAFRAME_TTS_ENABLED=false
+LINGUAFRAME_TTS_PROVIDER=demo
 OPENAI_API_KEY=
 OPENAI_TRANSCRIPTION_MODEL=
 OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
 OPENAI_TRANSLATION_MODEL=
 OPENAI_BASE_URL=https://api.openai.com
 OPENAI_TRANSLATION_TIMEOUT_SECONDS=60
+OPENAI_TTS_MODEL=
+OPENAI_TTS_VOICE=
+OPENAI_TTS_TIMEOUT_SECONDS=120
 ```
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
@@ -256,6 +265,12 @@ When translation is enabled with `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, the wo
 - `TARGET_SUBTITLE_JSON` as `target-subtitles.json`
 - `TARGET_SUBTITLE_SRT` as `target-subtitles.srt`
 - `TARGET_SUBTITLE_VTT` as `target-subtitles.vtt`
+
+When TTS is enabled with `LINGUAFRAME_TTS_PROVIDER=demo`, the worker uses a deterministic demo TTS provider and stores:
+
+- `DUBBING_AUDIO` as `dubbing-audio.mp3`
+
+This MVP generates one continuous dubbing audio artifact. It does not do segment-level lip sync, mix audio into the original video, or burn subtitles into video.
 
 Transcript preview is available without downloading artifacts:
 
@@ -277,7 +292,7 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
-This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. It still does not run TTS or subtitle burn-in.
+This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. TTS is available as an opt-in worker stage and subtitle burn-in remains future work.
 
 ### Optional OpenAI Transcription
 
@@ -304,6 +319,35 @@ Use a real short speech sample for live transcription validation. The generated 
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
 docker compose --env-file .env up --build
 LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 scripts/demo/docker-e2e-success.sh
+```
+
+This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
+
+### Optional OpenAI TTS
+
+OpenAI TTS is opt-in so the default demo stays reproducible and cost-free. Create a local `.env` file and keep it out of git:
+
+```bash
+cp .env.example .env
+```
+
+Set these values in `.env`:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_TIMEOUT_SECONDS=120
+LINGUAFRAME_TTS_ENABLED=true
+LINGUAFRAME_TTS_PROVIDER=openai
+```
+
+The TTS MVP creates one continuous `dubbing-audio.mp3` artifact from target subtitles. It does not do lip sync or audio/video mixing.
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
 ```
 
 This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
@@ -345,7 +389,7 @@ docker compose --env-file .env.example up --build
 scripts/demo/docker-e2e-success.sh
 ```
 
-The script uploads a tiny local sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+The script uploads a tiny local sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 
