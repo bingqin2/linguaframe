@@ -681,3 +681,22 @@ Post-merge verification:
 - `npm run build` passed on `main`.
 - `docker compose --env-file .env.example config` passed on `main` and rendered the evaluation environment variables.
 - `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 167, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-27
+
+Work:
+
+- Added `scripts/demo/docker-e2e-tears-of-steel-full.sh` for `/Users/wangbingqin/Downloads/tos_casting-720p.mp4`.
+- Added `docs/product/demo-references.md` with Tears of Steel source, license reference, attribution, and local-file handling notes.
+- Documented the full Tears of Steel Docker demo path and the current subtitle burn-in timeout caveat.
+
+Validation:
+
+- `rg -n "demo-references|docker-e2e-tears-of-steel-full|tos_casting|Creative Commons" README.md docs/product/demo-references.md` found the reference doc, script name, local file note, and license attribution.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `scripts/demo/docker-e2e-tears-of-steel-full.sh --help` passed and listed all supported full-demo environment variables.
+
+Notes:
+
+- Full runtime validation requires the Docker backend and the local MP4.
+- Burned-video output is optional until full-video FFmpeg burn-in is optimized.

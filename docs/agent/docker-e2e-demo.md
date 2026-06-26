@@ -115,6 +115,39 @@ curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download
 
 This demo verifies FFmpeg audio extraction, deterministic transcript/source subtitle/target subtitle export, and FFmpeg subtitle burn-in. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, or OpenAI TTS; transcript and target subtitles use deterministic demo providers.
 
+## Full Tears of Steel Demo
+
+Use this path for a larger public-media demo after the short smoke path is working. The local source video is not committed to git; see `docs/product/demo-references.md` for attribution and license notes.
+
+For the current full-video demo, prefer `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=false` in local `.env` before recreating the backend. Previous full-video attempts reached OpenAI translation/evaluation but exceeded the default 180-second subtitle burn-in timeout.
+
+Package the backend jar and recreate the backend container from the repository root:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up -d --build linguaframe-backend
+```
+
+Run the full-video script:
+
+```bash
+scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+The script defaults to:
+
+```text
+/Users/wangbingqin/Downloads/tos_casting-720p.mp4
+```
+
+Override the input path when needed:
+
+```bash
+LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
+
 ## Optional OpenAI Transcription Demo
 
 Use this path only with a local `.env` file that contains real OpenAI credentials and with a real short speech sample. The generated default demo sample is a synthetic test video with a tone and should not be used to judge speech-to-text behavior.
