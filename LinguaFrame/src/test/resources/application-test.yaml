@@ -35,3 +35,12 @@ linguaframe:
       model:
       base-url: https://api.openai.com
       timeout-seconds: 60
+  tts:
+    enabled: false
+    provider: demo
+    openai:
+      api-key:
+      model:
+      voice:
+      base-url: https://api.openai.com
+      timeout-seconds: 120

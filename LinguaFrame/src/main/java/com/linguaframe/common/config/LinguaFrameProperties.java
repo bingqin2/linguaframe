@@ -41,6 +41,9 @@ public class LinguaFrameProperties {
     @Valid
     private final Translation translation = new Translation();
 
+    @Valid
+    private final Tts tts = new Tts();
+
     public Media getMedia() {
         return media;
     }
@@ -79,6 +82,10 @@ public class LinguaFrameProperties {
 
     public Translation getTranslation() {
         return translation;
+    }
+
+    public Tts getTts() {
+        return tts;
     }
 
     public static class Media {
@@ -395,6 +402,93 @@ public class LinguaFrameProperties {
 
             public void setModel(String model) {
                 this.model = model;
+            }
+
+            public String getBaseUrl() {
+                return baseUrl;
+            }
+
+            public void setBaseUrl(String baseUrl) {
+                this.baseUrl = baseUrl;
+            }
+
+            public int getTimeoutSeconds() {
+                return timeoutSeconds;
+            }
+
+            public void setTimeoutSeconds(int timeoutSeconds) {
+                this.timeoutSeconds = timeoutSeconds;
+            }
+        }
+    }
+
+    public static class Tts {
+
+        private boolean enabled = false;
+
+        @NotBlank
+        private String provider = "demo";
+
+        @Valid
+        private final OpenAi openai = new OpenAi();
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+
+        public OpenAi getOpenai() {
+            return openai;
+        }
+
+        public static class OpenAi {
+
+            private String apiKey = "";
+
+            private String model = "";
+
+            private String voice = "";
+
+            @NotBlank
+            private String baseUrl = "https://api.openai.com";
+
+            @Min(1)
+            @Max(600)
+            private int timeoutSeconds = 120;
+
+            public String getApiKey() {
+                return apiKey;
+            }
+
+            public void setApiKey(String apiKey) {
+                this.apiKey = apiKey;
+            }
+
+            public String getModel() {
+                return model;
+            }
+
+            public void setModel(String model) {
+                this.model = model;
+            }
+
+            public String getVoice() {
+                return voice;
+            }
+
+            public void setVoice(String voice) {
+                this.voice = voice;
             }
 
             public String getBaseUrl() {
