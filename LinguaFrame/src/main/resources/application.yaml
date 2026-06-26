@@ -42,7 +42,11 @@ linguaframe:
     smoke-stage-duration-ms: ${LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS:0}
     smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
   cost:
-    enabled: true
+    enabled: ${LINGUAFRAME_COST_ENABLED:true}
+    transcription-usd-per-minute: ${LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE:0}
+    translation-input-usd-per-million-tokens: ${LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS:0}
+    translation-output-usd-per-million-tokens: ${LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS:0}
+    tts-usd-per-million-characters: ${LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS:0}
   ffmpeg:
     binary-path: ${LINGUAFRAME_FFMPEG_BINARY_PATH:ffmpeg}
     audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:false}

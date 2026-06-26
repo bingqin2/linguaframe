@@ -18,6 +18,12 @@ spring:
     password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
 
 linguaframe:
+  cost:
+    enabled: ${LINGUAFRAME_COST_ENABLED:true}
+    transcription-usd-per-minute: ${LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE:0}
+    translation-input-usd-per-million-tokens: ${LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS:0}
+    translation-output-usd-per-million-tokens: ${LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS:0}
+    tts-usd-per-million-characters: ${LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS:0}
   worker:
     max-retries: ${LINGUAFRAME_WORKER_MAX_RETRIES:2}
     stage-timeout-seconds: ${LINGUAFRAME_WORKER_STAGE_TIMEOUT_SECONDS:600}

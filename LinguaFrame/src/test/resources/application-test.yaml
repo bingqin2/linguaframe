@@ -13,6 +13,12 @@ management:
       enabled: false
 
 linguaframe:
+  cost:
+    enabled: true
+    transcription-usd-per-minute: 0
+    translation-input-usd-per-million-tokens: 0
+    translation-output-usd-per-million-tokens: 0
+    tts-usd-per-million-characters: 0
   worker:
     dispatch-enabled: false
     execution-enabled: false

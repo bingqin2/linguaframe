@@ -110,7 +110,7 @@ Alternatives considered:
 - `ModelCallAuditService#listModelCalls(String jobId): List<ModelCallVo>`
 - `ModelCallAuditService#summarizeJob(String jobId): JobUsageSummaryVo`
 
-- [ ] **Step 1: Write failing property binding tests**
+- [x] **Step 1: Write failing property binding tests**
 
 Extend `LinguaFramePropertiesTests`:
 
@@ -145,7 +145,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test
 
 Expected: fail because the new cost getters do not exist.
 
-- [ ] **Step 2: Add cost rate properties**
+- [x] **Step 2: Add cost rate properties**
 
 In `LinguaFrameProperties.Cost`, add `BigDecimal` properties with `@DecimalMin("0.0")`:
 
@@ -170,7 +170,7 @@ linguaframe:
 
 Add the same keys to `.env.example` and `docker-compose.yml` with zero defaults.
 
-- [ ] **Step 3: Write failing repository and service tests**
+- [x] **Step 3: Write failing repository and service tests**
 
 Create `ModelCallRepositoryTests` to save and load a row containing:
 
@@ -211,7 +211,7 @@ mvn -pl LinguaFrame -Dtest=ModelCallRepositoryTests,ModelCallAuditServiceTests t
 
 Expected: fail because persistence and audit types do not exist.
 
-- [ ] **Step 4: Implement migration, enums, repository, and service**
+- [x] **Step 4: Implement migration, enums, repository, and service**
 
 Create `V7__create_model_call_records.sql`:
 
