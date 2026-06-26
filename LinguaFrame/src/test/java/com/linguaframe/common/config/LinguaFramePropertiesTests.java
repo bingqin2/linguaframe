@@ -58,6 +58,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/linguaframe-media");
         assertThat(properties.getTranscription().isEnabled()).isFalse();
         assertThat(properties.getTranscription().getProvider()).isEqualTo("demo");
+        assertThat(properties.getTranscription().getOpenai().getApiKey()).isEmpty();
+        assertThat(properties.getTranscription().getOpenai().getModel()).isEmpty();
+        assertThat(properties.getTranscription().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
+        assertThat(properties.getTranscription().getOpenai().getTimeoutSeconds()).isEqualTo(120);
         assertThat(properties.getTranslation().isEnabled()).isFalse();
         assertThat(properties.getTranslation().getProvider()).isEqualTo("demo");
         assertThat(properties.getTranslation().getOpenai().getApiKey()).isEmpty();
@@ -108,6 +112,28 @@ class LinguaFramePropertiesTests {
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getTranscription().isEnabled()).isTrue();
                     assertThat(boundProperties.getTranscription().getProvider()).isEqualTo("demo");
+                });
+    }
+
+    @Test
+    void bindsOpenAiTranscriptionRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.transcription.enabled=true",
+                        "linguaframe.transcription.provider=openai",
+                        "linguaframe.transcription.openai.api-key=test-key",
+                        "linguaframe.transcription.openai.model=whisper-1",
+                        "linguaframe.transcription.openai.base-url=http://localhost:9999",
+                        "linguaframe.transcription.openai.timeout-seconds=45"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getTranscription().getProvider()).isEqualTo("openai");
+                    assertThat(boundProperties.getTranscription().getOpenai().getApiKey()).isEqualTo("test-key");
+                    assertThat(boundProperties.getTranscription().getOpenai().getModel()).isEqualTo("whisper-1");
+                    assertThat(boundProperties.getTranscription().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
+                    assertThat(boundProperties.getTranscription().getOpenai().getTimeoutSeconds()).isEqualTo(45);
                 });
     }
 

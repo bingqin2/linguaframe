@@ -51,6 +51,11 @@ linguaframe:
   transcription:
     enabled: ${LINGUAFRAME_TRANSCRIPTION_ENABLED:false}
     provider: ${LINGUAFRAME_TRANSCRIPTION_PROVIDER:demo}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_TRANSCRIPTION_MODEL:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      timeout-seconds: ${OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS:120}
   translation:
     enabled: ${LINGUAFRAME_TRANSLATION_ENABLED:false}
     provider: ${LINGUAFRAME_TRANSLATION_PROVIDER:demo}
