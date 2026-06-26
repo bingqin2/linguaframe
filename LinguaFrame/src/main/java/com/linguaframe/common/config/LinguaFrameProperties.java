@@ -234,6 +234,11 @@ public class LinguaFrameProperties {
         @DecimalMin("0.0")
         private BigDecimal ttsUsdPerMillionCharacters = BigDecimal.ZERO;
 
+        private boolean budgetGuardEnabled = false;
+
+        @DecimalMin("0.0")
+        private BigDecimal maxJobCostUsd = BigDecimal.ZERO;
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -272,6 +277,22 @@ public class LinguaFrameProperties {
 
         public void setTtsUsdPerMillionCharacters(BigDecimal ttsUsdPerMillionCharacters) {
             this.ttsUsdPerMillionCharacters = ttsUsdPerMillionCharacters;
+        }
+
+        public boolean isBudgetGuardEnabled() {
+            return budgetGuardEnabled;
+        }
+
+        public void setBudgetGuardEnabled(boolean budgetGuardEnabled) {
+            this.budgetGuardEnabled = budgetGuardEnabled;
+        }
+
+        public BigDecimal getMaxJobCostUsd() {
+            return maxJobCostUsd;
+        }
+
+        public void setMaxJobCostUsd(BigDecimal maxJobCostUsd) {
+            this.maxJobCostUsd = maxJobCostUsd;
         }
     }
 

@@ -175,6 +175,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.cost.translation-input-usd-per-million-tokens`
 - `linguaframe.cost.translation-output-usd-per-million-tokens`
 - `linguaframe.cost.tts-usd-per-million-characters`
+- `linguaframe.cost.budget-guard-enabled`
+- `linguaframe.cost.max-job-cost-usd`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
 - `linguaframe.database.name`
@@ -291,6 +293,8 @@ LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=0
 LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS=0
 LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS=0
 LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS=0
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=false
+LINGUAFRAME_COST_MAX_JOB_COST_USD=0
 OPENAI_API_KEY=
 OPENAI_TRANSCRIPTION_MODEL=
 OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
@@ -305,6 +309,15 @@ OPENAI_EVALUATION_TIMEOUT_SECONDS=60
 ```
 
 Cost rates default to `0` in `.env.example` because provider pricing changes. Treat `estimatedCostUsd` as a local estimate, not billing-source-of-truth data.
+
+Per-job cost protection is opt-in. Set `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true` and a positive `LINGUAFRAME_COST_MAX_JOB_COST_USD` to stop later AI stages before a provider call when the job's accumulated estimated cost reaches the limit. For a local guard test, use a deliberately tiny positive limit together with non-zero cost rates:
+
+```env
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true
+LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
+```
+
+When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
 

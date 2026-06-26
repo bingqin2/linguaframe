@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.SubtitleExportService;
@@ -27,19 +28,22 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
     private final TranscriptionProvider transcriptionProvider;
     private final TranscriptService transcriptService;
     private final SubtitleExportService subtitleExportService;
+    private final CostBudgetGuardService costBudgetGuardService;
 
     public TranscriptSubtitleExportPipelineStage(
             LinguaFrameProperties properties,
             JobArtifactService artifactService,
             TranscriptionProvider transcriptionProvider,
             TranscriptService transcriptService,
-            SubtitleExportService subtitleExportService
+            SubtitleExportService subtitleExportService,
+            CostBudgetGuardService costBudgetGuardService
     ) {
         this.properties = properties;
         this.artifactService = artifactService;
         this.transcriptionProvider = transcriptionProvider;
         this.transcriptService = transcriptService;
         this.subtitleExportService = subtitleExportService;
+        this.costBudgetGuardService = costBudgetGuardService;
     }
 
     @Override
@@ -54,6 +58,7 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
         }
 
         byte[] audioContent = readExtractedAudio(context.job().id());
+        costBudgetGuardService.assertWithinBudget(context.job().id(), stage());
         TranscriptionResultBo result = transcriptionProvider.transcribe(context.job().id(), audioContent);
         List<TranscriptSegmentVo> segments = transcriptService.replaceTranscript(context.job().id(), result);
 

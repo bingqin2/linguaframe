@@ -5,6 +5,7 @@ import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.QualityEvaluationService;
 import com.linguaframe.job.service.SubtitleService;
@@ -20,17 +21,20 @@ public class QualityEvaluationPipelineStage implements LocalizationPipelineStage
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
     private final QualityEvaluationService qualityEvaluationService;
+    private final CostBudgetGuardService costBudgetGuardService;
 
     public QualityEvaluationPipelineStage(
             LinguaFrameProperties properties,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
-            QualityEvaluationService qualityEvaluationService
+            QualityEvaluationService qualityEvaluationService,
+            CostBudgetGuardService costBudgetGuardService
     ) {
         this.properties = properties;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
         this.qualityEvaluationService = qualityEvaluationService;
+        this.costBudgetGuardService = costBudgetGuardService;
     }
 
     @Override
@@ -51,6 +55,7 @@ public class QualityEvaluationPipelineStage implements LocalizationPipelineStage
         if (sourceSegments.isEmpty() || targetSegments.isEmpty()) {
             return;
         }
+        costBudgetGuardService.assertWithinBudget(jobId, stage());
 
         qualityEvaluationService.evaluateAndStore(jobId, targetLanguage, sourceSegments, targetSegments);
     }

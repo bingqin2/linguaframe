@@ -153,3 +153,11 @@ Decision: Make translation quality evaluation an optional, non-blocking pipeline
 Reason: Evaluation is useful product feedback, but it should not prevent transcript, subtitle, TTS, burn-in, and artifact outputs from completing when a provider fails or is not configured. A dedicated table keeps quality outcomes queryable without overloading model-call audit records.
 
 Impact: The worker can run deterministic demo evaluation or opt-in OpenAI evaluation after target subtitle export. Provider failures create a failed `quality_evaluations` row and safe error summary while the localization job continues.
+
+## 2026-06-27
+
+Decision: Add a per-job cost budget guard based on recorded estimated cost before adding next-call cost forecasting.
+
+Reason: LinguaFrame already persists model-call cost estimates per job. Checking that accumulated total before each AI stage gives the local OpenAI demo an understandable spending guard without pretending to know exact provider billing or future token/audio usage.
+
+Impact: Operators can opt in with `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true` and a positive `LINGUAFRAME_COST_MAX_JOB_COST_USD`. When the limit is reached, later AI stages fail before provider calls and the job timeline records the budget failure.

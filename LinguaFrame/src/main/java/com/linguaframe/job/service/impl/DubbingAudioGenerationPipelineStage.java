@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.bo.TtsResultBo;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
+import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.SubtitleService;
@@ -25,17 +26,20 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
     private final JobArtifactService artifactService;
     private final SubtitleService subtitleService;
     private final TtsProvider ttsProvider;
+    private final CostBudgetGuardService costBudgetGuardService;
 
     public DubbingAudioGenerationPipelineStage(
             LinguaFrameProperties properties,
             JobArtifactService artifactService,
             SubtitleService subtitleService,
-            TtsProvider ttsProvider
+            TtsProvider ttsProvider,
+            CostBudgetGuardService costBudgetGuardService
     ) {
         this.properties = properties;
         this.artifactService = artifactService;
         this.subtitleService = subtitleService;
         this.ttsProvider = ttsProvider;
+        this.costBudgetGuardService = costBudgetGuardService;
     }
 
     @Override
@@ -55,6 +59,7 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
         if (subtitles.isEmpty()) {
             throw new IllegalStateException("Target subtitles not found for dubbing audio generation.");
         }
+        costBudgetGuardService.assertWithinBudget(jobId, stage());
 
         String text = subtitles.stream()
                 .sorted(Comparator.comparingInt(SubtitleSegmentVo::index))

@@ -38,6 +38,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0");
         assertThat(properties.getCost().getTranslationOutputUsdPerMillionTokens()).isEqualByComparingTo("0");
         assertThat(properties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("0");
+        assertThat(properties.getCost().isBudgetGuardEnabled()).isFalse();
+        assertThat(properties.getCost().getMaxJobCostUsd()).isEqualByComparingTo("0");
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
         assertThat(properties.getDatabase().getName()).isEqualTo("linguaframe");
@@ -108,7 +110,9 @@ class LinguaFramePropertiesTests {
                         "linguaframe.cost.transcription-usd-per-minute=0.006",
                         "linguaframe.cost.translation-input-usd-per-million-tokens=0.15",
                         "linguaframe.cost.translation-output-usd-per-million-tokens=0.60",
-                        "linguaframe.cost.tts-usd-per-million-characters=15.00"
+                        "linguaframe.cost.tts-usd-per-million-characters=15.00",
+                        "linguaframe.cost.budget-guard-enabled=true",
+                        "linguaframe.cost.max-job-cost-usd=0.01"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
@@ -118,6 +122,8 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0.15");
                     assertThat(boundProperties.getCost().getTranslationOutputUsdPerMillionTokens()).isEqualByComparingTo("0.60");
                     assertThat(boundProperties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("15.00");
+                    assertThat(boundProperties.getCost().isBudgetGuardEnabled()).isTrue();
+                    assertThat(boundProperties.getCost().getMaxJobCostUsd()).isEqualByComparingTo("0.01");
                 });
     }
 
