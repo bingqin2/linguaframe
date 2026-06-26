@@ -65,6 +65,7 @@ Planned AI infrastructure capabilities:
 - `docs/product/roadmap.md` - phased implementation plan.
 - `docs/product/basic-version-profile.md` - first runnable foundation scope.
 - `docs/product/backend-code-standard.md` - backend package and coding rules.
+- `docs/product/demo-references.md` - public demo media sources, attribution, and license notes.
 - `docs/agent/vibe-coding.md` - AI-assisted development guardrails.
 - `docs/agent/smoke-test-checklist.md` - repeatable demo validation checklist.
 - `docs/agent/docker-e2e-demo.md` - Docker backend E2E demo workflow.
@@ -80,6 +81,16 @@ The first local demo should support a 30-60 second video and produce:
 - Job status timeline.
 - Retryable failure records.
 - Cost and usage summary for OpenAI calls.
+
+## Demo Media Candidates
+
+Use public, attributable media when testing the end-to-end pipeline:
+
+- [Tears of Steel](https://studio.blender.org/films/tears-of-steel/) is the best fit for the main product demo. It combines live-action dialogue, science-fiction scenes, and CGI, so it can show translation, quality evaluation, and subtitle burn-in. The Blender Studio page lists the full film at about 12:10; use `scripts/demo/docker-e2e-tears-of-steel-full.sh` for the local full-video demo path.
+- [Sintel](https://studio.blender.org/films/sintel/) is useful for testing contextual translation and natural subtitle wording with animated story dialogue. The Blender Studio page lists the full film at about 14:48.
+- Big Buck Bunny is useful for quick upload and media-processing checks. The [W3Schools sample video](https://www.w3schools.com/html/mov_bbb.mp4) is lightweight and stable, and the W3Schools example page credits Big Buck Bunny.
+- [NASA Image and Video Library](https://images.nasa.gov/) is useful for technology-themed demos, especially space, rocket, and mission explainer videos. Check each asset's metadata and license before using it.
+- [Internet Archive Movies](https://archive.org/details/movies) can provide public-domain or Creative Commons newsreels, documentaries, and speech clips for realistic voice testing. Check the license on each item before download.
 
 ## Current Foundation Commands
 
