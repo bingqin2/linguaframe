@@ -20,7 +20,7 @@ TARGET_SRT_PATH="${LINGUAFRAME_DEMO_TARGET_SRT_PATH:-/tmp/linguaframe-demo/targe
 TARGET_VTT_PATH="${LINGUAFRAME_DEMO_TARGET_VTT_PATH:-/tmp/linguaframe-demo/target-subtitles.vtt}"
 
 wait_for_backend "$BASE_URL"
-create_demo_sample "$SAMPLE_PATH"
+ensure_demo_sample "$SAMPLE_PATH"
 
 upload_response="$(upload_demo_video "$BASE_URL" "$SAMPLE_PATH")"
 job_id="$(printf '%s' "$upload_response" | extract_json_field jobId)"

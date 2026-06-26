@@ -236,6 +236,8 @@ LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo
 LINGUAFRAME_TRANSLATION_ENABLED=true
 LINGUAFRAME_TRANSLATION_PROVIDER=demo
 OPENAI_API_KEY=
+OPENAI_TRANSCRIPTION_MODEL=
+OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
 OPENAI_TRANSLATION_MODEL=
 OPENAI_BASE_URL=https://api.openai.com
 OPENAI_TRANSLATION_TIMEOUT_SECONDS=60
@@ -243,7 +245,7 @@ OPENAI_TRANSLATION_TIMEOUT_SECONDS=60
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
 
-When transcription is enabled, the worker uses a deterministic demo transcription provider and stores:
+When transcription is enabled with `LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo`, the worker uses a deterministic demo transcription provider and stores:
 
 - `TRANSCRIPT_JSON` as `transcript.json`
 - `SUBTITLE_SRT` as `subtitles.srt`
@@ -275,7 +277,36 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
-This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. It still does not run OpenAI transcription, TTS, or subtitle burn-in.
+This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. It still does not run TTS or subtitle burn-in.
+
+### Optional OpenAI Transcription
+
+OpenAI transcription is opt-in so the default demo stays reproducible and cost-free. Create a local `.env` file and keep it out of git:
+
+```bash
+cp .env.example .env
+```
+
+Set these values in `.env`:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_TRANSCRIPTION_MODEL=whisper-1
+OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
+LINGUAFRAME_TRANSCRIPTION_PROVIDER=openai
+LINGUAFRAME_TRANSCRIPTION_ENABLED=true
+```
+
+Use a real short speech sample for live transcription validation. The generated default demo sample is a synthetic tone, so it is useful for the deterministic pipeline but not for proving speech-to-text quality.
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 scripts/demo/docker-e2e-success.sh
+```
+
+This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
 
 ### Optional OpenAI Translation
 
