@@ -4,5 +4,6 @@ public enum LocalizationJobStage {
 
     WORKER_RECEIVED,
     WORKER_SMOKE,
+    ARTIFACT_SUMMARY,
     COMPLETED
 }
