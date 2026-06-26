@@ -145,3 +145,11 @@ Decision: Keep the local demo job history global until authentication and owners
 Reason: The current self-hosted demo has no user model, so adding owner scoping now would create fake authorization semantics. A global `GET /api/jobs` list is enough for local demo discovery and keeps the API honest about current product boundaries.
 
 Impact: The React demo now uses server-backed job history for discoverability, while browser-local recent jobs remain a fallback convenience. Hosted usage must add authentication and owner-scoped queries before exposing user media publicly.
+
+## 2026-06-27
+
+Decision: Make translation quality evaluation an optional, non-blocking pipeline stage with its own durable domain record.
+
+Reason: Evaluation is useful product feedback, but it should not prevent transcript, subtitle, TTS, burn-in, and artifact outputs from completing when a provider fails or is not configured. A dedicated table keeps quality outcomes queryable without overloading model-call audit records.
+
+Impact: The worker can run deterministic demo evaluation or opt-in OpenAI evaluation after target subtitle export. Provider failures create a failed `quality_evaluations` row and safe error summary while the localization job continues.

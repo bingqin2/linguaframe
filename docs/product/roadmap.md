@@ -345,6 +345,8 @@ Suggested ExecPlan:
 
 Goal: add a lightweight LLM-based quality check for generated subtitles.
 
+Status: in progress. The MVP now persists quality evaluation records, runs an optional non-blocking stage after target subtitle export, exposes the latest result in job detail, and renders it in the React demo.
+
 Build:
 
 - Quality evaluation prompt template.
@@ -368,7 +370,7 @@ Exit criteria:
 
 Suggested ExecPlan:
 
-- `docs/plans/011-translation-quality-evaluation.md`
+- `docs/plans/023-translation-quality-evaluation-mvp.md`
 
 ## Phase 12: AI Cost Budget And Cache
 

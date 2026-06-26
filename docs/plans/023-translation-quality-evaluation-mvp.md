@@ -48,11 +48,11 @@ Alternative 2, fold evaluation into `ModelCallVo`: fewer tables, but model-call 
 **Interfaces:**
 - Produces: `QualityEvaluationRepository#save(QualityEvaluationRecord)`, `findLatestByJobIdAndLanguage(String,String)`, and `findByJobId(String)`.
 
-- [ ] Add a failing repository test that inserts two evaluations for the same job/language and expects the latest by `created_at`.
-- [ ] Add `quality_evaluations` with fields: `id`, `job_id`, `language`, `score`, `verdict`, `completeness`, `readability`, `timing_preservation`, `naturalness`, `issues_json`, `suggested_fixes_json`, `status`, `safe_error_summary`, `created_at`.
-- [ ] Implement repository row mapping with `JdbcClient`.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=QualityEvaluationRepositoryTests test`.
-- [ ] Commit: `Add quality evaluation persistence`.
+- [x] Add a failing repository test that inserts two evaluations for the same job/language and expects the latest by `created_at`.
+- [x] Add `quality_evaluations` with fields: `id`, `job_id`, `language`, `score`, `verdict`, `completeness`, `readability`, `timing_preservation`, `naturalness`, `issues_json`, `suggested_fixes_json`, `status`, `safe_error_summary`, `created_at`.
+- [x] Implement repository row mapping with `JdbcClient`.
+- [x] Run `mvn -pl LinguaFrame -Dtest=QualityEvaluationRepositoryTests test`.
+- [x] Commit: `Add quality evaluation persistence`.
 
 ## Task 2: Add Evaluation Domain Service And Providers
 
@@ -72,13 +72,13 @@ Alternative 2, fold evaluation into `ModelCallVo`: fewer tables, but model-call 
 - Consumes: transcript segments and subtitle segments.
 - Produces: `QualityEvaluationService#evaluateAndStore(jobId, language, sourceSegments, targetSegments)` and `#latestForJob(jobId)`.
 
-- [ ] Add failing configuration tests for `linguaframe.evaluation.enabled`, provider, OpenAI base URL/model/timeout.
-- [ ] Add `ModelCallOperation.EVALUATION` and cost estimation through translation token rates.
-- [ ] Implement demo provider returning deterministic score `92`, verdict `GOOD`, and concise issues/fixes.
-- [ ] Implement OpenAI provider using `/v1/responses` JSON schema output with fields matching `QualityEvaluationResultBo`; record success/failure model calls with prompt version `openai-translation-quality-evaluation-v1`.
-- [ ] Ensure OpenAI provider fails fast when enabled with missing `OPENAI_API_KEY` or `OPENAI_EVALUATION_MODEL`.
-- [ ] Run focused provider/service tests.
-- [ ] Commit: `Add quality evaluation providers`.
+- [x] Add failing configuration tests for `linguaframe.evaluation.enabled`, provider, OpenAI base URL/model/timeout.
+- [x] Add `ModelCallOperation.EVALUATION` and cost estimation through translation token rates.
+- [x] Implement demo provider returning deterministic score `92`, verdict `GOOD`, and concise issues/fixes.
+- [x] Implement OpenAI provider using `/v1/responses` JSON schema output with fields matching `QualityEvaluationResultBo`; record success/failure model calls with prompt version `openai-translation-quality-evaluation-v1`.
+- [x] Ensure OpenAI provider fails fast when enabled with missing `OPENAI_API_KEY` or `OPENAI_EVALUATION_MODEL`.
+- [x] Run focused provider/service tests.
+- [x] Commit: `Add quality evaluation providers`.
 
 ## Task 3: Wire Evaluation Into Pipeline And Job Detail API
 
@@ -94,12 +94,12 @@ Alternative 2, fold evaluation into `ModelCallVo`: fewer tables, but model-call 
 - Consumes: `TranscriptService#listTranscript`, `SubtitleService#listSubtitles`, and `QualityEvaluationService`.
 - Produces: job detail field `qualityEvaluation: QualityEvaluationVo | null`.
 
-- [ ] Add failing execution test: when translation and evaluation are enabled, timeline includes `TRANSLATION_QUALITY_EVALUATION` after `TARGET_SUBTITLE_EXPORT` and before TTS/burn-in/summary.
-- [ ] Implement stage that returns immediately when `linguaframe.evaluation.enabled=false` or no target subtitles exist.
-- [ ] Catch provider failures inside the stage, store failed evaluation, and do not throw.
-- [ ] Add controller test asserting `GET /api/jobs/{jobId}` includes `qualityEvaluation.score`, `verdict`, `issues`, and `suggestedFixes`.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test`.
-- [ ] Commit: `Expose translation quality evaluation`.
+- [x] Add failing execution test: when translation and evaluation are enabled, timeline includes `TRANSLATION_QUALITY_EVALUATION` after `TARGET_SUBTITLE_EXPORT` and before TTS/burn-in/summary.
+- [x] Implement stage that returns immediately when `linguaframe.evaluation.enabled=false` or no target subtitles exist.
+- [x] Catch provider failures inside the stage, store failed evaluation, and do not throw.
+- [x] Add controller test asserting `GET /api/jobs/{jobId}` includes `qualityEvaluation.score`, `verdict`, `issues`, and `suggestedFixes`.
+- [x] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test`.
+- [x] Commit: `Expose translation quality evaluation`.
 
 ## Task 4: Show Quality Evaluation In React Demo
 
@@ -113,12 +113,12 @@ Alternative 2, fold evaluation into `ModelCallVo`: fewer tables, but model-call 
 - Consumes: `LocalizationJob.qualityEvaluation`.
 - Produces: a `Quality evaluation` panel in selected job detail.
 
-- [ ] Add failing App test with a job fixture containing score `92`, verdict `GOOD`, one issue, and one suggested fix.
-- [ ] Extend TypeScript types with `QualityEvaluation`.
-- [ ] Render score, verdict, dimension scores, issues, suggested fixes, and failed-evaluation warning when `status=FAILED`.
-- [ ] Keep empty state concise: `No quality evaluation recorded yet.`
-- [ ] Run `npm run test:run -- App` and `npm run test:run`.
-- [ ] Commit: `Show quality evaluation in demo UI`.
+- [x] Add failing App test with a job fixture containing score `92`, verdict `GOOD`, one issue, and one suggested fix.
+- [x] Extend TypeScript types with `QualityEvaluation`.
+- [x] Render score, verdict, dimension scores, issues, suggested fixes, and failed-evaluation warning when `status=FAILED`.
+- [x] Keep empty state concise: `No quality evaluation recorded yet.`
+- [x] Run `npm run test:run -- App` and `npm run test:run`.
+- [x] Commit: `Show quality evaluation in demo UI`.
 
 ## Task 5: Document And Verify The Feature Slice
 
@@ -136,17 +136,17 @@ Alternative 2, fold evaluation into `ModelCallVo`: fewer tables, but model-call 
 - `npm run build`
 - `docker compose --env-file .env.example config`
 
-- [ ] Document configuration keys and explain that evaluation is optional and non-blocking.
-- [ ] Update roadmap Phase 11 status as started for quality evaluation MVP.
-- [ ] Record the non-blocking evaluation decision in `docs/progress/decisions.md`.
-- [ ] Record red/green validation evidence in `docs/progress/execution-log.md`.
+- [x] Document configuration keys and explain that evaluation is optional and non-blocking.
+- [x] Update roadmap Phase 11 status as started for quality evaluation MVP.
+- [x] Record the non-blocking evaluation decision in `docs/progress/decisions.md`.
+- [x] Record red/green validation evidence in `docs/progress/execution-log.md`.
 - [ ] Commit: `Document quality evaluation MVP`.
 
 ## Completion Checklist
 
-- [ ] `GET /api/jobs/{jobId}` returns latest quality evaluation when present.
-- [ ] Demo jobs can run with deterministic local evaluation and without paid API calls.
-- [ ] OpenAI evaluation is opt-in and records model-call usage.
-- [ ] Evaluation failures are visible but do not fail otherwise completed jobs.
-- [ ] Frontend shows quality score/verdict/issues in selected job detail.
+- [x] `GET /api/jobs/{jobId}` returns latest quality evaluation when present.
+- [x] Demo jobs can run with deterministic local evaluation and without paid API calls.
+- [x] OpenAI evaluation is opt-in and records model-call usage.
+- [x] Evaluation failures are visible but do not fail otherwise completed jobs.
+- [x] Frontend shows quality score/verdict/issues in selected job detail.
 - [ ] Branch is merged back to `main` after verification.
