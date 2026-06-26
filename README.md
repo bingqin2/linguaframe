@@ -148,6 +148,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.ffmpeg.binary-path`
 - `linguaframe.ffmpeg.audio-enabled`
 - `linguaframe.ffmpeg.audio-timeout-seconds`
+- `linguaframe.ffmpeg.burn-in-enabled`
+- `linguaframe.ffmpeg.burn-in-timeout-seconds`
 - `linguaframe.ffmpeg.work-dir`
 - `linguaframe.transcription.enabled`
 - `linguaframe.transcription.provider`
@@ -155,6 +157,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.translation.provider`
 - `linguaframe.tts.enabled`
 - `linguaframe.tts.provider`
+- `linguaframe.evaluation.enabled`
+- `linguaframe.evaluation.provider`
 - `linguaframe.cost.enabled`
 - `linguaframe.cost.transcription-usd-per-minute`
 - `linguaframe.cost.translation-input-usd-per-million-tokens`
@@ -265,6 +269,8 @@ LINGUAFRAME_TRANSLATION_ENABLED=true
 LINGUAFRAME_TRANSLATION_PROVIDER=demo
 LINGUAFRAME_TTS_ENABLED=false
 LINGUAFRAME_TTS_PROVIDER=demo
+LINGUAFRAME_EVALUATION_ENABLED=false
+LINGUAFRAME_EVALUATION_PROVIDER=demo
 LINGUAFRAME_COST_ENABLED=true
 LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=0
 LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS=0
@@ -279,11 +285,13 @@ OPENAI_TRANSLATION_TIMEOUT_SECONDS=60
 OPENAI_TTS_MODEL=
 OPENAI_TTS_VOICE=
 OPENAI_TTS_TIMEOUT_SECONDS=120
+OPENAI_EVALUATION_MODEL=
+OPENAI_EVALUATION_TIMEOUT_SECONDS=60
 ```
 
 Cost rates default to `0` in `.env.example` because provider pricing changes. Treat `estimatedCostUsd` as a local estimate, not billing-source-of-truth data.
 
-`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary` and `modelCalls` for provider/model/status/latency, usage units, estimated cost, and safe error summaries.
+`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
 
 Recent localization jobs can be listed without a browser-local cache:
 
@@ -313,6 +321,8 @@ When TTS is enabled with `LINGUAFRAME_TTS_PROVIDER=demo`, the worker uses a dete
 When subtitle burn-in is enabled, the worker uses FFmpeg and target subtitles to store:
 
 - `BURNED_VIDEO` as `burned-video.mp4`
+
+When quality evaluation is enabled with `LINGUAFRAME_EVALUATION_PROVIDER=demo`, the worker stores a deterministic quality score after target subtitle export. Evaluation is disabled by default and non-blocking: provider failures create a failed evaluation record but do not fail the localization job.
 
 This MVP generates one continuous dubbing audio artifact and one subtitle-burned video artifact. It does not do segment-level lip sync, mix TTS audio into the original video, or provide a subtitle style editor.
 
@@ -423,6 +433,34 @@ scripts/demo/docker-e2e-success.sh
 
 This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
 
+### Optional OpenAI Quality Evaluation
+
+OpenAI quality evaluation is opt-in so the default demo stays reproducible and cost-free. Create a local `.env` file and keep it out of git:
+
+```bash
+cp .env.example .env
+```
+
+Set these values in `.env`:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_EVALUATION_MODEL=<model from current OpenAI docs>
+OPENAI_EVALUATION_TIMEOUT_SECONDS=60
+LINGUAFRAME_EVALUATION_ENABLED=true
+LINGUAFRAME_EVALUATION_PROVIDER=openai
+```
+
+The evaluation stage runs after target subtitle export and before TTS or subtitle burn-in. It records score, verdict, completeness, readability, timing preservation, naturalness, issues, suggested fixes, and an audited model-call record.
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
+
 ## Docker E2E Demo
 
 After starting the Docker stack, run the successful backend demo:
@@ -433,7 +471,7 @@ docker compose --env-file .env.example up --build
 scripts/demo/docker-e2e-success.sh
 ```
 
-The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling TTS adds a third model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling quality evaluation adds a non-blocking evaluation result and one model call, and enabling TTS adds another model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 

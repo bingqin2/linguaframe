@@ -81,6 +81,12 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getTts().getOpenai().getVoice()).isEmpty();
         assertThat(properties.getTts().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
         assertThat(properties.getTts().getOpenai().getTimeoutSeconds()).isEqualTo(120);
+        assertThat(properties.getEvaluation().isEnabled()).isFalse();
+        assertThat(properties.getEvaluation().getProvider()).isEqualTo("demo");
+        assertThat(properties.getEvaluation().getOpenai().getApiKey()).isEmpty();
+        assertThat(properties.getEvaluation().getOpenai().getModel()).isEmpty();
+        assertThat(properties.getEvaluation().getOpenai().getBaseUrl()).isEqualTo("https://api.openai.com");
+        assertThat(properties.getEvaluation().getOpenai().getTimeoutSeconds()).isEqualTo(60);
     }
 
     @Test
@@ -234,6 +240,29 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getTts().getOpenai().getVoice()).isEqualTo("alloy");
                     assertThat(boundProperties.getTts().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
                     assertThat(boundProperties.getTts().getOpenai().getTimeoutSeconds()).isEqualTo(45);
+                });
+    }
+
+    @Test
+    void bindsOpenAiEvaluationRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.evaluation.enabled=true",
+                        "linguaframe.evaluation.provider=openai",
+                        "linguaframe.evaluation.openai.api-key=test-key",
+                        "linguaframe.evaluation.openai.model=test-evaluation-model",
+                        "linguaframe.evaluation.openai.base-url=http://localhost:9999",
+                        "linguaframe.evaluation.openai.timeout-seconds=20"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getEvaluation().isEnabled()).isTrue();
+                    assertThat(boundProperties.getEvaluation().getProvider()).isEqualTo("openai");
+                    assertThat(boundProperties.getEvaluation().getOpenai().getApiKey()).isEqualTo("test-key");
+                    assertThat(boundProperties.getEvaluation().getOpenai().getModel()).isEqualTo("test-evaluation-model");
+                    assertThat(boundProperties.getEvaluation().getOpenai().getBaseUrl()).isEqualTo("http://localhost:9999");
+                    assertThat(boundProperties.getEvaluation().getOpenai().getTimeoutSeconds()).isEqualTo(20);
                 });
     }
 

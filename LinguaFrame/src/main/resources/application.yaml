@@ -79,6 +79,14 @@ linguaframe:
       voice: ${OPENAI_TTS_VOICE:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       timeout-seconds: ${OPENAI_TTS_TIMEOUT_SECONDS:120}
+  evaluation:
+    enabled: ${LINGUAFRAME_EVALUATION_ENABLED:false}
+    provider: ${LINGUAFRAME_EVALUATION_PROVIDER:demo}
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      model: ${OPENAI_EVALUATION_MODEL:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      timeout-seconds: ${OPENAI_EVALUATION_TIMEOUT_SECONDS:60}
   database:
     host: ${MYSQL_HOST:localhost}
     port: ${MYSQL_PORT:3306}

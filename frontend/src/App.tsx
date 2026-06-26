@@ -437,6 +437,8 @@ function JobDetail({
         </div>
       </section>
 
+      <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
+
       <section className="panel" aria-label="Timeline">
         <h3>Timeline</h3>
         {job.timelineEvents.length === 0 ? (
@@ -583,6 +585,88 @@ function JobDetail({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function QualityEvaluationPanel({
+  evaluation
+}: {
+  evaluation: LocalizationJob['qualityEvaluation'];
+}) {
+  if (!evaluation) {
+    return (
+      <section className="panel" aria-label="Quality evaluation">
+        <h3>Quality evaluation</h3>
+        <p className="muted">No quality evaluation recorded yet.</p>
+      </section>
+    );
+  }
+
+  const dimensionScores = [
+    ['Completeness', evaluation.completeness],
+    ['Readability', evaluation.readability],
+    ['Timing', evaluation.timingPreservation],
+    ['Naturalness', evaluation.naturalness]
+  ];
+
+  return (
+    <section className="panel" aria-label="Quality evaluation">
+      <div className="panel-heading">
+        <h3>Quality evaluation</h3>
+        <span className="status-pill">{evaluation.status}</span>
+      </div>
+      {evaluation.status === 'FAILED' && evaluation.safeErrorSummary ? (
+        <p className="error-text">{evaluation.safeErrorSummary}</p>
+      ) : null}
+      <div className="quality-overview">
+        <div>
+          <span>Score</span>
+          <strong>{evaluation.score} / 100</strong>
+        </div>
+        <div>
+          <span>Verdict</span>
+          <strong>{evaluation.verdict}</strong>
+        </div>
+        <div>
+          <span>Language</span>
+          <strong>{evaluation.language}</strong>
+        </div>
+      </div>
+      <dl className="quality-dimensions">
+        {dimensionScores.map(([label, score]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{score}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="quality-lists">
+        <div>
+          <h4>Issues</h4>
+          {evaluation.issues.length === 0 ? (
+            <p className="muted">No issues recorded.</p>
+          ) : (
+            <ul>
+              {evaluation.issues.map((issue) => (
+                <li key={issue}>{issue}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div>
+          <h4>Suggested fixes</h4>
+          {evaluation.suggestedFixes.length === 0 ? (
+            <p className="muted">No fixes suggested.</p>
+          ) : (
+            <ul>
+              {evaluation.suggestedFixes.map((fix) => (
+                <li key={fix}>{fix}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 

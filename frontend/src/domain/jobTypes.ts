@@ -37,6 +37,7 @@ export interface LocalizationJob {
   timelineEvents: JobTimelineEvent[];
   usageSummary: JobUsageSummary | null;
   modelCalls: ModelCall[];
+  qualityEvaluation: QualityEvaluation | null;
 }
 
 export interface LocalizationJobSummary {
@@ -68,6 +69,7 @@ export type LocalizationJobStage =
   | 'AUDIO_EXTRACTION'
   | 'TRANSCRIPT_SUBTITLE_EXPORT'
   | 'TARGET_SUBTITLE_EXPORT'
+  | 'TRANSLATION_QUALITY_EVALUATION'
   | 'DUBBING_AUDIO_GENERATION'
   | 'SUBTITLE_BURN_IN'
   | 'ARTIFACT_SUMMARY'
@@ -98,7 +100,7 @@ export interface ModelCall {
   modelCallId: string;
   jobId: string;
   stage: LocalizationJobStage;
-  operation: 'TRANSCRIPTION' | 'TRANSLATION' | 'TTS';
+  operation: 'TRANSCRIPTION' | 'TRANSLATION' | 'EVALUATION' | 'TTS';
   provider: 'DEMO' | 'OPENAI';
   model: string;
   promptVersion: string;
@@ -109,6 +111,23 @@ export interface ModelCall {
   audioSeconds: number | null;
   characterCount: number | null;
   estimatedCostUsd: number;
+  safeErrorSummary: string | null;
+  createdAt: string;
+}
+
+export interface QualityEvaluation {
+  evaluationId: string;
+  jobId: string;
+  language: string;
+  score: number;
+  verdict: string;
+  completeness: number;
+  readability: number;
+  timingPreservation: number;
+  naturalness: number;
+  issues: string[];
+  suggestedFixes: string[];
+  status: 'SUCCEEDED' | 'FAILED';
   safeErrorSummary: string | null;
   createdAt: string;
 }

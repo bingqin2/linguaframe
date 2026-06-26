@@ -210,7 +210,23 @@ describe('App', () => {
             safeErrorSummary: null,
             createdAt: '2026-06-26T10:00:02Z'
           }
-        ]
+        ],
+        qualityEvaluation: {
+          evaluationId: 'quality-1',
+          jobId: 'job-1',
+          language: 'zh-CN',
+          score: 92,
+          verdict: 'GOOD',
+          completeness: 95,
+          readability: 92,
+          timingPreservation: 94,
+          naturalness: 88,
+          issues: ['One subtitle line is slightly literal.'],
+          suggestedFixes: ['Review tone and terminology before publishing.'],
+          status: 'SUCCEEDED',
+          safeErrorSummary: null,
+          createdAt: '2026-06-26T10:00:03Z'
+        }
       })
     );
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
@@ -231,6 +247,14 @@ describe('App', () => {
     const usageSummary = screen.getByRole('region', { name: /usage summary/i });
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();
     expect(within(modelCalls).getByText('TRANSLATION')).toBeInTheDocument();
+    const qualityEvaluation = screen.getByRole('region', { name: /quality evaluation/i });
+    expect(within(qualityEvaluation).getByText('92 / 100')).toBeInTheDocument();
+    expect(within(qualityEvaluation).getByText('GOOD')).toBeInTheDocument();
+    expect(within(qualityEvaluation).getByText('Completeness')).toBeInTheDocument();
+    expect(within(qualityEvaluation).getByText('One subtitle line is slightly literal.')).toBeInTheDocument();
+    expect(
+      within(qualityEvaluation).getByText('Review tone and terminology before publishing.')
+    ).toBeInTheDocument();
 
     const retryButton = screen.getByRole('button', { name: /retry/i });
     await userEvent.click(retryButton);
@@ -470,6 +494,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
       characterCount: null
     },
     modelCalls: [],
+    qualityEvaluation: null,
     ...overrides
   };
 }

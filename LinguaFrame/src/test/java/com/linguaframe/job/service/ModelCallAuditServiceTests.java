@@ -94,6 +94,28 @@ class ModelCallAuditServiceTests {
     }
 
     @Test
+    void recordsEvaluationCostFromTokenUsage() {
+        InMemoryModelCallRepository repository = new InMemoryModelCallRepository();
+        ModelCallAuditService service = newService(repository, propertiesWithRates());
+
+        var result = service.recordSuccess(new CreateModelCallRecordCommand(
+                "audit-job-evaluation",
+                LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
+                ModelCallOperation.EVALUATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-translation-quality-evaluation-v1",
+                90L,
+                900,
+                300,
+                null,
+                null
+        ));
+
+        assertThat(result.estimatedCostUsd()).isEqualByComparingTo("0.00031500");
+    }
+
+    @Test
     void summarizesJobUsageAcrossCalls() {
         InMemoryModelCallRepository repository = new InMemoryModelCallRepository();
         ModelCallAuditService service = newService(repository, propertiesWithRates());

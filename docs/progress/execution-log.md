@@ -639,3 +639,37 @@ Final verification:
 - `npm run test:run` passed with `Tests run: 23`.
 - `npm run build` passed.
 - `docker compose --env-file .env.example config` passed and rendered `linguaframe-backend`, `linguaframe-frontend`, `mysql`, `rabbitmq`, and `minio`.
+
+## 2026-06-27
+
+Work:
+
+- Added durable `quality_evaluations` persistence for translation quality scores, dimension scores, issues, suggested fixes, status, safe errors, and timestamps.
+- Added `QualityEvaluationService`, deterministic demo evaluation, and opt-in OpenAI Responses API evaluation behind `QualityEvaluationProvider`.
+- Added `TRANSLATION_QUALITY_EVALUATION` as a non-blocking worker stage after target subtitle export.
+- Extended `GET /api/jobs/{jobId}` with latest `qualityEvaluation` data.
+- Added a React `Quality evaluation` panel with score, verdict, dimensions, issues, suggested fixes, empty state, and failed-evaluation warning support.
+- Documented optional evaluation configuration and the non-blocking behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationRepositoryTests test` first failed because `QualityEvaluationRecord`, `QualityEvaluationStatus`, and `QualityEvaluationRepository` did not exist, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,DemoQualityEvaluationProviderTests,QualityEvaluationServiceTests,OpenAiQualityEvaluationProviderTests,ModelCallAuditServiceTests test` first failed because evaluation configuration, provider/service types, enum values, and model-call operation support did not exist, then passed with `Tests run: 25, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` first failed because `QualityEvaluationPipelineStage` did not exist, then passed with `Tests run: 28, Failures: 0, Errors: 0`.
+- `npm run test:run -- App` first failed because the selected job detail did not expose a `Quality evaluation` region, then passed with `Tests run: 11`.
+- `npm run test:run` passed with `Tests run: 23`.
+
+Notes:
+
+- Evaluation defaults to disabled and `demo` provider in `.env.example`, so default Docker demos remain reproducible and do not require paid API calls.
+- OpenAI evaluation is explicitly enabled with `LINGUAFRAME_EVALUATION_ENABLED=true`, `LINGUAFRAME_EVALUATION_PROVIDER=openai`, and `OPENAI_EVALUATION_MODEL`.
+
+Final verification before merge:
+
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationRepositoryTests,ModelCallAuditServiceTests test` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 28, Failures: 0, Errors: 0`.
+- `npm run test:run` passed with `Tests run: 23`.
+- `npm run build` passed.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_EVALUATION_ENABLED: "false"`, `LINGUAFRAME_EVALUATION_PROVIDER: demo`, `OPENAI_EVALUATION_MODEL: ""`, and `OPENAI_EVALUATION_TIMEOUT_SECONDS: "60"`.
+- `mvn -pl LinguaFrame test -q` passed with local socket permissions; surefire reports summarized `Tests run: 167, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
