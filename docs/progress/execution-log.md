@@ -631,3 +631,11 @@ Notes:
 
 - The job list is global for the local self-hosted demo because there is no authentication or owner model yet.
 - This slice does not add user accounts, ownership filtering, deletion, cancellation, WebSocket/SSE progress, or admin analytics.
+
+Final verification:
+
+- Merged `job-history-list-mvp` back to `main` with merge commit `ce705ee`.
+- `mvn -pl LinguaFrame test -q` initially failed in the sandbox because embedded Tomcat could not bind a local port (`java.net.SocketException: Operation not permitted`); rerunning with normal permissions passed and surefire reports summarized `Tests run: 156, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm run test:run` passed with `Tests run: 23`.
+- `npm run build` passed.
+- `docker compose --env-file .env.example config` passed and rendered `linguaframe-backend`, `linguaframe-frontend`, `mysql`, `rabbitmq`, and `minio`.
