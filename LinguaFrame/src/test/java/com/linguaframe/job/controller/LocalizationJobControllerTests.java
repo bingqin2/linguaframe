@@ -1,19 +1,23 @@
 package com.linguaframe.job.controller;
 
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
+import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
+import com.linguaframe.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +25,19 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -48,13 +58,20 @@ class LocalizationJobControllerTests {
     private JobDispatchEventRepository dispatchEventRepository;
 
     @Autowired
+    private JobArtifactRepository artifactRepository;
+
+    @Autowired
     private JobTimelineEventRepository timelineEventRepository;
 
     @Autowired
     private JdbcClient jdbcClient;
 
+    @MockitoBean
+    private ObjectStorageService objectStorageService;
+
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM job_artifacts").update();
         jdbcClient.sql("DELETE FROM job_timeline_events").update();
         jdbcClient.sql("DELETE FROM job_dispatch_events").update();
         jdbcClient.sql("DELETE FROM localization_jobs").update();
@@ -213,6 +230,86 @@ class LocalizationJobControllerTests {
                         },
                         () -> org.assertj.core.api.Assertions.fail("Expected retry dispatch event.")
                 );
+    }
+
+    @Test
+    void listsArtifactsForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-26T22:00:00Z");
+        createJob("job-controller-video-artifact", "job-controller-job-artifact", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-artifact-1",
+                "job-controller-job-artifact",
+                JobArtifactType.WORKER_SUMMARY,
+                "job-artifacts/job-controller-job-artifact/job-controller-artifact-1/worker-summary.json",
+                "worker-summary.json",
+                "application/json",
+                42L,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/artifacts", "job-controller-job-artifact"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].artifactId").value("job-controller-artifact-1"))
+                .andExpect(jsonPath("$[0].jobId").value("job-controller-job-artifact"))
+                .andExpect(jsonPath("$[0].type").value("WORKER_SUMMARY"))
+                .andExpect(jsonPath("$[0].filename").value("worker-summary.json"))
+                .andExpect(jsonPath("$[0].contentType").value("application/json"))
+                .andExpect(jsonPath("$[0].sizeBytes").value(42))
+                .andExpect(jsonPath("$[0].createdAt").exists());
+    }
+
+    @Test
+    void downloadsArtifactForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-26T23:00:00Z");
+        createJob("job-controller-video-download", "job-controller-job-download", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-artifact-download",
+                "job-controller-job-download",
+                JobArtifactType.WORKER_SUMMARY,
+                "job-artifacts/job-controller-job-download/job-controller-artifact-download/worker-summary.json",
+                "worker-summary.json",
+                "application/json",
+                11L,
+                createdAt.plusSeconds(1)
+        ));
+        when(objectStorageService.open("job-artifacts/job-controller-job-download/job-controller-artifact-download/worker-summary.json"))
+                .thenReturn(new ByteArrayInputStream("{\"ok\":true}".getBytes(StandardCharsets.UTF_8)));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/artifacts/{artifactId}/download",
+                        "job-controller-job-download",
+                        "job-controller-artifact-download"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"worker-summary.json\""))
+                .andExpect(header().longValue("Content-Length", 11L))
+                .andExpect(content().contentType("application/json"))
+                .andExpect(content().string("{\"ok\":true}"));
+    }
+
+    @Test
+    void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
+        createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);
+        createJob("job-controller-video-artifact-other", "job-controller-job-artifact-other", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-artifact-owner",
+                "job-controller-job-artifact-owner",
+                JobArtifactType.WORKER_SUMMARY,
+                "job-artifacts/job-controller-job-artifact-owner/job-controller-artifact-owner/worker-summary.json",
+                "worker-summary.json",
+                "application/json",
+                2L,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/artifacts/{artifactId}/download",
+                        "job-controller-job-artifact-other",
+                        "job-controller-artifact-owner"
+                ))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     }
 
     @Test

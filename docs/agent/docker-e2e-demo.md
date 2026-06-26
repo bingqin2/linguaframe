@@ -1,6 +1,6 @@
 # Docker E2E Demo
 
-This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, and inspect the job timeline.
+This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, generate a worker summary artifact, download that artifact, and inspect the job timeline.
 
 ## Start The Stack
 
@@ -37,7 +37,26 @@ status=COMPLETED
 - WORKER_RECEIVED STARTED
 - WORKER_SMOKE STARTED
 - WORKER_SMOKE SUCCEEDED
+- ARTIFACT_SUMMARY STARTED
+- ARTIFACT_SUMMARY SUCCEEDED
 - COMPLETED SUCCEEDED
+artifactCount=1
+- WORKER_SUMMARY worker-summary.json
+```
+
+The script downloads the first generated artifact to:
+
+```text
+/tmp/linguaframe-demo/worker-summary.json
+```
+
+You can inspect artifact APIs manually:
+
+```bash
+JOB_ID=<job id printed by the script>
+curl -fsS "http://localhost:8080/api/jobs/$JOB_ID/artifacts"
+ARTIFACT_ID=<artifact id from the artifact list>
+curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download" -o /tmp/linguaframe-demo/worker-summary.json
 ```
 
 ## Failure And Retry Demo

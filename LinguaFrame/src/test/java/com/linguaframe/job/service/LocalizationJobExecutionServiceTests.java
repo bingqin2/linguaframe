@@ -1,13 +1,17 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
+import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
+import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
 import com.linguaframe.job.service.impl.WorkerSmokePipelineStage;
 import com.linguaframe.media.domain.entity.VideoRecord;
@@ -23,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -202,6 +207,50 @@ class LocalizationJobExecutionServiceTests {
         }
     }
 
+    @Test
+    void workerSummaryStageCreatesArtifactAfterSmokeStageSucceeds() {
+        Instant now = Instant.parse("2026-06-26T19:00:00Z");
+        createJob("execution-video-6", "execution-job-6", LocalizationJobStatus.QUEUED, now);
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(
+                        new WorkerSmokePipelineStage(properties),
+                        new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
+                ),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-6", "execution-video-6", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+        assertThat(timelineEventRepository.findByJobId("execution-job-6"))
+                .extracting(event -> event.stage() + ":" + event.status())
+                .containsExactly(
+                        LocalizationJobStage.WORKER_RECEIVED + ":" + JobTimelineEventStatus.STARTED,
+                        LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.STARTED,
+                        LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
+                        LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.STARTED,
+                        LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.SUCCEEDED,
+                        LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
+                );
+        assertThat(artifactService.commands).hasSize(1);
+        CreateJobArtifactCommand command = artifactService.commands.getFirst();
+        assertThat(command.jobId()).isEqualTo("execution-job-6");
+        assertThat(command.type()).isEqualTo(JobArtifactType.WORKER_SUMMARY);
+        assertThat(command.filename()).isEqualTo("worker-summary.json");
+        assertThat(command.contentType()).isEqualTo("application/json");
+        String json = new String(command.content(), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(json)
+                .contains("\"jobId\":\"execution-job-6\"")
+                .contains("\"videoId\":\"execution-video-6\"")
+                .contains("\"targetLanguage\":\"zh-CN\"")
+                .contains("\"sourceObjectKey\":\"source-videos/execution-video-6/sample.mp4\"")
+                .contains("\"stage\":\"ARTIFACT_SUMMARY\"")
+                .contains("\"generatedAt\":\"2026-06-26T19:00:10Z\"");
+    }
+
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
@@ -251,6 +300,35 @@ class LocalizationJobExecutionServiceTests {
             if (fail) {
                 throw new IllegalStateException("stage exploded");
             }
+        }
+    }
+
+    private static class RecordingJobArtifactService implements JobArtifactService {
+
+        private final List<CreateJobArtifactCommand> commands = new ArrayList<>();
+
+        @Override
+        public JobArtifactVo createArtifact(CreateJobArtifactCommand command) {
+            commands.add(command);
+            return new JobArtifactVo(
+                    "recording-artifact-" + commands.size(),
+                    command.jobId(),
+                    command.type(),
+                    command.filename(),
+                    command.contentType(),
+                    command.content().length,
+                    Instant.parse("2026-06-26T19:00:10Z")
+            );
+        }
+
+        @Override
+        public List<JobArtifactVo> listArtifacts(String jobId) {
+            return List.of();
+        }
+
+        @Override
+        public com.linguaframe.job.domain.bo.StoredObjectResourceBo openArtifact(String jobId, String artifactId) {
+            throw new UnsupportedOperationException();
         }
     }
 }

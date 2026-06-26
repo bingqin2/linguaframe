@@ -5,10 +5,13 @@ import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
 import io.minio.BucketExistsArgs;
+import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
 import org.springframework.stereotype.Service;
+
+import java.io.InputStream;
 
 @Service
 public class MinioObjectStorageServiceImpl implements ObjectStorageService {
@@ -37,6 +40,18 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
             return new StoredObjectBo(storageProperties.getBucket(), command.objectKey(), command.sizeBytes());
         } catch (Exception ex) {
             throw new IllegalStateException("Object storage write failed.", ex);
+        }
+    }
+
+    @Override
+    public InputStream open(String objectKey) {
+        try {
+            return minioClient.getObject(GetObjectArgs.builder()
+                    .bucket(storageProperties.getBucket())
+                    .object(objectKey)
+                    .build());
+        } catch (Exception ex) {
+            throw new IllegalStateException("Object storage read failed.", ex);
         }
     }
 

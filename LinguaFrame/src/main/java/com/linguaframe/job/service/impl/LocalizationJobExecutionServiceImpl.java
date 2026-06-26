@@ -51,7 +51,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
         this.jobRepository = jobRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.stages = stages.stream()
-                .sorted(Comparator.comparing(stage -> stage.stage().name()))
+                .sorted(Comparator.comparing(stage -> stage.stage().ordinal()))
                 .toList();
         this.clock = clock;
     }

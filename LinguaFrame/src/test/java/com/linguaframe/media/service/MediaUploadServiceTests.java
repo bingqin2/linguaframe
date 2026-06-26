@@ -22,6 +22,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -133,6 +136,11 @@ class MediaUploadServiceTests {
                 throw new IllegalStateException("raw storage password stack trace");
             }
             return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        }
+
+        @Override
+        public InputStream open(String objectKey) {
+            return new ByteArrayInputStream(new byte[0]);
         }
     }
 }

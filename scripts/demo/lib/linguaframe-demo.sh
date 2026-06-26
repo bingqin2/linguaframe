@@ -97,3 +97,35 @@ for event in job.get("timelineEvents", []):
     print("- " + event["stage"] + " " + event["status"] + ": " + event["message"])
 '
 }
+
+list_job_artifacts() {
+  local base_url="$1"
+  local job_id="$2"
+
+  curl -fsS "$base_url/api/jobs/$job_id/artifacts"
+}
+
+download_first_artifact() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local artifacts_json
+  local artifact_id
+
+  artifacts_json="$(list_job_artifacts "$base_url" "$job_id")"
+  artifact_id="$(printf '%s' "$artifacts_json" | python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["artifactId"])')"
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+}
+
+print_artifact_summary() {
+  python3 -c '
+import json
+import sys
+
+artifacts = json.load(sys.stdin)
+print("artifactCount=" + str(len(artifacts)))
+for artifact in artifacts:
+    print("- " + artifact["type"] + " " + artifact["filename"] + " " + str(artifact["sizeBytes"]) + " bytes")
+'
+}

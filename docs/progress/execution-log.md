@@ -297,3 +297,33 @@ Notes:
 
 - The demo scripts create tiny local sample files under `/tmp/linguaframe-demo`; generated samples are not committed.
 - This slice still does not run FFmpeg, OpenAI, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.
+
+## 2026-06-26
+
+Work:
+
+- Added durable `job_artifacts` persistence for generated job outputs.
+- Added object storage read support and a job artifact service for create, list, and download behavior.
+- Added a worker summary artifact stage that writes `worker-summary.json` after the smoke worker stage succeeds.
+- Added `GET /api/jobs/{jobId}/artifacts` and `GET /api/jobs/{jobId}/artifacts/{artifactId}/download`.
+- Updated the Docker success demo to list artifacts and download the generated worker summary.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=JobArtifactRepositoryTests` first failed because artifact domain types and repository did not exist, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=JobArtifactServiceTests,MediaUploadServiceTests,MediaUploadControllerTests` first failed because `JobArtifactServiceImpl` had two unqualified constructors, then passed with `Tests run: 11, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobExecutionServiceTests` first failed because `ARTIFACT_SUMMARY` and `WorkerSummaryArtifactPipelineStage` did not exist, then passed with `Tests run: 6, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` first failed because artifact endpoints were not routed, then passed with `Tests run: 9, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` and `bash -n scripts/demo/docker-e2e-success.sh` passed.
+- Sandboxed `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` failed because `RANDOM_PORT` tests could not bind localhost sockets; the same command passed with elevated local socket access with `Tests run: 65, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed and built `linguaframe-linguaframe-backend:latest`.
+- `scripts/demo/docker-e2e-success.sh` passed against the live Docker stack for job `13ff4552-bd29-4f25-bc3c-1a57e2c80f78`, printed `status=COMPLETED`, printed `artifactCount=1`, and downloaded `/tmp/linguaframe-demo/worker-summary.json`.
+- The downloaded worker summary JSON contained only safe generated metadata: job id, video id, target language, source object key, stage, and generated timestamp.
+- `docker compose --env-file .env.example down` stopped and removed live verification containers.
+
+Notes:
+
+- This slice creates a downloadable worker summary artifact as infrastructure for future FFmpeg audio, subtitle, TTS, and generated video artifacts.
+- This slice still does not run FFmpeg, OpenAI, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.
