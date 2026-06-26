@@ -806,3 +806,13 @@ Notes:
 - Cancellation is soft. This slice does not interrupt an already-running FFmpeg process or OpenAI HTTP request; the worker stops before starting the next stage.
 - Cancellation keeps existing videos, artifacts, timeline events, dispatch events, and model-call records.
 - A Python 3.14 helper script for parsing surefire XML hit a local `pyexpat` dynamic-library issue; surefire text reports were used for the final test summary instead.
+
+Post-merge verification:
+
+- Merged `job-cancellation-mvp` back to `main` with merge commit `ea2da53`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRepositoryTests,LocalizationJobCancellationServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 44, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 26`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config` passed on `main`.
+- `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 190, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check HEAD` passed on `main`.

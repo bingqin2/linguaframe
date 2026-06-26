@@ -689,9 +689,9 @@ Expected: docs mention API, worker behavior, and frontend action.
 - `git status --short`
 
 - [x] Confirm no media files, generated artifacts, `.env`, API keys, or credentials are staged.
-- [ ] Commit: `Add job cancellation MVP`
-- [ ] Merge branch `job-cancellation-mvp` back to `main` after verification.
-- [ ] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
+- [x] Commit: `Add job cancellation MVP`
+- [x] Merge branch `job-cancellation-mvp` back to `main` after verification.
+- [x] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
 
 ## Completion Checklist
 
@@ -703,4 +703,4 @@ Expected: docs mention API, worker behavior, and frontend action.
 - [x] Polling stops when the selected job becomes `CANCELLED`.
 - [x] Tests cover repository transition, service behavior, controller route, worker boundaries, frontend API, and frontend UI.
 - [x] Validation evidence is recorded in `docs/progress/execution-log.md`.
-- [ ] Feature branch is merged back to `main` after verified implementation.
+- [x] Feature branch is merged back to `main` after verified implementation.
