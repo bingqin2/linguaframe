@@ -700,3 +700,10 @@ Notes:
 
 - Full runtime validation requires the Docker backend and the local MP4.
 - Burned-video output is optional until full-video FFmpeg burn-in is optimized.
+
+Post-merge verification:
+
+- Merged `full-video-demo-script` back to `main` with merge commit `82c2e1f`.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh` passed on `main`.
+- `scripts/demo/docker-e2e-tears-of-steel-full.sh --help` passed on `main`.
+- `rg -n "demo-references|docker-e2e-tears-of-steel-full|Full Tears of Steel Demo|Creative Commons Attribution 3.0" README.md docs/product/demo-references.md docs/agent/docker-e2e-demo.md docs/progress/execution-log.md` passed on `main`.

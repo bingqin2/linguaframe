@@ -241,8 +241,8 @@ Expected: docs include the run command, burn-in recommendation, and validation e
 - `git status --short`
 
 - [x] Confirm no media files, generated artifacts, `.env`, or credentials are staged.
-- [ ] Commit: `Add full Tears of Steel demo script`.
-- [ ] Merge branch `full-video-demo-script` back to `main` after verification.
+- [x] Commit: `Add full Tears of Steel demo script`.
+- [x] Merge branch `full-video-demo-script` back to `main` after verification.
 
 ## Completion Checklist
 
@@ -251,4 +251,4 @@ Expected: docs include the run command, burn-in recommendation, and validation e
 - [x] Script downloads core artifacts and treats `BURNED_VIDEO` and `DUBBING_AUDIO` as optional.
 - [x] Docker E2E docs explain how to run the full-video demo and why burn-in should be disabled for the current full-video path.
 - [x] Validation evidence is recorded in `docs/progress/execution-log.md`.
-- [ ] Feature branch is merged back to `main` after verified implementation.
+- [x] Feature branch is merged back to `main` after verified implementation.
