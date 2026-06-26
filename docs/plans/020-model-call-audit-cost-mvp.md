@@ -663,7 +663,7 @@ git commit -m "Document model call audit demo output"
 - Modify: `docs/plans/020-model-call-audit-cost-mvp.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] **Step 1: Run full backend verification**
+- [x] **Step 1: Run full backend verification**
 
 Run:
 
@@ -673,11 +673,11 @@ mvn -pl LinguaFrame test
 
 Expected: all tests pass with `Failures: 0, Errors: 0`.
 
-- [ ] **Step 2: Mark this plan complete**
+- [x] **Step 2: Mark this plan complete**
 
 Replace all task checkboxes in this plan with `- [x]` only after the corresponding task and verification have passed.
 
-- [ ] **Step 3: Commit verification records**
+- [x] **Step 3: Commit verification records**
 
 Commit plan checkbox updates and final execution-log evidence:
 

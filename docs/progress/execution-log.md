@@ -562,3 +562,7 @@ Notes:
 
 - Cost values are local estimates and default to zero because provider pricing changes. They are not billing-source-of-truth values.
 - This slice does not add frontend UI, budget enforcement, translation quality evaluation, prompt-template storage, or duplicate-work caching.
+
+Final verification:
+
+- `mvn -pl LinguaFrame test` passed on branch `model-call-audit-cost-mvp` with `Tests run: 140, Failures: 0, Errors: 0`.
