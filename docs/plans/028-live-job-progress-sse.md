@@ -509,9 +509,9 @@ Expected: output includes README, product docs, execution log, and this plan.
 - `git status --short`
 
 - [x] Confirm no media files, generated artifacts, `.env`, API keys, or credentials are staged.
-- [ ] Commit: `Add live job progress SSE`
-- [ ] Merge branch `live-job-progress-sse` back to `main` after verification.
-- [ ] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
+- [x] Commit: `Add live job progress SSE`
+- [x] Merge branch `live-job-progress-sse` back to `main` after verification.
+- [x] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
 
 ## Completion Checklist
 
@@ -524,4 +524,4 @@ Expected: output includes README, product docs, execution log, and this plan.
 - [x] Frontend falls back to polling after SSE errors or unavailable EventSource.
 - [x] Terminal SSE updates refresh previews and server job history.
 - [x] Validation evidence is recorded in `docs/progress/execution-log.md`.
-- [ ] Feature branch is merged back to `main` after verified implementation.
+- [x] Feature branch is merged back to `main` after verified implementation.

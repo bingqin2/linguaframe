@@ -798,6 +798,16 @@ Notes:
 
 - This is snapshot-based SSE for the local demo. It does not add Redis pub/sub or a cross-process event bus.
 
+Post-merge verification:
+
+- Merged `live-job-progress-sse` back to `main` with merge commit `6a7c742`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` passed on `main` with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 29`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config` passed on `main`.
+- `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check HEAD` passed on `main`.
+
 ## 2026-06-27
 
 Work:
