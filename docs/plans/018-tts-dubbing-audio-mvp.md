@@ -89,7 +89,7 @@ Alternatives considered:
 - `LocalizationJobStage.DUBBING_AUDIO_GENERATION`
 - `JobArtifactType.DUBBING_AUDIO`
 
-- [ ] **Step 1: Write failing property tests**
+- [x] **Step 1: Write failing property tests**
 
 Add default assertions:
 
@@ -113,7 +113,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test
 
 Expected: fail because `getTts()` does not exist.
 
-- [ ] **Step 2: Add TTS config and environment wiring**
+- [x] **Step 2: Add TTS config and environment wiring**
 
 Add `Tts` beside `Transcription` and `Translation` with `enabled=false`, `provider=demo`, nested `OpenAi` fields `apiKey`, `model`, `voice`, `baseUrl`, and `timeoutSeconds`.
 
@@ -134,7 +134,7 @@ linguaframe:
 
 Update `.env.example` and `docker-compose.yml` with these variables.
 
-- [ ] **Step 3: Add enum values**
+- [x] **Step 3: Add enum values**
 
 Add `DUBBING_AUDIO_GENERATION` between `TARGET_SUBTITLE_EXPORT` and `ARTIFACT_SUMMARY`. Add `DUBBING_AUDIO` to `JobArtifactType`.
 
@@ -169,7 +169,7 @@ git commit -m "Add TTS runtime configuration"
 - `TtsResultBo(byte[] audioContent, String filename, String contentType)`
 - `TtsProvider#synthesize(TtsRequestBo request): TtsResultBo`
 
-- [ ] **Step 1: Write failing OpenAI provider tests**
+- [x] **Step 1: Write failing OpenAI provider tests**
 
 Test successful request:
 
@@ -193,11 +193,11 @@ mvn -pl LinguaFrame -Dtest=OpenAiTtsProviderTests test
 
 Expected: fail because provider types do not exist.
 
-- [ ] **Step 2: Implement BOs and provider interface**
+- [x] **Step 2: Implement BOs and provider interface**
 
 Add the two records and `TtsProvider` interface exactly as listed above.
 
-- [ ] **Step 3: Implement demo provider**
+- [x] **Step 3: Implement demo provider**
 
 `DemoTtsProvider` should be conditional on `linguaframe.tts.provider=demo` with `matchIfMissing=true`. Return deterministic bytes for a small MP3-like placeholder:
 
@@ -206,7 +206,7 @@ byte[] audio = ("LINGUAFRAME_DEMO_DUBBING_AUDIO\n" + request.language() + "\n" +
 return new TtsResultBo(audio, "dubbing-audio.mp3", "audio/mpeg");
 ```
 
-- [ ] **Step 4: Implement OpenAI provider**
+- [x] **Step 4: Implement OpenAI provider**
 
 Use `RestClient` with base URL, bearer auth, timeout, and JSON body:
 
@@ -221,7 +221,7 @@ Use `RestClient` with base URL, bearer auth, timeout, and JSON body:
 
 Return binary bytes as `TtsResultBo(audioBytes, "dubbing-audio.mp3", "audio/mpeg")`. Sanitize HTTP failures and never include response bodies in exception messages.
 
-- [ ] **Step 5: Add Spring context coverage**
+- [x] **Step 5: Add Spring context coverage**
 
 Create `OpenAiTtsContextTests` with properties enabling `linguaframe.tts.provider=openai`, dummy API key/model/voice, and assert exactly one `TtsProvider` bean exists.
 
@@ -252,7 +252,7 @@ git commit -m "Add TTS provider implementations"
 - Reads: `SubtitleService#listSubtitles(jobId, targetLanguage)`
 - Writes: `JobArtifactService#createArtifact(new CreateJobArtifactCommand(jobId, DUBBING_AUDIO, "dubbing-audio.mp3", "audio/mpeg", audioBytes))`
 
-- [ ] **Step 1: Write failing stage tests**
+- [x] **Step 1: Write failing stage tests**
 
 Create tests for:
 
@@ -268,7 +268,7 @@ mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests test
 
 Expected: fail because the stage does not exist.
 
-- [ ] **Step 2: Implement stage**
+- [x] **Step 2: Implement stage**
 
 Implementation rules:
 
@@ -279,7 +279,7 @@ Implementation rules:
 - Call `ttsProvider.synthesize(new TtsRequestBo(jobId, targetLanguage, joinedText))`.
 - Store the returned audio as `DUBBING_AUDIO`.
 
-- [ ] **Step 3: Extend execution ordering coverage**
+- [x] **Step 3: Extend execution ordering coverage**
 
 Add or update a `LocalizationJobExecutionServiceTests` case to include `TargetSubtitleExportPipelineStage`, `DubbingAudioGenerationPipelineStage`, and `WorkerSummaryArtifactPipelineStage`, then assert timeline order contains:
 
@@ -322,7 +322,7 @@ git commit -m "Add dubbing audio pipeline stage"
 - Explain that this MVP generates one continuous MP3 and does not do lip sync.
 - Add artifact verification command to the Docker E2E checklist.
 
-- [ ] **Step 1: Update docs**
+- [x] **Step 1: Update docs**
 
 Document:
 
@@ -336,7 +336,7 @@ OPENAI_TTS_TIMEOUT_SECONDS=120
 
 Record the architectural decision that TTS is a provider-backed worker stage and not part of subtitle export.
 
-- [ ] **Step 2: Run focused verification**
+- [x] **Step 2: Run focused verification**
 
 Run:
 
@@ -349,7 +349,7 @@ docker compose --env-file .env.example config
 
 Expected: all pass; Compose should show `LINGUAFRAME_TTS_PROVIDER=demo`.
 
-- [ ] **Step 3: Run full backend verification**
+- [x] **Step 3: Run full backend verification**
 
 Run:
 
@@ -359,7 +359,7 @@ mvn -pl LinguaFrame test
 
 Expected: pass.
 
-- [ ] **Step 4: Commit docs**
+- [x] **Step 4: Commit docs**
 
 ```bash
 git add README.md docs/agent/docker-e2e-demo.md docs/agent/smoke-test-checklist.md docs/progress/decisions.md docs/progress/execution-log.md

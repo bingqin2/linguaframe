@@ -181,6 +181,30 @@ raise SystemExit(1)
   curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
 
+download_optional_artifact_by_type() {
+  local base_url="$1"
+  local job_id="$2"
+  local artifact_type="$3"
+  local output_path="$4"
+  local artifact_id
+
+  if ! artifact_id="$(list_job_artifacts "$base_url" "$job_id" | python3 -c '
+import json
+import sys
+
+target = sys.argv[1]
+for artifact in json.load(sys.stdin):
+    if artifact["type"] == target:
+        print(artifact["artifactId"])
+        raise SystemExit(0)
+raise SystemExit(1)
+' "$artifact_type")"; then
+    return 1
+  fi
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+}
+
 print_artifact_summary() {
   python3 -c '
 import json

@@ -41,7 +41,7 @@ docker compose --env-file .env.example build linguaframe-backend
 Expected:
 
 - Compose renders MySQL, Redis, RabbitMQ, MinIO, and backend services.
-- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo` and empty OpenAI placeholders when using `.env.example`.
+- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, and empty OpenAI placeholders when using `.env.example`.
 - Maven builds `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 
@@ -63,8 +63,8 @@ Expected:
 
 - The script uploads a tiny sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=8`.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=8` by default and `artifactCount=9` when TTS is enabled.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
 - Output includes `TRANSCRIPT_JSON transcript.json`.
 - Output includes `SUBTITLE_SRT subtitles.srt`.
@@ -72,6 +72,7 @@ Expected:
 - Output includes `TARGET_SUBTITLE_JSON target-subtitles.json`.
 - Output includes `TARGET_SUBTITLE_SRT target-subtitles.srt`.
 - Output includes `TARGET_SUBTITLE_VTT target-subtitles.vtt`.
+- Output includes `DUBBING_AUDIO dubbing-audio.mp3` only when TTS is enabled.
 - Output includes `WORKER_SUMMARY worker-summary.json`.
 - The script downloads `/tmp/linguaframe-demo/audio.wav`.
 - The script downloads `/tmp/linguaframe-demo/transcript.json`.
@@ -80,6 +81,7 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.json`.
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.srt`.
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.vtt`.
+- The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Inspect the downloaded artifacts:
@@ -92,8 +94,11 @@ cat /tmp/linguaframe-demo/subtitles.vtt
 python3 -m json.tool /tmp/linguaframe-demo/target-subtitles.json
 cat /tmp/linguaframe-demo/target-subtitles.srt
 cat /tmp/linguaframe-demo/target-subtitles.vtt
+file /tmp/linguaframe-demo/dubbing-audio.mp3
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
+
+Skip `file /tmp/linguaframe-demo/dubbing-audio.mp3` when TTS is disabled.
 
 Expected transcript fields:
 
@@ -186,6 +191,41 @@ Expected:
 
 - Job status reaches `COMPLETED`.
 - Target subtitle preview and `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, and `TARGET_SUBTITLE_VTT` artifacts are present.
+- Logs and persisted failure reasons do not expose the API key or raw OpenAI response body.
+- This path may consume OpenAI credits.
+
+### Optional OpenAI TTS Verification
+
+Use this only when validating the paid provider path with a local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=alloy
+OPENAI_TTS_TIMEOUT_SECONDS=120
+LINGUAFRAME_TTS_ENABLED=true
+LINGUAFRAME_TTS_PROVIDER=openai
+```
+
+Run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+Expected:
+
+- Job status reaches `COMPLETED`.
+- `DUBBING_AUDIO` artifact is present as `dubbing-audio.mp3`.
+- The downloaded file has content type `audio/mpeg`.
 - Logs and persisted failure reasons do not expose the API key or raw OpenAI response body.
 - This path may consume OpenAI credits.
 

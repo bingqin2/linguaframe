@@ -486,3 +486,28 @@ Notes:
 
 - Official OpenAI docs were checked for the audio transcription endpoint shape before implementation. The implementation targets multipart `POST /v1/audio/transcriptions` with `response_format=verbose_json` and segment timestamp granularity.
 - This slice does not add TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.
+
+## 2026-06-26
+
+Work:
+
+- Added TTS runtime configuration under `linguaframe.tts` and Docker environment pass-through.
+- Added `TtsProvider`, deterministic demo TTS, and OpenAI TTS provider implementations.
+- Added `DUBBING_AUDIO_GENERATION` worker stage after target subtitle export.
+- Added `DUBBING_AUDIO` artifacts named `dubbing-audio.mp3` with content type `audio/mpeg`.
+- Documented default demo behavior, OpenAI TTS opt-in variables, and the one-continuous-MP3 MVP boundary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test` first failed because `LinguaFrameProperties#getTts()` did not exist, then passed after adding TTS properties with `Tests run: 10, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTtsProviderTests,OpenAiTtsContextTests test` first failed because TTS provider types did not exist, then exposed an empty-response null body edge case, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests test` first failed because `DubbingAudioGenerationPipelineStage` did not exist; after correcting the test to use existing `PROCESSING` status and implementing the stage, `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 14, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,OpenAiTtsProviderTests,OpenAiTtsContextTests,DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 29, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` and `bash -n scripts/demo/docker-e2e-success.sh` passed after adding optional `DUBBING_AUDIO` artifact download support.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_TTS_ENABLED: "false"`, `LINGUAFRAME_TTS_PROVIDER: demo`, empty `OPENAI_TTS_MODEL`, empty `OPENAI_TTS_VOICE`, and `OPENAI_TTS_TIMEOUT_SECONDS: "120"`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 121, Failures: 0, Errors: 0`.
+
+Notes:
+
+- Official OpenAI docs were checked for the audio speech endpoint shape before implementation. The implementation targets `POST /v1/audio/speech` with `model`, `voice`, `input`, and `response_format=mp3`.
+- This slice does not add lip sync, audio/video mixing, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.
