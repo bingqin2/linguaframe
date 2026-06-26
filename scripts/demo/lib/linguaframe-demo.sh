@@ -130,6 +130,14 @@ get_job_transcript() {
   curl -fsS "$base_url/api/jobs/$job_id/transcript"
 }
 
+get_job_subtitles() {
+  local base_url="$1"
+  local job_id="$2"
+  local language="$3"
+
+  curl -fsS "$base_url/api/jobs/$job_id/subtitles/$language"
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

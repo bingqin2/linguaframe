@@ -81,3 +81,11 @@ Decision: Keep OpenAI as the default provider while designing narrow AI client b
 Reason: The current project should not spend time integrating multiple providers, but interview-ready architecture should avoid scattering raw OpenAI calls across business services.
 
 Impact: Future code should use interfaces for speech, language, quality evaluation, and TTS clients. OpenAI implementations can be the only concrete implementations until a real need for another provider exists.
+
+## 2026-06-26
+
+Decision: Add target-language subtitle generation with a deterministic demo translation provider before real OpenAI calls.
+
+Reason: The storage, preview, artifact export, and worker-stage behavior should be stable and testable without provider credentials, cost tracking, or paid API failures.
+
+Impact: Translation now sits behind `TranslationProvider`, and target subtitles are stored separately from source transcript segments. A later OpenAI integration can replace the demo provider without rewriting subtitle persistence or export.

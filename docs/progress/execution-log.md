@@ -398,3 +398,42 @@ Notes:
 
 - This slice does not call OpenAI. It deliberately uses deterministic transcript output so the Docker demo can verify the transcript/subtitle pipeline without provider credentials.
 - Translation, TTS, subtitle burn-in, frontend UI, authentication, and cost tracking remain later slices.
+
+## 2026-06-26
+
+Work:
+
+- Added durable `subtitle_segments` persistence keyed by job and target language.
+- Added translation runtime configuration, `TranslationProvider`, deterministic demo translation, and subtitle replacement/listing service.
+- Added target subtitle JSON/SRT/WebVTT export support.
+- Added `TARGET_SUBTITLE_EXPORT` worker stage after `TRANSCRIPT_SUBTITLE_EXPORT`.
+- Added `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, and `TARGET_SUBTITLE_VTT` artifacts.
+- Added `GET /api/jobs/{jobId}/subtitles/{language}` for target subtitle preview.
+- Updated Docker demo scripts and docs to print target subtitle preview and download eight artifacts.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=SubtitleSegmentRepositoryTests test` first failed because `SubtitleSegmentRecord` and `SubtitleSegmentRepository` did not exist, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,TranslationProviderTests,SubtitleServiceTests test` first failed because translation properties, provider, BO/VO, and service types did not exist, then passed with `Tests run: 11, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=SubtitleExportServiceTests test` first failed because target subtitle export methods did not exist; after updating the existing fake export service it passed with `Tests run: 6, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests#targetSubtitleStageCreatesArtifactsAfterTranscriptExport test` first failed because the target subtitle stage and enum values did not exist, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests test` passed with `Tests run: 9, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsTargetSubtitleSegmentsForLocalizationJob test` first failed with HTTP 404 because the endpoint was not mapped, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` passed with `Tests run: 11, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh`, `bash -n scripts/demo/docker-e2e-success.sh`, and `bash -n scripts/demo/docker-e2e-retry.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=SubtitleSegmentRepositoryTests,SubtitleServiceTests,TranslationProviderTests,SubtitleExportServiceTests,LinguaFramePropertiesTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 38, Failures: 0, Errors: 0`.
+- Sandboxed `mvn test` failed because `RANDOM_PORT` tests could not bind local ports (`java.net.SocketException: Operation not permitted`). The same command passed with local socket access with `Tests run: 91, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_TRANSLATION_ENABLED=true` plus `LINGUAFRAME_TRANSLATION_PROVIDER=demo`.
+- `mvn -pl LinguaFrame -am package -DskipTests` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed.
+- `scripts/demo/docker-e2e-success.sh` passed against the live Docker stack for job `85a2cbe3-1241-4332-a24e-0f872a4ec25e`, printed `status=COMPLETED`, included `TARGET_SUBTITLE_EXPORT` in the timeline, printed `artifactCount=8`, printed target subtitle preview JSON, and downloaded `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, and `/tmp/linguaframe-demo/target-subtitles.vtt`.
+- `file /tmp/linguaframe-demo/audio.wav` reported `RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 16000 Hz`.
+- `python3 -m json.tool /tmp/linguaframe-demo/transcript.json`, `python3 -m json.tool /tmp/linguaframe-demo/target-subtitles.json`, and `python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json` parsed successfully.
+- `sed -n '1,80p' /tmp/linguaframe-demo/target-subtitles.srt` showed comma millisecond timestamps and deterministic `zh-CN` text.
+- `sed -n '1,80p' /tmp/linguaframe-demo/target-subtitles.vtt` showed `WEBVTT`, dot millisecond timestamps, and deterministic `zh-CN` text.
+- `docker compose --env-file .env.example down` stopped and removed live verification containers.
+
+Notes:
+
+- This slice does not call OpenAI. It deliberately uses deterministic demo translation so the Docker demo can verify target-language subtitle storage, preview, and artifact export without API keys or paid calls.
+- Real OpenAI translation, TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, and cost tracking remain later slices.

@@ -58,6 +58,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/linguaframe-media");
         assertThat(properties.getTranscription().isEnabled()).isFalse();
         assertThat(properties.getTranscription().getProvider()).isEqualTo("demo");
+        assertThat(properties.getTranslation().isEnabled()).isFalse();
+        assertThat(properties.getTranslation().getProvider()).isEqualTo("demo");
     }
 
     @Test
@@ -102,6 +104,21 @@ class LinguaFramePropertiesTests {
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getTranscription().isEnabled()).isTrue();
                     assertThat(boundProperties.getTranscription().getProvider()).isEqualTo("demo");
+                });
+    }
+
+    @Test
+    void bindsTranslationRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.translation.enabled=true",
+                        "linguaframe.translation.provider=demo"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getTranslation().isEnabled()).isTrue();
+                    assertThat(boundProperties.getTranslation().getProvider()).isEqualTo("demo");
                 });
     }
 

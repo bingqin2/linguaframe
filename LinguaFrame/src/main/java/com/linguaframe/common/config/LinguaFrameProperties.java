@@ -38,6 +38,9 @@ public class LinguaFrameProperties {
     @Valid
     private final Transcription transcription = new Transcription();
 
+    @Valid
+    private final Translation translation = new Translation();
+
     public Media getMedia() {
         return media;
     }
@@ -72,6 +75,10 @@ public class LinguaFrameProperties {
 
     public Transcription getTranscription() {
         return transcription;
+    }
+
+    public Translation getTranslation() {
+        return translation;
     }
 
     public static class Media {
@@ -255,6 +262,30 @@ public class LinguaFrameProperties {
     }
 
     public static class Transcription {
+
+        private boolean enabled = false;
+
+        @NotBlank
+        private String provider = "demo";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
+        }
+    }
+
+    public static class Translation {
 
         private boolean enabled = false;
 
