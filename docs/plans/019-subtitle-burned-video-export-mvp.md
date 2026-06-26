@@ -88,7 +88,7 @@ Alternatives considered:
 - `LocalizationJobStage.SUBTITLE_BURN_IN`
 - `JobArtifactType.BURNED_VIDEO`
 
-- [ ] **Step 1: Write failing property tests**
+- [x] **Step 1: Write failing property tests**
 
 In `bindsDefaultRuntimeProperties()`, add:
 
@@ -123,7 +123,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test
 
 Expected: fail because `getBurnInTimeoutSeconds()` and `isBurnInEnabled()` do not exist.
 
-- [ ] **Step 2: Add FFmpeg burn-in runtime properties**
+- [x] **Step 2: Add FFmpeg burn-in runtime properties**
 
 In `LinguaFrameProperties.Ffmpeg`, add:
 
@@ -183,7 +183,7 @@ LINGUAFRAME_FFMPEG_BURN_IN_ENABLED: ${LINGUAFRAME_FFMPEG_BURN_IN_ENABLED:-true}
 LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS: ${LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS:-180}
 ```
 
-- [ ] **Step 3: Add enum values**
+- [x] **Step 3: Add enum values**
 
 Add `SUBTITLE_BURN_IN` after `DUBBING_AUDIO_GENERATION` and before `ARTIFACT_SUMMARY`.
 
@@ -218,7 +218,7 @@ git commit -m "Add subtitle burn-in runtime configuration"
 - `BurnedVideoBo(String filename, String contentType, byte[] content)`
 - `FfmpegSubtitleBurnInService#burnInSubtitles(BurnInSubtitlesCommand command): BurnedVideoBo`
 
-- [ ] **Step 1: Write failing FFmpeg service tests**
+- [x] **Step 1: Write failing FFmpeg service tests**
 
 Create `FfmpegSubtitleBurnInServiceTests` with these cases:
 
@@ -257,7 +257,7 @@ mvn -pl LinguaFrame -Dtest=FfmpegSubtitleBurnInServiceTests test
 
 Expected: fail because burn-in service types do not exist.
 
-- [ ] **Step 2: Implement BOs and interface**
+- [x] **Step 2: Implement BOs and interface**
 
 Create:
 
@@ -287,7 +287,7 @@ public interface FfmpegSubtitleBurnInService {
 }
 ```
 
-- [ ] **Step 3: Implement FFmpeg service**
+- [x] **Step 3: Implement FFmpeg service**
 
 `FfmpegSubtitleBurnInServiceImpl` should mirror `FfmpegAudioExtractionServiceImpl` and use:
 
@@ -361,7 +361,7 @@ git commit -m "Add FFmpeg subtitle burn-in service"
 - Runs: `FfmpegSubtitleBurnInService#burnInSubtitles(...)`
 - Writes: `JobArtifactType.BURNED_VIDEO`
 
-- [ ] **Step 1: Write failing pipeline stage tests**
+- [x] **Step 1: Write failing pipeline stage tests**
 
 Create `SubtitleBurnInPipelineStageTests` with:
 
@@ -377,7 +377,7 @@ mvn -pl LinguaFrame -Dtest=SubtitleBurnInPipelineStageTests test
 
 Expected: fail because `SubtitleBurnInPipelineStage` does not exist.
 
-- [ ] **Step 2: Implement pipeline stage**
+- [x] **Step 2: Implement pipeline stage**
 
 Create `SubtitleBurnInPipelineStage` as a Spring `@Component`.
 
@@ -406,7 +406,7 @@ Implementation rules:
 - Store `BURNED_VIDEO` using the returned filename, content type, and bytes.
 - Always delete the work directory in `finally`.
 
-- [ ] **Step 3: Extend execution ordering coverage**
+- [x] **Step 3: Extend execution ordering coverage**
 
 Add or update a `LocalizationJobExecutionServiceTests` case so the ordered pipeline includes:
 
@@ -464,7 +464,7 @@ git commit -m "Add subtitle burn-in pipeline stage"
 - Default `.env.example` expected artifact count becomes `9`.
 - If TTS is also enabled, expected artifact count becomes `10`.
 
-- [ ] **Step 1: Upgrade demo sample generation**
+- [x] **Step 1: Upgrade demo sample generation**
 
 In `create_demo_sample()`, replace WAV generation with an FFmpeg-generated MP4:
 
@@ -484,7 +484,7 @@ ffmpeg -hide_banner -loglevel error -y \
   "$path"
 ```
 
-- [ ] **Step 2: Download burned video in success demo**
+- [x] **Step 2: Download burned video in success demo**
 
 Add:
 
@@ -499,7 +499,7 @@ download_artifact_by_type "$BASE_URL" "$job_id" BURNED_VIDEO "$BURNED_VIDEO_PATH
 echo "Downloaded burned video to $BURNED_VIDEO_PATH"
 ```
 
-- [ ] **Step 3: Update docs and progress records**
+- [x] **Step 3: Update docs and progress records**
 
 Document:
 
@@ -519,7 +519,7 @@ Reason: Burn-in is a media rendering concern and should stay separate from subti
 Impact: Docker demo can now produce a visible localized video artifact while audio replacement and advanced styling remain later work.
 ```
 
-- [ ] **Step 4: Run focused verification**
+- [x] **Step 4: Run focused verification**
 
 Run:
 
@@ -537,7 +537,7 @@ Expected:
 - Compose renders `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED: "true"`.
 - Compose renders `LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS: "180"`.
 
-- [ ] **Step 5: Run full backend verification**
+- [x] **Step 5: Run full backend verification**
 
 Run:
 

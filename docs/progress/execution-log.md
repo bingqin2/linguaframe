@@ -511,3 +511,29 @@ Notes:
 
 - Official OpenAI docs were checked for the audio speech endpoint shape before implementation. The implementation targets `POST /v1/audio/speech` with `model`, `voice`, `input`, and `response_format=mp3`.
 - This slice does not add lip sync, audio/video mixing, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.
+
+## 2026-06-26
+
+Work:
+
+- Added FFmpeg subtitle burn-in runtime configuration under `linguaframe.ffmpeg`.
+- Added `FfmpegSubtitleBurnInService` for FFmpeg-backed MP4 rendering with safe errors and timeout handling.
+- Added `SUBTITLE_BURN_IN` worker stage after TTS and before artifact summary.
+- Added `BURNED_VIDEO` artifacts named `burned-video.mp4` with content type `video/mp4`.
+- Updated the Docker success demo to generate a real short MP4 sample and download the burned video artifact.
+- Documented default Docker burn-in behavior and the MVP boundary: no TTS audio mixing, no lip sync, and no subtitle style editor.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test` first failed because `LinguaFrameProperties.Ffmpeg#isBurnInEnabled()` and `getBurnInTimeoutSeconds()` did not exist, then passed after adding burn-in properties with `Tests run: 10, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=FfmpegSubtitleBurnInServiceTests test` first failed because burn-in BO/service types did not exist, then passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=SubtitleBurnInPipelineStageTests test` first failed because `SubtitleBurnInPipelineStage` did not exist, then passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=SubtitleBurnInPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 14, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,FfmpegSubtitleBurnInServiceTests,SubtitleBurnInPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 28, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` and `bash -n scripts/demo/docker-e2e-success.sh` passed.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED: "true"` plus `LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS: "180"`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 129, Failures: 0, Errors: 0`.
+
+Notes:
+
+- This slice does not add TTS audio replacement, lip sync, subtitle style editing, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.

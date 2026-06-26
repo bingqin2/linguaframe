@@ -33,25 +33,19 @@ wait_for_backend() {
 create_demo_sample() {
   local path="$1"
   mkdir -p "$(dirname "$path")"
-  python3 - "$path" <<'PY'
-import math
-import struct
-import sys
-import wave
-
-path = sys.argv[1]
-sample_rate = 16000
-duration_seconds = 1
-frequency_hz = 440
-
-with wave.open(path, "wb") as wav:
-    wav.setnchannels(1)
-    wav.setsampwidth(2)
-    wav.setframerate(sample_rate)
-    for i in range(sample_rate * duration_seconds):
-        sample = int(0.2 * 32767 * math.sin(2 * math.pi * frequency_hz * i / sample_rate))
-        wav.writeframes(struct.pack("<h", sample))
-PY
+  if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "Missing ffmpeg to create demo MP4; set LINGUAFRAME_DEMO_SAMPLE_PATH to an existing short MP4." >&2
+    exit 1
+  fi
+  ffmpeg -hide_banner -loglevel error -y \
+    -f lavfi -i "color=c=blue:s=640x360:r=25:d=2" \
+    -f lavfi -i "sine=frequency=440:sample_rate=16000:duration=2" \
+    -shortest \
+    -c:v libx264 \
+    -pix_fmt yuv420p \
+    -c:a aac \
+    -movflags +faststart \
+    "$path"
 }
 
 ensure_demo_sample() {
