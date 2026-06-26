@@ -59,6 +59,16 @@ export function artifactDownloadUrl(jobId: string, artifactId: string): string {
   )}/download`;
 }
 
+export const linguaFrameApi = {
+  uploadMedia,
+  getJob,
+  retryJob,
+  listArtifacts,
+  listTranscript,
+  listSubtitles,
+  artifactDownloadUrl
+};
+
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {

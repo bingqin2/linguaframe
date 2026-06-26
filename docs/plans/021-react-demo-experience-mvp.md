@@ -209,7 +209,7 @@ Use mocked API functions to cover:
 
 - upload form calls `uploadMedia`, stores the returned job, and selects it.
 - manual job id lookup selects and fetches that job.
-- polling stops when the job status is `SUCCEEDED` or `FAILED`.
+- polling stops when the job status is `COMPLETED`, `FAILED`, or `CANCELLED`.
 - timeline, usage summary, model calls, failed reason, and retry button render from job detail data.
 
 Run:
@@ -405,7 +405,7 @@ From the UI:
 
 - upload a short MP4.
 - confirm a recent job appears.
-- wait until the selected job reaches `SUCCEEDED` or `FAILED`.
+- wait until the selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
 - confirm timeline and usage/model-call panels render.
 - confirm transcript/subtitle preview panels render when data is available.
 - confirm artifact download links appear.
