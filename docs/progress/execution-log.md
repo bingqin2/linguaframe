@@ -772,3 +772,37 @@ Post-merge verification:
 - `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
 - `rg -n "UNREADABLE_MEDIA|unreadable media|could not be inspected|before storage|FFprobe stderr" README.md docs/product/spec.md docs/progress/execution-log.md docs/plans/026-invalid-media-upload-validation.md` passed on `main`.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added `POST /api/jobs/{jobId}/cancel` for queued, retrying, and processing jobs.
+- Added an atomic repository cancellation transition that marks jobs `CANCELLED`, clears failure metadata, and stores the cancellation timestamp in `completedAt`.
+- Added `LocalizationJobCancellationService` with timeline audit events and conflict handling for terminal jobs.
+- Updated worker execution to observe soft cancellation before and after pipeline stages so cancelled jobs stop before the next durable stage.
+- Added frontend API and Job Detail Cancel action for active jobs while hiding it for terminal jobs.
+- Documented cancellation behavior in README and product/frontend docs.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRepositoryTests test` first failed because `markCancelled` and `isCancelled` did not exist, then passed with `Tests run: 10, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobCancellationServiceTests test` first failed because the cancellation service did not exist, then passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because `/api/jobs/{jobId}/cancel` returned `404`, then passed after wiring the route.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests test` first failed because mid-processing cancellation still completed the job, then passed with `Tests run: 13, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi` first failed because `cancelJob` was missing, then passed with `Tests run: 9`.
+- `cd frontend && npm run test:run -- App` first failed because the Cancel button was missing, then passed after the UI implementation.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRepositoryTests,LocalizationJobCancellationServiceTests test` passed with `Tests run: 12, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 32, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- App linguaframeApi` passed with `Tests run: 22`.
+- `cd frontend && npm run test:run` passed with `Tests run: 26`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config` passed and rendered the current demo stack configuration.
+- `mvn -pl LinguaFrame test -q` passed with local socket permissions; surefire reports summarized `Tests run: 190, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+Notes:
+
+- Cancellation is soft. This slice does not interrupt an already-running FFmpeg process or OpenAI HTTP request; the worker stops before starting the next stage.
+- Cancellation keeps existing videos, artifacts, timeline events, dispatch events, and model-call records.
+- A Python 3.14 helper script for parsing surefire XML hit a local `pyexpat` dynamic-library issue; surefire text reports were used for the final test summary instead.

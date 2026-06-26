@@ -153,6 +153,49 @@ class LocalizationJobExecutionServiceTests {
     }
 
     @Test
+    void skipsCancelledJobMessageWithoutExecutingStages() {
+        Instant now = Instant.parse("2026-06-27T04:00:00Z");
+        createJob("execution-video-cancelled", "execution-job-cancelled", LocalizationJobStatus.CANCELLED, now);
+        RecordingStage stage = new RecordingStage(false);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-cancelled", "execution-video-cancelled", now));
+
+        assertThat(result.executed()).isFalse();
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.CANCELLED);
+        assertThat(stage.context).isNull();
+    }
+
+    @Test
+    void stopsBeforeNextStageWhenJobIsCancelledDuringProcessing() {
+        Instant now = Instant.parse("2026-06-27T04:10:00Z");
+        createJob("execution-video-cancel-mid", "execution-job-cancel-mid", LocalizationJobStatus.QUEUED, now);
+        CancellingStage cancellingStage = new CancellingStage(jobRepository, now.plusSeconds(20));
+        RecordingStage nextStage = new RecordingStage(false, LocalizationJobStage.ARTIFACT_SUMMARY);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(cancellingStage, nextStage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-cancel-mid", "execution-video-cancel-mid", now));
+
+        assertThat(result.executed()).isTrue();
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.CANCELLED);
+        assertThat(cancellingStage.context).isNotNull();
+        assertThat(nextStage.context).isNull();
+        assertThat(timelineEventRepository.findByJobId("execution-job-cancel-mid"))
+                .extracting(event -> event.status())
+                .contains(JobTimelineEventStatus.SKIPPED);
+    }
+
+    @Test
     void failsClaimedJobWhenMessageVideoDoesNotMatchStoredJob() {
         Instant now = Instant.parse("2026-06-26T16:00:00Z");
         createJob("execution-video-3", "execution-job-3", LocalizationJobStatus.QUEUED, now);
@@ -816,10 +859,41 @@ class LocalizationJobExecutionServiceTests {
     private static class RecordingStage implements LocalizationPipelineStage {
 
         private final boolean fail;
+        private final LocalizationJobStage stage;
         private LocalizationJobExecutionContextBo context;
 
         private RecordingStage(boolean fail) {
+            this(fail, LocalizationJobStage.WORKER_SMOKE);
+        }
+
+        private RecordingStage(boolean fail, LocalizationJobStage stage) {
             this.fail = fail;
+            this.stage = stage;
+        }
+
+        @Override
+        public LocalizationJobStage stage() {
+            return stage;
+        }
+
+        @Override
+        public void execute(LocalizationJobExecutionContextBo context) {
+            this.context = context;
+            if (fail) {
+                throw new IllegalStateException("stage exploded");
+            }
+        }
+    }
+
+    private static class CancellingStage implements LocalizationPipelineStage {
+
+        private final LocalizationJobRepository jobRepository;
+        private final Instant cancelledAt;
+        private LocalizationJobExecutionContextBo context;
+
+        private CancellingStage(LocalizationJobRepository jobRepository, Instant cancelledAt) {
+            this.jobRepository = jobRepository;
+            this.cancelledAt = cancelledAt;
         }
 
         @Override
@@ -830,9 +904,7 @@ class LocalizationJobExecutionServiceTests {
         @Override
         public void execute(LocalizationJobExecutionContextBo context) {
             this.context = context;
-            if (fail) {
-                throw new IllegalStateException("stage exploded");
-            }
+            jobRepository.markCancelled(context.job().id(), cancelledAt);
         }
     }
 

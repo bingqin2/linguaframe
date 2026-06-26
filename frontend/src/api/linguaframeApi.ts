@@ -50,6 +50,12 @@ export async function retryJob(jobId: string): Promise<LocalizationJob> {
   });
 }
 
+export async function cancelJob(jobId: string): Promise<LocalizationJob> {
+  return requestJson<LocalizationJob>(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {
+    method: 'POST'
+  });
+}
+
 export async function listArtifacts(jobId: string): Promise<JobArtifact[]> {
   return requestJson<JobArtifact[]>(`/api/jobs/${encodeURIComponent(jobId)}/artifacts`, {
     method: 'GET'
@@ -85,6 +91,7 @@ export const linguaFrameApi = {
   listJobs,
   getJob,
   retryJob,
+  cancelJob,
   listArtifacts,
   listTranscript,
   listSubtitles,

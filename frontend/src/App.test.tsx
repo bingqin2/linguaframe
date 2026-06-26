@@ -262,6 +262,45 @@ describe('App', () => {
     await waitFor(() => expect(retryJob).toHaveBeenCalledWith('job-1'));
   });
 
+  test('cancels active jobs and refreshes server history', async () => {
+    const cancelJob = vi
+      .spyOn(linguaFrameApi, 'cancelJob')
+      .mockResolvedValue(jobFixture({ status: 'CANCELLED' }));
+    const listJobs = vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'PROCESSING' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+    await userEvent.click(cancelButton);
+
+    await waitFor(() => expect(cancelJob).toHaveBeenCalledWith('job-1'));
+    expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('CANCELLED'))
+      .toBeInTheDocument();
+    expect(listJobs).toHaveBeenCalledTimes(2);
+  });
+
+  test('does not show cancel action for terminal jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'COMPLETED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+  });
+
   test('loads and opens recent jobs from local storage', async () => {
     window.localStorage.setItem(
       'linguaframe.recentJobs.v1',

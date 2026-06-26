@@ -5,6 +5,7 @@ import {
   getJob,
   listJobs,
   listArtifacts,
+  cancelJob,
   retryJob,
   uploadMedia
 } from './linguaframeApi';
@@ -112,6 +113,35 @@ describe('linguaframeApi', () => {
 
     expect(job.retryCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1/retry', { method: 'POST' });
+  });
+
+  test('cancels an active job', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-1',
+        videoId: 'video-1',
+        targetLanguage: 'zh',
+        status: 'CANCELLED',
+        createdAt: '2026-06-26T10:00:00Z',
+        startedAt: null,
+        completedAt: null,
+        failedAt: null,
+        failureStage: null,
+        failureReason: null,
+        retryCount: 0,
+        dispatchStatus: 'PENDING',
+        dispatchAttempts: 0,
+        dispatchedAt: null,
+        timelineEvents: [],
+        usageSummary: null,
+        modelCalls: []
+      })
+    );
+
+    const job = await cancelJob('job-1');
+
+    expect(job.status).toBe('CANCELLED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1/cancel', { method: 'POST' });
   });
 
   test('lists artifacts and builds same-origin download urls', async () => {
