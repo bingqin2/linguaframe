@@ -777,6 +777,31 @@ Post-merge verification:
 
 Work:
 
+- Added `GET /api/jobs/{jobId}/events` as a Server-Sent Events job snapshot stream.
+- Updated the React demo to use EventSource for active selected jobs with polling fallback.
+- Refreshed previews and history when live events move a selected job to a terminal state.
+- Documented the SSE endpoint and the local-demo polling fallback boundary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because `/api/jobs/{jobId}/events` did not exist, then passed after wiring SSE with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi` first failed because `jobEventsUrl` was missing, then passed with `Tests run: 10`.
+- `cd frontend && npm run test:run -- App` first failed because no EventSource subscription existed, then exposed a jsdom `EventSource` constructor edge case, then passed after adding a safer capability check with `Tests run: 15`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 25`.
+- `cd frontend && npm run test:run` passed with `Tests run: 29`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config` passed.
+- `mvn -pl LinguaFrame test -q` passed with local socket permissions; surefire reports summarized `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+Notes:
+
+- This is snapshot-based SSE for the local demo. It does not add Redis pub/sub or a cross-process event bus.
+
+## 2026-06-27
+
+Work:
+
 - Added `POST /api/jobs/{jobId}/cancel` for queued, retrying, and processing jobs.
 - Added an atomic repository cancellation transition that marks jobs `CANCELLED`, clears failure metadata, and stores the cancellation timestamp in `completedAt`.
 - Added `LocalizationJobCancellationService` with timeline audit events and conflict handling for terminal jobs.

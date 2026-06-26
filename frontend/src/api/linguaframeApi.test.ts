@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   artifactDownloadUrl,
   getJob,
+  jobEventsUrl,
   listJobs,
   listArtifacts,
   cancelJob,
@@ -84,6 +85,10 @@ describe('linguaframeApi', () => {
 
     expect(job.status).toBe('PROCESSING');
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
+  });
+
+  test('builds same-origin job event stream urls', () => {
+    expect(jobEventsUrl('job 1')).toBe('/api/jobs/job%201/events');
   });
 
   test('retries a failed job', async () => {

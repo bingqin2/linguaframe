@@ -86,6 +86,10 @@ export function artifactDownloadUrl(jobId: string, artifactId: string): string {
   )}/download`;
 }
 
+export function jobEventsUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/events`;
+}
+
 export const linguaFrameApi = {
   uploadMedia,
   listJobs,
@@ -95,7 +99,8 @@ export const linguaFrameApi = {
   listArtifacts,
   listTranscript,
   listSubtitles,
-  artifactDownloadUrl
+  artifactDownloadUrl,
+  jobEventsUrl
 };
 
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {

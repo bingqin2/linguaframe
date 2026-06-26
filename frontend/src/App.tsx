@@ -44,6 +44,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isSseUnavailable, setIsSseUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
@@ -62,6 +63,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       try {
         const nextJob = await linguaFrameApi.getJob(jobId);
         setJob(nextJob);
+        setIsSseUnavailable(false);
         setError(null);
         return nextJob;
       } catch (loadError) {
@@ -131,7 +133,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [historyStatusFilter, loadHistory]);
 
   useEffect(() => {
-    if (!job || TERMINAL_STATUSES.has(job.status)) {
+    if (
+      !job ||
+      TERMINAL_STATUSES.has(job.status) ||
+      (!isSseUnavailable && supportsEventSource())
+    ) {
       return;
     }
 
@@ -140,7 +146,36 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [job, loadJob, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadJob, pollIntervalMs]);
+
+  useEffect(() => {
+    if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
+      return;
+    }
+
+    const eventSource = new EventSource(linguaFrameApi.jobEventsUrl(job.jobId));
+    eventSource.onmessage = (event) => {
+      try {
+        const nextJob = JSON.parse(event.data) as LocalizationJob;
+        setJob(nextJob);
+        setError(null);
+        if (TERMINAL_STATUSES.has(nextJob.status)) {
+          void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
+          void loadHistory(historyStatusFilter);
+          eventSource.close();
+        }
+      } catch {
+        setIsSseUnavailable(true);
+        eventSource.close();
+      }
+    };
+    eventSource.onerror = () => {
+      setIsSseUnavailable(true);
+      eventSource.close();
+    };
+
+    return () => eventSource.close();
+  }, [historyStatusFilter, isSseUnavailable, job, loadHistory, loadPreviewData]);
 
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -739,6 +774,10 @@ function toRecentJob(upload: MediaUpload): RecentJob {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unexpected frontend error.';
+}
+
+function supportsEventSource(): boolean {
+  return typeof window.EventSource === 'function';
 }
 
 function formatCost(value: number): string {
