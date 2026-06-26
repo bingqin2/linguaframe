@@ -17,6 +17,9 @@ linguaframe:
     smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
   cost:
     enabled: true
+  evaluation:
+    enabled: ${LINGUAFRAME_EVALUATION_ENABLED:false}
+    provider: ${LINGUAFRAME_EVALUATION_PROVIDER:demo}
   database:
     host: ${MYSQL_HOST:localhost}
     port: ${MYSQL_PORT:3306}
