@@ -600,5 +600,7 @@ Final verification:
 
 - `npm run test:run` passed with `Tests run: 16`.
 - `npm run build` passed.
-- `docker compose --env-file .env.example config` passed.
-- `mvn -pl LinguaFrame test` passed with `Tests run: 140, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `linguaframe-frontend`.
+- `mvn -pl LinguaFrame test` passed before merge.
+- Merged `react-demo-experience-mvp` back to `main` with merge commit `5922df6`.
+- `npm run test:run`, `npm run build`, `docker compose --env-file .env.example config`, and `mvn -pl LinguaFrame test -q` passed again on `main` after merge.
