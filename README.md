@@ -242,6 +242,8 @@ scripts/demo/docker-e2e-success.sh
 
 The script uploads a tiny local sample file, waits for dispatch and worker execution, then prints the completed job timeline. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
+For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
+
 ## Resume Target
 
 ```text
