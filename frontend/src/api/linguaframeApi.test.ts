@@ -1,0 +1,162 @@
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
+import {
+  artifactDownloadUrl,
+  getJob,
+  listArtifacts,
+  retryJob,
+  uploadMedia
+} from './linguaframeApi';
+
+describe('linguaframeApi', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  test('uploads media as multipart form data with target language', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    const file = new File(['demo'], 'sample.mp4', { type: 'video/mp4' });
+    const result = await uploadMedia(file, 'zh');
+
+    expect(result.jobId).toBe('job-1');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData)
+      })
+    );
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('file')).toBe(file);
+    expect((body as FormData).get('targetLanguage')).toBe('zh');
+  });
+
+  test('fetches job detail by id', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-1',
+        videoId: 'video-1',
+        targetLanguage: 'zh',
+        status: 'PROCESSING',
+        createdAt: '2026-06-26T10:00:00Z',
+        startedAt: null,
+        completedAt: null,
+        failedAt: null,
+        failureStage: null,
+        failureReason: null,
+        retryCount: 0,
+        dispatchStatus: 'DISPATCHED',
+        dispatchAttempts: 1,
+        dispatchedAt: '2026-06-26T10:00:02Z',
+        timelineEvents: [],
+        usageSummary: {
+          modelCallCount: 0,
+          failedModelCallCount: 0,
+          totalLatencyMs: 0,
+          estimatedCostUsd: 0,
+          inputTokens: null,
+          outputTokens: null,
+          audioSeconds: null,
+          characterCount: null
+        },
+        modelCalls: []
+      })
+    );
+
+    const job = await getJob('job-1');
+
+    expect(job.status).toBe('PROCESSING');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
+  });
+
+  test('retries a failed job', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-1',
+        videoId: 'video-1',
+        targetLanguage: 'zh',
+        status: 'RETRYING',
+        createdAt: '2026-06-26T10:00:00Z',
+        startedAt: null,
+        completedAt: null,
+        failedAt: null,
+        failureStage: null,
+        failureReason: null,
+        retryCount: 1,
+        dispatchStatus: 'PENDING',
+        dispatchAttempts: 0,
+        dispatchedAt: null,
+        timelineEvents: [],
+        usageSummary: null,
+        modelCalls: []
+      })
+    );
+
+    const job = await retryJob('job-1');
+
+    expect(job.retryCount).toBe(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1/retry', { method: 'POST' });
+  });
+
+  test('lists artifacts and builds same-origin download urls', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse([
+        {
+          artifactId: 'artifact-1',
+          jobId: 'job-1',
+          type: 'SUBTITLE_VTT',
+          filename: 'subtitles.vtt',
+          contentType: 'text/vtt',
+          sizeBytes: 42,
+          createdAt: '2026-06-26T10:00:05Z'
+        }
+      ])
+    );
+
+    const artifacts = await listArtifacts('job-1');
+
+    expect(artifacts).toHaveLength(1);
+    expect(artifactDownloadUrl('job-1', 'artifact-1')).toBe(
+      '/api/jobs/job-1/artifacts/artifact-1/download'
+    );
+  });
+
+  test('throws concise api errors without raw response body dumps', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(
+        {
+          message: 'Upload failed',
+          detail: 'This raw diagnostic text should not be included in the thrown message'
+        },
+        { status: 400 }
+      )
+    );
+
+    await expect(getJob('missing-job')).rejects.toThrow('Upload failed');
+    await expect(getJob('missing-job')).rejects.not.toThrow('raw diagnostic');
+  });
+});
+
+function jsonResponse(body: unknown, init?: ResponseInit): Response {
+  return new Response(JSON.stringify(body), {
+    status: init?.status ?? 200,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+}
