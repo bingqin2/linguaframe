@@ -686,7 +686,7 @@ git add docs/plans/020-model-call-audit-cost-mvp.md docs/progress/execution-log.
 git commit -m "Record model call audit verification"
 ```
 
-- [ ] **Step 4: Merge back to main**
+- [x] **Step 4: Merge back to main**
 
 Verify clean feature branch:
 

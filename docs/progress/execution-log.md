@@ -566,3 +566,5 @@ Notes:
 Final verification:
 
 - `mvn -pl LinguaFrame test` passed on branch `model-call-audit-cost-mvp` with `Tests run: 140, Failures: 0, Errors: 0`.
+- Merged `model-call-audit-cost-mvp` back to `main` with merge commit `3a1757e`.
+- `mvn -pl LinguaFrame test` passed on `main` after merge with `Tests run: 140, Failures: 0, Errors: 0`.
