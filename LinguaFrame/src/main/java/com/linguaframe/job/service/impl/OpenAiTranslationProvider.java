@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.TranslationProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,6 +36,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public OpenAiTranslationProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
