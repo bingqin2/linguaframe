@@ -17,10 +17,13 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
 import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.repository.QualityEvaluationRepository;
+import com.linguaframe.job.domain.entity.QualityEvaluationRecord;
 import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.TranscriptService;
 import com.linguaframe.job.service.SubtitleService;
@@ -88,6 +91,9 @@ class LocalizationJobControllerTests {
     private ModelCallAuditService modelCallAuditService;
 
     @Autowired
+    private QualityEvaluationRepository qualityEvaluationRepository;
+
+    @Autowired
     private JdbcClient jdbcClient;
 
     @MockitoBean
@@ -95,6 +101,7 @@ class LocalizationJobControllerTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM quality_evaluations").update();
         jdbcClient.sql("DELETE FROM model_call_records").update();
         jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
@@ -268,6 +275,59 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.modelCalls[1].status").value("FAILED"))
                 .andExpect(jsonPath("$.modelCalls[1].safeErrorSummary")
                         .value("OpenAI TTS request failed with status 401"));
+    }
+
+    @Test
+    void returnsLocalizationJobWithLatestQualityEvaluation() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:00:00Z");
+        createJob("job-controller-video-quality", "job-controller-job-quality", createdAt);
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "quality-controller-old",
+                "job-controller-job-quality",
+                "zh-CN",
+                80,
+                "NEEDS_REVIEW",
+                80,
+                79,
+                78,
+                77,
+                List.of("Earlier issue."),
+                List.of("Earlier fix."),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "quality-controller-new",
+                "job-controller-job-quality",
+                "zh-CN",
+                92,
+                "GOOD",
+                95,
+                92,
+                94,
+                88,
+                List.of("No blocking issue."),
+                List.of("Review terminology."),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}", "job-controller-job-quality"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.qualityEvaluation.evaluationId").value("quality-controller-new"))
+                .andExpect(jsonPath("$.qualityEvaluation.jobId").value("job-controller-job-quality"))
+                .andExpect(jsonPath("$.qualityEvaluation.language").value("zh-CN"))
+                .andExpect(jsonPath("$.qualityEvaluation.score").value(92))
+                .andExpect(jsonPath("$.qualityEvaluation.verdict").value("GOOD"))
+                .andExpect(jsonPath("$.qualityEvaluation.completeness").value(95))
+                .andExpect(jsonPath("$.qualityEvaluation.readability").value(92))
+                .andExpect(jsonPath("$.qualityEvaluation.timingPreservation").value(94))
+                .andExpect(jsonPath("$.qualityEvaluation.naturalness").value(88))
+                .andExpect(jsonPath("$.qualityEvaluation.issues[0]").value("No blocking issue."))
+                .andExpect(jsonPath("$.qualityEvaluation.suggestedFixes[0]").value("Review terminology."))
+                .andExpect(jsonPath("$.qualityEvaluation.status").value("SUCCEEDED"));
     }
 
     @Test

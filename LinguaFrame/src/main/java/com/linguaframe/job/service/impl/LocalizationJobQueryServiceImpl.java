@@ -12,6 +12,7 @@ import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.QualityEvaluationService;
 import org.springframework.stereotype.Service;
 
 import java.util.NoSuchElementException;
@@ -26,17 +27,20 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final JobDispatchEventRepository dispatchEventRepository;
     private final JobTimelineEventRepository timelineEventRepository;
     private final ModelCallAuditService modelCallAuditService;
+    private final QualityEvaluationService qualityEvaluationService;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
             JobDispatchEventRepository dispatchEventRepository,
             JobTimelineEventRepository timelineEventRepository,
-            ModelCallAuditService modelCallAuditService
+            ModelCallAuditService modelCallAuditService,
+            QualityEvaluationService qualityEvaluationService
     ) {
         this.jobRepository = jobRepository;
         this.dispatchEventRepository = dispatchEventRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.modelCallAuditService = modelCallAuditService;
+        this.qualityEvaluationService = qualityEvaluationService;
     }
 
     @Override
@@ -75,7 +79,8 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                         .map(this::toTimelineEventVo)
                         .toList(),
                 modelCallAuditService.summarizeJob(jobId),
-                modelCallAuditService.listModelCalls(jobId)
+                modelCallAuditService.listModelCalls(jobId),
+                qualityEvaluationService.latestForJob(jobId).orElse(null)
         );
     }
 

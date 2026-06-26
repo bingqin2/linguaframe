@@ -8,11 +8,13 @@ import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.bo.TtsRequestBo;
 import com.linguaframe.job.domain.bo.TtsResultBo;
+import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -21,6 +23,7 @@ import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.TranscriptSubtitleExportPipelineStage;
 import com.linguaframe.job.service.impl.TargetSubtitleExportPipelineStage;
+import com.linguaframe.job.service.impl.QualityEvaluationPipelineStage;
 import com.linguaframe.job.service.impl.DubbingAudioGenerationPipelineStage;
 import com.linguaframe.job.service.impl.SubtitleBurnInPipelineStage;
 import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
@@ -672,6 +675,115 @@ class LocalizationJobExecutionServiceTests {
         }
     }
 
+    @Test
+    void qualityEvaluationStageRunsAfterTargetSubtitleExportAndBeforeDubbing(@TempDir Path tempDir)
+            throws IOException {
+        Instant now = Instant.parse("2026-06-27T01:00:00Z");
+        createJob("execution-video-11", "execution-job-11", LocalizationJobStatus.QUEUED, now);
+        byte[] sourceBytes = new byte[] {1, 2, 3};
+        byte[] audioBytes = new byte[] {7, 8, 9};
+        RecordingObjectStorageService objectStorageService = new RecordingObjectStorageService(sourceBytes);
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingFfmpegAudioExtractionService audioExtractionService = new RecordingFfmpegAudioExtractionService(
+                new ExtractedAudioBo("audio.wav", "audio/wav", audioBytes)
+        );
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        RecordingTranscriptionProvider transcriptionProvider = new RecordingTranscriptionProvider();
+        RecordingTranscriptService transcriptService = new RecordingTranscriptService();
+        RecordingSubtitleExportService subtitleExportService = new RecordingSubtitleExportService();
+        RecordingTranslationProvider translationProvider = new RecordingTranslationProvider();
+        RecordingSubtitleService subtitleService = new RecordingSubtitleService();
+        RecordingQualityEvaluationService qualityEvaluationService = new RecordingQualityEvaluationService();
+        RecordingTtsProvider ttsProvider = new RecordingTtsProvider();
+        properties.getFfmpeg().setAudioEnabled(true);
+        properties.getTranscription().setEnabled(true);
+        properties.getTranslation().setEnabled(true);
+        properties.getEvaluation().setEnabled(true);
+        properties.getTts().setEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(
+                        new WorkerSmokePipelineStage(properties),
+                        new AudioExtractionPipelineStage(
+                                properties,
+                                objectStorageService,
+                                workDirectoryService,
+                                audioExtractionService,
+                                artifactService
+                        ),
+                        new TranscriptSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptionProvider,
+                                transcriptService,
+                                subtitleExportService
+                        ),
+                        new TargetSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptService,
+                                translationProvider,
+                                subtitleService,
+                                subtitleExportService
+                        ),
+                        new QualityEvaluationPipelineStage(
+                                properties,
+                                transcriptService,
+                                subtitleService,
+                                qualityEvaluationService
+                        ),
+                        new DubbingAudioGenerationPipelineStage(
+                                properties,
+                                artifactService,
+                                subtitleService,
+                                ttsProvider
+                        ),
+                        new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
+                ),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-11", "execution-video-11", now));
+
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+            assertThat(timelineEventRepository.findByJobId("execution-job-11"))
+                    .extracting(event -> event.stage() + ":" + event.status())
+                    .containsExactly(
+                            LocalizationJobStage.WORKER_RECEIVED + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
+                    );
+            assertThat(qualityEvaluationService.jobId).isEqualTo("execution-job-11");
+            assertThat(qualityEvaluationService.language).isEqualTo("zh-CN");
+            assertThat(qualityEvaluationService.sourceSegments).hasSize(2);
+            assertThat(qualityEvaluationService.targetSegments)
+                    .extracting(SubtitleSegmentVo::text)
+                    .containsExactly("Translated first line", "Translated second line");
+            assertThat(ttsProvider.request.jobId()).isEqualTo("execution-job-11");
+        } finally {
+            properties.getFfmpeg().setAudioEnabled(false);
+            properties.getTranscription().setEnabled(false);
+            properties.getTranslation().setEnabled(false);
+            properties.getEvaluation().setEnabled(false);
+            properties.getTts().setEnabled(false);
+        }
+    }
+
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
@@ -964,6 +1076,48 @@ class LocalizationJobExecutionServiceTests {
         public TtsResultBo synthesize(TtsRequestBo request) {
             this.request = request;
             return new TtsResultBo(new byte[] {5, 4, 3}, "dubbing-audio.mp3", "audio/mpeg");
+        }
+    }
+
+    private static class RecordingQualityEvaluationService implements QualityEvaluationService {
+
+        private String jobId;
+        private String language;
+        private List<TranscriptSegmentVo> sourceSegments;
+        private List<SubtitleSegmentVo> targetSegments;
+
+        @Override
+        public QualityEvaluationVo evaluateAndStore(
+                String jobId,
+                String language,
+                List<TranscriptSegmentVo> sourceSegments,
+                List<SubtitleSegmentVo> targetSegments
+        ) {
+            this.jobId = jobId;
+            this.language = language;
+            this.sourceSegments = sourceSegments;
+            this.targetSegments = targetSegments;
+            return new QualityEvaluationVo(
+                    "recording-quality-evaluation",
+                    jobId,
+                    language,
+                    92,
+                    "GOOD",
+                    95,
+                    92,
+                    94,
+                    88,
+                    List.of("No blocking issue."),
+                    List.of("Review terminology."),
+                    QualityEvaluationStatus.SUCCEEDED,
+                    null,
+                    Instant.parse("2026-06-27T01:00:10Z")
+            );
+        }
+
+        @Override
+        public java.util.Optional<QualityEvaluationVo> latestForJob(String jobId) {
+            return java.util.Optional.empty();
         }
     }
 }
