@@ -27,6 +27,7 @@ class VideoRepositoryTests {
                 "sample.mp4",
                 "video/mp4",
                 123L,
+                42,
                 "source-videos/video-1/sample.mp4",
                 MediaUploadStatus.UPLOADED,
                 createdAt
@@ -37,6 +38,7 @@ class VideoRepositoryTests {
         Optional<VideoRecord> found = videoRepository.findById("video-1");
 
         assertThat(found).contains(record);
+        assertThat(found).get().extracting(VideoRecord::durationSeconds).isEqualTo(42);
     }
 
     @Test

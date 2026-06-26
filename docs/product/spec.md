@@ -89,6 +89,8 @@ Hosted usage requires:
 
 - The system accepts uploaded video files from the React frontend.
 - The backend validates file type, file size, and duration before starting expensive work.
+- Duration validation rejects files above the configured 5 minutes / 300 seconds limit before storage, queue dispatch, FFmpeg worker stages, or model calls.
+- Accepted videos are processed in full as complete uploaded files; the system does not clip or trim accepted media to fit the duration limit.
 - Uploaded source files are stored in MinIO or an S3-compatible object store.
 - A durable media record is created in MySQL.
 - A localization job is created asynchronously after upload.

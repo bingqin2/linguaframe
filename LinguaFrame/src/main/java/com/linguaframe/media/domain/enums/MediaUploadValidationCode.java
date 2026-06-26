@@ -6,5 +6,6 @@ public enum MediaUploadValidationCode {
     MISSING_FILE,
     EMPTY_FILE,
     UNSUPPORTED_CONTENT_TYPE,
-    FILE_TOO_LARGE
+    FILE_TOO_LARGE,
+    DURATION_TOO_LONG
 }

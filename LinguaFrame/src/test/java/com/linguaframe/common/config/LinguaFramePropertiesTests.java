@@ -24,7 +24,7 @@ class LinguaFramePropertiesTests {
     @Test
     void bindsDefaultRuntimeProperties() {
         assertThat(properties.getMedia().getMaxFileSizeMb()).isEqualTo(100);
-        assertThat(properties.getMedia().getMaxDurationSeconds()).isEqualTo(120);
+        assertThat(properties.getMedia().getMaxDurationSeconds()).isEqualTo(300);
         assertThat(properties.getWorker().getMaxRetries()).isEqualTo(2);
         assertThat(properties.getWorker().getStageTimeoutSeconds()).isEqualTo(600);
         assertThat(properties.getWorker().isDispatchEnabled()).isFalse();

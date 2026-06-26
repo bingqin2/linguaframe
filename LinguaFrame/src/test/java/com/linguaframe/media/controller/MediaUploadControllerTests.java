@@ -1,5 +1,7 @@
 package com.linguaframe.media.controller;
 
+import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
+import com.linguaframe.media.service.MediaDurationProbeService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
@@ -32,8 +34,12 @@ class MediaUploadControllerTests {
     @MockitoBean
     private ObjectStorageService objectStorageService;
 
+    @MockitoBean
+    private MediaDurationProbeService mediaDurationProbeService;
+
     @Test
     void validatesSupportedMultipartVideo() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
         MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
 
         mockMvc.perform(multipart("/api/media/uploads/validate").file(file))
@@ -44,7 +50,8 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.contentType").value("video/mp4"))
                 .andExpect(jsonPath("$.fileSizeBytes").value(3))
                 .andExpect(jsonPath("$.maxFileSizeBytes").value(104857600))
-                .andExpect(jsonPath("$.maxDurationSeconds").value(120));
+                .andExpect(jsonPath("$.durationSeconds").value(42))
+                .andExpect(jsonPath("$.maxDurationSeconds").value(300));
     }
 
     @Test
@@ -58,7 +65,24 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void returnsBadRequestForTooLongValidationFile() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(300.001));
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "long.mp4",
+                "video/mp4",
+                new byte[] {1, 2, 3, 4}
+        );
+
+        mockMvc.perform(multipart("/api/media/uploads/validate").file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.code").value("DURATION_TOO_LONG"));
+    }
+
+    @Test
     void createsUploadAndQueuedJob() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
         when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
             StoreObjectCommand command = invocation.getArgument(0);
             return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
@@ -72,6 +96,7 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.videoId", not(isEmptyOrNullString())))
                 .andExpect(jsonPath("$.jobId", not(isEmptyOrNullString())))
                 .andExpect(jsonPath("$.filename").value("sample.mp4"))
+                .andExpect(jsonPath("$.durationSeconds").value(42))
                 .andExpect(jsonPath("$.status").value("UPLOADED"))
                 .andExpect(jsonPath("$.jobStatus").value("QUEUED"))
                 .andReturn()
@@ -82,6 +107,7 @@ class MediaUploadControllerTests {
         mockMvc.perform(get("/api/media/uploads/{videoId}", videoId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.videoId").value(videoId))
+                .andExpect(jsonPath("$.durationSeconds").value(42))
                 .andExpect(jsonPath("$.status").value("UPLOADED"));
     }
 

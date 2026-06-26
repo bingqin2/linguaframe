@@ -106,7 +106,7 @@ public class LinguaFrameProperties {
 
         @Min(1)
         @Max(86400)
-        private int maxDurationSeconds = 120;
+        private int maxDurationSeconds = 300;
 
         public int getMaxFileSizeMb() {
             return maxFileSizeMb;
