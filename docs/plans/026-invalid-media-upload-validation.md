@@ -428,8 +428,8 @@ Expected: docs mention the error code and before-storage contract.
 
 - [x] Confirm no media files, generated artifacts, `.env`, or credentials are staged.
 - [x] Commit: `Validate unreadable media uploads`
-- [ ] Merge branch `invalid-media-upload-validation` back to `main` after verification.
-- [ ] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
+- [x] Merge branch `invalid-media-upload-validation` back to `main` after verification.
+- [x] Add post-merge verification to `docs/progress/execution-log.md` and commit it on `main`.
 
 ## Completion Checklist
 
@@ -440,4 +440,4 @@ Expected: docs mention the error code and before-storage contract.
 - [x] Runtime/infrastructure FFprobe failures such as timeout or process I/O failure remain server errors.
 - [x] Tests cover FFprobe unreadable output, validation VO behavior, upload service storage short-circuit, and controller HTTP responses.
 - [x] Validation evidence is recorded in `docs/progress/execution-log.md`.
-- [ ] Feature branch is merged back to `main` after verified implementation.
+- [x] Feature branch is merged back to `main` after verified implementation.

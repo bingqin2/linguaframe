@@ -763,3 +763,12 @@ Validation:
 Notes:
 
 - Runtime FFprobe timeout and process I/O failures remain server errors; unreadable media metadata is treated as a user-facing upload validation failure.
+
+Post-merge verification:
+
+- Merged `invalid-media-upload-validation` back to `main` with merge commit `bc69a2e`.
+- `mvn -pl LinguaFrame -Dtest=FfprobeMediaDurationProbeServiceTests,MediaUploadValidationServiceTests,MediaUploadServiceTests,MediaUploadControllerTests test` passed on `main` with `Tests run: 28, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 182, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
+- `rg -n "UNREADABLE_MEDIA|unreadable media|could not be inspected|before storage|FFprobe stderr" README.md docs/product/spec.md docs/progress/execution-log.md docs/plans/026-invalid-media-upload-validation.md` passed on `main`.
+- `git diff --check HEAD` passed on `main`.
