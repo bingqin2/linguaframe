@@ -164,6 +164,104 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: /job recent-job/i })).toBeInTheDocument();
   });
+
+  test('renders transcript, subtitles, artifact downloads, and media previews', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'artifact-job', videoId: 'artifact-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: 'First source line'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([
+      {
+        language: 'zh-CN',
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: '第一行字幕'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      {
+        artifactId: 'artifact-vtt',
+        jobId: 'artifact-job',
+        type: 'SUBTITLE_VTT',
+        filename: 'subtitles.vtt',
+        contentType: 'text/vtt',
+        sizeBytes: 42,
+        createdAt: '2026-06-26T10:00:05Z'
+      },
+      {
+        artifactId: 'artifact-audio',
+        jobId: 'artifact-job',
+        type: 'DUBBING_AUDIO',
+        filename: 'dubbing.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 4200,
+        createdAt: '2026-06-26T10:00:06Z'
+      },
+      {
+        artifactId: 'artifact-video',
+        jobId: 'artifact-job',
+        type: 'BURNED_VIDEO',
+        filename: 'burned-video.mp4',
+        contentType: 'video/mp4',
+        sizeBytes: 42000,
+        createdAt: '2026-06-26T10:00:07Z'
+      }
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'artifact-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const transcript = await screen.findByRole('region', { name: /transcript preview/i });
+    expect(within(transcript).getByText('First source line')).toBeInTheDocument();
+    expect(within(transcript).getByText('00:00.000 - 00:01.200')).toBeInTheDocument();
+
+    const subtitles = screen.getByRole('region', { name: /subtitle preview/i });
+    expect(within(subtitles).getByText('第一行字幕')).toBeInTheDocument();
+    expect(within(subtitles).getByText('zh-CN')).toBeInTheDocument();
+
+    const artifacts = screen.getByRole('region', { name: /artifacts/i });
+    expect(within(artifacts).getByText('subtitles.vtt')).toBeInTheDocument();
+    expect(within(artifacts).getByText('42 B')).toBeInTheDocument();
+    expect(within(artifacts).getByRole('link', { name: /download subtitles.vtt/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/artifact-vtt/download'
+    );
+
+    expect(screen.getByLabelText(/dubbing audio preview/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/artifact-job/artifacts/artifact-audio/download'
+    );
+    expect(screen.getByLabelText(/burned video preview/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/artifact-job/artifacts/artifact-video/download'
+    );
+  });
+
+  test('shows concise empty states before previews and artifacts exist', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ jobId: 'empty-job' }));
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'empty-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    expect(await screen.findByText('No transcript segments yet.')).toBeInTheDocument();
+    expect(screen.getByText('No subtitle segments yet.')).toBeInTheDocument();
+    expect(screen.getByText('No artifacts yet.')).toBeInTheDocument();
+  });
 });
 
 function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {

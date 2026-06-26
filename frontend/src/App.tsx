@@ -1,7 +1,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { linguaFrameApi } from './api/linguaframeApi';
-import type { LocalizationJob, MediaUpload } from './domain/jobTypes';
+import type {
+  JobArtifact,
+  LocalizationJob,
+  MediaUpload,
+  SubtitleSegment,
+  TranscriptSegment
+} from './domain/jobTypes';
 import { loadRecentJobs, RecentJob, saveRecentJob } from './domain/recentJobs';
 
 const POLL_INTERVAL_MS = 5000;
@@ -19,6 +25,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
+  const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
+  const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
+  const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
@@ -44,6 +54,38 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     },
     []
   );
+
+  const loadPreviewData = useCallback(async (jobId: string, language: string) => {
+    const errors: string[] = [];
+    const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
+      linguaFrameApi.listArtifacts(jobId),
+      linguaFrameApi.listTranscript(jobId),
+      linguaFrameApi.listSubtitles(jobId, language)
+    ]);
+
+    if (artifactResult.status === 'fulfilled') {
+      setArtifacts(artifactResult.value);
+    } else {
+      setArtifacts([]);
+      errors.push(`Artifacts: ${toErrorMessage(artifactResult.reason)}`);
+    }
+
+    if (transcriptResult.status === 'fulfilled') {
+      setTranscript(transcriptResult.value);
+    } else {
+      setTranscript([]);
+      errors.push(`Transcript: ${toErrorMessage(transcriptResult.reason)}`);
+    }
+
+    if (subtitleResult.status === 'fulfilled') {
+      setSubtitles(subtitleResult.value);
+    } else {
+      setSubtitles([]);
+      errors.push(`Subtitles: ${toErrorMessage(subtitleResult.reason)}`);
+    }
+
+    setPreviewErrors(errors);
+  }, []);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status)) {
@@ -74,6 +116,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
       setSelectedRecentJob(recentJob);
       await loadJob(upload.jobId);
+      await loadPreviewData(upload.jobId, recentJob.targetLanguage);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
     } finally {
@@ -89,7 +132,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       return;
     }
     setSelectedRecentJob(recentJobs.find((recentJob) => recentJob.jobId === jobId) ?? null);
-    await loadJob(jobId);
+    const nextJob = await loadJob(jobId);
+    await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
   }
 
   async function handleRetry() {
@@ -114,6 +158,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(recentJob.jobId);
     setTargetLanguage(recentJob.targetLanguage);
     await loadJob(recentJob.jobId);
+    await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
   }
 
   return (
@@ -189,9 +234,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               canRetry={canRetry}
               isLoadingJob={isLoadingJob}
               isRetrying={isRetrying}
+              artifacts={artifacts}
               job={job}
               onRetry={handleRetry}
+              previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
+              subtitles={subtitles}
+              transcript={transcript}
             />
           ) : (
             <div className="empty-state">
@@ -209,16 +258,24 @@ function JobDetail({
   canRetry,
   isLoadingJob,
   isRetrying,
+  artifacts,
   job,
   onRetry,
-  selectedLanguage
+  previewErrors,
+  selectedLanguage,
+  subtitles,
+  transcript
 }: {
   canRetry: boolean;
   isLoadingJob: boolean;
   isRetrying: boolean;
+  artifacts: JobArtifact[];
   job: LocalizationJob;
   onRetry: () => void;
+  previewErrors: string[];
   selectedLanguage: string;
+  subtitles: SubtitleSegment[];
+  transcript: TranscriptSegment[];
 }) {
   const estimatedCost = formatCost(job.usageSummary?.estimatedCostUsd ?? 0);
   const modelCallLabel = `${job.usageSummary?.modelCallCount ?? job.modelCalls.length} calls`;
@@ -232,6 +289,8 @@ function JobDetail({
     ],
     [job, selectedLanguage]
   );
+  const dubbingAudio = artifacts.find((artifact) => artifact.type === 'DUBBING_AUDIO');
+  const burnedVideo = artifacts.find((artifact) => artifact.type === 'BURNED_VIDEO');
 
   return (
     <div className="job-detail">
@@ -319,7 +378,125 @@ function JobDetail({
           </table>
         )}
       </section>
+
+      <section className="preview-grid" aria-label="Output previews">
+        <section className="panel" aria-label="Transcript preview">
+          <h3>Transcript preview</h3>
+          {transcript.length === 0 ? (
+            <p className="muted">No transcript segments yet.</p>
+          ) : (
+            <SegmentList
+              segments={transcript.map((segment) => ({
+                key: String(segment.index),
+                label: formatTimeRange(segment.startMs, segment.endMs),
+                text: segment.text
+              }))}
+            />
+          )}
+        </section>
+
+        <section className="panel" aria-label="Subtitle preview">
+          <h3>Subtitle preview</h3>
+          {subtitles.length === 0 ? (
+            <p className="muted">No subtitle segments yet.</p>
+          ) : (
+            <>
+              <p className="muted">{selectedLanguage}</p>
+              <SegmentList
+                segments={subtitles.map((segment) => ({
+                  key: `${segment.language}-${segment.index}`,
+                  label: formatTimeRange(segment.startMs, segment.endMs),
+                  text: segment.text
+                }))}
+              />
+            </>
+          )}
+        </section>
+      </section>
+
+      <section className="panel" aria-label="Artifacts">
+        <h3>Artifacts</h3>
+        {previewErrors.length > 0 ? (
+          <ul className="error-list">
+            {previewErrors.map((previewError) => (
+              <li key={previewError}>{previewError}</li>
+            ))}
+          </ul>
+        ) : null}
+        {artifacts.length === 0 ? (
+          <p className="muted">No artifacts yet.</p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Filename</th>
+                <th>Content type</th>
+                <th>Size</th>
+                <th>Download</th>
+              </tr>
+            </thead>
+            <tbody>
+              {artifacts.map((artifact) => (
+                <tr key={artifact.artifactId}>
+                  <td>{artifact.type}</td>
+                  <td>{artifact.filename}</td>
+                  <td>{artifact.contentType}</td>
+                  <td>{formatBytes(artifact.sizeBytes)}</td>
+                  <td>
+                    <a href={linguaFrameApi.artifactDownloadUrl(job.jobId, artifact.artifactId)}>
+                      Download {artifact.filename}
+                    </a>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
+
+      {dubbingAudio || burnedVideo ? (
+        <section className="media-grid" aria-label="Media previews">
+          {dubbingAudio ? (
+            <section className="panel">
+              <h3>Dubbing audio</h3>
+              <audio
+                aria-label="Dubbing audio preview"
+                controls
+                src={linguaFrameApi.artifactDownloadUrl(job.jobId, dubbingAudio.artifactId)}
+              />
+            </section>
+          ) : null}
+          {burnedVideo ? (
+            <section className="panel">
+              <h3>Burned video</h3>
+              <video
+                aria-label="Burned video preview"
+                controls
+                src={linguaFrameApi.artifactDownloadUrl(job.jobId, burnedVideo.artifactId)}
+              />
+            </section>
+          ) : null}
+        </section>
+      ) : null}
     </div>
+  );
+}
+
+function SegmentList({
+  segments
+}: {
+  segments: Array<{ key: string; label: string; text: string }>;
+}) {
+  return (
+    <ol className="segment-list">
+      {segments.map((segment) => (
+        <li key={segment.key}>
+          <span>{segment.label}</span>
+          <p>{segment.text}</p>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -339,4 +516,27 @@ function toErrorMessage(error: unknown): string {
 
 function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
+}
+
+function formatTimeRange(startMs: number, endMs: number): string {
+  return `${formatTimestamp(startMs)} - ${formatTimestamp(endMs)}`;
+}
+
+function formatTimestamp(valueMs: number): string {
+  const minutes = Math.floor(valueMs / 60000);
+  const seconds = Math.floor((valueMs % 60000) / 1000);
+  const milliseconds = valueMs % 1000;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(
+    milliseconds
+  ).padStart(3, '0')}`;
+}
+
+function formatBytes(sizeBytes: number): string {
+  if (sizeBytes < 1024) {
+    return `${sizeBytes} B`;
+  }
+  if (sizeBytes < 1024 * 1024) {
+    return `${(sizeBytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
 }
