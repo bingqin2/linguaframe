@@ -243,8 +243,8 @@ Expected: docs describe both the limit and the no-clipping contract.
 - `git status --short`
 
 - [x] Confirm no media files, generated artifacts, `.env`, or credentials are staged.
-- [ ] Commit: `Enforce upload duration limit`.
-- [ ] Merge branch `upload-duration-limit-mvp` back to `main` after verification.
+- [x] Commit: `Enforce upload duration limit`.
+- [x] Merge branch `upload-duration-limit-mvp` back to `main` after verification.
 
 ## Completion Checklist
 
@@ -254,4 +254,4 @@ Expected: docs describe both the limit and the no-clipping contract.
 - [x] Detected duration is returned by validation/upload/detail APIs and persisted on `videos.duration_seconds`.
 - [x] Unit/controller/repository tests cover accepted duration, rejected duration, cheap-validation short-circuiting, and duration persistence.
 - [x] Validation evidence is recorded in `docs/progress/execution-log.md`.
-- [ ] Feature branch is merged back to `main` after verified implementation.
+- [x] Feature branch is merged back to `main` after verified implementation.

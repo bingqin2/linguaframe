@@ -734,3 +734,10 @@ Notes:
 
 - Duration validation is an intake gate only. Accepted uploads keep the original uploaded bytes and are processed in full.
 - The migration uses a nullable column so existing local videos remain valid.
+
+Post-merge verification:
+
+- Merged `upload-duration-limit-mvp` back to `main` with merge commit `005b1e3`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadValidationServiceTests,MediaUploadControllerTests,MediaUploadServiceTests,UploadIntakeSchemaTests,VideoRepositoryTests,FfprobeMediaDurationProbeServiceTests,LinguaFramePropertiesTests test` passed on `main` with `Tests run: 37, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
+- `git diff --check` passed on `main`.
