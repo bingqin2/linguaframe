@@ -358,7 +358,7 @@ git commit -m "Add model call audit persistence"
   - `openai-subtitle-translation-v1`
   - `openai-tts-v1`
 
-- [ ] **Step 1: Write failing provider audit tests**
+- [x] **Step 1: Write failing provider audit tests**
 
 Add `RecordingModelCallAuditService` test helper with `successCommands`, `failureCommands`, and `failureSummaries`.
 
@@ -388,7 +388,7 @@ mvn -pl LinguaFrame -Dtest=DemoTranscriptionProviderTests,DemoTranslationProvide
 
 Expected: fail because providers do not yet accept or call `ModelCallAuditService`.
 
-- [ ] **Step 2: Instrument demo providers**
+- [x] **Step 2: Instrument demo providers**
 
 Give each demo provider a constructor dependency:
 
@@ -428,7 +428,7 @@ try {
 
 Use the matching operation, stage, model, and prompt version for transcription and TTS.
 
-- [ ] **Step 3: Instrument OpenAI providers**
+- [x] **Step 3: Instrument OpenAI providers**
 
 In each OpenAI provider, measure latency around the existing request/parse flow. Record success only after response validation passes. Record failure in `catch (RuntimeException ex)` and rethrow.
 
@@ -465,7 +465,7 @@ Integer characterCount = request.text() == null ? 0 : request.text().length();
 
 Use only sanitized exception messages already exposed by the providers.
 
-- [ ] **Step 4: Run provider audit tests**
+- [x] **Step 4: Run provider audit tests**
 
 Run:
 

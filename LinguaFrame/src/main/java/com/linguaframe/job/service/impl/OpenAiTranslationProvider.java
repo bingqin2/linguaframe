@@ -4,9 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.TranslationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -35,23 +40,27 @@ public class OpenAiTranslationProvider implements TranslationProvider {
     private final LinguaFrameProperties.Translation.OpenAi openai;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final ModelCallAuditService auditService;
 
     @Autowired
     public OpenAiTranslationProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
-        this(properties, buildRestClient(properties.getTranslation().getOpenai(), restClientBuilder), objectMapper);
+        this(properties, buildRestClient(properties.getTranslation().getOpenai(), restClientBuilder), objectMapper, auditService);
     }
 
     OpenAiTranslationProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
         this.openai = properties.getTranslation().getOpenai();
         this.objectMapper = objectMapper;
+        this.auditService = auditService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         this.restClient = restClient;
@@ -82,10 +91,23 @@ public class OpenAiTranslationProvider implements TranslationProvider {
 
     @Override
     public TranslationResultBo translate(String jobId, String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
-        String responseBody = sendRequest(buildRequestBody(jobId, targetLanguage, transcriptSegments));
-        String outputText = extractOutputText(responseBody);
-        TranslatedSegmentsResponse translatedResponse = parseTranslatedSegments(outputText);
-        return toTranslationResult(transcriptSegments, translatedResponse);
+        long started = System.nanoTime();
+        try {
+            String responseBody = sendRequest(buildRequestBody(jobId, targetLanguage, transcriptSegments));
+            OpenAiTranslationResponse response = extractResponse(responseBody);
+            TranslatedSegmentsResponse translatedResponse = parseTranslatedSegments(response.outputText());
+            TranslationResultBo result = toTranslationResult(transcriptSegments, translatedResponse);
+            auditService.recordSuccess(command(
+                    jobId,
+                    elapsedMillis(started),
+                    response.inputTokens(),
+                    response.outputTokens()
+            ));
+            return result;
+        } catch (RuntimeException ex) {
+            auditService.recordFailure(command(jobId, elapsedMillis(started), null, null), ex.getMessage());
+            throw ex;
+        }
     }
 
     private String sendRequest(String requestBody) {
@@ -181,8 +203,18 @@ public class OpenAiTranslationProvider implements TranslationProvider {
         }
     }
 
-    private String extractOutputText(String responseBody) {
+    private OpenAiTranslationResponse extractResponse(String responseBody) {
         JsonNode response = readResponseJson(responseBody);
+        String outputText = extractOutputText(response);
+        JsonNode usage = response.get("usage");
+        return new OpenAiTranslationResponse(
+                outputText,
+                integerOrNull(usage, "input_tokens"),
+                integerOrNull(usage, "output_tokens")
+        );
+    }
+
+    private String extractOutputText(JsonNode response) {
         JsonNode outputText = response.get("output_text");
         if (outputText != null && outputText.isTextual() && !outputText.asText().isBlank()) {
             return outputText.asText();
@@ -259,10 +291,46 @@ public class OpenAiTranslationProvider implements TranslationProvider {
         return new TranslationResultBo(resultSegments);
     }
 
+    private CreateModelCallRecordCommand command(
+            String jobId,
+            long latencyMs,
+            Integer inputTokens,
+            Integer outputTokens
+    ) {
+        return new CreateModelCallRecordCommand(
+                jobId,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                openai.getModel(),
+                "openai-subtitle-translation-v1",
+                latencyMs,
+                inputTokens,
+                outputTokens,
+                null,
+                null
+        );
+    }
+
+    private Integer integerOrNull(JsonNode node, String fieldName) {
+        if (node == null) {
+            return null;
+        }
+        JsonNode value = node.get(fieldName);
+        return value != null && value.canConvertToInt() ? value.asInt() : null;
+    }
+
+    private long elapsedMillis(long started) {
+        return Duration.ofNanos(System.nanoTime() - started).toMillis();
+    }
+
     private static void requireConfigured(String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(MISSING_CONFIGURATION_MESSAGE);
         }
+    }
+
+    private record OpenAiTranslationResponse(String outputText, Integer inputTokens, Integer outputTokens) {
     }
 
     private record TranslatedSegmentsResponse(List<TranslatedSegment> segments) {
