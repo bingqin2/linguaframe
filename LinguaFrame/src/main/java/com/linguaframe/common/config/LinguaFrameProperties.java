@@ -32,6 +32,9 @@ public class LinguaFrameProperties {
     @Valid
     private final Storage storage = new Storage();
 
+    @Valid
+    private final Ffmpeg ffmpeg = new Ffmpeg();
+
     public Media getMedia() {
         return media;
     }
@@ -58,6 +61,10 @@ public class LinguaFrameProperties {
 
     public Storage getStorage() {
         return storage;
+    }
+
+    public Ffmpeg getFfmpeg() {
+        return ffmpeg;
     }
 
     public static class Media {
@@ -190,6 +197,53 @@ public class LinguaFrameProperties {
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+    }
+
+    public static class Ffmpeg {
+
+        @NotBlank
+        private String binaryPath = "ffmpeg";
+
+        private boolean audioEnabled = false;
+
+        @Min(1)
+        @Max(3600)
+        private int audioTimeoutSeconds = 120;
+
+        @NotBlank
+        private String workDir = "/tmp/linguaframe-media";
+
+        public String getBinaryPath() {
+            return binaryPath;
+        }
+
+        public void setBinaryPath(String binaryPath) {
+            this.binaryPath = binaryPath;
+        }
+
+        public boolean isAudioEnabled() {
+            return audioEnabled;
+        }
+
+        public void setAudioEnabled(boolean audioEnabled) {
+            this.audioEnabled = audioEnabled;
+        }
+
+        public int getAudioTimeoutSeconds() {
+            return audioTimeoutSeconds;
+        }
+
+        public void setAudioTimeoutSeconds(int audioTimeoutSeconds) {
+            this.audioTimeoutSeconds = audioTimeoutSeconds;
+        }
+
+        public String getWorkDir() {
+            return workDir;
+        }
+
+        public void setWorkDir(String workDir) {
+            this.workDir = workDir;
         }
     }
 

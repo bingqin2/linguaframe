@@ -11,6 +11,7 @@ require_command python3
 BASE_URL="$(demo_base_url)"
 SAMPLE_PATH="${LINGUAFRAME_DEMO_SAMPLE_PATH:-/tmp/linguaframe-demo/sample.mp4}"
 ARTIFACT_PATH="${LINGUAFRAME_DEMO_ARTIFACT_PATH:-/tmp/linguaframe-demo/worker-summary.json}"
+AUDIO_PATH="${LINGUAFRAME_DEMO_AUDIO_PATH:-/tmp/linguaframe-demo/audio.wav}"
 
 wait_for_backend "$BASE_URL"
 create_demo_sample "$SAMPLE_PATH"
@@ -25,5 +26,7 @@ printf '%s' "$job_response" | print_job_summary
 echo "Artifacts for job $job_id:"
 artifacts_response="$(list_job_artifacts "$BASE_URL" "$job_id")"
 printf '%s' "$artifacts_response" | print_artifact_summary
-download_first_artifact "$BASE_URL" "$job_id" "$ARTIFACT_PATH"
-echo "Downloaded first artifact to $ARTIFACT_PATH"
+download_artifact_by_type "$BASE_URL" "$job_id" EXTRACTED_AUDIO "$AUDIO_PATH"
+download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$ARTIFACT_PATH"
+echo "Downloaded extracted audio to $AUDIO_PATH"
+echo "Downloaded worker summary to $ARTIFACT_PATH"

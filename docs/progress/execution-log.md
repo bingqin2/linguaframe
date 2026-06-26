@@ -327,3 +327,36 @@ Notes:
 
 - This slice creates a downloadable worker summary artifact as infrastructure for future FFmpeg audio, subtitle, TTS, and generated video artifacts.
 - This slice still does not run FFmpeg, OpenAI, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.
+
+## 2026-06-26
+
+Work:
+
+- Added FFmpeg runtime configuration and Docker image FFmpeg installation.
+- Added a controlled `FfmpegAudioExtractionService` boundary with fixed command arguments and safe failure summaries.
+- Added media work-directory management with per-job temporary directories and cleanup.
+- Added an `AUDIO_EXTRACTION` worker stage between `WORKER_SMOKE` and `ARTIFACT_SUMMARY`.
+- Added `EXTRACTED_AUDIO` artifacts named `audio.wav`.
+- Updated the Docker success demo to generate a tiny synthetic media sample, download `audio.wav`, and download `worker-summary.json` by artifact type.
+- Documented FFmpeg config, audio artifact expectations, and validation commands in README and agent test docs.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests` first failed because `ffmpeg` properties did not exist, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=FfmpegAudioExtractionServiceTests` first failed because FFmpeg service types did not exist, then passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobExecutionServiceTests` first failed because `AudioExtractionPipelineStage`, `AUDIO_EXTRACTION`, and `EXTRACTED_AUDIO` did not exist, then passed with `Tests run: 7, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests,FfmpegAudioExtractionServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests` passed after final interrupt cleanup coverage with `Tests run: 25, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` and `bash -n scripts/demo/docker-e2e-success.sh` passed.
+- `docker compose --env-file .env.example config` passed and rendered FFmpeg environment variables.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed with elevated local socket access after final interrupt cleanup coverage with `Tests run: 71, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests` passed.
+- Initial `docker compose --env-file .env.example build linguaframe-backend` failed because the container could not reach `ports.ubuntu.com` for `apt-get update`; the backend Dockerfile now uses a configurable `UBUNTU_PORTS_MIRROR` default that was reachable in local verification.
+- `docker compose --env-file .env.example build linguaframe-backend` passed after the Dockerfile mirror update and installed `ffmpeg`.
+- `scripts/demo/docker-e2e-success.sh` passed against the live Docker stack for job `ca52d288-68ea-44bb-bb7f-92b5467c4d64`, printed `status=COMPLETED`, printed `artifactCount=2`, and downloaded `/tmp/linguaframe-demo/audio.wav` plus `/tmp/linguaframe-demo/worker-summary.json`.
+- `file /tmp/linguaframe-demo/audio.wav` reported `RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 16000 Hz`.
+- `python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json` parsed successfully.
+- `docker compose --env-file .env.example down` stopped and removed live verification containers.
+
+Notes:
+
+- This slice runs FFmpeg audio extraction in the Docker worker path, but still does not run OpenAI transcription, subtitle generation, translation, TTS, frontend UI, authentication, or Redis behavior.
