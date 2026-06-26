@@ -1,10 +1,18 @@
 import type {
   JobArtifact,
   LocalizationJob,
+  LocalizationJobList,
+  LocalizationJobStatus,
   MediaUpload,
   SubtitleSegment,
   TranscriptSegment
 } from '../domain/jobTypes';
+
+export interface ListJobsParams {
+  status?: LocalizationJobStatus | 'ALL';
+  limit?: number;
+  offset?: number;
+}
 
 export async function uploadMedia(file: File, targetLanguage: string): Promise<MediaUpload> {
   const body = new FormData();
@@ -19,6 +27,19 @@ export async function uploadMedia(file: File, targetLanguage: string): Promise<M
 
 export async function getJob(jobId: string): Promise<LocalizationJob> {
   return requestJson<LocalizationJob>(`/api/jobs/${encodeURIComponent(jobId)}`, {
+    method: 'GET'
+  });
+}
+
+export async function listJobs(params: ListJobsParams = {}): Promise<LocalizationJobList> {
+  const query = new URLSearchParams();
+  if (params.status && params.status !== 'ALL') {
+    query.set('status', params.status);
+  }
+  query.set('limit', String(params.limit ?? 20));
+  query.set('offset', String(params.offset ?? 0));
+
+  return requestJson<LocalizationJobList>(`/api/jobs?${query.toString()}`, {
     method: 'GET'
   });
 }
@@ -61,6 +82,7 @@ export function artifactDownloadUrl(jobId: string, artifactId: string): string {
 
 export const linguaFrameApi = {
   uploadMedia,
+  listJobs,
   getJob,
   retryJob,
   listArtifacts,

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import {
   artifactDownloadUrl,
   getJob,
+  listJobs,
   listArtifacts,
   retryJob,
   uploadMedia
@@ -134,6 +135,71 @@ describe('linguaframeApi', () => {
     expect(artifactDownloadUrl('job-1', 'artifact-1')).toBe(
       '/api/jobs/job-1/artifacts/artifact-1/download'
     );
+  });
+
+  test('lists jobs with default paging params', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobs: [],
+        limit: 20,
+        offset: 0,
+        total: 0
+      })
+    );
+
+    const result = await listJobs();
+
+    expect(result.jobs).toEqual([]);
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs?limit=20&offset=0', { method: 'GET' });
+  });
+
+  test('lists jobs with status filter and custom paging params', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobs: [
+          {
+            jobId: 'failed-job',
+            videoId: 'failed-video',
+            filename: 'failed.mp4',
+            targetLanguage: 'zh-CN',
+            status: 'FAILED',
+            createdAt: '2026-06-26T10:00:00Z',
+            startedAt: null,
+            completedAt: null,
+            failedAt: '2026-06-26T10:01:00Z',
+            failureStage: 'AUDIO_EXTRACTION',
+            failureReason: 'FFmpeg failed safely',
+            retryCount: 1,
+            estimatedCostUsd: 0
+          }
+        ],
+        limit: 10,
+        offset: 20,
+        total: 1
+      })
+    );
+
+    const result = await listJobs({ status: 'FAILED', limit: 10, offset: 20 });
+
+    expect(result.jobs[0]?.status).toBe('FAILED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs?status=FAILED&limit=10&offset=20', {
+      method: 'GET'
+    });
+  });
+
+  test('omits all-status filter when listing jobs', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobs: [],
+        limit: 20,
+        offset: 0,
+        total: 0
+      })
+    );
+
+    await listJobs({ status: 'ALL' });
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs?limit=20&offset=0', { method: 'GET' });
   });
 
   test('throws concise api errors without raw response body dumps', async () => {
