@@ -586,7 +586,7 @@ git commit -m "Expose job model call usage summary"
 - Modify: `docs/progress/decisions.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] **Step 1: Print usage summary in demo script**
+- [x] **Step 1: Print usage summary in demo script**
 
 Update `print_job_summary()` to print usage values after `retryCount`:
 
@@ -608,7 +608,7 @@ bash -n scripts/demo/docker-e2e-success.sh
 
 Expected: pass.
 
-- [ ] **Step 2: Update user-facing docs**
+- [x] **Step 2: Update user-facing docs**
 
 Document:
 
@@ -629,7 +629,7 @@ Reason: Job detail needs durable usage data before React can honestly show model
 Impact: Demo jobs now expose provider/model/status/latency and estimated cost, while budget enforcement and quality evaluation remain separate future slices.
 ```
 
-- [ ] **Step 3: Run focused verification**
+- [x] **Step 3: Run focused verification**
 
 Run:
 
@@ -646,7 +646,7 @@ Expected:
 - Bash syntax checks pass.
 - Compose renders all `LINGUAFRAME_COST_*` values.
 
-- [ ] **Step 4: Update progress records**
+- [x] **Step 4: Update progress records**
 
 Append validation evidence to `docs/progress/execution-log.md`, including test counts and compose-rendered cost variables.
 

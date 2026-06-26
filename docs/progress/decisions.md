@@ -121,3 +121,11 @@ Decision: Add subtitle-burned video as an FFmpeg-backed worker stage after gener
 Reason: Burn-in is a media rendering concern and should stay separate from subtitle generation and TTS.
 
 Impact: Docker demo can now produce a visible localized video artifact while audio replacement and advanced styling remain later work.
+
+## 2026-06-26
+
+Decision: Add model-call audit records and configurable cost estimates before the frontend.
+
+Reason: Job detail needs durable usage data before React can honestly show model calls and estimated cost.
+
+Impact: Demo jobs now expose provider/model/status/latency and estimated cost, while budget enforcement and quality evaluation remain separate future slices.

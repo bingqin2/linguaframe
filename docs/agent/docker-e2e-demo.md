@@ -34,6 +34,11 @@ Expected output includes:
 
 ```text
 status=COMPLETED
+modelCallCount=2
+failedModelCallCount=0
+estimatedCostUsd=0E-8
+- MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED
+- MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED
 - WORKER_RECEIVED STARTED
 - WORKER_SMOKE STARTED
 - WORKER_SMOKE SUCCEEDED
@@ -65,9 +70,13 @@ artifactCount=9
 With the default `.env.example`, the dubbing stage is recorded and then skipped without creating an audio artifact. When `LINGUAFRAME_TTS_ENABLED=true`, expected output also includes:
 
 ```text
+modelCallCount=3
+- MODEL_CALL TTS DEMO demo-tts SUCCEEDED
 artifactCount=10
 - DUBBING_AUDIO dubbing-audio.mp3
 ```
+
+`GET /api/jobs/{jobId}` returns `usageSummary` and `modelCalls`. Default cost rates in `.env.example` are `0`, so the estimated cost is visible but remains zero unless local `LINGUAFRAME_COST_*` rates are configured.
 
 The script downloads generated artifacts to:
 
@@ -115,6 +124,7 @@ OPENAI_TRANSCRIPTION_MODEL=whisper-1
 OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
 LINGUAFRAME_TRANSCRIPTION_PROVIDER=openai
 LINGUAFRAME_TRANSCRIPTION_ENABLED=true
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=0
 ```
 
 Then run:
@@ -142,6 +152,8 @@ OPENAI_API_KEY=<your key>
 OPENAI_TRANSLATION_MODEL=<model from current OpenAI docs>
 LINGUAFRAME_TRANSLATION_PROVIDER=openai
 LINGUAFRAME_TRANSLATION_ENABLED=true
+LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS=0
+LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS=0
 ```
 
 Then run:
@@ -171,6 +183,7 @@ OPENAI_TTS_VOICE=alloy
 OPENAI_TTS_TIMEOUT_SECONDS=120
 LINGUAFRAME_TTS_ENABLED=true
 LINGUAFRAME_TTS_PROVIDER=openai
+LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS=0
 ```
 
 Then run:

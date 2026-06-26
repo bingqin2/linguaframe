@@ -41,7 +41,7 @@ docker compose --env-file .env.example build linguaframe-backend
 Expected:
 
 - Compose renders MySQL, Redis, RabbitMQ, MinIO, and backend services.
-- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=true`, and empty OpenAI placeholders when using `.env.example`.
+- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=true`, all `LINGUAFRAME_COST_*` values, and empty OpenAI placeholders when using `.env.example`.
 - Maven builds `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 
@@ -63,6 +63,12 @@ Expected:
 
 - The script uploads a tiny MP4 sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
+- Output includes `modelCallCount=2` by default and `modelCallCount=3` when TTS is enabled.
+- Output includes `failedModelCallCount=0`.
+- Output includes `estimatedCostUsd=0E-8` with `.env.example` cost rates.
+- Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
+- Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
+- Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.
 - Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `SUBTITLE_BURN_IN`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
 - Output includes `artifactCount=9` by default and `artifactCount=10` when TTS is enabled.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
@@ -129,6 +135,18 @@ Expected worker summary fields:
 - `generatedAt`
 
 The artifact must not contain local absolute paths, passwords, access keys, secret keys, or raw provider credentials.
+
+Expected job detail fields from `GET /api/jobs/{jobId}`:
+
+- `usageSummary.modelCallCount`
+- `usageSummary.failedModelCallCount`
+- `usageSummary.estimatedCostUsd`
+- `modelCalls`
+- `modelCalls[].operation`
+- `modelCalls[].provider`
+- `modelCalls[].model`
+- `modelCalls[].status`
+- `modelCalls[].latencyMs`
 
 ### Optional OpenAI Transcription Verification
 

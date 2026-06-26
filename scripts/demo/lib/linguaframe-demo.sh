@@ -107,12 +107,19 @@ print_job_summary() {
   python3 -c '
 import json
 import sys
+from decimal import Decimal
 
-job = json.load(sys.stdin)
+job = json.load(sys.stdin, parse_float=Decimal)
 print("jobId=" + job["jobId"])
 print("videoId=" + job["videoId"])
 print("status=" + job["status"])
 print("retryCount=" + str(job.get("retryCount", 0)))
+summary = job.get("usageSummary") or {}
+print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
+print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
+print("estimatedCostUsd=" + str(summary.get("estimatedCostUsd", "0")))
+for call in job.get("modelCalls", []):
+    print("- MODEL_CALL " + call["operation"] + " " + call["provider"] + " " + call["model"] + " " + call["status"])
 for event in job.get("timelineEvents", []):
     print("- " + event["stage"] + " " + event["status"] + ": " + event["message"])
 '
