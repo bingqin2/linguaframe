@@ -235,6 +235,10 @@ LINGUAFRAME_TRANSCRIPTION_ENABLED=true
 LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo
 LINGUAFRAME_TRANSLATION_ENABLED=true
 LINGUAFRAME_TRANSLATION_PROVIDER=demo
+OPENAI_API_KEY=
+OPENAI_TRANSLATION_MODEL=
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_TRANSLATION_TIMEOUT_SECONDS=60
 ```
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
@@ -245,7 +249,7 @@ When transcription is enabled, the worker uses a deterministic demo transcriptio
 - `SUBTITLE_SRT` as `subtitles.srt`
 - `SUBTITLE_VTT` as `subtitles.vtt`
 
-When translation is enabled, the worker uses a deterministic demo translation provider and stores:
+When translation is enabled with `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, the worker uses a deterministic demo translation provider and stores:
 
 - `TARGET_SUBTITLE_JSON` as `target-subtitles.json`
 - `TARGET_SUBTITLE_SRT` as `target-subtitles.srt`
@@ -271,7 +275,34 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
-This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts. It still does not run OpenAI processing, TTS, or subtitle burn-in; target subtitles currently use deterministic demo translation.
+This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. It still does not run OpenAI transcription, TTS, or subtitle burn-in.
+
+### Optional OpenAI Translation
+
+OpenAI translation is opt-in so the default demo stays reproducible and cost-free. Create a local `.env` file and keep it out of git:
+
+```bash
+cp .env.example .env
+```
+
+Set these values in `.env`:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TRANSLATION_MODEL=<model from current OpenAI docs>
+LINGUAFRAME_TRANSLATION_PROVIDER=openai
+LINGUAFRAME_TRANSLATION_ENABLED=true
+```
+
+`OPENAI_TRANSLATION_MODEL` is intentionally user-configured because model availability changes. To run the live OpenAI translation path:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+This command can call the OpenAI API and may consume credits. Do not paste the key into docs, logs, commits, or chat.
 
 ## Docker E2E Demo
 

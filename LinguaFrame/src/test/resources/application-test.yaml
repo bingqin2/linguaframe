@@ -25,3 +25,8 @@ linguaframe:
   translation:
     enabled: false
     provider: demo
+    openai:
+      api-key:
+      model:
+      base-url: https://api.openai.com
+      timeout-seconds: 60

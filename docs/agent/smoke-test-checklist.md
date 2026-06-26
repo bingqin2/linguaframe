@@ -41,6 +41,7 @@ docker compose --env-file .env.example build linguaframe-backend
 Expected:
 
 - Compose renders MySQL, Redis, RabbitMQ, MinIO, and backend services.
+- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo` and empty OpenAI placeholders when using `.env.example`.
 - Maven builds `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 
@@ -120,6 +121,38 @@ Expected worker summary fields:
 - `generatedAt`
 
 The artifact must not contain local absolute paths, passwords, access keys, secret keys, or raw provider credentials.
+
+### Optional OpenAI Translation Verification
+
+Use this only when validating the paid provider path with a local `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_TRANSLATION_MODEL=<model from current OpenAI docs>
+LINGUAFRAME_TRANSLATION_PROVIDER=openai
+LINGUAFRAME_TRANSLATION_ENABLED=true
+```
+
+Run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+Expected:
+
+- Job status reaches `COMPLETED`.
+- Target subtitle preview and `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, and `TARGET_SUBTITLE_VTT` artifacts are present.
+- Logs and persisted failure reasons do not expose the API key or raw OpenAI response body.
+- This path may consume OpenAI credits.
 
 ### Failure And Retry Demo
 
