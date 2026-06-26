@@ -35,6 +35,9 @@ linguaframe:
   transcription:
     enabled: ${LINGUAFRAME_TRANSCRIPTION_ENABLED:true}
     provider: ${LINGUAFRAME_TRANSCRIPTION_PROVIDER:demo}
+  translation:
+    enabled: ${LINGUAFRAME_TRANSLATION_ENABLED:true}
+    provider: ${LINGUAFRAME_TRANSLATION_PROVIDER:demo}
   database:
     host: ${MYSQL_HOST:mysql}
     port: ${MYSQL_PORT:3306}

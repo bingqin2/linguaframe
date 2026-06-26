@@ -1,6 +1,6 @@
 # Docker E2E Demo
 
-This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate deterministic transcript/subtitle artifacts, download those artifacts, and inspect the job timeline.
+This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate deterministic transcript/source subtitle/target subtitle artifacts, download those artifacts, and inspect the job timeline.
 
 ## Start The Stack
 
@@ -41,14 +41,19 @@ status=COMPLETED
 - AUDIO_EXTRACTION SUCCEEDED
 - TRANSCRIPT_SUBTITLE_EXPORT STARTED
 - TRANSCRIPT_SUBTITLE_EXPORT SUCCEEDED
+- TARGET_SUBTITLE_EXPORT STARTED
+- TARGET_SUBTITLE_EXPORT SUCCEEDED
 - ARTIFACT_SUMMARY STARTED
 - ARTIFACT_SUMMARY SUCCEEDED
 - COMPLETED SUCCEEDED
-artifactCount=5
+artifactCount=8
 - EXTRACTED_AUDIO audio.wav
 - TRANSCRIPT_JSON transcript.json
 - SUBTITLE_SRT subtitles.srt
 - SUBTITLE_VTT subtitles.vtt
+- TARGET_SUBTITLE_JSON target-subtitles.json
+- TARGET_SUBTITLE_SRT target-subtitles.srt
+- TARGET_SUBTITLE_VTT target-subtitles.vtt
 - WORKER_SUMMARY worker-summary.json
 ```
 
@@ -59,6 +64,9 @@ The script downloads generated artifacts to:
 /tmp/linguaframe-demo/transcript.json
 /tmp/linguaframe-demo/subtitles.srt
 /tmp/linguaframe-demo/subtitles.vtt
+/tmp/linguaframe-demo/target-subtitles.json
+/tmp/linguaframe-demo/target-subtitles.srt
+/tmp/linguaframe-demo/target-subtitles.vtt
 /tmp/linguaframe-demo/worker-summary.json
 ```
 
@@ -68,11 +76,12 @@ You can inspect artifact APIs manually:
 JOB_ID=<job id printed by the script>
 curl -fsS "http://localhost:8080/api/jobs/$JOB_ID/artifacts"
 curl -fsS "http://localhost:8080/api/jobs/$JOB_ID/transcript" | python3 -m json.tool
+curl -fsS "http://localhost:8080/api/jobs/$JOB_ID/subtitles/zh-CN" | python3 -m json.tool
 ARTIFACT_ID=<artifact id from the artifact list>
 curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download" -o /tmp/linguaframe-demo/artifact.bin
 ```
 
-This demo verifies FFmpeg audio extraction plus deterministic transcript and subtitle export. It does not perform OpenAI transcription, translation, TTS, or subtitle burn-in.
+This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, and target subtitle export. It does not perform OpenAI transcription, TTS, or subtitle burn-in; target subtitles currently use deterministic demo translation.
 
 ## Failure And Retry Demo
 

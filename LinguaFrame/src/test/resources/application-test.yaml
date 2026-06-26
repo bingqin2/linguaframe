@@ -22,3 +22,6 @@ linguaframe:
   transcription:
     enabled: false
     provider: demo
+  translation:
+    enabled: false
+    provider: demo

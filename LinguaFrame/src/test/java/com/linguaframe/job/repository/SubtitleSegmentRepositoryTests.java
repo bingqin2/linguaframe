@@ -1,7 +1,7 @@
 package com.linguaframe.job.repository;
 
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
-import com.linguaframe.job.domain.entity.TranscriptSegmentRecord;
+import com.linguaframe.job.domain.entity.SubtitleSegmentRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class TranscriptSegmentRepositoryTests {
+class SubtitleSegmentRepositoryTests {
 
     @Autowired
     private VideoRepository videoRepository;
@@ -29,7 +29,7 @@ class TranscriptSegmentRepositoryTests {
     private LocalizationJobRepository jobRepository;
 
     @Autowired
-    private TranscriptSegmentRepository transcriptSegmentRepository;
+    private SubtitleSegmentRepository subtitleSegmentRepository;
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -46,42 +46,63 @@ class TranscriptSegmentRepositoryTests {
     }
 
     @Test
-    void savesAndFindsSegmentsOrderedByIndex() {
+    void findsSubtitleSegmentsByJobAndLanguageOrderedByIndexAndDeletesOnlyThatLanguage() {
         Instant createdAt = Instant.parse("2026-06-26T10:00:00Z");
-        createJob("transcript-video-1", "transcript-job-1", createdAt);
-        createJob("transcript-video-2", "transcript-job-2", createdAt);
-        TranscriptSegmentRecord later = new TranscriptSegmentRecord(
-                "transcript-segment-2",
-                "transcript-job-1",
+        createJob("subtitle-video-1", "subtitle-job-1", createdAt);
+        createJob("subtitle-video-2", "subtitle-job-2", createdAt);
+        SubtitleSegmentRecord later = new SubtitleSegmentRecord(
+                "subtitle-segment-2",
+                "subtitle-job-1",
+                "zh-CN",
                 1,
-                1_200L,
-                2_500L,
-                "Second segment",
+                1_800L,
+                3_600L,
+                "这个演示字幕是确定性的。",
                 createdAt.plusSeconds(2)
         );
-        TranscriptSegmentRecord earlier = new TranscriptSegmentRecord(
-                "transcript-segment-1",
-                "transcript-job-1",
+        SubtitleSegmentRecord earlier = new SubtitleSegmentRecord(
+                "subtitle-segment-1",
+                "subtitle-job-1",
+                "zh-CN",
                 0,
                 0L,
-                1_200L,
-                "First segment",
+                1_800L,
+                "LinguaFrame 向你问好。",
                 createdAt.plusSeconds(1)
         );
-        TranscriptSegmentRecord otherJob = new TranscriptSegmentRecord(
-                "transcript-segment-other",
-                "transcript-job-2",
+        SubtitleSegmentRecord otherLanguage = new SubtitleSegmentRecord(
+                "subtitle-segment-en",
+                "subtitle-job-1",
+                "en-US",
+                0,
+                0L,
+                1_800L,
+                "Hello from LinguaFrame.",
+                createdAt.plusSeconds(3)
+        );
+        SubtitleSegmentRecord otherJob = new SubtitleSegmentRecord(
+                "subtitle-segment-other-job",
+                "subtitle-job-2",
+                "zh-CN",
                 0,
                 0L,
                 900L,
-                "Other job segment",
-                createdAt.plusSeconds(3)
+                "另一个任务。",
+                createdAt.plusSeconds(4)
         );
 
-        transcriptSegmentRepository.saveAll(List.of(later, earlier, otherJob));
+        subtitleSegmentRepository.saveAll(List.of(later, earlier, otherLanguage, otherJob));
 
-        assertThat(transcriptSegmentRepository.findByJobId("transcript-job-1"))
+        assertThat(subtitleSegmentRepository.findByJobIdAndLanguage("subtitle-job-1", "zh-CN"))
                 .containsExactly(earlier, later);
+
+        subtitleSegmentRepository.deleteByJobIdAndLanguage("subtitle-job-1", "zh-CN");
+
+        assertThat(subtitleSegmentRepository.findByJobIdAndLanguage("subtitle-job-1", "zh-CN")).isEmpty();
+        assertThat(subtitleSegmentRepository.findByJobIdAndLanguage("subtitle-job-1", "en-US"))
+                .containsExactly(otherLanguage);
+        assertThat(subtitleSegmentRepository.findByJobIdAndLanguage("subtitle-job-2", "zh-CN"))
+                .containsExactly(otherJob);
     }
 
     private void createJob(String videoId, String jobId, Instant createdAt) {

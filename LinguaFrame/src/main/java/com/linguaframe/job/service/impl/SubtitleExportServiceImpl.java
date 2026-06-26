@@ -2,6 +2,7 @@ package com.linguaframe.job.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.SubtitleExportService;
 import org.springframework.stereotype.Service;
@@ -48,6 +49,51 @@ public class SubtitleExportServiceImpl implements SubtitleExportService {
     public byte[] exportVtt(List<TranscriptSegmentVo> segments) {
         StringBuilder builder = new StringBuilder("WEBVTT\n\n");
         for (TranscriptSegmentVo segment : segments) {
+            builder.append(formatTimestamp(segment.startMs(), '.'))
+                    .append(" --> ")
+                    .append(formatTimestamp(segment.endMs(), '.'))
+                    .append('\n')
+                    .append(segment.text())
+                    .append("\n\n");
+        }
+        return builder.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public byte[] exportSubtitleJson(List<SubtitleSegmentVo> segments) {
+        if (segments.isEmpty()) {
+            throw new IllegalArgumentException("Subtitle segments must not be empty.");
+        }
+        try {
+            return objectMapper.writeValueAsBytes(Map.of(
+                    "language", segments.getFirst().language(),
+                    "segments", segments
+            ));
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to export subtitle JSON.", ex);
+        }
+    }
+
+    @Override
+    public byte[] exportSubtitleSrt(List<SubtitleSegmentVo> segments) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < segments.size(); i++) {
+            SubtitleSegmentVo segment = segments.get(i);
+            builder.append(i + 1).append('\n')
+                    .append(formatTimestamp(segment.startMs(), ','))
+                    .append(" --> ")
+                    .append(formatTimestamp(segment.endMs(), ','))
+                    .append('\n')
+                    .append(segment.text())
+                    .append("\n\n");
+        }
+        return builder.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    @Override
+    public byte[] exportSubtitleVtt(List<SubtitleSegmentVo> segments) {
+        StringBuilder builder = new StringBuilder("WEBVTT\n\n");
+        for (SubtitleSegmentVo segment : segments) {
             builder.append(formatTimestamp(segment.startMs(), '.'))
                     .append(" --> ")
                     .append(formatTimestamp(segment.endMs(), '.'))

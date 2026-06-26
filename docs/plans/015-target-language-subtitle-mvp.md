@@ -99,7 +99,7 @@ Alternatives considered:
 - `SubtitleSegmentRepository#findByJobIdAndLanguage(String jobId, String language): List<SubtitleSegmentRecord>`
 - `SubtitleSegmentRepository#deleteByJobIdAndLanguage(String jobId, String language): void`
 
-- [ ] **Step 1: Write failing repository test**
+- [x] **Step 1: Write failing repository test**
 
 Create `SubtitleSegmentRepositoryTests` that:
 
@@ -117,7 +117,7 @@ mvn -pl LinguaFrame -Dtest=SubtitleSegmentRepositoryTests test
 
 Expected: fail because `subtitle_segments`, `SubtitleSegmentRecord`, and `SubtitleSegmentRepository` do not exist.
 
-- [ ] **Step 2: Add Flyway migration**
+- [x] **Step 2: Add Flyway migration**
 
 Create `V6__create_subtitle_segments.sql`:
 
@@ -142,7 +142,7 @@ CREATE INDEX idx_subtitle_segments_job_language_index
     ON subtitle_segments(job_id, language, segment_index);
 ```
 
-- [ ] **Step 3: Add record and repository**
+- [x] **Step 3: Add record and repository**
 
 Implement `SubtitleSegmentRecord` under `job.domain.entity` and `SubtitleSegmentRepository` with `JdbcClient`, matching existing repository style.
 
@@ -153,7 +153,7 @@ WHERE job_id = :jobId AND language = :language
 ORDER BY segment_index
 ```
 
-- [ ] **Step 4: Verify repository tests**
+- [x] **Step 4: Verify repository tests**
 
 Run:
 
@@ -190,7 +190,7 @@ Expected: pass.
 - `SubtitleService#replaceSubtitles(String jobId, String language, TranslationResultBo result): List<SubtitleSegmentVo>`
 - `SubtitleService#listSubtitles(String jobId, String language): List<SubtitleSegmentVo>`
 
-- [ ] **Step 1: Write failing config/service/provider tests**
+- [x] **Step 1: Write failing config/service/provider tests**
 
 Extend `LinguaFramePropertiesTests` to assert:
 
@@ -234,7 +234,7 @@ mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,TranslationProviderTests,S
 
 Expected: fail because translation properties and service types do not exist.
 
-- [ ] **Step 2: Add translation configuration**
+- [x] **Step 2: Add translation configuration**
 
 Add to `LinguaFrameProperties`:
 
@@ -281,7 +281,7 @@ linguaframe:
 
 In `application-docker.yaml`, default `enabled` to true. In `application-test.yaml`, set it false. Add matching `.env.example` and `docker-compose.yml` variables.
 
-- [ ] **Step 3: Add translation BO/VO/service interfaces**
+- [x] **Step 3: Add translation BO/VO/service interfaces**
 
 Use:
 
@@ -313,7 +313,7 @@ public record SubtitleSegmentVo(
 }
 ```
 
-- [ ] **Step 4: Implement deterministic demo provider**
+- [x] **Step 4: Implement deterministic demo provider**
 
 Implement `DemoTranslationProvider` as a `@Component`.
 
@@ -332,7 +332,7 @@ For any unknown text, return:
 
 Preserve segment timing and indexes from the transcript input.
 
-- [ ] **Step 5: Implement subtitle service**
+- [x] **Step 5: Implement subtitle service**
 
 `SubtitleServiceImpl` should:
 
@@ -353,7 +353,7 @@ public SubtitleServiceImpl(SubtitleSegmentRepository repository) {
 }
 ```
 
-- [ ] **Step 6: Verify config/service/provider tests**
+- [x] **Step 6: Verify config/service/provider tests**
 
 Run:
 
@@ -375,7 +375,7 @@ Expected: pass.
 - `SubtitleExportService#exportSubtitleSrt(List<SubtitleSegmentVo> segments): byte[]`
 - `SubtitleExportService#exportSubtitleVtt(List<SubtitleSegmentVo> segments): byte[]`
 
-- [ ] **Step 1: Write failing export tests**
+- [x] **Step 1: Write failing export tests**
 
 Extend `SubtitleExportServiceTests` to assert:
 
@@ -400,7 +400,7 @@ mvn -pl LinguaFrame -Dtest=SubtitleExportServiceTests test
 
 Expected: fail because target subtitle export methods do not exist.
 
-- [ ] **Step 2: Implement target subtitle export methods**
+- [x] **Step 2: Implement target subtitle export methods**
 
 Reuse the existing timestamp formatter and text-loop behavior.
 
@@ -415,7 +415,7 @@ Map.of(
 
 If the list is empty, throw `IllegalArgumentException("Subtitle segments must not be empty.")`.
 
-- [ ] **Step 3: Verify export tests**
+- [x] **Step 3: Verify export tests**
 
 Run:
 
@@ -439,7 +439,7 @@ Expected: pass.
 - `JobArtifactType.TARGET_SUBTITLE_SRT`
 - `JobArtifactType.TARGET_SUBTITLE_VTT`
 
-- [ ] **Step 1: Write failing worker stage test**
+- [x] **Step 1: Write failing worker stage test**
 
 Add a test to `LocalizationJobExecutionServiceTests` named:
 
@@ -490,7 +490,7 @@ mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests#targetSubtitleSt
 
 Expected: fail because the stage and enum values do not exist.
 
-- [ ] **Step 2: Add enum values**
+- [x] **Step 2: Add enum values**
 
 Add `TARGET_SUBTITLE_EXPORT` after `TRANSCRIPT_SUBTITLE_EXPORT` and before `ARTIFACT_SUMMARY`.
 
@@ -502,7 +502,7 @@ TARGET_SUBTITLE_SRT,
 TARGET_SUBTITLE_VTT
 ```
 
-- [ ] **Step 3: Implement worker stage**
+- [x] **Step 3: Implement worker stage**
 
 `TargetSubtitleExportPipelineStage` should:
 
@@ -517,7 +517,7 @@ TARGET_SUBTITLE_VTT
   - `target-subtitles.srt` with `application/x-subrip`
   - `target-subtitles.vtt` with `text/vtt`
 
-- [ ] **Step 4: Verify worker tests**
+- [x] **Step 4: Verify worker tests**
 
 Run:
 
@@ -536,7 +536,7 @@ Expected: pass.
 **Interfaces:**
 - `GET /api/jobs/{jobId}/subtitles/{language}` returns `List<SubtitleSegmentVo>`.
 
-- [ ] **Step 1: Write failing controller test**
+- [x] **Step 1: Write failing controller test**
 
 Add `returnsTargetSubtitleSegmentsForLocalizationJob` to `LocalizationJobControllerTests`.
 
@@ -558,7 +558,7 @@ mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsTargetSubtitleS
 
 Expected: fail with 404 because the endpoint does not exist.
 
-- [ ] **Step 2: Add endpoint**
+- [x] **Step 2: Add endpoint**
 
 Inject `SubtitleService` into `LocalizationJobController`.
 
@@ -574,7 +574,7 @@ public List<SubtitleSegmentVo> listSubtitles(
 }
 ```
 
-- [ ] **Step 3: Verify controller tests**
+- [x] **Step 3: Verify controller tests**
 
 Run:
 
@@ -598,7 +598,7 @@ Expected: pass.
 - `get_job_subtitles "$base_url" "$job_id" "$language"` helper prints preview JSON.
 - Docker demo downloads target subtitle JSON/SRT/VTT paths under `/tmp/linguaframe-demo`.
 
-- [ ] **Step 1: Update demo helper**
+- [x] **Step 1: Update demo helper**
 
 Add to `scripts/demo/lib/linguaframe-demo.sh`:
 
@@ -612,7 +612,7 @@ get_job_subtitles() {
 }
 ```
 
-- [ ] **Step 2: Update success demo downloads**
+- [x] **Step 2: Update success demo downloads**
 
 In `scripts/demo/docker-e2e-success.sh`, add:
 
@@ -637,7 +637,7 @@ download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_SRT "$TARGET_SRT
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_VTT "$TARGET_VTT_PATH"
 ```
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 Update README and agent docs to say the Docker success path now downloads eight artifacts:
 
@@ -660,7 +660,7 @@ curl http://localhost:8080/api/jobs/{jobId}/subtitles/zh-CN
 
 Clarify this is deterministic demo translation and still not a real OpenAI language call.
 
-- [ ] **Step 4: Verify scripts**
+- [x] **Step 4: Verify scripts**
 
 Run:
 
@@ -678,7 +678,7 @@ Expected: all exit 0.
 - Modify: `docs/progress/execution-log.md`
 - Modify: this plan file as checkboxes are completed.
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 Run:
 
@@ -688,7 +688,7 @@ mvn -pl LinguaFrame -Dtest=SubtitleSegmentRepositoryTests,SubtitleServiceTests,T
 
 Expected: pass.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 Run:
 
@@ -698,7 +698,7 @@ mvn test
 
 Expected: `BUILD SUCCESS`, all tests pass. If sandbox blocks `RANDOM_PORT` tests, rerun with local socket access and record both outcomes.
 
-- [ ] **Step 3: Run Docker verification**
+- [x] **Step 3: Run Docker verification**
 
 Run:
 
@@ -725,7 +725,7 @@ Expected:
 - target subtitle JSON parses.
 - target SRT/VTT contain deterministic `zh-CN` text.
 
-- [ ] **Step 4: Record evidence**
+- [x] **Step 4: Record evidence**
 
 Append to `docs/progress/execution-log.md`:
 

@@ -62,17 +62,23 @@ Expected:
 
 - The script uploads a tiny sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=5`.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=8`.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
 - Output includes `TRANSCRIPT_JSON transcript.json`.
 - Output includes `SUBTITLE_SRT subtitles.srt`.
 - Output includes `SUBTITLE_VTT subtitles.vtt`.
+- Output includes `TARGET_SUBTITLE_JSON target-subtitles.json`.
+- Output includes `TARGET_SUBTITLE_SRT target-subtitles.srt`.
+- Output includes `TARGET_SUBTITLE_VTT target-subtitles.vtt`.
 - Output includes `WORKER_SUMMARY worker-summary.json`.
 - The script downloads `/tmp/linguaframe-demo/audio.wav`.
 - The script downloads `/tmp/linguaframe-demo/transcript.json`.
 - The script downloads `/tmp/linguaframe-demo/subtitles.srt`.
 - The script downloads `/tmp/linguaframe-demo/subtitles.vtt`.
+- The script downloads `/tmp/linguaframe-demo/target-subtitles.json`.
+- The script downloads `/tmp/linguaframe-demo/target-subtitles.srt`.
+- The script downloads `/tmp/linguaframe-demo/target-subtitles.vtt`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Inspect the downloaded artifacts:
@@ -82,12 +88,23 @@ file /tmp/linguaframe-demo/audio.wav
 python3 -m json.tool /tmp/linguaframe-demo/transcript.json
 cat /tmp/linguaframe-demo/subtitles.srt
 cat /tmp/linguaframe-demo/subtitles.vtt
+python3 -m json.tool /tmp/linguaframe-demo/target-subtitles.json
+cat /tmp/linguaframe-demo/target-subtitles.srt
+cat /tmp/linguaframe-demo/target-subtitles.vtt
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
 Expected transcript fields:
 
 - `segments`
+- `index`
+- `startMs`
+- `endMs`
+- `text`
+
+Expected target subtitle fields:
+
+- `language`
 - `index`
 - `startMs`
 - `endMs`
@@ -176,15 +193,18 @@ Expected:
 
 - Docker stack starts with `docker compose --env-file .env.example up --build`.
 - `scripts/demo/docker-e2e-success.sh` prints `status=COMPLETED`.
-- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=5`.
+- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=8`.
 - `/tmp/linguaframe-demo/audio.wav` is downloaded.
 - `/tmp/linguaframe-demo/transcript.json` is downloaded.
 - `/tmp/linguaframe-demo/subtitles.srt` is downloaded.
 - `/tmp/linguaframe-demo/subtitles.vtt` is downloaded.
+- `/tmp/linguaframe-demo/target-subtitles.json` is downloaded.
+- `/tmp/linguaframe-demo/target-subtitles.srt` is downloaded.
+- `/tmp/linguaframe-demo/target-subtitles.vtt` is downloaded.
 - `/tmp/linguaframe-demo/worker-summary.json` is downloaded.
 - Forced smoke-stage failure produces `status=FAILED`.
 - Retry after disabling failure produces `status=COMPLETED`.
-- Job timeline includes worker receive, smoke stage, audio extraction, transcript/subtitle export, artifact summary, and completion events.
+- Job timeline includes worker receive, smoke stage, audio extraction, transcript/source subtitle export, target subtitle export, artifact summary, and completion events.
 
 ## Upload Smoke Test
 
@@ -220,8 +240,8 @@ Expected artifacts:
 
 - Extracted audio.
 - Source transcript.
-- Chinese SRT or VTT.
-- English SRT or VTT.
+- Source SRT or VTT.
+- Target-language SRT or VTT.
 - TTS audio.
 - Subtitle-burned video.
 

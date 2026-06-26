@@ -2,6 +2,8 @@ package com.linguaframe.job.controller;
 
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
+import com.linguaframe.job.domain.bo.TranslationResultBo;
+import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
@@ -17,6 +19,7 @@ import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.TranscriptService;
+import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -71,6 +74,9 @@ class LocalizationJobControllerTests {
     private TranscriptService transcriptService;
 
     @Autowired
+    private SubtitleService subtitleService;
+
+    @Autowired
     private JdbcClient jdbcClient;
 
     @MockitoBean
@@ -78,6 +84,7 @@ class LocalizationJobControllerTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
         jdbcClient.sql("DELETE FROM job_artifacts").update();
         jdbcClient.sql("DELETE FROM job_timeline_events").update();
@@ -312,6 +319,26 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$[0].text").value("First line"))
                 .andExpect(jsonPath("$[1].index").value(1))
                 .andExpect(jsonPath("$[1].text").value("Second line"));
+    }
+
+    @Test
+    void returnsTargetSubtitleSegmentsForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T00:30:00Z");
+        createJob("job-controller-video-subtitle", "job-controller-job-subtitle", createdAt);
+        subtitleService.replaceSubtitles("job-controller-job-subtitle", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_800L, "LinguaFrame 向你问好。"),
+                new TranslationSegmentBo(1, 1_800L, 3_600L, "这个演示字幕是确定性的。")
+        )));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/subtitles/{language}", "job-controller-job-subtitle", "zh-CN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].language").value("zh-CN"))
+                .andExpect(jsonPath("$[0].index").value(0))
+                .andExpect(jsonPath("$[0].startMs").value(0))
+                .andExpect(jsonPath("$[0].endMs").value(1800))
+                .andExpect(jsonPath("$[0].text").value("LinguaFrame 向你问好。"))
+                .andExpect(jsonPath("$[1].index").value(1))
+                .andExpect(jsonPath("$[1].text").value("这个演示字幕是确定性的。"));
     }
 
     @Test

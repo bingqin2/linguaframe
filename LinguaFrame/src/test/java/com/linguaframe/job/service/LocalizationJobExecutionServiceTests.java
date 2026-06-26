@@ -2,6 +2,8 @@ package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
+import com.linguaframe.job.domain.bo.TranslationResultBo;
+import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
@@ -11,10 +13,12 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.TranscriptSubtitleExportPipelineStage;
+import com.linguaframe.job.service.impl.TargetSubtitleExportPipelineStage;
 import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
 import com.linguaframe.job.service.impl.AudioExtractionPipelineStage;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
@@ -72,6 +76,7 @@ class LocalizationJobExecutionServiceTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
         jdbcClient.sql("DELETE FROM job_artifacts").update();
         jdbcClient.sql("DELETE FROM job_timeline_events").update();
@@ -426,6 +431,107 @@ class LocalizationJobExecutionServiceTests {
         }
     }
 
+    @Test
+    void targetSubtitleStageCreatesArtifactsAfterTranscriptExport(@TempDir Path tempDir) throws IOException {
+        Instant now = Instant.parse("2026-06-26T22:00:00Z");
+        createJob("execution-video-9", "execution-job-9", LocalizationJobStatus.QUEUED, now);
+        byte[] sourceBytes = new byte[] {1, 2, 3};
+        byte[] audioBytes = new byte[] {7, 8, 9};
+        RecordingObjectStorageService objectStorageService = new RecordingObjectStorageService(sourceBytes);
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingFfmpegAudioExtractionService audioExtractionService = new RecordingFfmpegAudioExtractionService(
+                new ExtractedAudioBo("audio.wav", "audio/wav", audioBytes)
+        );
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        RecordingTranscriptionProvider transcriptionProvider = new RecordingTranscriptionProvider();
+        RecordingTranscriptService transcriptService = new RecordingTranscriptService();
+        RecordingSubtitleExportService subtitleExportService = new RecordingSubtitleExportService();
+        RecordingTranslationProvider translationProvider = new RecordingTranslationProvider();
+        RecordingSubtitleService subtitleService = new RecordingSubtitleService();
+        properties.getFfmpeg().setAudioEnabled(true);
+        properties.getTranscription().setEnabled(true);
+        properties.getTranslation().setEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(
+                        new WorkerSmokePipelineStage(properties),
+                        new AudioExtractionPipelineStage(
+                                properties,
+                                objectStorageService,
+                                workDirectoryService,
+                                audioExtractionService,
+                                artifactService
+                        ),
+                        new TranscriptSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptionProvider,
+                                transcriptService,
+                                subtitleExportService
+                        ),
+                        new TargetSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptService,
+                                translationProvider,
+                                subtitleService,
+                                subtitleExportService
+                        ),
+                        new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
+                ),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-9", "execution-video-9", now));
+
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+            assertThat(timelineEventRepository.findByJobId("execution-job-9"))
+                    .extracting(event -> event.stage() + ":" + event.status())
+                    .containsExactly(
+                            LocalizationJobStage.WORKER_RECEIVED + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
+                    );
+            assertThat(translationProvider.jobId).isEqualTo("execution-job-9");
+            assertThat(translationProvider.targetLanguage).isEqualTo("zh-CN");
+            assertThat(subtitleService.jobId).isEqualTo("execution-job-9");
+            assertThat(subtitleService.language).isEqualTo("zh-CN");
+            assertThat(artifactService.commands)
+                    .extracting(CreateJobArtifactCommand::type)
+                    .containsExactly(
+                            JobArtifactType.EXTRACTED_AUDIO,
+                            JobArtifactType.TRANSCRIPT_JSON,
+                            JobArtifactType.SUBTITLE_SRT,
+                            JobArtifactType.SUBTITLE_VTT,
+                            JobArtifactType.TARGET_SUBTITLE_JSON,
+                            JobArtifactType.TARGET_SUBTITLE_SRT,
+                            JobArtifactType.TARGET_SUBTITLE_VTT,
+                            JobArtifactType.WORKER_SUMMARY
+                    );
+            assertThat(artifactService.commands.get(4).filename()).isEqualTo("target-subtitles.json");
+            assertThat(artifactService.commands.get(4).contentType()).isEqualTo("application/json");
+            assertThat(artifactService.commands.get(5).filename()).isEqualTo("target-subtitles.srt");
+            assertThat(artifactService.commands.get(5).contentType()).isEqualTo("application/x-subrip");
+            assertThat(artifactService.commands.get(6).filename()).isEqualTo("target-subtitles.vtt");
+            assertThat(artifactService.commands.get(6).contentType()).isEqualTo("text/vtt");
+        } finally {
+            properties.getFfmpeg().setAudioEnabled(false);
+            properties.getTranscription().setEnabled(false);
+            properties.getTranslation().setEnabled(false);
+        }
+    }
+
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
@@ -606,19 +712,20 @@ class LocalizationJobExecutionServiceTests {
     private static class RecordingTranscriptService implements TranscriptService {
 
         private String jobId;
+        private List<TranscriptSegmentVo> segments = List.of(
+                new TranscriptSegmentVo(0, 0L, 1_200L, "First line"),
+                new TranscriptSegmentVo(1, 1_200L, 2_400L, "Second line")
+        );
 
         @Override
         public List<TranscriptSegmentVo> replaceTranscript(String jobId, TranscriptionResultBo result) {
             this.jobId = jobId;
-            return List.of(
-                    new TranscriptSegmentVo(0, 0L, 1_200L, "First line"),
-                    new TranscriptSegmentVo(1, 1_200L, 2_400L, "Second line")
-            );
+            return segments;
         }
 
         @Override
         public List<TranscriptSegmentVo> listTranscript(String jobId) {
-            return List.of();
+            return segments;
         }
     }
 
@@ -637,6 +744,62 @@ class LocalizationJobExecutionServiceTests {
         @Override
         public byte[] exportVtt(List<TranscriptSegmentVo> segments) {
             return "subtitle-vtt".getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public byte[] exportSubtitleJson(List<SubtitleSegmentVo> segments) {
+            return "target-subtitle-json".getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public byte[] exportSubtitleSrt(List<SubtitleSegmentVo> segments) {
+            return "target-subtitle-srt".getBytes(StandardCharsets.UTF_8);
+        }
+
+        @Override
+        public byte[] exportSubtitleVtt(List<SubtitleSegmentVo> segments) {
+            return "target-subtitle-vtt".getBytes(StandardCharsets.UTF_8);
+        }
+    }
+
+    private static class RecordingTranslationProvider implements TranslationProvider {
+
+        private String jobId;
+        private String targetLanguage;
+
+        @Override
+        public TranslationResultBo translate(
+                String jobId,
+                String targetLanguage,
+                List<TranscriptSegmentVo> transcriptSegments
+        ) {
+            this.jobId = jobId;
+            this.targetLanguage = targetLanguage;
+            return new TranslationResultBo(List.of(
+                    new TranslationSegmentBo(0, 0L, 1_200L, "Translated first line"),
+                    new TranslationSegmentBo(1, 1_200L, 2_400L, "Translated second line")
+            ));
+        }
+    }
+
+    private static class RecordingSubtitleService implements SubtitleService {
+
+        private String jobId;
+        private String language;
+
+        @Override
+        public List<SubtitleSegmentVo> replaceSubtitles(String jobId, String language, TranslationResultBo result) {
+            this.jobId = jobId;
+            this.language = language;
+            return List.of(
+                    new SubtitleSegmentVo(language, 0, 0L, 1_200L, "Translated first line"),
+                    new SubtitleSegmentVo(language, 1, 1_200L, 2_400L, "Translated second line")
+            );
+        }
+
+        @Override
+        public List<SubtitleSegmentVo> listSubtitles(String jobId, String language) {
+            return List.of();
         }
     }
 }

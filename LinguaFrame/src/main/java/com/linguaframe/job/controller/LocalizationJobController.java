@@ -3,10 +3,12 @@ package com.linguaframe.job.controller;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.TranscriptService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
@@ -29,17 +31,20 @@ public class LocalizationJobController {
     private final LocalizationJobRetryService retryService;
     private final JobArtifactService artifactService;
     private final TranscriptService transcriptService;
+    private final SubtitleService subtitleService;
 
     public LocalizationJobController(
             LocalizationJobQueryService queryService,
             LocalizationJobRetryService retryService,
             JobArtifactService artifactService,
-            TranscriptService transcriptService
+            TranscriptService transcriptService,
+            SubtitleService subtitleService
     ) {
         this.queryService = queryService;
         this.retryService = retryService;
         this.artifactService = artifactService;
         this.transcriptService = transcriptService;
+        this.subtitleService = subtitleService;
     }
 
     @GetMapping("/{jobId}")
@@ -60,6 +65,14 @@ public class LocalizationJobController {
     @GetMapping("/{jobId}/transcript")
     public List<TranscriptSegmentVo> listTranscript(@PathVariable String jobId) {
         return transcriptService.listTranscript(jobId);
+    }
+
+    @GetMapping("/{jobId}/subtitles/{language}")
+    public List<SubtitleSegmentVo> listSubtitles(
+            @PathVariable String jobId,
+            @PathVariable String language
+    ) {
+        return subtitleService.listSubtitles(jobId, language);
     }
 
     @GetMapping("/{jobId}/artifacts/{artifactId}/download")
