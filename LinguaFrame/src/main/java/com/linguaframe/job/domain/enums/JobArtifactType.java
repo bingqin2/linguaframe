@@ -10,5 +10,6 @@ public enum JobArtifactType {
     TARGET_SUBTITLE_SRT,
     TARGET_SUBTITLE_VTT,
     DUBBING_AUDIO,
+    BURNED_VIDEO,
     WORKER_SUMMARY
 }

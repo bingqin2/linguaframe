@@ -41,7 +41,7 @@ docker compose --env-file .env.example build linguaframe-backend
 Expected:
 
 - Compose renders MySQL, Redis, RabbitMQ, MinIO, and backend services.
-- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, and empty OpenAI placeholders when using `.env.example`.
+- Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=true`, and empty OpenAI placeholders when using `.env.example`.
 - Maven builds `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 
@@ -61,10 +61,10 @@ scripts/demo/docker-e2e-success.sh
 
 Expected:
 
-- The script uploads a tiny sample file under `/tmp/linguaframe-demo`.
+- The script uploads a tiny MP4 sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=8` by default and `artifactCount=9` when TTS is enabled.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `SUBTITLE_BURN_IN`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=9` by default and `artifactCount=10` when TTS is enabled.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
 - Output includes `TRANSCRIPT_JSON transcript.json`.
 - Output includes `SUBTITLE_SRT subtitles.srt`.
@@ -73,6 +73,7 @@ Expected:
 - Output includes `TARGET_SUBTITLE_SRT target-subtitles.srt`.
 - Output includes `TARGET_SUBTITLE_VTT target-subtitles.vtt`.
 - Output includes `DUBBING_AUDIO dubbing-audio.mp3` only when TTS is enabled.
+- Output includes `BURNED_VIDEO burned-video.mp4`.
 - Output includes `WORKER_SUMMARY worker-summary.json`.
 - The script downloads `/tmp/linguaframe-demo/audio.wav`.
 - The script downloads `/tmp/linguaframe-demo/transcript.json`.
@@ -82,6 +83,7 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.srt`.
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.vtt`.
 - The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
+- The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Inspect the downloaded artifacts:
@@ -95,6 +97,7 @@ python3 -m json.tool /tmp/linguaframe-demo/target-subtitles.json
 cat /tmp/linguaframe-demo/target-subtitles.srt
 cat /tmp/linguaframe-demo/target-subtitles.vtt
 file /tmp/linguaframe-demo/dubbing-audio.mp3
+file /tmp/linguaframe-demo/burned-video.mp4
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
@@ -301,7 +304,7 @@ Expected:
 
 - Docker stack starts with `docker compose --env-file .env.example up --build`.
 - `scripts/demo/docker-e2e-success.sh` prints `status=COMPLETED`.
-- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=8`.
+- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=9`.
 - `/tmp/linguaframe-demo/audio.wav` is downloaded.
 - `/tmp/linguaframe-demo/transcript.json` is downloaded.
 - `/tmp/linguaframe-demo/subtitles.srt` is downloaded.
@@ -309,10 +312,11 @@ Expected:
 - `/tmp/linguaframe-demo/target-subtitles.json` is downloaded.
 - `/tmp/linguaframe-demo/target-subtitles.srt` is downloaded.
 - `/tmp/linguaframe-demo/target-subtitles.vtt` is downloaded.
+- `/tmp/linguaframe-demo/burned-video.mp4` is downloaded.
 - `/tmp/linguaframe-demo/worker-summary.json` is downloaded.
 - Forced smoke-stage failure produces `status=FAILED`.
 - Retry after disabling failure produces `status=COMPLETED`.
-- Job timeline includes worker receive, smoke stage, audio extraction, transcript/source subtitle export, target subtitle export, artifact summary, and completion events.
+- Job timeline includes worker receive, smoke stage, audio extraction, transcript/source subtitle export, target subtitle export, subtitle burn-in, artifact summary, and completion events.
 
 ## Upload Smoke Test
 

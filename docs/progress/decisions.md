@@ -113,3 +113,11 @@ Decision: Add TTS dubbing audio as a provider-backed worker stage instead of fol
 Reason: Subtitle generation and audio synthesis are different pipeline concerns. Keeping TTS behind `TtsProvider` allows deterministic local demos and opt-in OpenAI audio generation without rewriting subtitle persistence or artifact download behavior.
 
 Impact: The worker can now create a `DUBBING_AUDIO` artifact after target subtitle export. The MVP generates one continuous MP3 and intentionally defers lip sync, audio/video mixing, subtitle burn-in, and cost accounting.
+
+## 2026-06-26
+
+Decision: Add subtitle-burned video as an FFmpeg-backed worker stage after generated subtitles.
+
+Reason: Burn-in is a media rendering concern and should stay separate from subtitle generation and TTS.
+
+Impact: Docker demo can now produce a visible localized video artifact while audio replacement and advanced styling remain later work.

@@ -234,6 +234,8 @@ The Docker profile also enables FFmpeg audio extraction:
 LINGUAFRAME_FFMPEG_BINARY_PATH=ffmpeg
 LINGUAFRAME_FFMPEG_AUDIO_ENABLED=true
 LINGUAFRAME_FFMPEG_AUDIO_TIMEOUT_SECONDS=120
+LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=true
+LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS=180
 LINGUAFRAME_FFMPEG_WORK_DIR=/tmp/linguaframe-media
 LINGUAFRAME_TRANSCRIPTION_ENABLED=true
 LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo
@@ -270,7 +272,11 @@ When TTS is enabled with `LINGUAFRAME_TTS_PROVIDER=demo`, the worker uses a dete
 
 - `DUBBING_AUDIO` as `dubbing-audio.mp3`
 
-This MVP generates one continuous dubbing audio artifact. It does not do segment-level lip sync, mix audio into the original video, or burn subtitles into video.
+When subtitle burn-in is enabled, the worker uses FFmpeg and target subtitles to store:
+
+- `BURNED_VIDEO` as `burned-video.mp4`
+
+This MVP generates one continuous dubbing audio artifact and one subtitle-burned video artifact. It does not do segment-level lip sync, mix TTS audio into the original video, or provide a subtitle style editor.
 
 Transcript preview is available without downloading artifacts:
 
@@ -292,7 +298,7 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
-This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/source subtitle/target subtitle artifacts by default. TTS is available as an opt-in worker stage and subtitle burn-in remains future work.
+This worker execution path now runs FFmpeg audio extraction and subtitle burn-in in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, exports deterministic transcript/source subtitle/target subtitle artifacts, and stores `BURNED_VIDEO` as `burned-video.mp4` by default. TTS remains available as an opt-in worker stage.
 
 ### Optional OpenAI Transcription
 
@@ -313,7 +319,7 @@ LINGUAFRAME_TRANSCRIPTION_PROVIDER=openai
 LINGUAFRAME_TRANSCRIPTION_ENABLED=true
 ```
 
-Use a real short speech sample for live transcription validation. The generated default demo sample is a synthetic tone, so it is useful for the deterministic pipeline but not for proving speech-to-text quality.
+Use a real short speech sample for live transcription validation. The generated default demo sample is a synthetic test video with a tone, so it is useful for the deterministic pipeline but not for proving speech-to-text quality.
 
 ```bash
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
@@ -389,7 +395,7 @@ docker compose --env-file .env.example up --build
 scripts/demo/docker-e2e-success.sh
 ```
 
-The script uploads a tiny local sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 

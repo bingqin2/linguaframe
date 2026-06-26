@@ -1,6 +1,6 @@
 # Docker E2E Demo
 
-This guide verifies the current LinguaFrame backend demo path: upload a small sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate transcript/source subtitle/target subtitle artifacts, optionally generate dubbing audio, download artifacts, and inspect the job timeline. The default `.env.example` path uses deterministic transcription and translation with TTS disabled; OpenAI transcription, translation, and TTS are optional local `.env` modes.
+This guide verifies the current LinguaFrame backend demo path: upload a small MP4 sample file, create a job, dispatch through RabbitMQ, execute the smoke worker stage, extract audio with FFmpeg, generate transcript/source subtitle/target subtitle artifacts, optionally generate dubbing audio, burn target subtitles into a preview video, download artifacts, and inspect the job timeline. The default `.env.example` path uses deterministic transcription and translation with TTS disabled; OpenAI transcription, translation, and TTS are optional local `.env` modes.
 
 ## Start The Stack
 
@@ -45,10 +45,12 @@ status=COMPLETED
 - TARGET_SUBTITLE_EXPORT SUCCEEDED
 - DUBBING_AUDIO_GENERATION STARTED
 - DUBBING_AUDIO_GENERATION SUCCEEDED
+- SUBTITLE_BURN_IN STARTED
+- SUBTITLE_BURN_IN SUCCEEDED
 - ARTIFACT_SUMMARY STARTED
 - ARTIFACT_SUMMARY SUCCEEDED
 - COMPLETED SUCCEEDED
-artifactCount=8
+artifactCount=9
 - EXTRACTED_AUDIO audio.wav
 - TRANSCRIPT_JSON transcript.json
 - SUBTITLE_SRT subtitles.srt
@@ -56,13 +58,14 @@ artifactCount=8
 - TARGET_SUBTITLE_JSON target-subtitles.json
 - TARGET_SUBTITLE_SRT target-subtitles.srt
 - TARGET_SUBTITLE_VTT target-subtitles.vtt
+- BURNED_VIDEO burned-video.mp4
 - WORKER_SUMMARY worker-summary.json
 ```
 
 With the default `.env.example`, the dubbing stage is recorded and then skipped without creating an audio artifact. When `LINGUAFRAME_TTS_ENABLED=true`, expected output also includes:
 
 ```text
-artifactCount=9
+artifactCount=10
 - DUBBING_AUDIO dubbing-audio.mp3
 ```
 
@@ -76,6 +79,7 @@ The script downloads generated artifacts to:
 /tmp/linguaframe-demo/target-subtitles.json
 /tmp/linguaframe-demo/target-subtitles.srt
 /tmp/linguaframe-demo/target-subtitles.vtt
+/tmp/linguaframe-demo/burned-video.mp4
 /tmp/linguaframe-demo/worker-summary.json
 ```
 
@@ -92,11 +96,11 @@ ARTIFACT_ID=<artifact id from the artifact list>
 curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download" -o /tmp/linguaframe-demo/artifact.bin
 ```
 
-This demo verifies FFmpeg audio extraction plus deterministic transcript, source subtitle, target subtitle export, and optional deterministic TTS. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, OpenAI TTS, or subtitle burn-in; transcript and target subtitles use deterministic demo providers.
+This demo verifies FFmpeg audio extraction, deterministic transcript/source subtitle/target subtitle export, and FFmpeg subtitle burn-in. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, or OpenAI TTS; transcript and target subtitles use deterministic demo providers.
 
 ## Optional OpenAI Transcription Demo
 
-Use this path only with a local `.env` file that contains real OpenAI credentials and with a real short speech sample. The generated default demo sample is a synthetic tone and should not be used to judge speech-to-text behavior.
+Use this path only with a local `.env` file that contains real OpenAI credentials and with a real short speech sample. The generated default demo sample is a synthetic test video with a tone and should not be used to judge speech-to-text behavior.
 
 ```bash
 cp .env.example .env

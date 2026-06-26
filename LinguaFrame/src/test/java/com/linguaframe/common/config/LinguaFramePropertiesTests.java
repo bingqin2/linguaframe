@@ -55,6 +55,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getFfmpeg().getBinaryPath()).isEqualTo("ffmpeg");
         assertThat(properties.getFfmpeg().isAudioEnabled()).isFalse();
         assertThat(properties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(120);
+        assertThat(properties.getFfmpeg().isBurnInEnabled()).isFalse();
+        assertThat(properties.getFfmpeg().getBurnInTimeoutSeconds()).isEqualTo(180);
         assertThat(properties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/linguaframe-media");
         assertThat(properties.getTranscription().isEnabled()).isFalse();
         assertThat(properties.getTranscription().getProvider()).isEqualTo("demo");
@@ -95,6 +97,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.ffmpeg.binary-path=/usr/bin/ffmpeg",
                         "linguaframe.ffmpeg.audio-enabled=true",
                         "linguaframe.ffmpeg.audio-timeout-seconds=30",
+                        "linguaframe.ffmpeg.burn-in-enabled=true",
+                        "linguaframe.ffmpeg.burn-in-timeout-seconds=45",
                         "linguaframe.ffmpeg.work-dir=/tmp/custom-media"
                 )
                 .run(context -> {
@@ -103,6 +107,8 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getFfmpeg().getBinaryPath()).isEqualTo("/usr/bin/ffmpeg");
                     assertThat(boundProperties.getFfmpeg().isAudioEnabled()).isTrue();
                     assertThat(boundProperties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(30);
+                    assertThat(boundProperties.getFfmpeg().isBurnInEnabled()).isTrue();
+                    assertThat(boundProperties.getFfmpeg().getBurnInTimeoutSeconds()).isEqualTo(45);
                     assertThat(boundProperties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/custom-media");
                 });
     }
@@ -216,7 +222,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.dispatch-batch-size=0",
                         "linguaframe.worker.dispatch-interval-ms=0",
                         "linguaframe.worker.smoke-stage-duration-ms=-1",
-                        "linguaframe.ffmpeg.audio-timeout-seconds=0"
+                        "linguaframe.ffmpeg.audio-timeout-seconds=0",
+                        "linguaframe.ffmpeg.burn-in-timeout-seconds=0"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
