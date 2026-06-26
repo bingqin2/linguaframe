@@ -56,6 +56,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getFfmpeg().isAudioEnabled()).isFalse();
         assertThat(properties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(120);
         assertThat(properties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/linguaframe-media");
+        assertThat(properties.getTranscription().isEnabled()).isFalse();
+        assertThat(properties.getTranscription().getProvider()).isEqualTo("demo");
     }
 
     @Test
@@ -85,6 +87,21 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getFfmpeg().isAudioEnabled()).isTrue();
                     assertThat(boundProperties.getFfmpeg().getAudioTimeoutSeconds()).isEqualTo(30);
                     assertThat(boundProperties.getFfmpeg().getWorkDir()).isEqualTo("/tmp/custom-media");
+                });
+    }
+
+    @Test
+    void bindsTranscriptionRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.transcription.enabled=true",
+                        "linguaframe.transcription.provider=demo"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getTranscription().isEnabled()).isTrue();
+                    assertThat(boundProperties.getTranscription().getProvider()).isEqualTo("demo");
                 });
     }
 

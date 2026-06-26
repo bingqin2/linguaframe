@@ -123,6 +123,13 @@ list_job_artifacts() {
   curl -fsS "$base_url/api/jobs/$job_id/artifacts"
 }
 
+get_job_transcript() {
+  local base_url="$1"
+  local job_id="$2"
+
+  curl -fsS "$base_url/api/jobs/$job_id/transcript"
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

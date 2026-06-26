@@ -35,6 +35,9 @@ public class LinguaFrameProperties {
     @Valid
     private final Ffmpeg ffmpeg = new Ffmpeg();
 
+    @Valid
+    private final Transcription transcription = new Transcription();
+
     public Media getMedia() {
         return media;
     }
@@ -65,6 +68,10 @@ public class LinguaFrameProperties {
 
     public Ffmpeg getFfmpeg() {
         return ffmpeg;
+    }
+
+    public Transcription getTranscription() {
+        return transcription;
     }
 
     public static class Media {
@@ -244,6 +251,30 @@ public class LinguaFrameProperties {
 
         public void setWorkDir(String workDir) {
             this.workDir = workDir;
+        }
+    }
+
+    public static class Transcription {
+
+        private boolean enabled = false;
+
+        @NotBlank
+        private String provider = "demo";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getProvider() {
+            return provider;
+        }
+
+        public void setProvider(String provider) {
+            this.provider = provider;
         }
     }
 

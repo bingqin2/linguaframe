@@ -3,9 +3,11 @@ package com.linguaframe.job.controller;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.TranscriptService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -26,15 +28,18 @@ public class LocalizationJobController {
     private final LocalizationJobQueryService queryService;
     private final LocalizationJobRetryService retryService;
     private final JobArtifactService artifactService;
+    private final TranscriptService transcriptService;
 
     public LocalizationJobController(
             LocalizationJobQueryService queryService,
             LocalizationJobRetryService retryService,
-            JobArtifactService artifactService
+            JobArtifactService artifactService,
+            TranscriptService transcriptService
     ) {
         this.queryService = queryService;
         this.retryService = retryService;
         this.artifactService = artifactService;
+        this.transcriptService = transcriptService;
     }
 
     @GetMapping("/{jobId}")
@@ -50,6 +55,11 @@ public class LocalizationJobController {
     @GetMapping("/{jobId}/artifacts")
     public List<JobArtifactVo> listArtifacts(@PathVariable String jobId) {
         return artifactService.listArtifacts(jobId);
+    }
+
+    @GetMapping("/{jobId}/transcript")
+    public List<TranscriptSegmentVo> listTranscript(@PathVariable String jobId) {
+        return transcriptService.listTranscript(jobId);
     }
 
     @GetMapping("/{jobId}/artifacts/{artifactId}/download")

@@ -18,7 +18,7 @@ Expected:
 
 - Maven exits with code 0.
 - Output ends with `BUILD SUCCESS`.
-- Current suite reports `Tests run: 65, Failures: 0, Errors: 0`.
+- Current suite reports all tests passing.
 
 Some Spring Boot tests use random local ports. If sandboxed execution fails with `SocketException: Operation not permitted`, rerun the same command with local socket access enabled.
 
@@ -62,21 +62,38 @@ Expected:
 
 - The script uploads a tiny sample file under `/tmp/linguaframe-demo`.
 - Job status reaches `COMPLETED`.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=2`.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=5`.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
+- Output includes `TRANSCRIPT_JSON transcript.json`.
+- Output includes `SUBTITLE_SRT subtitles.srt`.
+- Output includes `SUBTITLE_VTT subtitles.vtt`.
 - Output includes `WORKER_SUMMARY worker-summary.json`.
 - The script downloads `/tmp/linguaframe-demo/audio.wav`.
+- The script downloads `/tmp/linguaframe-demo/transcript.json`.
+- The script downloads `/tmp/linguaframe-demo/subtitles.srt`.
+- The script downloads `/tmp/linguaframe-demo/subtitles.vtt`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Inspect the downloaded artifacts:
 
 ```bash
 file /tmp/linguaframe-demo/audio.wav
+python3 -m json.tool /tmp/linguaframe-demo/transcript.json
+cat /tmp/linguaframe-demo/subtitles.srt
+cat /tmp/linguaframe-demo/subtitles.vtt
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
-Expected fields:
+Expected transcript fields:
+
+- `segments`
+- `index`
+- `startMs`
+- `endMs`
+- `text`
+
+Expected worker summary fields:
 
 - `jobId`
 - `videoId`
@@ -159,12 +176,15 @@ Expected:
 
 - Docker stack starts with `docker compose --env-file .env.example up --build`.
 - `scripts/demo/docker-e2e-success.sh` prints `status=COMPLETED`.
-- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=2`.
+- `scripts/demo/docker-e2e-success.sh` prints `artifactCount=5`.
 - `/tmp/linguaframe-demo/audio.wav` is downloaded.
+- `/tmp/linguaframe-demo/transcript.json` is downloaded.
+- `/tmp/linguaframe-demo/subtitles.srt` is downloaded.
+- `/tmp/linguaframe-demo/subtitles.vtt` is downloaded.
 - `/tmp/linguaframe-demo/worker-summary.json` is downloaded.
 - Forced smoke-stage failure produces `status=FAILED`.
 - Retry after disabling failure produces `status=COMPLETED`.
-- Job timeline includes worker receive, smoke stage, audio extraction, artifact summary, and completion events.
+- Job timeline includes worker receive, smoke stage, audio extraction, transcript/subtitle export, artifact summary, and completion events.
 
 ## Upload Smoke Test
 

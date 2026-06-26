@@ -48,6 +48,9 @@ linguaframe:
     audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:false}
     audio-timeout-seconds: ${LINGUAFRAME_FFMPEG_AUDIO_TIMEOUT_SECONDS:120}
     work-dir: ${LINGUAFRAME_FFMPEG_WORK_DIR:/tmp/linguaframe-media}
+  transcription:
+    enabled: ${LINGUAFRAME_TRANSCRIPTION_ENABLED:false}
+    provider: ${LINGUAFRAME_TRANSCRIPTION_PROVIDER:demo}
   database:
     host: ${MYSQL_HOST:localhost}
     port: ${MYSQL_PORT:3306}
