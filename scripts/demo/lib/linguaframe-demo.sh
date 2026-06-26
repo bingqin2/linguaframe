@@ -54,6 +54,14 @@ with wave.open(path, "wb") as wav:
 PY
 }
 
+ensure_demo_sample() {
+  local path="$1"
+  if [[ -s "$path" ]]; then
+    return 0
+  fi
+  create_demo_sample "$path"
+}
+
 extract_json_field() {
   local field="$1"
   python3 -c '

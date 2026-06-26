@@ -97,3 +97,11 @@ Decision: Add OpenAI translation as an opt-in provider behind `TranslationProvid
 Reason: The project can now exercise a real language-model integration when local secrets are available, but routine demos and automated tests should remain reproducible, free of paid API calls, and safe to run without credentials.
 
 Impact: Real OpenAI translation can be exercised with local `.env` secrets, while the core demo and automated tests remain reproducible and cost-free.
+
+## 2026-06-26
+
+Decision: Add OpenAI transcription as an opt-in provider behind `TranscriptionProvider` while keeping deterministic transcript generation as the default demo path.
+
+Reason: The project needs a real speech-to-text integration to move closer to the target localization pipeline, but routine demos and automated tests should remain reproducible and safe without provider credentials.
+
+Impact: The pipeline can validate real speech-to-text locally with secrets and a real speech sample, while automated tests and default Docker demos remain reproducible and cost-free.

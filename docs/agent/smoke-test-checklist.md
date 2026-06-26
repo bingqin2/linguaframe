@@ -122,6 +122,41 @@ Expected worker summary fields:
 
 The artifact must not contain local absolute paths, passwords, access keys, secret keys, or raw provider credentials.
 
+### Optional OpenAI Transcription Verification
+
+Use this only when validating the paid provider path with a local `.env` file and a real short speech sample:
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_TRANSCRIPTION_MODEL=whisper-1
+OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
+LINGUAFRAME_TRANSCRIPTION_PROVIDER=openai
+LINGUAFRAME_TRANSCRIPTION_ENABLED=true
+```
+
+Run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up --build
+LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 scripts/demo/docker-e2e-success.sh
+```
+
+Expected:
+
+- Job status reaches `COMPLETED`.
+- Transcript preview reflects the supplied speech sample.
+- `TRANSCRIPT_JSON`, `SUBTITLE_SRT`, and `SUBTITLE_VTT` artifacts are present.
+- Logs and persisted failure reasons do not expose the API key or raw OpenAI response body.
+- This path may consume OpenAI credits.
+
 ### Optional OpenAI Translation Verification
 
 Use this only when validating the paid provider path with a local `.env` file:

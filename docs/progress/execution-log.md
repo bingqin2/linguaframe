@@ -461,3 +461,28 @@ Notes:
 
 - Official OpenAI docs URLs returned `Forbidden` from this terminal, and the OpenAI developer docs MCP was added globally but was not available until a future Codex restart. The implementation avoids hardcoding a model, keeps the model user-configured through `OPENAI_TRANSLATION_MODEL`, and tests the provider through mocked HTTP only.
 - This slice does not add OpenAI transcription, TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, or translation quality evaluation.
+
+## 2026-06-26
+
+Work:
+
+- Added OpenAI transcription runtime configuration under `linguaframe.transcription.openai` and environment pass-through for Docker.
+- Kept `LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo` as the default demo path and made the demo transcription provider conditional.
+- Added `OpenAiTranscriptionProvider` behind the existing `TranscriptionProvider` interface.
+- Implemented mocked Audio Transcriptions API multipart request handling, verbose JSON segment parsing, timestamp conversion, segment validation, and sanitized HTTP errors.
+- Added Spring context coverage for `linguaframe.transcription.provider=openai`.
+- Updated demo scripts so a user-provided `LINGUAFRAME_DEMO_SAMPLE_PATH` is not overwritten.
+- Documented safe local `.env` setup for optional live OpenAI transcription with a real speech sample.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test` first failed because `Transcription#getOpenai()` did not exist, then passed after adding OpenAI transcription properties with `Tests run: 9, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranscriptionProviderTests test` first failed because `OpenAiTranscriptionProvider` did not exist, then passed with `Tests run: 7, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranscriptionContextTests test` passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,OpenAiTranscriptionContextTests,OpenAiTranscriptionProviderTests,OpenAiTranslationProviderTests,DemoTranslationProviderTests,SubtitleServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 49, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_TRANSCRIPTION_PROVIDER: demo`, `OPENAI_TRANSCRIPTION_MODEL: ""`, and `OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS: "120"`.
+
+Notes:
+
+- Official OpenAI docs were checked for the audio transcription endpoint shape before implementation. The implementation targets multipart `POST /v1/audio/transcriptions` with `response_format=verbose_json` and segment timestamp granularity.
+- This slice does not add TTS, subtitle burn-in, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.
