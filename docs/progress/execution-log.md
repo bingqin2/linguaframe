@@ -360,3 +360,41 @@ Validation:
 Notes:
 
 - This slice runs FFmpeg audio extraction in the Docker worker path, but still does not run OpenAI transcription, subtitle generation, translation, TTS, frontend UI, authentication, or Redis behavior.
+
+## 2026-06-26
+
+Work:
+
+- Added durable `transcript_segments` persistence with ordered transcript segment lookup by job.
+- Added a transcript service, deterministic demo transcription provider, and transcription runtime configuration.
+- Added subtitle export support for transcript JSON, SRT, and WebVTT.
+- Added a `TRANSCRIPT_SUBTITLE_EXPORT` worker stage after FFmpeg audio extraction.
+- Added `TRANSCRIPT_JSON`, `SUBTITLE_SRT`, and `SUBTITLE_VTT` job artifacts.
+- Added `GET /api/jobs/{jobId}/transcript` for transcript preview.
+- Updated Docker demo scripts and docs to print transcript preview and download five artifacts.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=TranscriptSegmentRepositoryTests test` first failed because transcript repository/domain classes did not exist, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=TranscriptServiceTests,LinguaFramePropertiesTests test` first failed because transcript service/domain/config classes did not exist, then passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=SubtitleExportServiceTests test` first failed because subtitle export service classes did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests#transcriptSubtitleStageCreatesArtifactsAfterAudioExtraction test` first failed because the new worker stage, timeline stage, and artifact types did not exist; after implementation it exposed an unqualified `TranscriptServiceImpl` constructor, which was fixed by matching the existing `@Autowired` production-constructor pattern. The test then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests test` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsTranscriptSegmentsForLocalizationJob test` first failed with HTTP 404 because the endpoint was not mapped, then passed with `Tests run: 1, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh`, `bash -n scripts/demo/docker-e2e-success.sh`, and `bash -n scripts/demo/docker-e2e-retry.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=TranscriptSegmentRepositoryTests,TranscriptServiceTests,SubtitleExportServiceTests,LinguaFramePropertiesTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 30, Failures: 0, Errors: 0`.
+- Sandboxed `mvn test` failed because `RANDOM_PORT` tests could not bind local ports. The same command passed with local socket access with `Tests run: 80, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_TRANSCRIPTION_ENABLED=true` plus `LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo`.
+- `mvn -pl LinguaFrame -am package -DskipTests` passed.
+- `docker compose --env-file .env.example build linguaframe-backend` passed.
+- `scripts/demo/docker-e2e-success.sh` passed against the live Docker stack for job `2deafddf-a64f-44bc-aace-e30ca888fe7d`, printed `status=COMPLETED`, printed `artifactCount=5`, and downloaded `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, and `/tmp/linguaframe-demo/worker-summary.json`.
+- `file /tmp/linguaframe-demo/audio.wav` reported `RIFF (little-endian) data, WAVE audio, Microsoft PCM, 16 bit, mono 16000 Hz`.
+- `python3 -m json.tool /tmp/linguaframe-demo/transcript.json` and `python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json` parsed successfully.
+- `sed -n '1,80p' /tmp/linguaframe-demo/subtitles.srt` showed comma millisecond timestamps.
+- `sed -n '1,80p' /tmp/linguaframe-demo/subtitles.vtt` showed `WEBVTT` and dot millisecond timestamps.
+- `docker compose --env-file .env.example down` stopped and removed live verification containers.
+
+Notes:
+
+- This slice does not call OpenAI. It deliberately uses deterministic transcript output so the Docker demo can verify the transcript/subtitle pipeline without provider credentials.
+- Translation, TTS, subtitle burn-in, frontend UI, authentication, and cost tracking remain later slices.

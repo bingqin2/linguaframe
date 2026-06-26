@@ -1,5 +1,7 @@
 package com.linguaframe.job.controller;
 
+import com.linguaframe.job.domain.bo.TranscriptionResultBo;
+import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
@@ -14,6 +16,7 @@ import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.TranscriptService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -31,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -64,6 +68,9 @@ class LocalizationJobControllerTests {
     private JobTimelineEventRepository timelineEventRepository;
 
     @Autowired
+    private TranscriptService transcriptService;
+
+    @Autowired
     private JdbcClient jdbcClient;
 
     @MockitoBean
@@ -71,6 +78,7 @@ class LocalizationJobControllerTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM transcript_segments").update();
         jdbcClient.sql("DELETE FROM job_artifacts").update();
         jdbcClient.sql("DELETE FROM job_timeline_events").update();
         jdbcClient.sql("DELETE FROM job_dispatch_events").update();
@@ -285,6 +293,25 @@ class LocalizationJobControllerTests {
                 .andExpect(header().longValue("Content-Length", 11L))
                 .andExpect(content().contentType("application/json"))
                 .andExpect(content().string("{\"ok\":true}"));
+    }
+
+    @Test
+    void returnsTranscriptSegmentsForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T00:00:00Z");
+        createJob("job-controller-video-transcript", "job-controller-job-transcript", createdAt);
+        transcriptService.replaceTranscript("job-controller-job-transcript", new TranscriptionResultBo(List.of(
+                new TranscriptionSegmentBo(0, 0L, 1_200L, "First line"),
+                new TranscriptionSegmentBo(1, 1_200L, 2_400L, "Second line")
+        )));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/transcript", "job-controller-job-transcript"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].index").value(0))
+                .andExpect(jsonPath("$[0].startMs").value(0))
+                .andExpect(jsonPath("$[0].endMs").value(1200))
+                .andExpect(jsonPath("$[0].text").value("First line"))
+                .andExpect(jsonPath("$[1].index").value(1))
+                .andExpect(jsonPath("$[1].text").value("Second line"));
     }
 
     @Test

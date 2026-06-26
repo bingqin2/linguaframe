@@ -96,7 +96,7 @@ Alternatives considered:
 - `TranscriptSegmentRepository#deleteByJobId(String jobId): void`
 - `TranscriptSegmentRecord(String id, String jobId, int segmentIndex, long startMs, long endMs, String text, Instant createdAt)`
 
-- [ ] **Step 1: Write failing repository test**
+- [x] **Step 1: Write failing repository test**
 
 Create `TranscriptSegmentRepositoryTests` that:
 
@@ -120,7 +120,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: fail because transcript table and repository do not exist.
 
-- [ ] **Step 2: Add Flyway migration**
+- [x] **Step 2: Add Flyway migration**
 
 Create `V5__create_transcript_segments.sql`:
 
@@ -144,7 +144,7 @@ CREATE INDEX idx_transcript_segments_job_index
     ON transcript_segments(job_id, segment_index);
 ```
 
-- [ ] **Step 3: Add transcript record and repository**
+- [x] **Step 3: Add transcript record and repository**
 
 Create `TranscriptSegmentRecord`:
 
@@ -171,7 +171,7 @@ Implement `TranscriptSegmentRepository` with `JdbcClient`, matching existing rep
 - `findByJobId` orders by `segment_index`.
 - `deleteByJobId` deletes rows for a single job.
 
-- [ ] **Step 4: Verify repository tests**
+- [x] **Step 4: Verify repository tests**
 
 Run:
 
@@ -206,7 +206,7 @@ Expected: pass.
 - `TranscriptService#replaceTranscript(String jobId, TranscriptionResultBo result): List<TranscriptSegmentVo>`
 - `TranscriptService#listTranscript(String jobId): List<TranscriptSegmentVo>`
 
-- [ ] **Step 1: Write failing property and service tests**
+- [x] **Step 1: Write failing property and service tests**
 
 Extend `LinguaFramePropertiesTests` to assert defaults:
 
@@ -237,7 +237,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: fail because transcription properties and service types do not exist.
 
-- [ ] **Step 2: Add transcription configuration**
+- [x] **Step 2: Add transcription configuration**
 
 Add to `LinguaFrameProperties`:
 
@@ -284,7 +284,7 @@ linguaframe:
 
 In `application-docker.yaml`, default `enabled` to true. In `application-test.yaml`, set it false. Add matching `.env.example` and `docker-compose.yml` variables.
 
-- [ ] **Step 3: Add transcript BO/VO/service interfaces**
+- [x] **Step 3: Add transcript BO/VO/service interfaces**
 
 Use:
 
@@ -317,7 +317,7 @@ public record TranscriptSegmentVo(
 
 `TranscriptionProvider` should accept audio bytes so later OpenAI speech implementation can use the same stage contract without depending on object-storage paths.
 
-- [ ] **Step 4: Implement deterministic demo provider**
+- [x] **Step 4: Implement deterministic demo provider**
 
 `DemoTranscriptionProvider` should return two segments:
 
@@ -328,7 +328,7 @@ public record TranscriptSegmentVo(
 
 Ignore audio content for now, but keep the method signature.
 
-- [ ] **Step 5: Implement transcript service**
+- [x] **Step 5: Implement transcript service**
 
 `TranscriptServiceImpl#replaceTranscript` should:
 
@@ -340,7 +340,7 @@ Ignore audio content for now, but keep the method signature.
 - save new `TranscriptSegmentRecord` rows with UUID ids and `Instant.now(clock)`.
 - return `listTranscript(jobId)`.
 
-- [ ] **Step 6: Verify service tests**
+- [x] **Step 6: Verify service tests**
 
 Run:
 
@@ -362,7 +362,7 @@ Expected: pass.
 - `SubtitleExportService#srt(List<TranscriptSegmentVo> segments): byte[]`
 - `SubtitleExportService#vtt(List<TranscriptSegmentVo> segments): byte[]`
 
-- [ ] **Step 1: Write failing subtitle export tests**
+- [x] **Step 1: Write failing subtitle export tests**
 
 Create `SubtitleExportServiceTests` asserting:
 
@@ -380,7 +380,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: fail because service does not exist.
 
-- [ ] **Step 2: Implement export service**
+- [x] **Step 2: Implement export service**
 
 `SubtitleExportServiceImpl` should use Jackson for JSON and deterministic string builders for SRT/VTT.
 
@@ -410,7 +410,7 @@ This demo generated subtitle artifacts.
 
 Return UTF-8 bytes.
 
-- [ ] **Step 3: Verify export tests**
+- [x] **Step 3: Verify export tests**
 
 Run:
 
@@ -435,7 +435,7 @@ Expected: pass.
 - `LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT`
 - `TranscriptSubtitleExportPipelineStage` implements `LocalizationPipelineStage`
 
-- [ ] **Step 1: Write failing worker stage test**
+- [x] **Step 1: Write failing worker stage test**
 
 Extend `LocalizationJobExecutionServiceTests` with a test that wires stages:
 
@@ -465,7 +465,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: fail because stage and enum values do not exist.
 
-- [ ] **Step 2: Add enum values**
+- [x] **Step 2: Add enum values**
 
 Add to `JobArtifactType`:
 
@@ -481,7 +481,7 @@ Insert in `LocalizationJobStage` after `AUDIO_EXTRACTION`:
 TRANSCRIPT_SUBTITLE_EXPORT
 ```
 
-- [ ] **Step 3: Implement worker stage**
+- [x] **Step 3: Implement worker stage**
 
 `TranscriptSubtitleExportPipelineStage` should:
 
@@ -503,7 +503,7 @@ If no `EXTRACTED_AUDIO` artifact exists, throw:
 Extracted audio artifact not found.
 ```
 
-- [ ] **Step 4: Verify worker tests**
+- [x] **Step 4: Verify worker tests**
 
 Run:
 
@@ -523,7 +523,7 @@ Expected: pass.
 - `GET /api/jobs/{jobId}/transcript`
 - Controller depends on `TranscriptService#listTranscript(String jobId)`
 
-- [ ] **Step 1: Write failing controller tests**
+- [x] **Step 1: Write failing controller tests**
 
 Add tests:
 
@@ -538,7 +538,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: fail because endpoint is missing.
 
-- [ ] **Step 2: Add controller dependency and endpoint**
+- [x] **Step 2: Add controller dependency and endpoint**
 
 Inject `TranscriptService` into `LocalizationJobController` and add:
 
@@ -549,7 +549,7 @@ public List<TranscriptSegmentVo> getTranscript(@PathVariable String jobId) {
 }
 ```
 
-- [ ] **Step 3: Verify controller tests**
+- [x] **Step 3: Verify controller tests**
 
 Run:
 
@@ -578,7 +578,7 @@ Expected: pass.
   - `/tmp/linguaframe-demo/subtitles.vtt`
   - `/tmp/linguaframe-demo/worker-summary.json`
 
-- [ ] **Step 1: Update success demo downloads**
+- [x] **Step 1: Update success demo downloads**
 
 In `scripts/demo/docker-e2e-success.sh`, add:
 
@@ -598,7 +598,7 @@ download_artifact_by_type "$BASE_URL" "$job_id" SUBTITLE_VTT "$VTT_PATH"
 
 Print each downloaded path.
 
-- [ ] **Step 2: Add transcript helper**
+- [x] **Step 2: Add transcript helper**
 
 Add helper:
 
@@ -618,7 +618,7 @@ echo "Transcript for job $job_id:"
 get_job_transcript "$BASE_URL" "$job_id" | python3 -m json.tool
 ```
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 Document:
 
@@ -628,7 +628,7 @@ Document:
 - `GET /api/jobs/{jobId}/transcript`.
 - this still does not call OpenAI.
 
-- [ ] **Step 4: Verify scripts**
+- [x] **Step 4: Verify scripts**
 
 Run:
 
@@ -644,7 +644,7 @@ Expected: both pass.
 **Files:**
 - Modify only if verification exposes small documentation corrections.
 
-- [ ] **Step 1: Run focused tests**
+- [x] **Step 1: Run focused tests**
 
 Run:
 
@@ -654,7 +654,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: pass.
 
-- [ ] **Step 2: Run full tests**
+- [x] **Step 2: Run full tests**
 
 Run:
 
@@ -664,7 +664,7 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 Expected: `Tests run: 71` or higher, `Failures: 0`, `Errors: 0`.
 
-- [ ] **Step 3: Run Docker verification**
+- [x] **Step 3: Run Docker verification**
 
 Run:
 
@@ -683,7 +683,7 @@ docker compose --env-file .env.example down
 
 Expected: job completes, artifact list includes `EXTRACTED_AUDIO`, `TRANSCRIPT_JSON`, `SUBTITLE_SRT`, `SUBTITLE_VTT`, and `WORKER_SUMMARY`; transcript and subtitle files download; Docker stack is stopped.
 
-- [ ] **Step 4: Record evidence**
+- [x] **Step 4: Record evidence**
 
 Append to `docs/progress/execution-log.md`:
 
@@ -693,7 +693,7 @@ Append to `docs/progress/execution-log.md`:
 - downloaded artifact paths.
 - note that OpenAI is intentionally not called in this slice.
 
-- [ ] **Step 5: Commit and merge**
+- [x] **Step 5: Commit and merge**
 
 Run:
 

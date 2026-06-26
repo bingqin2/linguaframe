@@ -131,6 +131,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.ffmpeg.audio-enabled`
 - `linguaframe.ffmpeg.audio-timeout-seconds`
 - `linguaframe.ffmpeg.work-dir`
+- `linguaframe.transcription.enabled`
+- `linguaframe.transcription.provider`
 - `linguaframe.cost.enabled`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
@@ -229,9 +231,23 @@ LINGUAFRAME_FFMPEG_BINARY_PATH=ffmpeg
 LINGUAFRAME_FFMPEG_AUDIO_ENABLED=true
 LINGUAFRAME_FFMPEG_AUDIO_TIMEOUT_SECONDS=120
 LINGUAFRAME_FFMPEG_WORK_DIR=/tmp/linguaframe-media
+LINGUAFRAME_TRANSCRIPTION_ENABLED=true
+LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo
 ```
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
+
+When transcription is enabled, the worker uses a deterministic demo transcription provider and stores:
+
+- `TRANSCRIPT_JSON` as `transcript.json`
+- `SUBTITLE_SRT` as `subtitles.srt`
+- `SUBTITLE_VTT` as `subtitles.vtt`
+
+Transcript preview is available without downloading artifacts:
+
+```bash
+curl http://localhost:8080/api/jobs/{jobId}/transcript
+```
 
 Failed jobs can be retried:
 
@@ -241,7 +257,7 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
-This worker execution path now runs FFmpeg audio extraction in Docker and stores `EXTRACTED_AUDIO` as `audio.wav`. It still does not run OpenAI processing, subtitle generation, or TTS.
+This worker execution path now runs FFmpeg audio extraction in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, and exports deterministic transcript/subtitle artifacts. It still does not run OpenAI processing, translation, TTS, or subtitle burn-in.
 
 ## Docker E2E Demo
 
@@ -253,7 +269,7 @@ docker compose --env-file .env.example up --build
 scripts/demo/docker-e2e-success.sh
 ```
 
-The script uploads a tiny local sample file, waits for dispatch and worker execution, prints the completed job timeline, and downloads `/tmp/linguaframe-demo/audio.wav` plus `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+The script uploads a tiny local sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 
