@@ -1,13 +1,21 @@
 package com.linguaframe.media.service.impl;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
+import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.enums.MediaUploadValidationCode;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
+import com.linguaframe.media.service.MediaDurationProbeService;
 import com.linguaframe.media.service.MediaUploadValidationService;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
 
@@ -22,9 +30,14 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
     );
 
     private final LinguaFrameProperties properties;
+    private final MediaDurationProbeService durationProbeService;
 
-    public MediaUploadValidationServiceImpl(LinguaFrameProperties properties) {
+    public MediaUploadValidationServiceImpl(
+            LinguaFrameProperties properties,
+            MediaDurationProbeService durationProbeService
+    ) {
         this.properties = properties;
+        this.durationProbeService = durationProbeService;
     }
 
     @Override
@@ -67,6 +80,19 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
             );
         }
 
+        int durationSeconds = probeDurationSeconds(file, filename);
+        if (durationSeconds > properties.getMedia().getMaxDurationSeconds()) {
+            return invalid(
+                    MediaUploadValidationCode.DURATION_TOO_LONG,
+                    "The uploaded video exceeds the " + properties.getMedia().getMaxDurationSeconds()
+                            + " second duration limit.",
+                    filename,
+                    contentType,
+                    fileSizeBytes,
+                    durationSeconds
+            );
+        }
+
         return new MediaUploadValidationVo(
                 true,
                 MediaUploadValidationCode.READY,
@@ -75,6 +101,7 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
                 contentType,
                 fileSizeBytes,
                 maxFileSizeBytes(),
+                durationSeconds,
                 properties.getMedia().getMaxDurationSeconds(),
                 SUPPORTED_CONTENT_TYPES
         );
@@ -87,6 +114,17 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
             String contentType,
             long fileSizeBytes
     ) {
+        return invalid(code, message, filename, contentType, fileSizeBytes, null);
+    }
+
+    private MediaUploadValidationVo invalid(
+            MediaUploadValidationCode code,
+            String message,
+            String filename,
+            String contentType,
+            long fileSizeBytes,
+            Integer durationSeconds
+    ) {
         return new MediaUploadValidationVo(
                 false,
                 code,
@@ -95,9 +133,34 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
                 contentType,
                 fileSizeBytes,
                 maxFileSizeBytes(),
+                durationSeconds,
                 properties.getMedia().getMaxDurationSeconds(),
                 SUPPORTED_CONTENT_TYPES
         );
+    }
+
+    private int probeDurationSeconds(MultipartFile file, String filename) {
+        Path tempFile = null;
+        try {
+            tempFile = Files.createTempFile("linguaframe-upload-", ".media");
+            try (InputStream inputStream = file.getInputStream()) {
+                Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            }
+            MediaDurationProbeResult result = durationProbeService.probeDuration(
+                    new MediaDurationProbeCommand(filename, tempFile)
+            );
+            return result.durationSecondsRoundedUp();
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to inspect uploaded video duration.", ex);
+        } finally {
+            if (tempFile != null) {
+                try {
+                    Files.deleteIfExists(tempFile);
+                } catch (IOException ignored) {
+                    // Best-effort cleanup for temporary upload inspection files.
+                }
+            }
+        }
     }
 
     private long maxFileSizeBytes() {

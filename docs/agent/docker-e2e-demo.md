@@ -119,6 +119,8 @@ This demo verifies FFmpeg audio extraction, deterministic transcript/source subt
 
 Use this path for a larger public-media demo after the short smoke path is working. The local source video is not committed to git; see `docs/product/demo-references.md` for attribution and license notes.
 
+The default upload duration limit is 5 minutes. The current `tos_casting-720p.mp4` demo sample is about 1:50, so the script uploads it as one complete file under the limit; it does not cut a shorter clip.
+
 For the current full-video demo, prefer `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=false` in local `.env` before recreating the backend. Previous full-video attempts reached OpenAI translation/evaluation but exceeded the default 180-second subtitle burn-in timeout.
 
 Package the backend jar and recreate the backend container from the repository root:

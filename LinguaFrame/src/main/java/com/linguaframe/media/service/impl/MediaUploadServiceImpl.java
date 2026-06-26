@@ -80,6 +80,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 filename,
                 validation.contentType(),
                 validation.fileSizeBytes(),
+                validation.durationSeconds(),
                 objectKey,
                 MediaUploadStatus.UPLOADED,
                 createdAt
@@ -101,6 +102,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 filename,
                 validation.contentType(),
                 validation.fileSizeBytes(),
+                validation.durationSeconds(),
                 objectKey,
                 MediaUploadStatus.UPLOADED,
                 LocalizationJobStatus.QUEUED,
@@ -118,6 +120,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 record.originalFilename(),
                 record.contentType(),
                 record.fileSizeBytes(),
+                record.durationSeconds(),
                 record.sourceObjectKey(),
                 record.status(),
                 record.createdAt()

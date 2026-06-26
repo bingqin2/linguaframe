@@ -707,3 +707,30 @@ Post-merge verification:
 - `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh` passed on `main`.
 - `scripts/demo/docker-e2e-tears-of-steel-full.sh --help` passed on `main`.
 - `rg -n "demo-references|docker-e2e-tears-of-steel-full|Full Tears of Steel Demo|Creative Commons Attribution 3.0" README.md docs/product/demo-references.md docs/agent/docker-e2e-demo.md docs/progress/execution-log.md` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Enforced real upload duration validation with an FFprobe-backed duration probe.
+- Changed the default media duration limit to 300 seconds.
+- Persisted detected video duration metadata on `videos.duration_seconds`.
+- Exposed `durationSeconds` in validation, upload creation, and upload detail responses.
+- Documented that LinguaFrame rejects over-limit videos instead of clipping accepted videos.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests test` first failed because the default was still `120`, then passed after changing the default to `300`.
+- `mvn -pl LinguaFrame -Dtest=FfprobeMediaDurationProbeServiceTests test` first failed because the duration probe types did not exist, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=UploadIntakeSchemaTests test` first failed because `videos.duration_seconds` did not exist, then passed after adding migration `V9__add_video_duration_seconds.sql`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadValidationServiceTests,MediaUploadControllerTests,MediaUploadServiceTests test` passed with `Tests run: 17, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=UploadIntakeSchemaTests,VideoRepositoryTests,MediaUploadServiceTests,MediaUploadControllerTests test` passed with `Tests run: 13, Failures: 0, Errors: 0`.
+- `rg -n "300 seconds|5 minutes|durationSeconds|DURATION_TOO_LONG|complete file|processed in full|FFprobe" README.md docs/agent/docker-e2e-demo.md docs/product/spec.md docs/progress/execution-log.md` passed.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
+- `mvn -pl LinguaFrame test -q` passed; surefire reports summarized `Tests run: 176, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+Notes:
+
+- Duration validation is an intake gate only. Accepted uploads keep the original uploaded bytes and are processed in full.
+- The migration uses a nullable column so existing local videos remain valid.

@@ -147,7 +147,7 @@ Default backend configuration lives in `LinguaFrame/src/main/resources/applicati
 The current `linguaframe` configuration surface is bound to `LinguaFrameProperties`:
 
 - `linguaframe.media.max-file-size-mb`
-- `linguaframe.media.max-duration-seconds`
+- `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
 - `linguaframe.worker.max-retries`
 - `linguaframe.worker.stage-timeout-seconds`
 - `linguaframe.worker.dispatch-enabled`
@@ -229,7 +229,9 @@ curl -F "file=@sample.mp4" http://localhost:8080/api/media/uploads/validate
 curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" http://localhost:8080/api/media/uploads
 ```
 
-Successful uploads store the source video in object storage, create a durable `UPLOADED` video record, and create a `QUEUED` localization job:
+The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
+
+Successful uploads store the source video in object storage, create a durable `UPLOADED` video record with detected `durationSeconds`, and create a `QUEUED` localization job:
 
 ```bash
 curl http://localhost:8080/api/media/uploads/{videoId}

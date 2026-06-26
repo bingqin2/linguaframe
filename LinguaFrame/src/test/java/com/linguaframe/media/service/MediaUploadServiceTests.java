@@ -8,6 +8,8 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.JobDispatchOutboxServiceImpl;
+import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
+import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.repository.VideoRepository;
@@ -51,7 +53,7 @@ class MediaUploadServiceTests {
     void createsDurableVideoAndQueuedJob() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(
-                new MediaUploadValidationServiceImpl(properties),
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
                 storageService,
                 videoRepository,
                 jobRepository,
@@ -66,11 +68,15 @@ class MediaUploadServiceTests {
         assertThat(result.filename()).isEqualTo("demo.mp4");
         assertThat(result.contentType()).isEqualTo("video/mp4");
         assertThat(result.fileSizeBytes()).isEqualTo(3);
+        assertThat(result.durationSeconds()).isEqualTo(42);
         assertThat(result.status()).isEqualTo(MediaUploadStatus.UPLOADED);
         assertThat(result.jobStatus()).isEqualTo(LocalizationJobStatus.QUEUED);
         assertThat(result.sourceObjectKey()).isEqualTo("source-videos/" + result.videoId() + "/demo.mp4");
         assertThat(storageService.lastCommand.objectKey()).isEqualTo(result.sourceObjectKey());
-        assertThat(videoRepository.findById(result.videoId())).isPresent();
+        assertThat(videoRepository.findById(result.videoId()))
+                .isPresent()
+                .get()
+                .satisfies(video -> assertThat(video.durationSeconds()).isEqualTo(42));
         assertThat(jobRepository.findById(result.jobId())).isPresent();
         assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
                 .isPresent()
@@ -89,7 +95,7 @@ class MediaUploadServiceTests {
     void rejectsInvalidUploadBeforeStorage() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(
-                new MediaUploadValidationServiceImpl(properties),
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
                 storageService,
                 videoRepository,
                 jobRepository,
@@ -104,10 +110,29 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void rejectsTooLongVideoBeforeStorage() {
+        properties.getMedia().setMaxDurationSeconds(300);
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(300.001)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "long.mp4", "video/mp4", new byte[] {1});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("DURATION_TOO_LONG");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
     void returnsSafeStorageFailure() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(true);
         MediaUploadService service = new MediaUploadServiceImpl(
-                new MediaUploadValidationServiceImpl(properties),
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
                 storageService,
                 videoRepository,
                 jobRepository,
@@ -141,6 +166,20 @@ class MediaUploadServiceTests {
         @Override
         public InputStream open(String objectKey) {
             return new ByteArrayInputStream(new byte[0]);
+        }
+    }
+
+    private static class RecordingMediaDurationProbeService implements MediaDurationProbeService {
+
+        private final double durationSeconds;
+
+        private RecordingMediaDurationProbeService(double durationSeconds) {
+            this.durationSeconds = durationSeconds;
+        }
+
+        @Override
+        public MediaDurationProbeResult probeDuration(MediaDurationProbeCommand command) {
+            return new MediaDurationProbeResult(durationSeconds);
         }
     }
 }

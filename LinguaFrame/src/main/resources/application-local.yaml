@@ -5,7 +5,7 @@ logging:
 linguaframe:
   media:
     max-file-size-mb: 100
-    max-duration-seconds: 120
+    max-duration-seconds: 300
   worker:
     max-retries: ${LINGUAFRAME_WORKER_MAX_RETRIES:2}
     stage-timeout-seconds: ${LINGUAFRAME_WORKER_STAGE_TIMEOUT_SECONDS:600}

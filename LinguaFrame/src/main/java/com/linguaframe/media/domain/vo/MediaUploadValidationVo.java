@@ -12,6 +12,7 @@ public record MediaUploadValidationVo(
         String contentType,
         long fileSizeBytes,
         long maxFileSizeBytes,
+        Integer durationSeconds,
         int maxDurationSeconds,
         List<String> supportedContentTypes
 ) {

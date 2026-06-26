@@ -11,6 +11,7 @@ public record MediaUploadVo(
         String filename,
         String contentType,
         long fileSizeBytes,
+        Integer durationSeconds,
         String sourceObjectKey,
         MediaUploadStatus status,
         LocalizationJobStatus jobStatus,

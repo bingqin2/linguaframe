@@ -24,6 +24,7 @@ public class VideoRepository {
                             original_filename,
                             content_type,
                             file_size_bytes,
+                            duration_seconds,
                             source_object_key,
                             status,
                             created_at
@@ -33,6 +34,7 @@ public class VideoRepository {
                             :originalFilename,
                             :contentType,
                             :fileSizeBytes,
+                            :durationSeconds,
                             :sourceObjectKey,
                             :status,
                             :createdAt
@@ -42,6 +44,7 @@ public class VideoRepository {
                 .param("originalFilename", record.originalFilename())
                 .param("contentType", record.contentType())
                 .param("fileSizeBytes", record.fileSizeBytes())
+                .param("durationSeconds", record.durationSeconds())
                 .param("sourceObjectKey", record.sourceObjectKey())
                 .param("status", record.status().name())
                 .param("createdAt", Timestamp.from(record.createdAt()))
@@ -55,6 +58,7 @@ public class VideoRepository {
                             original_filename,
                             content_type,
                             file_size_bytes,
+                            duration_seconds,
                             source_object_key,
                             status,
                             created_at
@@ -67,6 +71,7 @@ public class VideoRepository {
                         rs.getString("original_filename"),
                         rs.getString("content_type"),
                         rs.getLong("file_size_bytes"),
+                        rs.getObject("duration_seconds", Integer.class),
                         rs.getString("source_object_key"),
                         MediaUploadStatus.valueOf(rs.getString("status")),
                         rs.getTimestamp("created_at").toInstant()

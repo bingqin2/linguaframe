@@ -61,11 +61,20 @@ class UploadIntakeSchemaTests {
                         """)
                 .query(Integer.class)
                 .single();
+        Integer videoDurationColumnCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM information_schema.columns
+                        WHERE table_name = 'videos'
+                          AND column_name = 'duration_seconds'
+                        """)
+                .query(Integer.class)
+                .single();
 
         assertThat(videoTableCount).isEqualTo(1);
         assertThat(jobTableCount).isEqualTo(1);
         assertThat(dispatchEventTableCount).isEqualTo(1);
         assertThat(timelineEventTableCount).isEqualTo(1);
         assertThat(executionColumnCount).isEqualTo(7);
+        assertThat(videoDurationColumnCount).isEqualTo(1);
     }
 }
