@@ -45,6 +45,7 @@ Responsibilities:
 - Show source video metadata.
 - Show pipeline timeline.
 - Show current status and failure reason.
+- Prefer live SSE progress updates and keep polling fallback.
 - Show retry for failed jobs and cancel for queued, retrying, or processing jobs.
 - Show generated artifacts.
 

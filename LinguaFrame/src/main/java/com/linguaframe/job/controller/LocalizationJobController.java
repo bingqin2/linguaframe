@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
+import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.SubtitleService;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -34,6 +36,7 @@ public class LocalizationJobController {
     private final LocalizationJobQueryService queryService;
     private final LocalizationJobRetryService retryService;
     private final LocalizationJobCancellationService cancellationService;
+    private final LocalizationJobProgressStreamService progressStreamService;
     private final JobArtifactService artifactService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
@@ -42,6 +45,7 @@ public class LocalizationJobController {
             LocalizationJobQueryService queryService,
             LocalizationJobRetryService retryService,
             LocalizationJobCancellationService cancellationService,
+            LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
             TranscriptService transcriptService,
             SubtitleService subtitleService
@@ -49,6 +53,7 @@ public class LocalizationJobController {
         this.queryService = queryService;
         this.retryService = retryService;
         this.cancellationService = cancellationService;
+        this.progressStreamService = progressStreamService;
         this.artifactService = artifactService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
@@ -66,6 +71,11 @@ public class LocalizationJobController {
     @GetMapping("/{jobId}")
     public LocalizationJobVo getJob(@PathVariable String jobId) {
         return queryService.getJob(jobId);
+    }
+
+    @GetMapping(value = "/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamJobEvents(@PathVariable String jobId) {
+        return progressStreamService.streamJob(jobId);
     }
 
     @PostMapping("/{jobId}/retry")

@@ -6,6 +6,25 @@ import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type { LocalizationJob, LocalizationJobList, MediaUpload } from './domain/jobTypes';
 
+class FakeEventSource {
+  static instances: FakeEventSource[] = [];
+  onmessage: ((event: MessageEvent<string>) => void) | null = null;
+  onerror: (() => void) | null = null;
+  closed = false;
+
+  constructor(readonly url: string) {
+    FakeEventSource.instances.push(this);
+  }
+
+  emitJob(job: LocalizationJob) {
+    this.onmessage?.(new MessageEvent('message', { data: JSON.stringify(job) }));
+  }
+
+  close() {
+    this.closed = true;
+  }
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -284,6 +303,59 @@ describe('App', () => {
     expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('CANCELLED'))
       .toBeInTheDocument();
     expect(listJobs).toHaveBeenCalledTimes(2);
+  });
+
+  test('updates selected active job from server-sent events', async () => {
+    const originalEventSource = window.EventSource;
+    window.EventSource = FakeEventSource as unknown as typeof EventSource;
+    FakeEventSource.instances = [];
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'PROCESSING' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    try {
+      render(<App />);
+      await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+      await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+      await waitFor(() => expect(FakeEventSource.instances[0]?.url).toBe('/api/jobs/job-1/events'));
+      FakeEventSource.instances[0].emitJob(jobFixture({ status: 'COMPLETED' }));
+
+      expect(await screen.findByText('COMPLETED')).toBeInTheDocument();
+    } finally {
+      window.EventSource = originalEventSource;
+    }
+  });
+
+  test('falls back to polling when server-sent events error', async () => {
+    const originalEventSource = window.EventSource;
+    window.EventSource = FakeEventSource as unknown as typeof EventSource;
+    FakeEventSource.instances = [];
+    const getJob = vi
+      .spyOn(linguaFrameApi, 'getJob')
+      .mockResolvedValueOnce(jobFixture({ status: 'PROCESSING' }))
+      .mockResolvedValueOnce(jobFixture({ status: 'COMPLETED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    try {
+      render(<App pollIntervalMs={10} />);
+      await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+      await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+      await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+      FakeEventSource.instances[0].onerror?.();
+
+      await waitFor(() => expect(getJob).toHaveBeenCalledTimes(2));
+      await waitFor(() =>
+        expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
+          .toBeInTheDocument()
+      );
+    } finally {
+      window.EventSource = originalEventSource;
+    }
   });
 
   test('does not show cancel action for terminal jobs', async () => {

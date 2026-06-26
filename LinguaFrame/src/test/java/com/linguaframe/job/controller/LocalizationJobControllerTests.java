@@ -36,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -47,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -227,6 +229,17 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.retryCount").value(0))
                 .andExpect(jsonPath("$.timelineEvents").isArray())
                 .andExpect(jsonPath("$.timelineEvents").isEmpty());
+    }
+
+    @Test
+    void opensJobProgressEventStream() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T08:00:00Z");
+        createJob("job-controller-events-video", "job-controller-events-job", "events.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+
+        mockMvc.perform(get("/api/jobs/{jobId}/events", "job-controller-events-job"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, startsWith("text/event-stream")));
     }
 
     @Test

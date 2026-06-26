@@ -265,6 +265,7 @@ MVP frontend scope:
 - Subtitle-burned video preview.
 - Cost and usage summary.
 - Failed-job retry button.
+- Server-Sent Events for live selected-job progress with polling fallback.
 
 The frontend should not start as a marketing landing page. The first screen should be the working video localization experience.
 
@@ -273,7 +274,7 @@ The frontend should not start as a marketing landing page. The first screen shou
 Planned follow-up capabilities:
 
 - User accounts beyond a local demo user.
-- WebSocket or Server-Sent Events for live job progress.
+- WebSocket or cross-process event bus for hosted live job progress.
 - Segment-level TTS alignment.
 - Optional audio replacement in exported video.
 - Multiple voice choices.

@@ -308,6 +308,14 @@ Cost rates default to `0` in `.env.example` because provider pricing changes. Tr
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
 
+Live job progress is available through Server-Sent Events:
+
+```bash
+curl -N -H "Accept: text/event-stream" http://localhost:8080/api/jobs/{jobId}/events
+```
+
+The stream emits safe job-detail snapshots and closes after `COMPLETED`, `FAILED`, or `CANCELLED`. The React demo uses this stream when available and falls back to polling if the stream errors.
+
 Recent localization jobs can be listed without a browser-local cache:
 
 ```bash
