@@ -735,7 +735,7 @@ Append to `docs/progress/execution-log.md`:
 - Docker E2E result.
 - explicit note that this slice uses deterministic demo translation, not OpenAI.
 
-- [ ] **Step 5: Commit and merge**
+- [x] **Step 5: Commit and merge**
 
 After verification passes:
 
