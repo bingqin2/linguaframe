@@ -17,6 +17,16 @@ build/
 out/
 *.class
 
+# Node and frontend build output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+frontend/*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
 # Maven wrapper binary cache
 .mvn/wrapper/maven-wrapper.jar
 

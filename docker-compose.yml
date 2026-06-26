@@ -132,6 +132,17 @@ services:
       minio:
         condition: service_started
 
+  linguaframe-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      LINGUAFRAME_API_PROXY_TARGET: http://linguaframe-backend:8080
+    ports:
+      - "${LINGUAFRAME_FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      - linguaframe-backend
+
 volumes:
   mysql-data:
   redis-data:

@@ -36,14 +36,49 @@ Validate Compose configuration and rebuild the backend image:
 docker compose --env-file .env.example config
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
 docker compose --env-file .env.example build linguaframe-backend
+docker compose --env-file .env.example build linguaframe-frontend
 ```
 
 Expected:
 
-- Compose renders MySQL, Redis, RabbitMQ, MinIO, and backend services.
+- Compose renders MySQL, Redis, RabbitMQ, MinIO, backend, and frontend services.
 - Compose renders `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, `LINGUAFRAME_TTS_PROVIDER=demo`, `LINGUAFRAME_FFMPEG_BURN_IN_ENABLED=true`, all `LINGUAFRAME_COST_*` values, and empty OpenAI placeholders when using `.env.example`.
+- Compose renders `LINGUAFRAME_FRONTEND_PORT=5173` and `LINGUAFRAME_API_PROXY_TARGET=http://linguaframe-backend:8080`.
 - Maven builds `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
 - Docker builds `linguaframe-linguaframe-backend:latest`.
+- Docker builds `linguaframe-linguaframe-frontend:latest`.
+
+### Frontend Demo Verification
+
+Run frontend checks:
+
+```bash
+cd frontend
+npm run test:run
+npm run build
+```
+
+Expected:
+
+- Vitest exits with code 0.
+- Vite production build exits with code 0.
+
+With the Docker stack running, open:
+
+```text
+http://localhost:5173
+```
+
+Expected browser behavior:
+
+- Upload a short MP4 with a target language.
+- A recent job appears in the browser-local recent jobs list.
+- The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
+- Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
+- Transcript and subtitle preview panels render when backend preview data exists.
+- Artifact download links appear when artifacts exist.
+- Audio and video previews appear for `DUBBING_AUDIO` and `BURNED_VIDEO` artifacts.
+- Failed jobs show a retry button.
 
 ### Docker E2E Demo
 
