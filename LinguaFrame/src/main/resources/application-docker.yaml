@@ -31,6 +31,8 @@ linguaframe:
     binary-path: ${LINGUAFRAME_FFMPEG_BINARY_PATH:ffmpeg}
     audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:true}
     audio-timeout-seconds: ${LINGUAFRAME_FFMPEG_AUDIO_TIMEOUT_SECONDS:120}
+    burn-in-enabled: ${LINGUAFRAME_FFMPEG_BURN_IN_ENABLED:true}
+    burn-in-timeout-seconds: ${LINGUAFRAME_FFMPEG_BURN_IN_TIMEOUT_SECONDS:180}
     work-dir: ${LINGUAFRAME_FFMPEG_WORK_DIR:/tmp/linguaframe-media}
   transcription:
     enabled: ${LINGUAFRAME_TRANSCRIPTION_ENABLED:true}

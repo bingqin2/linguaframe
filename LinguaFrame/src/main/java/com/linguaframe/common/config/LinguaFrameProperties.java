@@ -232,6 +232,12 @@ public class LinguaFrameProperties {
         @Max(3600)
         private int audioTimeoutSeconds = 120;
 
+        private boolean burnInEnabled = false;
+
+        @Min(1)
+        @Max(3600)
+        private int burnInTimeoutSeconds = 180;
+
         @NotBlank
         private String workDir = "/tmp/linguaframe-media";
 
@@ -257,6 +263,22 @@ public class LinguaFrameProperties {
 
         public void setAudioTimeoutSeconds(int audioTimeoutSeconds) {
             this.audioTimeoutSeconds = audioTimeoutSeconds;
+        }
+
+        public boolean isBurnInEnabled() {
+            return burnInEnabled;
+        }
+
+        public void setBurnInEnabled(boolean burnInEnabled) {
+            this.burnInEnabled = burnInEnabled;
+        }
+
+        public int getBurnInTimeoutSeconds() {
+            return burnInTimeoutSeconds;
+        }
+
+        public void setBurnInTimeoutSeconds(int burnInTimeoutSeconds) {
+            this.burnInTimeoutSeconds = burnInTimeoutSeconds;
         }
 
         public String getWorkDir() {

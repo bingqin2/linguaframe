@@ -19,6 +19,7 @@ linguaframe:
     smoke-stage-failure-enabled: false
   ffmpeg:
     audio-enabled: false
+    burn-in-enabled: false
   transcription:
     enabled: false
     provider: demo
