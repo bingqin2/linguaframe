@@ -3,6 +3,7 @@ package com.linguaframe.media.service.impl;
 import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.service.MediaDurationProbeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -18,8 +19,6 @@ import java.util.concurrent.TimeUnit;
 public class FfprobeMediaDurationProbeService implements MediaDurationProbeService {
 
     private static final int PROBE_TIMEOUT_SECONDS = 30;
-    private static final int MAX_ERROR_SUMMARY_LENGTH = 240;
-
     private final LinguaFrameProperties properties;
     private final CommandRunner commandRunner;
 
@@ -62,7 +61,7 @@ public class FfprobeMediaDurationProbeService implements MediaDurationProbeServi
             throw new IllegalStateException("FFprobe duration probe timed out.");
         }
         if (result.exitCode() != 0) {
-            throw new IllegalStateException("FFprobe duration probe failed: " + safeErrorSummary(result.stderr()));
+            throw new UnreadableMediaException("The uploaded video could not be inspected.");
         }
 
         return new MediaDurationProbeResult(parseDurationSeconds(result.stdout()));
@@ -70,12 +69,12 @@ public class FfprobeMediaDurationProbeService implements MediaDurationProbeServi
 
     private double parseDurationSeconds(String stdout) {
         if (stdout == null || stdout.isBlank()) {
-            throw new IllegalStateException("FFprobe duration probe failed: missing duration output.");
+            throw new UnreadableMediaException("The uploaded video could not be inspected.");
         }
         try {
             return Double.parseDouble(stdout.trim());
         } catch (NumberFormatException ex) {
-            throw new IllegalStateException("FFprobe duration probe failed: invalid duration output.", ex);
+            throw new UnreadableMediaException("The uploaded video could not be inspected.");
         }
     }
 
@@ -89,17 +88,6 @@ public class FfprobeMediaDurationProbeService implements MediaDurationProbeServi
             return binaryPath.substring(0, binaryPath.length() - "ffmpeg".length()) + "ffprobe";
         }
         return "ffprobe";
-    }
-
-    private String safeErrorSummary(String stderr) {
-        if (stderr == null || stderr.isBlank()) {
-            return "Unknown FFprobe failure.";
-        }
-        String normalized = stderr.replaceAll("\\s+", " ").trim();
-        if (normalized.length() <= MAX_ERROR_SUMMARY_LENGTH) {
-            return normalized;
-        }
-        return normalized.substring(0, MAX_ERROR_SUMMARY_LENGTH);
     }
 
     public interface CommandRunner {

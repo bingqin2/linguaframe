@@ -1,6 +1,7 @@
 package com.linguaframe.media.controller;
 
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.service.MediaDurationProbeService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
@@ -81,6 +82,19 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void returnsBadRequestForUnreadableValidationFile() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any()))
+                .thenThrow(new UnreadableMediaException("The uploaded video could not be inspected."));
+        MockMultipartFile file = new MockMultipartFile("file", "broken.mp4", "video/mp4", new byte[] {1});
+
+        mockMvc.perform(multipart("/api/media/uploads/validate").file(file))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.code").value("UNREADABLE_MEDIA"))
+                .andExpect(jsonPath("$.durationSeconds").doesNotExist());
+    }
+
+    @Test
     void createsUploadAndQueuedJob() throws Exception {
         when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
         when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
@@ -120,6 +134,22 @@ class MediaUploadControllerTests {
                         .param("targetLanguage", "zh-CN"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("UPLOAD_VALIDATION_FAILED"));
+    }
+
+    @Test
+    void returnsBadRequestForUnreadableUploadFile() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any()))
+                .thenThrow(new UnreadableMediaException("The uploaded video could not be inspected."));
+        MockMultipartFile file = new MockMultipartFile("file", "broken.mp4", "video/mp4", new byte[] {1});
+
+        mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UPLOAD_VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.message").value(
+                        "UNREADABLE_MEDIA: The uploaded video could not be inspected."
+                ));
     }
 
     @Test

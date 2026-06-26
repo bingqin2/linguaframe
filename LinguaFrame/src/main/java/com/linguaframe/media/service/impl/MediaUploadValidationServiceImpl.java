@@ -4,6 +4,7 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.enums.MediaUploadValidationCode;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.service.MediaDurationProbeService;
 import com.linguaframe.media.service.MediaUploadValidationService;
@@ -80,7 +81,18 @@ public class MediaUploadValidationServiceImpl implements MediaUploadValidationSe
             );
         }
 
-        int durationSeconds = probeDurationSeconds(file, filename);
+        int durationSeconds;
+        try {
+            durationSeconds = probeDurationSeconds(file, filename);
+        } catch (UnreadableMediaException ex) {
+            return invalid(
+                    MediaUploadValidationCode.UNREADABLE_MEDIA,
+                    ex.getMessage(),
+                    filename,
+                    contentType,
+                    fileSizeBytes
+            );
+        }
         if (durationSeconds > properties.getMedia().getMaxDurationSeconds()) {
             return invalid(
                     MediaUploadValidationCode.DURATION_TOO_LONG,

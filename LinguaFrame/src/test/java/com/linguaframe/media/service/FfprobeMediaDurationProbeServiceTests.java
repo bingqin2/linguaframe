@@ -2,6 +2,7 @@ package com.linguaframe.media.service;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.service.impl.FfprobeMediaDurationProbeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -80,15 +81,41 @@ class FfprobeMediaDurationProbeServiceTests {
     }
 
     @Test
-    void failsWithBoundedSafeErrorSummary() throws IOException {
+    void failsUnreadableMediaWithoutLeakingFfprobeStderr() throws IOException {
         Path input = videoFile("bad.mp4");
-        RecordingCommandRunner runner = new RecordingCommandRunner("", "very long ffprobe stderr ".repeat(50), 1, false);
+        RecordingCommandRunner runner = new RecordingCommandRunner(
+                "",
+                "failed to inspect /Users/wangbingqin/Downloads/private.mp4 with sk-test-secret",
+                1,
+                false
+        );
         FfprobeMediaDurationProbeService service = new FfprobeMediaDurationProbeService(properties("ffmpeg"), runner);
 
         assertThatThrownBy(() -> service.probeDuration(new MediaDurationProbeCommand("bad.mp4", input)))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("FFprobe duration probe failed:")
-                .hasMessageNotContaining("repeat");
+                .isInstanceOf(UnreadableMediaException.class)
+                .hasMessage("The uploaded video could not be inspected.");
+    }
+
+    @Test
+    void failsUnreadableMediaWhenDurationOutputIsMissing() throws IOException {
+        Path input = videoFile("empty-output.mp4");
+        RecordingCommandRunner runner = new RecordingCommandRunner("", "", 0, false);
+        FfprobeMediaDurationProbeService service = new FfprobeMediaDurationProbeService(properties("ffmpeg"), runner);
+
+        assertThatThrownBy(() -> service.probeDuration(new MediaDurationProbeCommand("empty-output.mp4", input)))
+                .isInstanceOf(UnreadableMediaException.class)
+                .hasMessage("The uploaded video could not be inspected.");
+    }
+
+    @Test
+    void failsUnreadableMediaWhenDurationOutputIsInvalid() throws IOException {
+        Path input = videoFile("invalid-output.mp4");
+        RecordingCommandRunner runner = new RecordingCommandRunner("not-a-duration\n", "", 0, false);
+        FfprobeMediaDurationProbeService service = new FfprobeMediaDurationProbeService(properties("ffmpeg"), runner);
+
+        assertThatThrownBy(() -> service.probeDuration(new MediaDurationProbeCommand("invalid-output.mp4", input)))
+                .isInstanceOf(UnreadableMediaException.class)
+                .hasMessage("The uploaded video could not be inspected.");
     }
 
     private Path videoFile(String filename) throws IOException {

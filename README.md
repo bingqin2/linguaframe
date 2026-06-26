@@ -231,6 +231,8 @@ curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" http://localhost:8080/api/m
 
 The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
 
+Files with supported content types must also be inspectable by FFprobe. If LinguaFrame cannot inspect duration, the upload is rejected as `UNREADABLE_MEDIA` before storage or queue dispatch.
+
 Successful uploads store the source video in object storage, create a durable `UPLOADED` video record with detected `durationSeconds`, and create a `QUEUED` localization job:
 
 ```bash

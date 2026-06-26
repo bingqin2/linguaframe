@@ -741,3 +741,25 @@ Post-merge verification:
 - `mvn -pl LinguaFrame -Dtest=MediaUploadValidationServiceTests,MediaUploadControllerTests,MediaUploadServiceTests,UploadIntakeSchemaTests,VideoRepositoryTests,FfprobeMediaDurationProbeServiceTests,LinguaFramePropertiesTests test` passed on `main` with `Tests run: 37, Failures: 0, Errors: 0`.
 - `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added `UNREADABLE_MEDIA` validation for supported-content-type files whose duration cannot be inspected.
+- Converted FFprobe unreadable-media failures into structured upload validation responses without exposing FFprobe stderr.
+- Confirmed unreadable uploads do not reach object storage or job creation.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=FfprobeMediaDurationProbeServiceTests test` passed with `Tests run: 7, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadValidationServiceTests,MediaUploadServiceTests test` passed with `Tests run: 13, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests test` passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -q` first hit the local sandbox socket restriction while starting embedded Tomcat, then passed with local socket permissions and surefire reports summarized `Tests run: 182, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS: "300"`.
+- `rg -n "UNREADABLE_MEDIA|unreadable media|could not be inspected|before storage|FFprobe stderr" README.md docs/product/spec.md docs/progress/execution-log.md docs/plans/026-invalid-media-upload-validation.md` passed.
+- `git diff --check` passed.
+
+Notes:
+
+- Runtime FFprobe timeout and process I/O failures remain server errors; unreadable media metadata is treated as a user-facing upload validation failure.

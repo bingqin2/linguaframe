@@ -4,6 +4,7 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.enums.MediaUploadValidationCode;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.service.impl.MediaUploadValidationServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -124,9 +125,24 @@ class MediaUploadValidationServiceTests {
         assertThat(durationProbeService.probeCalls).isEqualTo(1);
     }
 
+    @Test
+    void returnsUnreadableMediaWhenDurationCannotBeInspected() {
+        durationProbeService.failure = new UnreadableMediaException("The uploaded video could not be inspected.");
+        MultipartFile file = new MockMultipartFile("file", "broken.mp4", "video/mp4", new byte[] {1});
+
+        MediaUploadValidationVo result = service.validate(file);
+
+        assertThat(result.valid()).isFalse();
+        assertThat(result.code()).isEqualTo(MediaUploadValidationCode.UNREADABLE_MEDIA);
+        assertThat(result.message()).isEqualTo("The uploaded video could not be inspected.");
+        assertThat(result.durationSeconds()).isNull();
+        assertThat(durationProbeService.probeCalls).isEqualTo(1);
+    }
+
     private static class RecordingMediaDurationProbeService implements MediaDurationProbeService {
 
         private double durationSeconds;
+        private RuntimeException failure;
         private int probeCalls;
 
         private RecordingMediaDurationProbeService(double durationSeconds) {
@@ -136,6 +152,9 @@ class MediaUploadValidationServiceTests {
         @Override
         public MediaDurationProbeResult probeDuration(MediaDurationProbeCommand command) {
             probeCalls++;
+            if (failure != null) {
+                throw failure;
+            }
             return new MediaDurationProbeResult(durationSeconds);
         }
     }

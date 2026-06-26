@@ -10,6 +10,7 @@ import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.JobDispatchOutboxServiceImpl;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
+import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.repository.VideoRepository;
@@ -125,6 +126,29 @@ class MediaUploadServiceTests {
         assertThatThrownBy(() -> service.createUpload(file, "zh-CN"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("DURATION_TOO_LONG");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
+    void rejectsUnreadableVideoBeforeStorage() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(
+                        properties,
+                        command -> {
+                            throw new UnreadableMediaException("The uploaded video could not be inspected.");
+                        }
+                ),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "broken.mp4", "video/mp4", new byte[] {1});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("UNREADABLE_MEDIA");
         assertThat(storageService.lastCommand).isNull();
     }
 
