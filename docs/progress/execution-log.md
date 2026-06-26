@@ -604,3 +604,30 @@ Final verification:
 - `mvn -pl LinguaFrame test` passed before merge.
 - Merged `react-demo-experience-mvp` back to `main` with merge commit `5922df6`.
 - `npm run test:run`, `npm run build`, `docker compose --env-file .env.example config`, and `mvn -pl LinguaFrame test -q` passed again on `main` after merge.
+
+## 2026-06-26
+
+Work:
+
+- Added lightweight job summary records for server-backed job history.
+- Added `GET /api/jobs` with newest-first ordering, optional `status` filtering, normalized `limit`/`offset`, total count, source filename, retry/failure metadata, and estimated cost summary.
+- Added frontend `listJobs` API support and typed job history list data.
+- Added a React `Job history` panel with status filtering, refresh, open-job behavior, and concise history-load failure handling.
+- Kept browser-local recent jobs and manual job id opening as fallback conveniences.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRepositoryTests test` first failed because summary query methods did not exist, then passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because `GET /api/jobs` did not exist, then passed with `Tests run: 16, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRepositoryTests,LocalizationJobControllerTests test` passed with `Tests run: 24, Failures: 0, Errors: 0`.
+- `npm run test:run -- linguaframeApi` first failed because `listJobs` did not exist, then passed with `Tests run: 8`.
+- `npm run test:run -- App` first failed because the App had no server-backed history UI, then passed with `Tests run: 11`.
+- `npm run test:run` passed with `Tests run: 23`.
+- `npm run build` passed.
+- `docker compose --env-file .env.example config` passed and rendered `linguaframe-frontend`.
+- `mvn -pl LinguaFrame test -q` passed; surefire reports summarized `Tests run: 156, Failures: 0, Errors: 0, Skipped: 0`.
+
+Notes:
+
+- The job list is global for the local self-hosted demo because there is no authentication or owner model yet.
+- This slice does not add user accounts, ownership filtering, deletion, cancellation, WebSocket/SSE progress, or admin analytics.

@@ -137,3 +137,11 @@ Decision: Build the first React demo as a Vite work surface that consumes existi
 Reason: The backend already exposes upload, job detail, retry, transcript, subtitle, artifact, cost, and model-call data. Reusing those APIs keeps the frontend slice focused on demo usability instead of expanding backend query scope.
 
 Impact: The browser demo tracks recent jobs in local storage until a server-side job list endpoint is added. Docker Compose now includes a `linguaframe-frontend` service that proxies `/api` to the backend container.
+
+## 2026-06-26
+
+Decision: Keep the local demo job history global until authentication and ownership exist.
+
+Reason: The current self-hosted demo has no user model, so adding owner scoping now would create fake authorization semantics. A global `GET /api/jobs` list is enough for local demo discovery and keeps the API honest about current product boundaries.
+
+Impact: The React demo now uses server-backed job history for discoverability, while browser-local recent jobs remain a fallback convenience. Hosted usage must add authentication and owner-scoped queries before exposing user media publicly.
