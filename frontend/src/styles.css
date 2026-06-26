@@ -289,6 +289,54 @@ td {
   margin: 4px 0 0;
 }
 
+.quality-overview,
+.quality-dimensions,
+.quality-lists {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.quality-overview {
+  margin-bottom: 12px;
+}
+
+.quality-overview span,
+.quality-dimensions dt {
+  color: #657482;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.quality-overview strong,
+.quality-dimensions dd {
+  display: block;
+  margin: 4px 0 0;
+}
+
+.quality-dimensions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 12px;
+}
+
+.quality-dimensions dd {
+  margin-left: 0;
+}
+
+.quality-lists {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quality-lists h4 {
+  margin: 0 0 6px;
+}
+
+.quality-lists ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
 .preview-grid,
 .media-grid {
   display: grid;
@@ -340,6 +388,9 @@ video {
   .workspace-grid,
   .status-grid,
   .metrics-grid,
+  .quality-overview,
+  .quality-dimensions,
+  .quality-lists,
   .preview-grid,
   .media-grid {
     grid-template-columns: 1fr;
