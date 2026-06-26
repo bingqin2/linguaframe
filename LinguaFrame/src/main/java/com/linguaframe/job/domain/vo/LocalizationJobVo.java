@@ -22,6 +22,8 @@ public record LocalizationJobVo(
         JobDispatchEventStatus dispatchStatus,
         int dispatchAttempts,
         Instant dispatchedAt,
-        List<JobTimelineEventVo> timelineEvents
+        List<JobTimelineEventVo> timelineEvents,
+        JobUsageSummaryVo usageSummary,
+        List<ModelCallVo> modelCalls
 ) {
 }

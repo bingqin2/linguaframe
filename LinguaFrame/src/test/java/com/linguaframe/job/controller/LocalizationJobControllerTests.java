@@ -1,5 +1,6 @@
 package com.linguaframe.job.controller;
 
+import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
@@ -14,10 +15,13 @@ import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.TranscriptService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.media.domain.entity.VideoRecord;
@@ -35,6 +39,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -47,7 +52,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "linguaframe.cost.translation-input-usd-per-million-tokens=0.15",
+        "linguaframe.cost.translation-output-usd-per-million-tokens=0.60"
+})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class LocalizationJobControllerTests {
@@ -77,6 +85,9 @@ class LocalizationJobControllerTests {
     private SubtitleService subtitleService;
 
     @Autowired
+    private ModelCallAuditService modelCallAuditService;
+
+    @Autowired
     private JdbcClient jdbcClient;
 
     @MockitoBean
@@ -84,6 +95,7 @@ class LocalizationJobControllerTests {
 
     @BeforeEach
     void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM model_call_records").update();
         jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
         jdbcClient.sql("DELETE FROM job_artifacts").update();
@@ -138,6 +150,54 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.retryCount").value(0))
                 .andExpect(jsonPath("$.timelineEvents").isArray())
                 .andExpect(jsonPath("$.timelineEvents").isEmpty());
+    }
+
+    @Test
+    void returnsLocalizationJobWithUsageSummaryAndModelCalls() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-26T18:00:00Z");
+        createJob("job-controller-video-usage", "job-controller-job-usage", createdAt);
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-job-usage",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                125L,
+                1000,
+                500,
+                null,
+                null
+        ));
+        modelCallAuditService.recordFailure(new CreateModelCallRecordCommand(
+                "job-controller-job-usage",
+                LocalizationJobStage.DUBBING_AUDIO_GENERATION,
+                ModelCallOperation.TTS,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini-tts",
+                "openai-tts-v1",
+                75L,
+                null,
+                null,
+                null,
+                null
+        ), "OpenAI TTS request failed with status 401");
+
+        mockMvc.perform(get("/api/jobs/{jobId}", "job-controller-job-usage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.usageSummary.modelCallCount").value(2))
+                .andExpect(jsonPath("$.usageSummary.failedModelCallCount").value(1))
+                .andExpect(jsonPath("$.usageSummary.totalLatencyMs").value(200))
+                .andExpect(jsonPath("$.usageSummary.estimatedCostUsd").value(0.00045000))
+                .andExpect(jsonPath("$.usageSummary.inputTokens").value(1000))
+                .andExpect(jsonPath("$.usageSummary.outputTokens").value(500))
+                .andExpect(jsonPath("$.modelCalls[0].operation").value("TRANSLATION"))
+                .andExpect(jsonPath("$.modelCalls[0].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.modelCalls[0].estimatedCostUsd").value(0.00045000))
+                .andExpect(jsonPath("$.modelCalls[1].operation").value("TTS"))
+                .andExpect(jsonPath("$.modelCalls[1].status").value("FAILED"))
+                .andExpect(jsonPath("$.modelCalls[1].safeErrorSummary")
+                        .value("OpenAI TTS request failed with status 401"));
     }
 
     @Test

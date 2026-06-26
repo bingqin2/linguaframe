@@ -495,7 +495,7 @@ git commit -m "Record provider model call audits"
   - `JobUsageSummaryVo usageSummary`
   - `List<ModelCallVo> modelCalls`
 
-- [ ] **Step 1: Write failing controller test**
+- [x] **Step 1: Write failing controller test**
 
 Add `returnsLocalizationJobWithUsageSummaryAndModelCalls()`:
 
@@ -524,7 +524,7 @@ mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test
 
 Expected: fail because `usageSummary` and `modelCalls` are not returned.
 
-- [ ] **Step 2: Attach usage to job detail**
+- [x] **Step 2: Attach usage to job detail**
 
 Modify `LocalizationJobVo`:
 
@@ -557,7 +557,7 @@ Use empty summary values when a job has no model calls:
 }
 ```
 
-- [ ] **Step 3: Extend execution pipeline coverage**
+- [x] **Step 3: Extend execution pipeline coverage**
 
 Update `LocalizationJobExecutionServiceTests#dubbingAudioStageCreatesArtifactAfterTargetSubtitleExport` or the current full-pipeline test so the in-memory/fake providers use a fake `ModelCallAuditService` and the test can assert the full pipeline still completes.
 
