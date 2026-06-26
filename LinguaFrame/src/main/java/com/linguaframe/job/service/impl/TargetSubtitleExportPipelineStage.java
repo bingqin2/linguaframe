@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.SubtitleExportService;
@@ -27,6 +28,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
     private final TranslationProvider translationProvider;
     private final SubtitleService subtitleService;
     private final SubtitleExportService subtitleExportService;
+    private final CostBudgetGuardService costBudgetGuardService;
 
     public TargetSubtitleExportPipelineStage(
             LinguaFrameProperties properties,
@@ -34,7 +36,8 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
             TranscriptService transcriptService,
             TranslationProvider translationProvider,
             SubtitleService subtitleService,
-            SubtitleExportService subtitleExportService
+            SubtitleExportService subtitleExportService,
+            CostBudgetGuardService costBudgetGuardService
     ) {
         this.properties = properties;
         this.artifactService = artifactService;
@@ -42,6 +45,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
         this.translationProvider = translationProvider;
         this.subtitleService = subtitleService;
         this.subtitleExportService = subtitleExportService;
+        this.costBudgetGuardService = costBudgetGuardService;
     }
 
     @Override
@@ -61,6 +65,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
         if (transcriptSegments.isEmpty()) {
             throw new IllegalStateException("Transcript segments not found.");
         }
+        costBudgetGuardService.assertWithinBudget(jobId, stage());
 
         TranslationResultBo result = translationProvider.translate(jobId, targetLanguage, transcriptSegments);
         List<SubtitleSegmentVo> subtitles = subtitleService.replaceSubtitles(jobId, targetLanguage, result);

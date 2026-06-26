@@ -11,6 +11,7 @@ import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.exception.CostBudgetExceededException;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -78,7 +79,8 @@ class DubbingAudioGenerationPipelineStageTests {
                 properties,
                 artifactService,
                 new RecordingSubtitleService(List.of()),
-                ttsProvider
+                ttsProvider,
+                new NoopCostBudgetGuardService()
         );
 
         assertThatThrownBy(() -> stage.execute(context()))
@@ -86,8 +88,32 @@ class DubbingAudioGenerationPipelineStageTests {
                 .hasMessage("Target subtitles not found for dubbing audio generation.");
     }
 
+    @Test
+    void budgetGuardStopsBeforeTtsProviderCall() {
+        properties.getTts().setEnabled(true);
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new FailingCostBudgetGuardService()
+        );
+
+        assertThatThrownBy(() -> stage.execute(context()))
+                .isInstanceOf(CostBudgetExceededException.class)
+                .hasMessageContaining("Job cost budget exceeded before DUBBING_AUDIO_GENERATION");
+        assertThat(ttsProvider.request).isNull();
+        assertThat(artifactService.commands).isEmpty();
+    }
+
     private DubbingAudioGenerationPipelineStage stage() {
-        return new DubbingAudioGenerationPipelineStage(properties, artifactService, subtitleService, ttsProvider);
+        return new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService()
+        );
     }
 
     private LocalizationJobExecutionContextBo context() {
@@ -165,6 +191,24 @@ class DubbingAudioGenerationPipelineStageTests {
                     "audio/mpeg",
                     0L,
                     new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8))
+            );
+        }
+    }
+
+    private static class NoopCostBudgetGuardService implements CostBudgetGuardService {
+
+        @Override
+        public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+        }
+    }
+
+    private static class FailingCostBudgetGuardService implements CostBudgetGuardService {
+
+        @Override
+        public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+            throw new CostBudgetExceededException(
+                    "Job cost budget exceeded before " + stage
+                            + ": current estimated cost 0.01 USD, limit 0.01 USD."
             );
         }
     }

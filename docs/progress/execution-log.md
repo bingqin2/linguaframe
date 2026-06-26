@@ -851,3 +851,27 @@ Post-merge verification:
 - `docker compose --env-file .env.example config` passed on `main`.
 - `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 190, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added opt-in per-job cost budget guard configuration with Docker and `.env.example` pass-through.
+- Added `CostBudgetGuardService` and `CostBudgetExceededException` using recorded `usageSummary.estimatedCostUsd` as the budget source.
+- Guarded transcription, translation, TTS, and quality evaluation pipeline stages before provider calls.
+- Documented budget guard behavior and the recorded-cost MVP boundary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,CostBudgetGuardServiceTests test` first failed because budget properties, guard service, and budget exception did not exist, then passed with `Tests run: 17, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests test` first failed because `DubbingAudioGenerationPipelineStage` did not accept a `CostBudgetGuardService`, then passed after guard wiring.
+- `mvn -pl LinguaFrame -Dtest=CostBudgetedPipelineStageTests test` passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,CostBudgetGuardServiceTests,DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 36, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,CostBudgetGuardServiceTests,CostBudgetedPipelineStageTests,DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 39, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED: "false"` and `LINGUAFRAME_COST_MAX_JOB_COST_USD: "0"`.
+- `git diff --check` passed.
+
+Notes:
+
+- The guard checks accumulated recorded estimated cost before the next AI stage. It intentionally does not forecast the next provider call cost.

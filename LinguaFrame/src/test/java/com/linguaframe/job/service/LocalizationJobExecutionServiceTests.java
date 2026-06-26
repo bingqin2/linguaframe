@@ -15,6 +15,7 @@ import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
+import com.linguaframe.job.domain.exception.CostBudgetExceededException;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -433,7 +434,8 @@ class LocalizationJobExecutionServiceTests {
                                 artifactService,
                                 transcriptionProvider,
                                 transcriptService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
                 ),
@@ -521,7 +523,8 @@ class LocalizationJobExecutionServiceTests {
                                 artifactService,
                                 transcriptionProvider,
                                 transcriptService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new TargetSubtitleExportPipelineStage(
                                 properties,
@@ -529,7 +532,8 @@ class LocalizationJobExecutionServiceTests {
                                 transcriptService,
                                 translationProvider,
                                 subtitleService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
                 ),
@@ -626,7 +630,8 @@ class LocalizationJobExecutionServiceTests {
                                 artifactService,
                                 transcriptionProvider,
                                 transcriptService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new TargetSubtitleExportPipelineStage(
                                 properties,
@@ -634,13 +639,15 @@ class LocalizationJobExecutionServiceTests {
                                 transcriptService,
                                 translationProvider,
                                 subtitleService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new DubbingAudioGenerationPipelineStage(
                                 properties,
                                 artifactService,
                                 subtitleService,
-                                ttsProvider
+                                ttsProvider,
+                                new NoopCostBudgetGuardService()
                         ),
                         new SubtitleBurnInPipelineStage(
                                 properties,
@@ -760,7 +767,8 @@ class LocalizationJobExecutionServiceTests {
                                 artifactService,
                                 transcriptionProvider,
                                 transcriptService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new TargetSubtitleExportPipelineStage(
                                 properties,
@@ -768,19 +776,22 @@ class LocalizationJobExecutionServiceTests {
                                 transcriptService,
                                 translationProvider,
                                 subtitleService,
-                                subtitleExportService
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new QualityEvaluationPipelineStage(
                                 properties,
                                 transcriptService,
                                 subtitleService,
-                                qualityEvaluationService
+                                qualityEvaluationService,
+                                new NoopCostBudgetGuardService()
                         ),
                         new DubbingAudioGenerationPipelineStage(
                                 properties,
                                 artifactService,
                                 subtitleService,
-                                ttsProvider
+                                ttsProvider,
+                                new NoopCostBudgetGuardService()
                         ),
                         new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
                 ),
@@ -823,6 +834,108 @@ class LocalizationJobExecutionServiceTests {
             properties.getTranscription().setEnabled(false);
             properties.getTranslation().setEnabled(false);
             properties.getEvaluation().setEnabled(false);
+            properties.getTts().setEnabled(false);
+        }
+    }
+
+    @Test
+    void budgetGuardFailureMarksJobFailedBeforeNextAiProviderCall(@TempDir Path tempDir)
+            throws IOException {
+        Instant now = Instant.parse("2026-06-27T02:00:00Z");
+        createJob("execution-video-budget", "execution-job-budget", LocalizationJobStatus.QUEUED, now);
+        byte[] sourceBytes = new byte[] {1, 2, 3};
+        byte[] audioBytes = new byte[] {7, 8, 9};
+        RecordingObjectStorageService objectStorageService = new RecordingObjectStorageService(sourceBytes);
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingFfmpegAudioExtractionService audioExtractionService = new RecordingFfmpegAudioExtractionService(
+                new ExtractedAudioBo("audio.wav", "audio/wav", audioBytes)
+        );
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        RecordingTranscriptionProvider transcriptionProvider = new RecordingTranscriptionProvider();
+        RecordingTranscriptService transcriptService = new RecordingTranscriptService();
+        RecordingSubtitleExportService subtitleExportService = new RecordingSubtitleExportService();
+        RecordingTranslationProvider translationProvider = new RecordingTranslationProvider();
+        RecordingSubtitleService subtitleService = new RecordingSubtitleService();
+        RecordingTtsProvider ttsProvider = new RecordingTtsProvider();
+        properties.getFfmpeg().setAudioEnabled(true);
+        properties.getTranscription().setEnabled(true);
+        properties.getTranslation().setEnabled(true);
+        properties.getTts().setEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(
+                        new WorkerSmokePipelineStage(properties),
+                        new AudioExtractionPipelineStage(
+                                properties,
+                                objectStorageService,
+                                workDirectoryService,
+                                audioExtractionService,
+                                artifactService
+                        ),
+                        new TranscriptSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptionProvider,
+                                transcriptService,
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
+                        ),
+                        new TargetSubtitleExportPipelineStage(
+                                properties,
+                                artifactService,
+                                transcriptService,
+                                translationProvider,
+                                subtitleService,
+                                subtitleExportService,
+                                new NoopCostBudgetGuardService()
+                        ),
+                        new DubbingAudioGenerationPipelineStage(
+                                properties,
+                                artifactService,
+                                subtitleService,
+                                ttsProvider,
+                                new FailingCostBudgetGuardService()
+                        ),
+                        new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
+                ),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-budget", "execution-video-budget", now));
+
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.FAILED);
+            assertThat(ttsProvider.request).isNull();
+            assertThat(jobRepository.findById("execution-job-budget"))
+                    .get()
+                    .satisfies(job -> {
+                        assertThat(job.status()).isEqualTo(LocalizationJobStatus.FAILED);
+                        assertThat(job.failureStage()).isEqualTo(LocalizationJobStage.DUBBING_AUDIO_GENERATION);
+                        assertThat(job.failureReason()).contains("Job cost budget exceeded before DUBBING_AUDIO_GENERATION");
+                    });
+            assertThat(timelineEventRepository.findByJobId("execution-job-budget"))
+                    .extracting(event -> event.stage() + ":" + event.status())
+                    .containsExactly(
+                            LocalizationJobStage.WORKER_RECEIVED + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.TARGET_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.FAILED
+                    );
+            assertThat(artifactService.commands)
+                    .extracting(CreateJobArtifactCommand::type)
+                    .doesNotContain(JobArtifactType.DUBBING_AUDIO, JobArtifactType.WORKER_SUMMARY);
+        } finally {
+            properties.getFfmpeg().setAudioEnabled(false);
+            properties.getTranscription().setEnabled(false);
+            properties.getTranslation().setEnabled(false);
             properties.getTts().setEnabled(false);
         }
     }
@@ -905,6 +1018,24 @@ class LocalizationJobExecutionServiceTests {
         public void execute(LocalizationJobExecutionContextBo context) {
             this.context = context;
             jobRepository.markCancelled(context.job().id(), cancelledAt);
+        }
+    }
+
+    private static class NoopCostBudgetGuardService implements CostBudgetGuardService {
+
+        @Override
+        public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+        }
+    }
+
+    private static class FailingCostBudgetGuardService implements CostBudgetGuardService {
+
+        @Override
+        public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+            throw new CostBudgetExceededException(
+                    "Job cost budget exceeded before " + stage
+                            + ": current estimated cost 0.01 USD, limit 0.01 USD."
+            );
         }
     }
 

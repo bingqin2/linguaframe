@@ -180,6 +180,7 @@ Upload Video
 - Cost tracking should include audio duration, token usage when available, TTS character count or audio length, call count, and processing duration.
 - The cost model must be configurable because provider pricing can change.
 - The UI should show estimated cost, not claim it is a billing source of truth.
+- A per-job budget guard can stop later AI stages before provider calls when accumulated estimated cost reaches a configured limit.
 
 ### AI Infrastructure And LLM Operations
 
@@ -193,7 +194,7 @@ Requirements:
 - Each model call records job id, stage, operation type, model, prompt version, latency, usage, estimated cost, status, and safe error summary.
 - Translation quality evaluation can run as a separate LLM-backed stage after subtitle translation.
 - Evaluation records should capture score, detected issues, and suggested fixes without blocking the whole pipeline by default.
-- Cost budgets can stop or skip expensive stages before they run.
+- Per-job cost budgets can stop expensive stages before provider calls once recorded estimated spend reaches the configured limit.
 - Content-hash caching can avoid duplicate transcription or translation work for repeated inputs.
 - AI infrastructure features should be observable in job detail and admin-facing views.
 
@@ -292,7 +293,7 @@ Planned follow-up capabilities:
 - LLM-based translation quality evaluation.
 - Content-hash caching for duplicate audio transcription and subtitle translation.
 - Worker-pool split between CPU-bound FFmpeg stages and API-bound OpenAI stages.
-- Per-user or per-job AI cost budgets that can stop expensive stages before execution.
+- Per-user AI cost budgets that can stop expensive stages before execution.
 
 ## Success Criteria
 
