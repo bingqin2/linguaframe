@@ -587,8 +587,18 @@ Validation:
 - `npm run test:run -- App` first failed because the placeholder App had no upload, job-open, polling, retry, preview, or artifact UI, then passed with `Tests run: 7`.
 - `npm run test:run` passed with `Tests run: 16`.
 - `npm run build` passed.
+- `docker compose --env-file .env.example config` passed and rendered `linguaframe-frontend`, `LINGUAFRAME_API_PROXY_TARGET=http://linguaframe-backend:8080`, and published frontend port `5173`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 140, Failures: 0, Errors: 0`.
+- Browser smoke opened `http://localhost:5173/` and verified the page title, upload file input, target-language input, manual job id opener, upload/open buttons, recent jobs area, and empty selected-job state.
 
 Notes:
 
 - The frontend uses local storage for recent uploaded/opened jobs because the backend does not yet expose `GET /api/jobs`.
 - The first browser screen is the actual demo workspace, not a marketing page.
+
+Final verification:
+
+- `npm run test:run` passed with `Tests run: 16`.
+- `npm run build` passed.
+- `docker compose --env-file .env.example config` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 140, Failures: 0, Errors: 0`.
