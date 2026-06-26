@@ -268,3 +268,32 @@ Notes:
 
 - The worker lifecycle is observable and retryable, but still uses a deterministic smoke stage only.
 - This slice intentionally does not run FFmpeg, OpenAI calls, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.
+
+## 2026-06-26
+
+Work:
+
+- Added Docker E2E demo scripts for successful worker execution and forced failure/retry.
+- Added a non-secret smoke-stage failure toggle for local demo verification.
+- Added RabbitMQ JSON message conversion so queued job records can be published and consumed in the live Docker stack.
+- Changed the backend Docker image to copy the locally packaged Spring Boot jar, avoiding container-internal Maven dependency resolution during local demo builds.
+- Documented the repeatable Docker demo workflow in README, the agent demo guide, and the smoke-test checklist.
+
+Validation:
+
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed before implementation with `Tests run: 54, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests,LocalizationJobExecutionServiceTests` first failed because `smokeStageFailureEnabled` getters/setters did not exist, then passed with `Tests run: 9, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=RabbitJobQueueConfigurationTests` first failed because no Rabbit `MessageConverter` bean existed, then passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LinguaFramePropertiesTests,LocalizationJobExecutionServiceTests,RabbitJobQueueConfigurationTests` passed in final verification with `Tests run: 11, Failures: 0, Errors: 0`.
+- `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn test` passed in final verification with `Tests run: 57, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=false`.
+- Initial `docker compose --env-file .env.example build linguaframe-backend` failed inside the Maven build container because Maven Central was unreachable for `spring-boot-dependencies:3.5.15`; after switching to local jar packaging, `JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests` passed and `docker compose --env-file .env.example build linguaframe-backend` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh`, `bash -n scripts/demo/docker-e2e-success.sh`, and `bash -n scripts/demo/docker-e2e-retry.sh` passed.
+- `scripts/demo/docker-e2e-success.sh` passed against the live Docker stack and printed `status=COMPLETED` for job `00344608-8aa8-4ecd-9176-20a8c9c1664c`.
+- Forced smoke-stage failure reached `status=FAILED` for job `379eaf6f-d143-45d3-9920-1a15d6ad9be8`; retry after restarting the backend with failure disabled returned `RETRYING` and then reached `status=COMPLETED` with `retryCount=1`.
+- `docker compose --env-file .env.example down` stopped and removed live verification containers.
+
+Notes:
+
+- The demo scripts create tiny local sample files under `/tmp/linguaframe-demo`; generated samples are not committed.
+- This slice still does not run FFmpeg, OpenAI, subtitle generation, TTS, frontend UI, authentication, or Redis behavior.

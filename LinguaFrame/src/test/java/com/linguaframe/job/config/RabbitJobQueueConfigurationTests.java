@@ -1,6 +1,8 @@
 package com.linguaframe.job.config;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
@@ -23,6 +25,9 @@ class RabbitJobQueueConfigurationTests {
     @Autowired
     private Binding localizationJobBinding;
 
+    @Autowired
+    private MessageConverter rabbitMessageConverter;
+
     @Test
     void declaresDurableLocalizationJobTopology() {
         assertThat(localizationJobExchange.getName()).isEqualTo("linguaframe.jobs");
@@ -32,5 +37,10 @@ class RabbitJobQueueConfigurationTests {
         assertThat(localizationJobBinding.getExchange()).isEqualTo("linguaframe.jobs");
         assertThat(localizationJobBinding.getRoutingKey()).isEqualTo("localization.queued");
         assertThat(localizationJobBinding.getDestination()).isEqualTo("linguaframe.localization.jobs");
+    }
+
+    @Test
+    void usesJsonMessageConverterForJobMessages() {
+        assertThat(rabbitMessageConverter).isInstanceOf(Jackson2JsonMessageConverter.class);
     }
 }

@@ -113,6 +113,8 @@ public class LinguaFrameProperties {
         @Max(60000)
         private long smokeStageDurationMs = 0L;
 
+        private boolean smokeStageFailureEnabled = false;
+
         public int getMaxRetries() {
             return maxRetries;
         }
@@ -167,6 +169,14 @@ public class LinguaFrameProperties {
 
         public void setSmokeStageDurationMs(long smokeStageDurationMs) {
             this.smokeStageDurationMs = smokeStageDurationMs;
+        }
+
+        public boolean isSmokeStageFailureEnabled() {
+            return smokeStageFailureEnabled;
+        }
+
+        public void setSmokeStageFailureEnabled(boolean smokeStageFailureEnabled) {
+            this.smokeStageFailureEnabled = smokeStageFailureEnabled;
         }
     }
 

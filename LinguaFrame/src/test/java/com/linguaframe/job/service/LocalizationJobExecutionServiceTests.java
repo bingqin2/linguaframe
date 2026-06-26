@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
+import com.linguaframe.job.service.impl.WorkerSmokePipelineStage;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -41,6 +42,9 @@ class LocalizationJobExecutionServiceTests {
 
     @Autowired
     private JdbcClient jdbcClient;
+
+    @Autowired
+    private com.linguaframe.common.config.LinguaFrameProperties properties;
 
     @BeforeEach
     void cleanDatabase() {
@@ -167,6 +171,35 @@ class LocalizationJobExecutionServiceTests {
                     assertThat(event.status()).isEqualTo(JobTimelineEventStatus.FAILED);
                     assertThat(event.errorSummary()).contains("stage exploded");
                 });
+    }
+
+    @Test
+    void smokeStageFailureToggleMarksJobFailed() {
+        Instant now = Instant.parse("2026-06-26T18:00:00Z");
+        createJob("execution-video-5", "execution-job-5", LocalizationJobStatus.QUEUED, now);
+        properties.getWorker().setSmokeStageFailureEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(new WorkerSmokePipelineStage(properties)),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-5", "execution-video-5", now));
+
+            assertThat(result.executed()).isTrue();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.FAILED);
+            assertThat(jobRepository.findById("execution-job-5"))
+                    .get()
+                    .satisfies(job -> {
+                        assertThat(job.status()).isEqualTo(LocalizationJobStatus.FAILED);
+                        assertThat(job.failureStage()).isEqualTo(LocalizationJobStage.WORKER_SMOKE);
+                        assertThat(job.failureReason()).contains("Demo smoke stage failure");
+                    });
+        } finally {
+            properties.getWorker().setSmokeStageFailureEnabled(false);
+        }
     }
 
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {

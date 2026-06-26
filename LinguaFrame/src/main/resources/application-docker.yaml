@@ -26,6 +26,7 @@ linguaframe:
     dispatch-interval-ms: ${LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS:5000}
     execution-enabled: ${LINGUAFRAME_WORKER_EXECUTION_ENABLED:true}
     smoke-stage-duration-ms: ${LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS:0}
+    smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
   database:
     host: ${MYSQL_HOST:mysql}
     port: ${MYSQL_PORT:3306}

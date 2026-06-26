@@ -16,3 +16,4 @@ linguaframe:
   worker:
     dispatch-enabled: false
     execution-enabled: false
+    smoke-stage-failure-enabled: false

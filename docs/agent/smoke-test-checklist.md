@@ -36,6 +36,22 @@ Expected:
 - Backend starts and connects to dependencies.
 - Frontend starts after it is added.
 
+## Docker E2E Demo Smoke Test
+
+Run after the Docker stack is healthy:
+
+```bash
+scripts/demo/docker-e2e-success.sh
+```
+
+Expected:
+
+- Docker stack starts with `docker compose --env-file .env.example up --build`.
+- `scripts/demo/docker-e2e-success.sh` prints `status=COMPLETED`.
+- Forced smoke-stage failure produces `status=FAILED`.
+- Retry after disabling failure produces `status=COMPLETED`.
+- Job timeline includes worker receive, smoke stage, and completion events.
+
 ## Upload Smoke Test
 
 Input:

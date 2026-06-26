@@ -3,6 +3,8 @@
 .vscode
 .DS_Store
 **/target
+!LinguaFrame/target
+!LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar
 **/build
 **/out
 logs

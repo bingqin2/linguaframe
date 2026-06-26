@@ -32,6 +32,7 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().getDispatchIntervalMs()).isEqualTo(5000L);
         assertThat(properties.getWorker().isExecutionEnabled()).isFalse();
         assertThat(properties.getWorker().getSmokeStageDurationMs()).isEqualTo(0L);
+        assertThat(properties.getWorker().isSmokeStageFailureEnabled()).isFalse();
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
@@ -51,6 +52,17 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getStorage().getBucket()).isEqualTo("linguaframe-artifacts");
         assertThat(properties.getStorage().getAccessKey()).isEqualTo("linguaframe");
         assertThat(properties.getStorage().getSecretKey()).isEqualTo("linguaframe_minio_password");
+    }
+
+    @Test
+    void bindsDemoWorkerSmokeFailureToggle() {
+        contextRunner
+                .withPropertyValues("linguaframe.worker.smoke-stage-failure-enabled=true")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getWorker().isSmokeStageFailureEnabled()).isTrue();
+                });
     }
 
     @Test

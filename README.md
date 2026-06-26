@@ -67,6 +67,7 @@ Planned AI infrastructure capabilities:
 - `docs/product/backend-code-standard.md` - backend package and coding rules.
 - `docs/agent/vibe-coding.md` - AI-assisted development guardrails.
 - `docs/agent/smoke-test-checklist.md` - repeatable demo validation checklist.
+- `docs/agent/docker-e2e-demo.md` - Docker backend E2E demo workflow.
 
 ## Local Development Target
 
@@ -103,11 +104,12 @@ Local Docker runtime commands:
 
 ```bash
 docker compose --env-file .env.example config
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
 docker compose --env-file .env.example build linguaframe-backend
 docker compose --env-file .env.example up
 ```
 
-The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, and the Spring Boot backend. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
+The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, and the Spring Boot backend. The backend image copies the locally packaged Spring Boot jar, so run the Maven package command before rebuilding the image. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
 
 ## Runtime Configuration
 
@@ -124,6 +126,7 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.worker.dispatch-interval-ms`
 - `linguaframe.worker.execution-enabled`
 - `linguaframe.worker.smoke-stage-duration-ms`
+- `linguaframe.worker.smoke-stage-failure-enabled`
 - `linguaframe.cost.enabled`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
@@ -210,6 +213,7 @@ The Docker profile enables a RabbitMQ worker listener by default:
 ```text
 LINGUAFRAME_WORKER_EXECUTION_ENABLED=true
 LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS=0
+LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=false
 ```
 
 The worker consumes queued localization messages, claims only `QUEUED` or `RETRYING` jobs, runs a deterministic smoke stage, records timeline events, and marks jobs `COMPLETED` or `FAILED`. Local and test profiles keep worker execution disabled unless explicitly overridden.
@@ -225,6 +229,18 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
 This worker execution MVP does not run FFmpeg, OpenAI processing, subtitle generation, or TTS. The smoke stage exists to prove the queue-to-worker lifecycle before real media stages are added.
+
+## Docker E2E Demo
+
+After starting the Docker stack, run the successful backend demo:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env.example up --build
+scripts/demo/docker-e2e-success.sh
+```
+
+The script uploads a tiny local sample file, waits for dispatch and worker execution, then prints the completed job timeline. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 ## Resume Target
 

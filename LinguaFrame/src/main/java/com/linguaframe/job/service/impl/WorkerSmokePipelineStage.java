@@ -22,6 +22,10 @@ public class WorkerSmokePipelineStage implements LocalizationPipelineStage {
 
     @Override
     public void execute(LocalizationJobExecutionContextBo context) {
+        if (properties.getWorker().isSmokeStageFailureEnabled()) {
+            throw new IllegalStateException("Demo smoke stage failure is enabled.");
+        }
+
         long durationMs = properties.getWorker().getSmokeStageDurationMs();
         if (durationMs <= 0) {
             return;
