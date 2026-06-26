@@ -673,3 +673,11 @@ Final verification before merge:
 - `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_EVALUATION_ENABLED: "false"`, `LINGUAFRAME_EVALUATION_PROVIDER: demo`, `OPENAI_EVALUATION_MODEL: ""`, and `OPENAI_EVALUATION_TIMEOUT_SECONDS: "60"`.
 - `mvn -pl LinguaFrame test -q` passed with local socket permissions; surefire reports summarized `Tests run: 167, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `translation-quality-evaluation-mvp` back to `main` with merge commit `7d42b51`.
+- `npm run test:run` passed on `main` with `Tests run: 23`.
+- `npm run build` passed on `main`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered the evaluation environment variables.
+- `mvn -pl LinguaFrame test -q` passed on `main` with local socket permissions; surefire reports summarized `Tests run: 167, Failures: 0, Errors: 0, Skipped: 0`.
