@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.SubtitleService;
@@ -32,6 +33,7 @@ public class LocalizationJobController {
 
     private final LocalizationJobQueryService queryService;
     private final LocalizationJobRetryService retryService;
+    private final LocalizationJobCancellationService cancellationService;
     private final JobArtifactService artifactService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
@@ -39,12 +41,14 @@ public class LocalizationJobController {
     public LocalizationJobController(
             LocalizationJobQueryService queryService,
             LocalizationJobRetryService retryService,
+            LocalizationJobCancellationService cancellationService,
             JobArtifactService artifactService,
             TranscriptService transcriptService,
             SubtitleService subtitleService
     ) {
         this.queryService = queryService;
         this.retryService = retryService;
+        this.cancellationService = cancellationService;
         this.artifactService = artifactService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
@@ -67,6 +71,11 @@ public class LocalizationJobController {
     @PostMapping("/{jobId}/retry")
     public LocalizationJobVo retryJob(@PathVariable String jobId) {
         return retryService.retryFailedJob(jobId);
+    }
+
+    @PostMapping("/{jobId}/cancel")
+    public LocalizationJobVo cancelJob(@PathVariable String jobId) {
+        return cancellationService.cancelJob(jobId);
     }
 
     @GetMapping("/{jobId}/artifacts")

@@ -438,6 +438,35 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void cancelsQueuedLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:40:00Z");
+        createJob("job-controller-cancel-video", "job-controller-cancel-job", createdAt);
+
+        mockMvc.perform(post("/api/jobs/{jobId}/cancel", "job-controller-cancel-job"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-cancel-job"))
+                .andExpect(jsonPath("$.status").value("CANCELLED"))
+                .andExpect(jsonPath("$.completedAt").exists())
+                .andExpect(jsonPath("$.timelineEvents[0].message").value("Cancellation requested."));
+    }
+
+    @Test
+    void rejectsCompletedLocalizationJobCancellation() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:50:00Z");
+        createJob(
+                "job-cancel-completed-video",
+                "job-controller-cancel-completed",
+                "done.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+
+        mockMvc.perform(post("/api/jobs/{jobId}/cancel", "job-controller-cancel-completed"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    @Test
     void listsArtifactsForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T22:00:00Z");
         createJob("job-controller-video-artifact", "job-controller-job-artifact", createdAt);

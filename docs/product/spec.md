@@ -205,6 +205,7 @@ These capabilities are follow-up engineering depth after the core upload-to-arti
 - Failure records must include the failed stage, safe error summary, retry count, and timestamp.
 - The user or operator can retry a failed job.
 - Retry should resume from the appropriate durable stage when possible, or restart the pipeline safely when simpler.
+- The user or operator can cancel queued, retrying, or processing jobs; cancellation is soft and stops the worker before the next durable pipeline stage.
 - The system must not duplicate artifacts silently after retries.
 - Failed OpenAI or FFmpeg calls should not corrupt previously generated artifacts.
 

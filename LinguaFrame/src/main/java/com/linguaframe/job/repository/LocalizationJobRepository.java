@@ -237,6 +237,43 @@ public class LocalizationJobRepository {
         return updated == 1;
     }
 
+    public boolean markCancelled(String jobId, Instant cancelledAt) {
+        int updated = jdbcClient.sql("""
+                        UPDATE localization_jobs
+                        SET status = :cancelledStatus,
+                            completed_at = :completedAt,
+                            failed_at = NULL,
+                            failure_stage = NULL,
+                            failure_reason = NULL,
+                            updated_at = :updatedAt
+                        WHERE id = :id
+                          AND status IN (:queuedStatus, :retryingStatus, :processingStatus)
+                        """)
+                .param("cancelledStatus", LocalizationJobStatus.CANCELLED.name())
+                .param("completedAt", Timestamp.from(cancelledAt))
+                .param("updatedAt", Timestamp.from(cancelledAt))
+                .param("id", jobId)
+                .param("queuedStatus", LocalizationJobStatus.QUEUED.name())
+                .param("retryingStatus", LocalizationJobStatus.RETRYING.name())
+                .param("processingStatus", LocalizationJobStatus.PROCESSING.name())
+                .update();
+        return updated == 1;
+    }
+
+    public boolean isCancelled(String jobId) {
+        Boolean cancelled = jdbcClient.sql("""
+                        SELECT COUNT(*) > 0
+                        FROM localization_jobs
+                        WHERE id = :id
+                          AND status = :cancelledStatus
+                        """)
+                .param("id", jobId)
+                .param("cancelledStatus", LocalizationJobStatus.CANCELLED.name())
+                .query(Boolean.class)
+                .single();
+        return Boolean.TRUE.equals(cancelled);
+    }
+
     private LocalizationJobRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         String failureStage = rs.getString("failure_stage");
         return new LocalizationJobRecord(

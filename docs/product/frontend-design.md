@@ -45,7 +45,7 @@ Responsibilities:
 - Show source video metadata.
 - Show pipeline timeline.
 - Show current status and failure reason.
-- Show retry or cancel actions when allowed.
+- Show retry for failed jobs and cancel for queued, retrying, or processing jobs.
 - Show generated artifacts.
 
 ### Subtitle Preview

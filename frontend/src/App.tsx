@@ -14,6 +14,7 @@ import { loadRecentJobs, RecentJob, saveRecentJob } from './domain/recentJobs';
 
 const POLL_INTERVAL_MS = 5000;
 const TERMINAL_STATUSES = new Set(['COMPLETED', 'FAILED', 'CANCELLED']);
+const CANCELLABLE_STATUSES = new Set(['QUEUED', 'RETRYING', 'PROCESSING']);
 const HISTORY_LIMIT = 20;
 const HISTORY_STATUSES: Array<LocalizationJobStatus | 'ALL'> = [
   'ALL',
@@ -42,6 +43,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
@@ -50,6 +52,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
+  const canCancel = job ? CANCELLABLE_STATUSES.has(job.status) : false;
 
   const loadJob = useCallback(
     async (jobId: string, options: { silent?: boolean } = {}) => {
@@ -195,6 +198,24 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleCancel() {
+    if (!job) {
+      return;
+    }
+
+    setIsCancelling(true);
+    try {
+      const cancelledJob = await linguaFrameApi.cancelJob(job.jobId);
+      setJob(cancelledJob);
+      setError(null);
+      await loadHistory(historyStatusFilter);
+    } catch (cancelError) {
+      setError(toErrorMessage(cancelError));
+    } finally {
+      setIsCancelling(false);
+    }
+  }
+
   async function openRecentJob(recentJob: RecentJob) {
     setSelectedRecentJob(recentJob);
     setManualJobId(recentJob.jobId);
@@ -334,11 +355,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         <section className="job-surface" aria-label="Selected job">
           {job ? (
             <JobDetail
+              canCancel={canCancel}
               canRetry={canRetry}
+              isCancelling={isCancelling}
               isLoadingJob={isLoadingJob}
               isRetrying={isRetrying}
               artifacts={artifacts}
               job={job}
+              onCancel={handleCancel}
               onRetry={handleRetry}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
@@ -358,22 +382,28 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 }
 
 function JobDetail({
+  canCancel,
   canRetry,
+  isCancelling,
   isLoadingJob,
   isRetrying,
   artifacts,
   job,
+  onCancel,
   onRetry,
   previewErrors,
   selectedLanguage,
   subtitles,
   transcript
 }: {
+  canCancel: boolean;
   canRetry: boolean;
+  isCancelling: boolean;
   isLoadingJob: boolean;
   isRetrying: boolean;
   artifacts: JobArtifact[];
   job: LocalizationJob;
+  onCancel: () => void;
   onRetry: () => void;
   previewErrors: string[];
   selectedLanguage: string;
@@ -405,6 +435,16 @@ function JobDetail({
         </div>
         <div className="job-actions">
           {isLoadingJob ? <span className="muted">Refreshing...</span> : null}
+          {canCancel ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCancel}
+              disabled={isCancelling}
+            >
+              {isCancelling ? 'Cancelling...' : 'Cancel'}
+            </button>
+          ) : null}
           {canRetry ? (
             <button type="button" onClick={onRetry} disabled={isRetrying}>
               {isRetrying ? 'Retrying...' : 'Retry'}

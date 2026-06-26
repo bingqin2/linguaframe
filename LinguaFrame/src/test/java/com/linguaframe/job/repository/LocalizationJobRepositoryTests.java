@@ -165,6 +165,43 @@ class LocalizationJobRepositoryTests {
     }
 
     @Test
+    void marksQueuedRetryingAndProcessingJobsCancelled() {
+        Instant now = Instant.parse("2026-06-27T03:00:00Z");
+        createJob("video-cancel-queued", "job-cancel-queued", LocalizationJobStatus.QUEUED, now);
+        createJob("video-cancel-retrying", "job-cancel-retrying", LocalizationJobStatus.RETRYING, now);
+        createJob("video-cancel-processing", "job-cancel-processing", LocalizationJobStatus.PROCESSING, now);
+
+        assertThat(jobRepository.markCancelled("job-cancel-queued", now.plusSeconds(1))).isTrue();
+        assertThat(jobRepository.markCancelled("job-cancel-retrying", now.plusSeconds(2))).isTrue();
+        assertThat(jobRepository.markCancelled("job-cancel-processing", now.plusSeconds(3))).isTrue();
+
+        assertThat(jobRepository.findById("job-cancel-processing"))
+                .get()
+                .satisfies(job -> {
+                    assertThat(job.status()).isEqualTo(LocalizationJobStatus.CANCELLED);
+                    assertThat(job.completedAt()).isEqualTo(now.plusSeconds(3));
+                    assertThat(job.failedAt()).isNull();
+                    assertThat(job.failureStage()).isNull();
+                    assertThat(job.failureReason()).isNull();
+                    assertThat(job.updatedAt()).isEqualTo(now.plusSeconds(3));
+                });
+    }
+
+    @Test
+    void doesNotCancelTerminalJobsAndDetectsCancelledJobs() {
+        Instant now = Instant.parse("2026-06-27T03:10:00Z");
+        createJob("video-cancel-completed", "job-cancel-completed", LocalizationJobStatus.COMPLETED, now);
+        createJob("video-cancel-failed", "job-cancel-failed", LocalizationJobStatus.FAILED, now);
+        createJob("video-cancel-cancelled", "job-cancel-cancelled", LocalizationJobStatus.CANCELLED, now);
+
+        assertThat(jobRepository.markCancelled("job-cancel-completed", now.plusSeconds(1))).isFalse();
+        assertThat(jobRepository.markCancelled("job-cancel-failed", now.plusSeconds(1))).isFalse();
+        assertThat(jobRepository.markCancelled("job-cancel-cancelled", now.plusSeconds(1))).isFalse();
+        assertThat(jobRepository.isCancelled("job-cancel-cancelled")).isTrue();
+        assertThat(jobRepository.isCancelled("missing-job")).isFalse();
+    }
+
+    @Test
     void findsJobSummariesOrderedNewestFirstWithEstimatedCost() {
         Instant base = Instant.parse("2026-06-26T13:00:00Z");
         createJob("video-summary-old", "job-summary-old", LocalizationJobStatus.COMPLETED, base);

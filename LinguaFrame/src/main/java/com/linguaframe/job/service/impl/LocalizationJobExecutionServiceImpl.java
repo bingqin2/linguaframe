@@ -80,6 +80,9 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
         LocalizationJobExecutionContextBo context = new LocalizationJobExecutionContextBo(claimedJob, message, startedAt);
         for (LocalizationPipelineStage stage : stages) {
             Instant stageStartedAt = Instant.now(clock);
+            if (isCancelled(job.id())) {
+                return cancelled(job.id(), stage.stage(), stageStartedAt);
+            }
             saveTimeline(job.id(), stage.stage(), JobTimelineEventStatus.STARTED,
                     stage.stage().name() + " started.", null, null, stageStartedAt);
             try {
@@ -94,6 +97,9 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             Instant stageFinishedAt = Instant.now(clock);
             saveTimeline(job.id(), stage.stage(), JobTimelineEventStatus.SUCCEEDED,
                     stage.stage().name() + " succeeded.", durationMs(stageStartedAt, stageFinishedAt), null, stageFinishedAt);
+            if (isCancelled(job.id())) {
+                return cancelled(job.id(), stage.stage(), stageFinishedAt);
+            }
         }
 
         Instant completedAt = Instant.now(clock);
@@ -112,6 +118,20 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
         jobRepository.markFailed(jobId, stage, error, occurredAt);
         saveTimeline(jobId, stage, JobTimelineEventStatus.FAILED, stage.name() + " failed.", null, error, occurredAt);
         return new LocalizationJobExecutionResultVo(jobId, true, LocalizationJobStatus.FAILED);
+    }
+
+    private boolean isCancelled(String jobId) {
+        return jobRepository.isCancelled(jobId);
+    }
+
+    private LocalizationJobExecutionResultVo cancelled(
+            String jobId,
+            LocalizationJobStage stage,
+            Instant occurredAt
+    ) {
+        saveTimeline(jobId, stage, JobTimelineEventStatus.SKIPPED,
+                "Localization job cancelled.", null, null, occurredAt);
+        return new LocalizationJobExecutionResultVo(jobId, true, LocalizationJobStatus.CANCELLED);
     }
 
     private void saveTimeline(

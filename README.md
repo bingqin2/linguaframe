@@ -361,6 +361,14 @@ curl -X POST http://localhost:8080/api/jobs/{jobId}/retry
 
 Retry is allowed only for `FAILED` jobs. It moves the job to `RETRYING`, increments `retryCount`, clears failure metadata, and creates a new pending dispatch event.
 
+Active jobs can be cancelled:
+
+```bash
+curl -X POST http://localhost:8080/api/jobs/{jobId}/cancel
+```
+
+Cancellation is allowed for `QUEUED`, `RETRYING`, and `PROCESSING` jobs. It marks the job `CANCELLED`, records a timeline event, keeps any existing artifacts, and makes the worker stop before the next pipeline stage. Terminal jobs return `409 CONFLICT`.
+
 This worker execution path now runs FFmpeg audio extraction and subtitle burn-in in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, exports deterministic transcript/source subtitle/target subtitle artifacts, and stores `BURNED_VIDEO` as `burned-video.mp4` by default. TTS remains available as an opt-in worker stage.
 
 ### Optional OpenAI Transcription
