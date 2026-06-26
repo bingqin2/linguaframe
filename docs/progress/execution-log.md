@@ -537,3 +537,32 @@ Validation:
 Notes:
 
 - This slice does not add TTS audio replacement, lip sync, subtitle style editing, frontend UI, authentication, Redis behavior, cost tracking, model-call audit tables, or translation quality evaluation.
+
+## 2026-06-26
+
+Work:
+
+- Added durable `model_call_records` persistence for provider calls with operation, provider, model, prompt version, status, latency, usage units, estimated cost, safe error summary, and timestamp.
+- Added configurable cost estimate rates under `linguaframe.cost` and Docker/.env pass-through variables.
+- Instrumented demo and OpenAI transcription, translation, and TTS providers to record successful and failed model-call audits.
+- Extended `GET /api/jobs/{jobId}` with `usageSummary` and `modelCalls`.
+- Updated the Docker success demo to print model-call count, failed count, estimated cost, and each provider call.
+- Documented cost configuration, job detail usage fields, and model-call demo output.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,ModelCallRepositoryTests,ModelCallAuditServiceTests test` passed with `Tests run: 18, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoTranscriptionProviderTests,DemoTranslationProviderTests,DemoTtsProviderTests,OpenAiTranscriptionProviderTests,OpenAiTranslationProviderTests,OpenAiTtsProviderTests test` passed with `Tests run: 23, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 22, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,ModelCallRepositoryTests,ModelCallAuditServiceTests,DemoTranscriptionProviderTests,DemoTranslationProviderTests,DemoTtsProviderTests,OpenAiTranscriptionProviderTests,OpenAiTranslationProviderTests,OpenAiTtsProviderTests,LocalizationJobControllerTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 63, Failures: 0, Errors: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` and `bash -n scripts/demo/docker-e2e-success.sh` passed.
+- `docker compose --env-file .env.example config` passed and rendered `LINGUAFRAME_COST_ENABLED: "true"`, `LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE: "0"`, `LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS: "0"`, `LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS: "0"`, and `LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS: "0"`.
+
+Notes:
+
+- Cost values are local estimates and default to zero because provider pricing changes. They are not billing-source-of-truth values.
+- This slice does not add frontend UI, budget enforcement, translation quality evaluation, prompt-template storage, or duplicate-work caching.
+
+Final verification:
+
+- `mvn -pl LinguaFrame test` passed on branch `model-call-audit-cost-mvp` with `Tests run: 140, Failures: 0, Errors: 0`.

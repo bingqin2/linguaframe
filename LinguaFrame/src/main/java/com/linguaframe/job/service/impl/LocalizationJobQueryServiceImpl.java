@@ -9,6 +9,7 @@ import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.ModelCallAuditService;
 import org.springframework.stereotype.Service;
 
 import java.util.NoSuchElementException;
@@ -19,15 +20,18 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final LocalizationJobRepository jobRepository;
     private final JobDispatchEventRepository dispatchEventRepository;
     private final JobTimelineEventRepository timelineEventRepository;
+    private final ModelCallAuditService modelCallAuditService;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
             JobDispatchEventRepository dispatchEventRepository,
-            JobTimelineEventRepository timelineEventRepository
+            JobTimelineEventRepository timelineEventRepository,
+            ModelCallAuditService modelCallAuditService
     ) {
         this.jobRepository = jobRepository;
         this.dispatchEventRepository = dispatchEventRepository;
         this.timelineEventRepository = timelineEventRepository;
+        this.modelCallAuditService = modelCallAuditService;
     }
 
     @Override
@@ -52,7 +56,9 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 dispatchEvent == null ? null : dispatchEvent.dispatchedAt(),
                 timelineEventRepository.findByJobId(jobId).stream()
                         .map(this::toTimelineEventVo)
-                        .toList()
+                        .toList(),
+                modelCallAuditService.summarizeJob(jobId),
+                modelCallAuditService.listModelCalls(jobId)
         );
     }
 

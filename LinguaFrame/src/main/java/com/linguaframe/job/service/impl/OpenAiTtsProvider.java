@@ -3,8 +3,13 @@ package com.linguaframe.job.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
 import com.linguaframe.job.domain.bo.TtsRequestBo;
 import com.linguaframe.job.domain.bo.TtsResultBo;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.TtsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -30,24 +35,28 @@ public class OpenAiTtsProvider implements TtsProvider {
     private final LinguaFrameProperties.Tts.OpenAi openai;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final ModelCallAuditService auditService;
 
     @Autowired
     public OpenAiTtsProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
-        this(properties, buildRestClient(properties.getTts().getOpenai(), restClientBuilder), objectMapper);
+        this(properties, buildRestClient(properties.getTts().getOpenai(), restClientBuilder), objectMapper, auditService);
     }
 
     OpenAiTtsProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
         this.openai = properties.getTts().getOpenai();
         this.restClient = restClient;
         this.objectMapper = objectMapper;
+        this.auditService = auditService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         requireConfigured(openai.getVoice());
@@ -79,11 +88,19 @@ public class OpenAiTtsProvider implements TtsProvider {
 
     @Override
     public TtsResultBo synthesize(TtsRequestBo request) {
-        byte[] audioContent = sendRequest(request);
-        if (audioContent == null || audioContent.length == 0) {
-            throw new IllegalStateException("OpenAI TTS response was empty.");
+        long started = System.nanoTime();
+        try {
+            byte[] audioContent = sendRequest(request);
+            if (audioContent == null || audioContent.length == 0) {
+                throw new IllegalStateException("OpenAI TTS response was empty.");
+            }
+            TtsResultBo result = new TtsResultBo(audioContent, "dubbing-audio.mp3", "audio/mpeg");
+            auditService.recordSuccess(command(request, elapsedMillis(started)));
+            return result;
+        } catch (RuntimeException ex) {
+            auditService.recordFailure(command(request, elapsedMillis(started)), ex.getMessage());
+            throw ex;
         }
-        return new TtsResultBo(audioContent, "dubbing-audio.mp3", "audio/mpeg");
     }
 
     private byte[] sendRequest(TtsRequestBo request) {
@@ -111,6 +128,30 @@ public class OpenAiTtsProvider implements TtsProvider {
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("OpenAI TTS request could not be serialized.", ex);
         }
+    }
+
+    private CreateModelCallRecordCommand command(TtsRequestBo request, long latencyMs) {
+        return new CreateModelCallRecordCommand(
+                request.jobId(),
+                LocalizationJobStage.DUBBING_AUDIO_GENERATION,
+                ModelCallOperation.TTS,
+                ModelCallProvider.OPENAI,
+                openai.getModel(),
+                "openai-tts-v1",
+                latencyMs,
+                null,
+                null,
+                null,
+                characterCount(request)
+        );
+    }
+
+    private Integer characterCount(TtsRequestBo request) {
+        return request.text() == null ? 0 : request.text().length();
+    }
+
+    private long elapsedMillis(long started) {
+        return Duration.ofNanos(System.nanoTime() - started).toMillis();
     }
 
     private static void requireConfigured(String value) {

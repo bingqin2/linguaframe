@@ -138,6 +138,10 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.tts.enabled`
 - `linguaframe.tts.provider`
 - `linguaframe.cost.enabled`
+- `linguaframe.cost.transcription-usd-per-minute`
+- `linguaframe.cost.translation-input-usd-per-million-tokens`
+- `linguaframe.cost.translation-output-usd-per-million-tokens`
+- `linguaframe.cost.tts-usd-per-million-characters`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
 - `linguaframe.database.name`
@@ -243,6 +247,11 @@ LINGUAFRAME_TRANSLATION_ENABLED=true
 LINGUAFRAME_TRANSLATION_PROVIDER=demo
 LINGUAFRAME_TTS_ENABLED=false
 LINGUAFRAME_TTS_PROVIDER=demo
+LINGUAFRAME_COST_ENABLED=true
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=0
+LINGUAFRAME_COST_TRANSLATION_INPUT_USD_PER_1M_TOKENS=0
+LINGUAFRAME_COST_TRANSLATION_OUTPUT_USD_PER_1M_TOKENS=0
+LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS=0
 OPENAI_API_KEY=
 OPENAI_TRANSCRIPTION_MODEL=
 OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
@@ -254,7 +263,9 @@ OPENAI_TTS_VOICE=
 OPENAI_TTS_TIMEOUT_SECONDS=120
 ```
 
-`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`.
+Cost rates default to `0` in `.env.example` because provider pricing changes. Treat `estimatedCostUsd` as a local estimate, not billing-source-of-truth data.
+
+`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary` and `modelCalls` for provider/model/status/latency, usage units, estimated cost, and safe error summaries.
 
 When transcription is enabled with `LINGUAFRAME_TRANSCRIPTION_PROVIDER=demo`, the worker uses a deterministic demo transcription provider and stores:
 
@@ -395,7 +406,7 @@ docker compose --env-file .env.example up --build
 scripts/demo/docker-e2e-success.sh
 ```
 
-The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling TTS adds a third model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 

@@ -1,11 +1,14 @@
 package com.linguaframe.common.config;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+
+import java.math.BigDecimal;
 
 @Validated
 @ConfigurationProperties(prefix = "linguaframe")
@@ -212,12 +215,56 @@ public class LinguaFrameProperties {
 
         private boolean enabled = true;
 
+        @DecimalMin("0.0")
+        private BigDecimal transcriptionUsdPerMinute = BigDecimal.ZERO;
+
+        @DecimalMin("0.0")
+        private BigDecimal translationInputUsdPerMillionTokens = BigDecimal.ZERO;
+
+        @DecimalMin("0.0")
+        private BigDecimal translationOutputUsdPerMillionTokens = BigDecimal.ZERO;
+
+        @DecimalMin("0.0")
+        private BigDecimal ttsUsdPerMillionCharacters = BigDecimal.ZERO;
+
         public boolean isEnabled() {
             return enabled;
         }
 
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+
+        public BigDecimal getTranscriptionUsdPerMinute() {
+            return transcriptionUsdPerMinute;
+        }
+
+        public void setTranscriptionUsdPerMinute(BigDecimal transcriptionUsdPerMinute) {
+            this.transcriptionUsdPerMinute = transcriptionUsdPerMinute;
+        }
+
+        public BigDecimal getTranslationInputUsdPerMillionTokens() {
+            return translationInputUsdPerMillionTokens;
+        }
+
+        public void setTranslationInputUsdPerMillionTokens(BigDecimal translationInputUsdPerMillionTokens) {
+            this.translationInputUsdPerMillionTokens = translationInputUsdPerMillionTokens;
+        }
+
+        public BigDecimal getTranslationOutputUsdPerMillionTokens() {
+            return translationOutputUsdPerMillionTokens;
+        }
+
+        public void setTranslationOutputUsdPerMillionTokens(BigDecimal translationOutputUsdPerMillionTokens) {
+            this.translationOutputUsdPerMillionTokens = translationOutputUsdPerMillionTokens;
+        }
+
+        public BigDecimal getTtsUsdPerMillionCharacters() {
+            return ttsUsdPerMillionCharacters;
+        }
+
+        public void setTtsUsdPerMillionCharacters(BigDecimal ttsUsdPerMillionCharacters) {
+            this.ttsUsdPerMillionCharacters = ttsUsdPerMillionCharacters;
         }
     }
 

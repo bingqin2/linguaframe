@@ -1,5 +1,8 @@
 package com.linguaframe.job.service;
 
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.impl.DemoTranslationProvider;
 import org.junit.jupiter.api.Test;
@@ -10,7 +13,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DemoTranslationProviderTests {
 
-    private final DemoTranslationProvider provider = new DemoTranslationProvider();
+    private final RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
+    private final DemoTranslationProvider provider = new DemoTranslationProvider(auditService);
 
     @Test
     void demoProviderReturnsDeterministicChineseTextAndPreservesTiming() {
@@ -25,6 +29,15 @@ class DemoTranslationProviderTests {
                         "0:0:1800:LinguaFrame 向你问好。",
                         "1:1800:3600:这个演示字幕是确定性的。"
                 );
+        assertThat(auditService.successCommands).hasSize(1);
+        var command = auditService.successCommands.getFirst();
+        assertThat(command.jobId()).isEqualTo("translation-job-1");
+        assertThat(command.stage()).isEqualTo(LocalizationJobStage.TARGET_SUBTITLE_EXPORT);
+        assertThat(command.operation()).isEqualTo(ModelCallOperation.TRANSLATION);
+        assertThat(command.provider()).isEqualTo(ModelCallProvider.DEMO);
+        assertThat(command.model()).isEqualTo("demo-translation");
+        assertThat(command.promptVersion()).isEqualTo("demo-translation-v1");
+        assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
     }
 
     @Test

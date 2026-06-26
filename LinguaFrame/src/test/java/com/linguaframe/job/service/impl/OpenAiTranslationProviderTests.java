@@ -2,7 +2,11 @@ package com.linguaframe.job.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -32,10 +36,12 @@ class OpenAiTranslationProviderTests {
         RestClient.Builder restClientBuilder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
         RestClient restClient = testRestClient(restClientBuilder);
+        RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                auditService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
@@ -59,6 +65,17 @@ class OpenAiTranslationProviderTests {
                         "0:0:1800:LinguaFrame 向你问好。",
                         "1:1800:3600:这个演示字幕来自 OpenAI。"
                 );
+        assertThat(auditService.successCommands).hasSize(1);
+        var command = auditService.successCommands.getFirst();
+        assertThat(command.jobId()).isEqualTo("translation-job-1");
+        assertThat(command.stage()).isEqualTo(LocalizationJobStage.TARGET_SUBTITLE_EXPORT);
+        assertThat(command.operation()).isEqualTo(ModelCallOperation.TRANSLATION);
+        assertThat(command.provider()).isEqualTo(ModelCallProvider.OPENAI);
+        assertThat(command.model()).isEqualTo("test-translation-model");
+        assertThat(command.promptVersion()).isEqualTo("openai-subtitle-translation-v1");
+        assertThat(command.inputTokens()).isEqualTo(1000);
+        assertThat(command.outputTokens()).isEqualTo(500);
+        assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
         server.verify();
     }
 
@@ -69,7 +86,8 @@ class OpenAiTranslationProviderTests {
         assertThatThrownBy(() -> new OpenAiTranslationProvider(
                 openAiProperties("", "", "https://api.openai.test", 5),
                 restClientBuilder,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI translation provider requires OPENAI_API_KEY and OPENAI_TRANSLATION_MODEL.");
@@ -80,10 +98,12 @@ class OpenAiTranslationProviderTests {
         RestClient.Builder restClientBuilder = RestClient.builder();
         MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
         RestClient restClient = testRestClient(restClientBuilder);
+        RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                auditService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
@@ -95,6 +115,11 @@ class OpenAiTranslationProviderTests {
         assertThatThrownBy(() -> provider.translate("translation-job-2", "zh-CN", oneSegment()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI translation request failed with status 401");
+        assertThat(auditService.failureCommands).hasSize(1);
+        assertThat(auditService.failureCommands.getFirst().jobId()).isEqualTo("translation-job-2");
+        assertThat(auditService.failureCommands.getFirst().operation()).isEqualTo(ModelCallOperation.TRANSLATION);
+        assertThat(auditService.failureCommands.getFirst().provider()).isEqualTo(ModelCallProvider.OPENAI);
+        assertThat(auditService.failureSummaries).containsExactly("OpenAI translation request failed with status 401");
         server.verify();
     }
 
@@ -106,7 +131,8 @@ class OpenAiTranslationProviderTests {
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("not json"), MediaType.APPLICATION_JSON));
@@ -125,7 +151,8 @@ class OpenAiTranslationProviderTests {
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess("{\"id\":\"resp_1\",\"output\":[]}", MediaType.APPLICATION_JSON));
@@ -144,7 +171,8 @@ class OpenAiTranslationProviderTests {
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":0,\"text\":\"Only one\"}]}"), MediaType.APPLICATION_JSON));
@@ -166,7 +194,8 @@ class OpenAiTranslationProviderTests {
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":0,\"text\":\"   \"}]}"), MediaType.APPLICATION_JSON));
@@ -185,7 +214,8 @@ class OpenAiTranslationProviderTests {
         OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
-                objectMapper
+                objectMapper,
+                new RecordingModelCallAuditService()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":9,\"text\":\"Unknown\"}]}"), MediaType.APPLICATION_JSON));
@@ -233,7 +263,11 @@ class OpenAiTranslationProviderTests {
                         }
                       ]
                     }
-                  ]
+                  ],
+                  "usage": {
+                    "input_tokens": 1000,
+                    "output_tokens": 500
+                  }
                 }
                 """.formatted(escapedOutputText, escapedOutputText);
     }

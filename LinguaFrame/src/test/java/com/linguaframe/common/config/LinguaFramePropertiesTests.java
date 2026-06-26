@@ -34,6 +34,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().getSmokeStageDurationMs()).isEqualTo(0L);
         assertThat(properties.getWorker().isSmokeStageFailureEnabled()).isFalse();
         assertThat(properties.getCost().isEnabled()).isTrue();
+        assertThat(properties.getCost().getTranscriptionUsdPerMinute()).isEqualByComparingTo("0");
+        assertThat(properties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0");
+        assertThat(properties.getCost().getTranslationOutputUsdPerMillionTokens()).isEqualByComparingTo("0");
+        assertThat(properties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("0");
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
         assertThat(properties.getDatabase().getName()).isEqualTo("linguaframe");
@@ -87,6 +91,27 @@ class LinguaFramePropertiesTests {
                     assertThat(context).hasNotFailed();
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getWorker().isSmokeStageFailureEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void bindsCostRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.cost.enabled=false",
+                        "linguaframe.cost.transcription-usd-per-minute=0.006",
+                        "linguaframe.cost.translation-input-usd-per-million-tokens=0.15",
+                        "linguaframe.cost.translation-output-usd-per-million-tokens=0.60",
+                        "linguaframe.cost.tts-usd-per-million-characters=15.00"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getCost().isEnabled()).isFalse();
+                    assertThat(boundProperties.getCost().getTranscriptionUsdPerMinute()).isEqualByComparingTo("0.006");
+                    assertThat(boundProperties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0.15");
+                    assertThat(boundProperties.getCost().getTranslationOutputUsdPerMillionTokens()).isEqualByComparingTo("0.60");
+                    assertThat(boundProperties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("15.00");
                 });
     }
 
@@ -223,7 +248,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.dispatch-interval-ms=0",
                         "linguaframe.worker.smoke-stage-duration-ms=-1",
                         "linguaframe.ffmpeg.audio-timeout-seconds=0",
-                        "linguaframe.ffmpeg.burn-in-timeout-seconds=0"
+                        "linguaframe.ffmpeg.burn-in-timeout-seconds=0",
+                        "linguaframe.cost.tts-usd-per-million-characters=-1"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();

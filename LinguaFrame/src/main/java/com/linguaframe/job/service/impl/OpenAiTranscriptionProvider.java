@@ -4,8 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.TranscriptionProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -19,6 +24,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -30,28 +37,33 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
 
     private static final String MISSING_CONFIGURATION_MESSAGE =
             "OpenAI transcription provider requires OPENAI_API_KEY and OPENAI_TRANSCRIPTION_MODEL.";
+    private static final BigDecimal ONE_THOUSAND = BigDecimal.valueOf(1_000L);
 
     private final LinguaFrameProperties.Transcription.OpenAi openai;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final ModelCallAuditService auditService;
 
     @Autowired
     public OpenAiTranscriptionProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
-        this(properties, buildRestClient(properties.getTranscription().getOpenai(), restClientBuilder), objectMapper);
+        this(properties, buildRestClient(properties.getTranscription().getOpenai(), restClientBuilder), objectMapper, auditService);
     }
 
     OpenAiTranscriptionProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            ModelCallAuditService auditService
     ) {
         this.openai = properties.getTranscription().getOpenai();
         this.restClient = restClient;
         this.objectMapper = objectMapper;
+        this.auditService = auditService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
     }
@@ -81,8 +93,16 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
 
     @Override
     public TranscriptionResultBo transcribe(String jobId, byte[] audioContent) {
-        String responseBody = sendRequest(jobId, audioContent);
-        return parseResult(responseBody);
+        long started = System.nanoTime();
+        try {
+            String responseBody = sendRequest(jobId, audioContent);
+            TranscriptionResultBo result = parseResult(responseBody);
+            auditService.recordSuccess(command(jobId, elapsedMillis(started), audioSeconds(result)));
+            return result;
+        } catch (RuntimeException ex) {
+            auditService.recordFailure(command(jobId, elapsedMillis(started), null), ex.getMessage());
+            throw ex;
+        }
     }
 
     private String sendRequest(String jobId, byte[] audioContent) {
@@ -147,6 +167,34 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
             return -1L;
         }
         return Math.round(value.asDouble() * 1000.0d);
+    }
+
+    private CreateModelCallRecordCommand command(String jobId, long latencyMs, BigDecimal audioSeconds) {
+        return new CreateModelCallRecordCommand(
+                jobId,
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSCRIPTION,
+                ModelCallProvider.OPENAI,
+                openai.getModel(),
+                "openai-audio-transcriptions-v1",
+                latencyMs,
+                null,
+                null,
+                audioSeconds,
+                null
+        );
+    }
+
+    private BigDecimal audioSeconds(TranscriptionResultBo result) {
+        return result.segments().stream()
+                .map(TranscriptionSegmentBo::endMs)
+                .max(Long::compareTo)
+                .map(endMs -> BigDecimal.valueOf(endMs).divide(ONE_THOUSAND, 3, RoundingMode.HALF_UP))
+                .orElse(null);
+    }
+
+    private long elapsedMillis(long started) {
+        return Duration.ofNanos(System.nanoTime() - started).toMillis();
     }
 
     private static void requireConfigured(String value) {
