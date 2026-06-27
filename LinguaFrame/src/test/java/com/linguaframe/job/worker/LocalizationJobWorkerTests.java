@@ -29,7 +29,7 @@ class LocalizationJobWorkerTests {
                 .getAnnotation(RabbitListener.class);
 
         assertThat(listener).isNotNull();
-        assertThat(listener.queues()).containsExactly("${linguaframe.rabbitmq.job-queue}");
+        assertThat(listener.queues()).containsExactly("${linguaframe.rabbitmq.listener-queue}");
         assertThat(listener.autoStartup()).isEqualTo("${linguaframe.worker.execution-enabled:false}");
     }
 

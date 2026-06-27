@@ -23,7 +23,13 @@ class RabbitJobQueueConfigurationTests {
     private Queue localizationJobQueue;
 
     @Autowired
+    private Queue openaiLocalizationJobQueue;
+
+    @Autowired
     private Binding localizationJobBinding;
+
+    @Autowired
+    private Binding openaiLocalizationJobBinding;
 
     @Autowired
     private MessageConverter rabbitMessageConverter;
@@ -34,9 +40,14 @@ class RabbitJobQueueConfigurationTests {
         assertThat(localizationJobExchange.isDurable()).isTrue();
         assertThat(localizationJobQueue.getName()).isEqualTo("linguaframe.localization.jobs");
         assertThat(localizationJobQueue.isDurable()).isTrue();
+        assertThat(openaiLocalizationJobQueue.getName()).isEqualTo("linguaframe.localization.openai.jobs");
+        assertThat(openaiLocalizationJobQueue.isDurable()).isTrue();
         assertThat(localizationJobBinding.getExchange()).isEqualTo("linguaframe.jobs");
         assertThat(localizationJobBinding.getRoutingKey()).isEqualTo("localization.queued");
         assertThat(localizationJobBinding.getDestination()).isEqualTo("linguaframe.localization.jobs");
+        assertThat(openaiLocalizationJobBinding.getExchange()).isEqualTo("linguaframe.jobs");
+        assertThat(openaiLocalizationJobBinding.getRoutingKey()).isEqualTo("localization.openai");
+        assertThat(openaiLocalizationJobBinding.getDestination()).isEqualTo("linguaframe.localization.openai.jobs");
     }
 
     @Test

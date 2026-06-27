@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
@@ -34,7 +35,8 @@ public class JobDispatchOutboxServiceImpl implements JobDispatchOutboxService {
                 video.id(),
                 video.sourceObjectKey(),
                 job.targetLanguage(),
-                job.createdAt()
+                job.createdAt(),
+                LocalizationJobStage.WORKER_SMOKE
         );
 
         try {

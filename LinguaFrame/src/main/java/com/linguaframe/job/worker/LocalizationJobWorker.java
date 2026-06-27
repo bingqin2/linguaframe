@@ -15,7 +15,7 @@ public class LocalizationJobWorker {
     }
 
     @RabbitListener(
-            queues = "${linguaframe.rabbitmq.job-queue}",
+            queues = "${linguaframe.rabbitmq.listener-queue}",
             autoStartup = "${linguaframe.worker.execution-enabled:false}"
     )
     public void handle(QueuedLocalizationJobMessage message) {

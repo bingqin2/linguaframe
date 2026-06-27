@@ -20,7 +20,12 @@ public class RabbitJobQueueConfiguration {
 
     @Bean
     public Queue localizationJobQueue(LinguaFrameProperties properties) {
-        return new Queue(properties.getRabbitmq().getJobQueue(), true);
+        return new Queue(properties.getRabbitmq().getFfmpegJobQueue(), true);
+    }
+
+    @Bean
+    public Queue openaiLocalizationJobQueue(LinguaFrameProperties properties) {
+        return new Queue(properties.getRabbitmq().getOpenaiJobQueue(), true);
     }
 
     @Bean
@@ -31,7 +36,18 @@ public class RabbitJobQueueConfiguration {
     ) {
         return BindingBuilder.bind(localizationJobQueue)
                 .to(localizationJobExchange)
-                .with(properties.getRabbitmq().getJobRoutingKey());
+                .with(properties.getRabbitmq().getFfmpegJobRoutingKey());
+    }
+
+    @Bean
+    public Binding openaiLocalizationJobBinding(
+            Queue openaiLocalizationJobQueue,
+            DirectExchange localizationJobExchange,
+            LinguaFrameProperties properties
+    ) {
+        return BindingBuilder.bind(openaiLocalizationJobQueue)
+                .to(localizationJobExchange)
+                .with(properties.getRabbitmq().getOpenaiJobRoutingKey());
     }
 
     @Bean
