@@ -23,6 +23,20 @@ Validation:
 
 Work:
 
+- Merged `browser-demo-runbook-panel-mvp` back to `main` with a merge commit.
+
+Validation:
+
+- `cd frontend && npm run test:run -- App` passed on `main` with `Test Files 1 passed` and `Tests 31 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
 - Added `scripts/demo/start-local-demo.sh` as a one-command local demo startup path.
 - The script packages the backend, recreates `linguaframe-backend`, waits for backend health, starts the local frontend fallback when needed, runs private-demo preflight, and prints the browser URL plus next E2E commands.
 - Documented the startup path in README, Docker E2E guide, and smoke-test checklist.
