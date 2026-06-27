@@ -169,3 +169,11 @@ Decision: Compute generated artifact SHA-256 fingerprints at artifact creation t
 Reason: `JobArtifactServiceImpl` receives the exact bytes that are stored in object storage, so hashing at this boundary gives a stable reproducibility signal without coupling hash logic to FFmpeg, OpenAI, transcription, translation, TTS, or evaluation providers.
 
 Impact: Artifact APIs and the React demo can show `contentSha256` for generated outputs. This creates the foundation for future duplicate-work detection while deliberately leaving cache hits and provider-call skipping to later feature slices.
+
+## 2026-06-27
+
+Decision: Add artifact-level cache hits before provider-level prompt or response caching.
+
+Reason: LinguaFrame already stores durable generated artifacts and content hashes, so reusing stable media artifacts is the smallest complete duplicate-work feature that is visible in the API, timeline, and React demo. Provider-level transcription and translation caching needs prompt-version, model, and input-key semantics that should be designed separately.
+
+Impact: Repeat jobs for the same source video and target language can reuse extracted audio, dubbing audio, and subtitle-burned video artifacts without rewriting object storage bytes. Worker summaries remain regenerated because they include the current job id and generation timestamp.

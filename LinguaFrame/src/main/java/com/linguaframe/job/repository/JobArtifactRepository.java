@@ -31,6 +31,8 @@ public class JobArtifactRepository {
                             content_type,
                             size_bytes,
                             content_sha256,
+                            cache_hit,
+                            source_artifact_id,
                             created_at
                         )
                         VALUES (
@@ -42,6 +44,8 @@ public class JobArtifactRepository {
                             :contentType,
                             :sizeBytes,
                             :contentSha256,
+                            :cacheHit,
+                            :sourceArtifactId,
                             :createdAt
                         )
                         """)
@@ -53,6 +57,8 @@ public class JobArtifactRepository {
                 .param("contentType", record.contentType())
                 .param("sizeBytes", record.sizeBytes())
                 .param("contentSha256", record.contentSha256())
+                .param("cacheHit", record.cacheHit())
+                .param("sourceArtifactId", record.sourceArtifactId())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .update();
     }
@@ -68,6 +74,8 @@ public class JobArtifactRepository {
                             content_type,
                             size_bytes,
                             content_sha256,
+                            cache_hit,
+                            source_artifact_id,
                             created_at
                         FROM job_artifacts
                         WHERE id = :id
@@ -88,6 +96,8 @@ public class JobArtifactRepository {
                             content_type,
                             size_bytes,
                             content_sha256,
+                            cache_hit,
+                            source_artifact_id,
                             created_at
                         FROM job_artifacts
                         WHERE job_id = :jobId
@@ -96,6 +106,41 @@ public class JobArtifactRepository {
                 .param("jobId", jobId)
                 .query(this::mapRow)
                 .list();
+    }
+
+    public Optional<JobArtifactRecord> findReusableArtifact(
+            String videoId,
+            String targetLanguage,
+            JobArtifactType type
+    ) {
+        return jdbcClient.sql("""
+                        SELECT
+                            artifact.id,
+                            artifact.job_id,
+                            artifact.type,
+                            artifact.object_key,
+                            artifact.filename,
+                            artifact.content_type,
+                            artifact.size_bytes,
+                            artifact.content_sha256,
+                            artifact.cache_hit,
+                            artifact.source_artifact_id,
+                            artifact.created_at
+                        FROM job_artifacts artifact
+                        JOIN localization_jobs job ON job.id = artifact.job_id
+                        WHERE job.video_id = :videoId
+                          AND job.target_language = :targetLanguage
+                          AND artifact.type = :type
+                          AND artifact.cache_hit = FALSE
+                          AND artifact.content_sha256 <> ''
+                        ORDER BY artifact.created_at DESC, artifact.id DESC
+                        LIMIT 1
+                        """)
+                .param("videoId", videoId)
+                .param("targetLanguage", targetLanguage)
+                .param("type", type.name())
+                .query(this::mapRow)
+                .optional();
     }
 
     private JobArtifactRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -108,6 +153,8 @@ public class JobArtifactRepository {
                 rs.getString("content_type"),
                 rs.getLong("size_bytes"),
                 rs.getString("content_sha256"),
+                rs.getBoolean("cache_hit"),
+                rs.getString("source_artifact_id"),
                 rs.getTimestamp("created_at").toInstant()
         );
     }

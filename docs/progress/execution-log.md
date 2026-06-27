@@ -918,3 +918,31 @@ Post-merge verification:
 - `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
 - `docker compose --env-file .env.example config` passed on `main` and rendered the current demo stack configuration.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added artifact cache metadata to job artifacts with `cacheHit` and `sourceArtifactId`.
+- Added reusable artifact lookup scoped to the same source video, target language, and artifact type.
+- Added `ArtifactCacheService` and reused artifact creation that creates a new artifact row without rewriting object storage bytes.
+- Wired cache reuse into audio extraction, dubbing audio, and subtitle burn-in stages.
+- Added `CACHE_HIT` timeline events, job detail `cacheSummary`, and React cache-hit display.
+- Documented that worker summaries are regenerated and provider prompt/response caching remains a later slice.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=JobArtifactRepositoryTests,LocalizationJobControllerTests test` first failed because cache metadata fields and reusable lookup did not exist, then passed with `Tests run: 22, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=ArtifactCacheServiceTests,JobArtifactServiceTests test` first failed because the cache service and reused artifact creation did not exist, then passed with `Tests run: 6, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests,SubtitleBurnInPipelineStageTests,LocalizationJobExecutionServiceTests test` first failed because cache service wiring, context cache-hit tracking, and `CACHE_HIT` status did not exist, then passed with `Tests run: 27, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because job detail did not expose `cacheSummary`, then passed with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the UI did not show cache hits or reused artifact markers, then passed with `Tests run: 25`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 199, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 29`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config` passed and rendered the current demo stack configuration.
+- `git diff --check` passed.
+
+Notes:
+
+- Cache reuse is artifact-level only. This slice does not add OpenAI prompt caching, provider response caching, semantic duplicate detection, or cross-video reuse.

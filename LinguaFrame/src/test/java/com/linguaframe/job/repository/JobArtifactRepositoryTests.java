@@ -57,6 +57,8 @@ class JobArtifactRepositoryTests {
                 "application/json",
                 123L,
                 "abc123",
+                false,
+                null,
                 createdAt.plusSeconds(2)
         );
         JobArtifactRecord second = new JobArtifactRecord(
@@ -68,6 +70,8 @@ class JobArtifactRepositoryTests {
                 "application/json",
                 456L,
                 "def456",
+                true,
+                "artifact-source",
                 createdAt.plusSeconds(1)
         );
         JobArtifactRecord otherJob = new JobArtifactRecord(
@@ -79,6 +83,8 @@ class JobArtifactRepositoryTests {
                 "application/json",
                 789L,
                 "789abc",
+                false,
+                null,
                 createdAt.plusSeconds(3)
         );
 
@@ -91,12 +97,113 @@ class JobArtifactRepositoryTests {
                 .get()
                 .extracting(JobArtifactRecord::contentSha256)
                 .isEqualTo("abc123");
+        assertThat(artifactRepository.findById("artifact-2"))
+                .get()
+                .satisfies(record -> {
+                    assertThat(record.cacheHit()).isTrue();
+                    assertThat(record.sourceArtifactId()).isEqualTo("artifact-source");
+                });
         assertThat(artifactRepository.findById("missing-artifact")).isEmpty();
         assertThat(artifactRepository.findByJobId("artifact-job-1"))
                 .containsExactly(second, first);
     }
 
+    @Test
+    void findsNewestReusableGeneratedArtifactForVideoLanguageAndType() {
+        Instant createdAt = Instant.parse("2026-06-27T08:00:00Z");
+        createVideo("reuse-video", createdAt);
+        createJobForExistingVideo("reuse-video", "reuse-source-job-old", createdAt);
+        createJobForExistingVideo("reuse-video", "reuse-source-job-new", createdAt.plusSeconds(1));
+        createJobForExistingVideo("reuse-video", "reuse-current-job", createdAt.plusSeconds(2));
+        createJob("different-video", "reuse-different-video-job", createdAt.plusSeconds(3));
+        JobArtifactRecord oldReusable = artifact(
+                "reuse-artifact-old",
+                "reuse-source-job-old",
+                JobArtifactType.BURNED_VIDEO,
+                "old-hash",
+                false,
+                null,
+                createdAt.plusSeconds(4)
+        );
+        JobArtifactRecord newestReusable = artifact(
+                "reuse-artifact-new",
+                "reuse-source-job-new",
+                JobArtifactType.BURNED_VIDEO,
+                "new-hash",
+                false,
+                null,
+                createdAt.plusSeconds(5)
+        );
+        JobArtifactRecord cacheHitArtifact = artifact(
+                "reuse-artifact-cache-hit",
+                "reuse-source-job-new",
+                JobArtifactType.BURNED_VIDEO,
+                "cache-hit-hash",
+                true,
+                "reuse-artifact-new",
+                createdAt.plusSeconds(6)
+        );
+        JobArtifactRecord wrongType = artifact(
+                "reuse-artifact-wrong-type",
+                "reuse-source-job-new",
+                JobArtifactType.WORKER_SUMMARY,
+                "wrong-type-hash",
+                false,
+                null,
+                createdAt.plusSeconds(7)
+        );
+        JobArtifactRecord wrongVideo = artifact(
+                "reuse-artifact-wrong-video",
+                "reuse-different-video-job",
+                JobArtifactType.BURNED_VIDEO,
+                "wrong-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(8)
+        );
+
+        artifactRepository.save(oldReusable);
+        artifactRepository.save(newestReusable);
+        artifactRepository.save(cacheHitArtifact);
+        artifactRepository.save(wrongType);
+        artifactRepository.save(wrongVideo);
+
+        assertThat(artifactRepository.findReusableArtifact("reuse-video", "zh-CN", JobArtifactType.BURNED_VIDEO))
+                .contains(newestReusable);
+        assertThat(artifactRepository.findReusableArtifact("reuse-video", "en-US", JobArtifactType.BURNED_VIDEO))
+                .isEmpty();
+    }
+
+    private JobArtifactRecord artifact(
+            String artifactId,
+            String jobId,
+            JobArtifactType type,
+            String contentSha256,
+            boolean cacheHit,
+            String sourceArtifactId,
+            Instant createdAt
+    ) {
+        return new JobArtifactRecord(
+                artifactId,
+                jobId,
+                type,
+                "job-artifacts/" + jobId + "/" + artifactId + "/" + artifactId + ".bin",
+                artifactId + ".bin",
+                "application/octet-stream",
+                10L,
+                contentSha256,
+                cacheHit,
+                sourceArtifactId,
+                createdAt
+        );
+    }
+
     private void createJob(String videoId, String jobId, Instant createdAt) {
+        createVideo(videoId, createdAt);
+        createJobForExistingVideo(videoId, jobId, createdAt);
+    }
+
+    private void createVideo(String videoId, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
                 "sample.mp4",
@@ -106,6 +213,9 @@ class JobArtifactRepositoryTests {
                 MediaUploadStatus.UPLOADED,
                 createdAt
         ));
+    }
+
+    private void createJobForExistingVideo(String videoId, String jobId, Instant createdAt) {
         jobRepository.save(new LocalizationJobRecord(
                 jobId,
                 videoId,

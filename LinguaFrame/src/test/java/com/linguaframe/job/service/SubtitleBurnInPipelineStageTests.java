@@ -104,6 +104,44 @@ class SubtitleBurnInPipelineStageTests {
     }
 
     @Test
+    void reusesCachedBurnedVideoBeforeRunningFfmpeg() {
+        properties.getFfmpeg().setBurnInEnabled(true);
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingArtifactCacheService cacheService = new RecordingArtifactCacheService(new JobArtifactVo(
+                "cached-burned-artifact",
+                "burn-in-job-1",
+                JobArtifactType.BURNED_VIDEO,
+                "burned-video.mp4",
+                "video/mp4",
+                456L,
+                "cached-burned-hash",
+                true,
+                "source-burned-artifact",
+                Instant.parse("2026-06-27T09:30:00Z")
+        ));
+        SubtitleBurnInPipelineStage stage = new SubtitleBurnInPipelineStage(
+                properties,
+                objectStorageService,
+                workDirectoryService,
+                burnInService,
+                subtitleService,
+                subtitleExportService,
+                artifactService,
+                cacheService
+        );
+        LocalizationJobExecutionContextBo context = context();
+
+        stage.execute(context);
+
+        assertThat(cacheService.requestedTypes).containsExactly(JobArtifactType.BURNED_VIDEO);
+        assertThat(context.consumeCacheHits()).containsExactly(cacheService.artifact);
+        assertThat(objectStorageService.openedObjectKeys).isEmpty();
+        assertThat(workDirectoryService.createdJobIds).isEmpty();
+        assertThat(burnInService.command).isNull();
+        assertThat(artifactService.commands).isEmpty();
+    }
+
+    @Test
     void failsWhenEnabledAndTargetSubtitlesAreMissing() {
         properties.getFfmpeg().setBurnInEnabled(true);
         SubtitleBurnInPipelineStage stage = new SubtitleBurnInPipelineStage(
@@ -113,7 +151,8 @@ class SubtitleBurnInPipelineStageTests {
                 burnInService,
                 new RecordingSubtitleService(List.of()),
                 subtitleExportService,
-                artifactService
+                artifactService,
+                new EmptyArtifactCacheService()
         );
 
         assertThatThrownBy(() -> stage.execute(context()))
@@ -129,7 +168,8 @@ class SubtitleBurnInPipelineStageTests {
                 burnInService,
                 subtitleService,
                 subtitleExportService,
-                artifactService
+                artifactService,
+                new EmptyArtifactCacheService()
         );
     }
 
@@ -274,8 +314,18 @@ class SubtitleBurnInPipelineStageTests {
                     command.contentType(),
                     command.content().length,
                     "artifact-hash-" + commands.size(),
+                    false,
+                    null,
                     Instant.parse("2026-06-26T23:30:00Z")
             );
+        }
+
+        @Override
+        public JobArtifactVo createReusedArtifact(
+                String jobId,
+                com.linguaframe.job.domain.entity.JobArtifactRecord source
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -291,6 +341,36 @@ class SubtitleBurnInPipelineStageTests {
                     0L,
                     new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8))
             );
+        }
+    }
+
+    private static class EmptyArtifactCacheService implements ArtifactCacheService {
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    private static class RecordingArtifactCacheService implements ArtifactCacheService {
+
+        private final JobArtifactVo artifact;
+        private final List<JobArtifactType> requestedTypes = new ArrayList<>();
+
+        private RecordingArtifactCacheService(JobArtifactVo artifact) {
+            this.artifact = artifact;
+        }
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            requestedTypes.add(type);
+            return java.util.Optional.of(artifact);
         }
     }
 }

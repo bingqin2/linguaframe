@@ -55,6 +55,8 @@ class JobArtifactServiceTests {
         assertThat(result.sizeBytes()).isEqualTo(34);
         assertThat(result.contentSha256())
                 .isEqualTo("a66f328b69820ccee2c4a3e7882e95e956e8e319b18020f43079398677dbfa33");
+        assertThat(result.cacheHit()).isFalse();
+        assertThat(result.sourceArtifactId()).isNull();
         assertThat(result.createdAt()).isEqualTo(now);
         assertThat(artifactRepository.saved).hasSize(1);
         assertThat(artifactRepository.saved.getFirst().contentSha256())
@@ -63,6 +65,53 @@ class JobArtifactServiceTests {
                 .isEqualTo("job-artifacts/job-artifact-service-1/" + result.artifactId() + "/worker-summary.json");
         assertThat(storageService.objects)
                 .containsEntry(artifactRepository.saved.getFirst().objectKey(), "{\"jobId\":\"job-artifact-service-1\"}".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void createsReusedArtifactWithoutStoringBytesAgain() {
+        InMemoryJobArtifactRepository artifactRepository = new InMemoryJobArtifactRepository();
+        InMemoryObjectStorageService storageService = new InMemoryObjectStorageService();
+        Instant now = Instant.parse("2026-06-26T10:30:00Z");
+        JobArtifactService service = new JobArtifactServiceImpl(
+                artifactRepository,
+                storageService,
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+        com.linguaframe.job.domain.entity.JobArtifactRecord source =
+                new com.linguaframe.job.domain.entity.JobArtifactRecord(
+                        "source-artifact-1",
+                        "source-job-1",
+                        JobArtifactType.BURNED_VIDEO,
+                        "job-artifacts/source-job-1/source-artifact-1/burned.mp4",
+                        "burned.mp4",
+                        "video/mp4",
+                        100L,
+                        "source-hash",
+                        false,
+                        null,
+                        Instant.parse("2026-06-26T09:00:00Z")
+                );
+
+        JobArtifactVo result = service.createReusedArtifact("job-artifact-service-reuse", source);
+
+        assertThat(result.jobId()).isEqualTo("job-artifact-service-reuse");
+        assertThat(result.type()).isEqualTo(JobArtifactType.BURNED_VIDEO);
+        assertThat(result.filename()).isEqualTo("burned.mp4");
+        assertThat(result.contentType()).isEqualTo("video/mp4");
+        assertThat(result.sizeBytes()).isEqualTo(100L);
+        assertThat(result.contentSha256()).isEqualTo("source-hash");
+        assertThat(result.cacheHit()).isTrue();
+        assertThat(result.sourceArtifactId()).isEqualTo("source-artifact-1");
+        assertThat(result.createdAt()).isEqualTo(now);
+        assertThat(artifactRepository.saved)
+                .singleElement()
+                .satisfies(record -> {
+                    assertThat(record.jobId()).isEqualTo("job-artifact-service-reuse");
+                    assertThat(record.objectKey()).isEqualTo(source.objectKey());
+                    assertThat(record.cacheHit()).isTrue();
+                    assertThat(record.sourceArtifactId()).isEqualTo("source-artifact-1");
+                });
+        assertThat(storageService.objects).isEmpty();
     }
 
     @Test
@@ -145,6 +194,15 @@ class JobArtifactServiceTests {
             return saved.stream()
                     .filter(record -> record.jobId().equals(jobId))
                     .toList();
+        }
+
+        @Override
+        public Optional<com.linguaframe.job.domain.entity.JobArtifactRecord> findReusableArtifact(
+                String videoId,
+                String targetLanguage,
+                JobArtifactType type
+        ) {
+            return Optional.empty();
         }
     }
 

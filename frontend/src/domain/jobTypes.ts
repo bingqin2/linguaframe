@@ -36,6 +36,7 @@ export interface LocalizationJob {
   dispatchedAt: string | null;
   timelineEvents: JobTimelineEvent[];
   usageSummary: JobUsageSummary | null;
+  cacheSummary: JobCacheSummary;
   modelCalls: ModelCall[];
   qualityEvaluation: QualityEvaluation | null;
 }
@@ -78,7 +79,7 @@ export type LocalizationJobStage =
 export interface JobTimelineEvent {
   id: string;
   stage: LocalizationJobStage;
-  status: 'STARTED' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
+  status: 'STARTED' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED' | 'CACHE_HIT';
   message: string;
   durationMs: number | null;
   errorSummary: string | null;
@@ -94,6 +95,11 @@ export interface JobUsageSummary {
   outputTokens: number | null;
   audioSeconds: number | null;
   characterCount: number | null;
+}
+
+export interface JobCacheSummary {
+  cacheHitCount: number;
+  generatedArtifactCount: number;
 }
 
 export interface ModelCall {
@@ -150,6 +156,8 @@ export interface JobArtifact {
   contentType: string;
   sizeBytes: number;
   contentSha256: string;
+  cacheHit: boolean;
+  sourceArtifactId: string | null;
   createdAt: string;
 }
 

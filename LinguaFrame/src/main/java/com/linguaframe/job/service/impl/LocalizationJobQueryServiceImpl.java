@@ -1,12 +1,15 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
+import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.JobTimelineEventVo;
+import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
@@ -15,6 +18,7 @@ import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -24,6 +28,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private static final int MAX_LIST_LIMIT = 100;
 
     private final LocalizationJobRepository jobRepository;
+    private final JobArtifactRepository artifactRepository;
     private final JobDispatchEventRepository dispatchEventRepository;
     private final JobTimelineEventRepository timelineEventRepository;
     private final ModelCallAuditService modelCallAuditService;
@@ -31,12 +36,14 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
+            JobArtifactRepository artifactRepository,
             JobDispatchEventRepository dispatchEventRepository,
             JobTimelineEventRepository timelineEventRepository,
             ModelCallAuditService modelCallAuditService,
             QualityEvaluationService qualityEvaluationService
     ) {
         this.jobRepository = jobRepository;
+        this.artifactRepository = artifactRepository;
         this.dispatchEventRepository = dispatchEventRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.modelCallAuditService = modelCallAuditService;
@@ -60,6 +67,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         LocalizationJobRecord record = jobRepository.findById(jobId)
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         JobDispatchEventRecord dispatchEvent = dispatchEventRepository.findLatestByJobId(jobId).orElse(null);
+        List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
         return new LocalizationJobVo(
                 record.id(),
                 record.videoId(),
@@ -79,9 +87,17 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                         .map(this::toTimelineEventVo)
                         .toList(),
                 modelCallAuditService.summarizeJob(jobId),
+                cacheSummary(artifacts),
                 modelCallAuditService.listModelCalls(jobId),
                 qualityEvaluationService.latestForJob(jobId).orElse(null)
         );
+    }
+
+    private JobCacheSummaryVo cacheSummary(List<JobArtifactRecord> artifacts) {
+        int cacheHitCount = (int) artifacts.stream()
+                .filter(JobArtifactRecord::cacheHit)
+                .count();
+        return new JobCacheSummaryVo(cacheHitCount, artifacts.size() - cacheHitCount);
     }
 
     private JobTimelineEventVo toTimelineEventVo(JobTimelineEventRecord record) {

@@ -132,6 +132,30 @@ class LocalizationJobExecutionServiceTests {
     }
 
     @Test
+    void recordsCacheHitTimelineEventsReportedByStageContext() {
+        Instant now = Instant.parse("2026-06-27T09:40:00Z");
+        createJob("execution-video-cache-hit", "execution-job-cache-hit", LocalizationJobStatus.QUEUED, now);
+        CacheHitStage stage = new CacheHitStage();
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-cache-hit", "execution-video-cache-hit", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+        assertThat(timelineEventRepository.findByJobId("execution-job-cache-hit"))
+                .extracting(event -> event.stage() + ":" + event.status() + ":" + event.message())
+                .contains(
+                        LocalizationJobStage.DUBBING_AUDIO_GENERATION
+                                + ":" + JobTimelineEventStatus.CACHE_HIT
+                                + ":Reused cached DUBBING_AUDIO artifact cached-dubbing-artifact."
+                );
+    }
+
+    @Test
     void skipsStaleDuplicateMessageForTerminalJob() {
         Instant now = Instant.parse("2026-06-26T15:00:00Z");
         createJob("execution-video-2", "execution-job-2", LocalizationJobStatus.COMPLETED, now);
@@ -355,7 +379,8 @@ class LocalizationJobExecutionServiceTests {
                                 objectStorageService,
                                 workDirectoryService,
                                 audioExtractionService,
-                                artifactService
+                                artifactService,
+                                new EmptyArtifactCacheService()
                         ),
                         new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
                 ),
@@ -398,6 +423,56 @@ class LocalizationJobExecutionServiceTests {
         } finally {
             properties.getFfmpeg().setAudioEnabled(false);
         }
+    }
+
+    @Test
+    void audioExtractionStageReusesCachedArtifactBeforeOpeningSourceVideo(@TempDir Path tempDir) {
+        Instant now = Instant.parse("2026-06-27T09:50:00Z");
+        createJob("execution-video-audio-cache", "execution-job-audio-cache", LocalizationJobStatus.QUEUED, now);
+        RecordingObjectStorageService objectStorageService = new RecordingObjectStorageService(new byte[] {1, 2, 3});
+        RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
+        RecordingFfmpegAudioExtractionService audioExtractionService = new RecordingFfmpegAudioExtractionService(
+                new ExtractedAudioBo("audio.wav", "audio/wav", new byte[] {7, 8, 9})
+        );
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        RecordingArtifactCacheService cacheService = new RecordingArtifactCacheService(new JobArtifactVo(
+                "cached-audio-artifact",
+                "execution-job-audio-cache",
+                JobArtifactType.EXTRACTED_AUDIO,
+                "audio.wav",
+                "audio/wav",
+                321L,
+                "cached-audio-hash",
+                true,
+                "source-audio-artifact",
+                Instant.parse("2026-06-27T09:50:10Z")
+        ));
+        properties.getFfmpeg().setAudioEnabled(true);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(new AudioExtractionPipelineStage(
+                        properties,
+                        objectStorageService,
+                        workDirectoryService,
+                        audioExtractionService,
+                        artifactService,
+                        cacheService
+                )),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-audio-cache", "execution-video-audio-cache", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+        assertThat(cacheService.requestedTypes).containsExactly(JobArtifactType.EXTRACTED_AUDIO);
+        assertThat(objectStorageService.openedObjectKeys).isEmpty();
+        assertThat(workDirectoryService.createdJobIds).isEmpty();
+        assertThat(audioExtractionService.command).isNull();
+        assertThat(artifactService.commands).isEmpty();
+        assertThat(timelineEventRepository.findByJobId("execution-job-audio-cache"))
+                .extracting(event -> event.stage() + ":" + event.status())
+                .contains(LocalizationJobStage.AUDIO_EXTRACTION + ":" + JobTimelineEventStatus.CACHE_HIT);
     }
 
     @Test
@@ -998,6 +1073,30 @@ class LocalizationJobExecutionServiceTests {
         }
     }
 
+    private static class CacheHitStage implements LocalizationPipelineStage {
+
+        @Override
+        public LocalizationJobStage stage() {
+            return LocalizationJobStage.DUBBING_AUDIO_GENERATION;
+        }
+
+        @Override
+        public void execute(LocalizationJobExecutionContextBo context) {
+            context.recordCacheHit(new JobArtifactVo(
+                    "cached-dubbing-artifact",
+                    context.job().id(),
+                    JobArtifactType.DUBBING_AUDIO,
+                    "dubbing-audio.mp3",
+                    "audio/mpeg",
+                    123L,
+                    "cached-dubbing-hash",
+                    true,
+                    "source-dubbing-artifact",
+                    Instant.parse("2026-06-27T09:40:10Z")
+            ));
+        }
+    }
+
     private static class CancellingStage implements LocalizationPipelineStage {
 
         private final LocalizationJobRepository jobRepository;
@@ -1055,10 +1154,20 @@ class LocalizationJobExecutionServiceTests {
                     command.contentType(),
                     command.content().length,
                     "recording-hash-" + commands.size(),
+                    false,
+                    null,
                     Instant.parse("2026-06-26T19:00:10Z")
             );
             artifacts.add(artifact);
             return artifact;
+        }
+
+        @Override
+        public JobArtifactVo createReusedArtifact(
+                String jobId,
+                com.linguaframe.job.domain.entity.JobArtifactRecord source
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -1082,6 +1191,36 @@ class LocalizationJobExecutionServiceTests {
                 }
             }
             throw new IllegalArgumentException("Artifact not found.");
+        }
+    }
+
+    private static class EmptyArtifactCacheService implements ArtifactCacheService {
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    private static class RecordingArtifactCacheService implements ArtifactCacheService {
+
+        private final JobArtifactVo artifact;
+        private final List<JobArtifactType> requestedTypes = new ArrayList<>();
+
+        private RecordingArtifactCacheService(JobArtifactVo artifact) {
+            this.artifact = artifact;
+        }
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            requestedTypes.add(type);
+            return java.util.Optional.of(artifact);
         }
     }
 

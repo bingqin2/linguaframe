@@ -233,6 +233,14 @@ class CostBudgetedPipelineStageTests {
         }
 
         @Override
+        public JobArtifactVo createReusedArtifact(
+                String jobId,
+                com.linguaframe.job.domain.entity.JobArtifactRecord source
+        ) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public List<JobArtifactVo> listArtifacts(String jobId) {
             return List.of();
         }
@@ -255,6 +263,8 @@ class CostBudgetedPipelineStageTests {
                     "audio/wav",
                     3L,
                     "audio-hash",
+                    false,
+                    null,
                     Instant.parse("2026-06-27T02:30:00Z")
             ));
         }

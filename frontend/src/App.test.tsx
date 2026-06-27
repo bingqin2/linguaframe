@@ -265,6 +265,8 @@ describe('App', () => {
     expect(screen.getByText('2 calls')).toBeInTheDocument();
     const usageSummary = screen.getByRole('region', { name: /usage summary/i });
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();
+    expect(within(usageSummary).getByText('Cache hits')).toBeInTheDocument();
+    expect(within(usageSummary).getByText('1 reused')).toBeInTheDocument();
     expect(within(modelCalls).getByText('TRANSLATION')).toBeInTheDocument();
     const qualityEvaluation = screen.getByRole('region', { name: /quality evaluation/i });
     expect(within(qualityEvaluation).getByText('92 / 100')).toBeInTheDocument();
@@ -431,6 +433,8 @@ describe('App', () => {
         contentType: 'text/vtt',
         sizeBytes: 42,
         contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        cacheHit: true,
+        sourceArtifactId: 'source-vtt-artifact',
         createdAt: '2026-06-26T10:00:05Z'
       },
       {
@@ -441,6 +445,8 @@ describe('App', () => {
         contentType: 'audio/mpeg',
         sizeBytes: 4200,
         contentSha256: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
+        cacheHit: false,
+        sourceArtifactId: null,
         createdAt: '2026-06-26T10:00:06Z'
       },
       {
@@ -451,6 +457,8 @@ describe('App', () => {
         contentType: 'video/mp4',
         sizeBytes: 42000,
         contentSha256: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+        cacheHit: false,
+        sourceArtifactId: null,
         createdAt: '2026-06-26T10:00:07Z'
       }
     ]);
@@ -472,6 +480,7 @@ describe('App', () => {
     expect(within(artifacts).getByText('subtitles.vtt')).toBeInTheDocument();
     expect(within(artifacts).getByText('42 B')).toBeInTheDocument();
     expect(within(artifacts).getByText('0123456789ab')).toBeInTheDocument();
+    expect(within(artifacts).getByText('Reused')).toBeInTheDocument();
     expect(within(artifacts).getByRole('link', { name: /download subtitles.vtt/i })).toHaveAttribute(
       'href',
       '/api/jobs/artifact-job/artifacts/artifact-vtt/download'
@@ -609,6 +618,10 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
       characterCount: null
     },
     modelCalls: [],
+    cacheSummary: {
+      cacheHitCount: 1,
+      generatedArtifactCount: 2
+    },
     qualityEvaluation: null,
     ...overrides
   };

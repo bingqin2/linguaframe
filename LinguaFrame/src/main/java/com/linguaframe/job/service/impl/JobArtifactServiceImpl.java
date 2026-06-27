@@ -62,7 +62,28 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 command.contentType(),
                 command.content().length,
                 sha256Hex(command.content()),
+                false,
+                null,
                 createdAt
+        );
+        artifactRepository.save(record);
+        return toVo(record);
+    }
+
+    @Override
+    public JobArtifactVo createReusedArtifact(String jobId, JobArtifactRecord source) {
+        JobArtifactRecord record = new JobArtifactRecord(
+                UUID.randomUUID().toString(),
+                jobId,
+                source.type(),
+                source.objectKey(),
+                source.filename(),
+                source.contentType(),
+                source.sizeBytes(),
+                source.contentSha256(),
+                true,
+                source.id(),
+                Instant.now(clock)
         );
         artifactRepository.save(record);
         return toVo(record);
@@ -98,6 +119,8 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 record.contentType(),
                 record.sizeBytes(),
                 record.contentSha256(),
+                record.cacheHit(),
+                record.sourceArtifactId(),
                 record.createdAt()
         );
     }

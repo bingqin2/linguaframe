@@ -12,6 +12,8 @@ public record JobArtifactVo(
         String contentType,
         long sizeBytes,
         String contentSha256,
+        boolean cacheHit,
+        String sourceArtifactId,
         Instant createdAt
 ) {
 }

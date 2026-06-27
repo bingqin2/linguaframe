@@ -6,12 +6,14 @@ import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.ArtifactCacheService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.media.domain.bo.ExtractAudioCommand;
 import com.linguaframe.media.domain.bo.ExtractedAudioBo;
 import com.linguaframe.media.service.FfmpegAudioExtractionService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import com.linguaframe.storage.service.ObjectStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -28,6 +30,7 @@ public class AudioExtractionPipelineStage implements LocalizationPipelineStage {
     private final MediaWorkDirectoryService workDirectoryService;
     private final FfmpegAudioExtractionService audioExtractionService;
     private final JobArtifactService artifactService;
+    private final ArtifactCacheService artifactCacheService;
 
     public AudioExtractionPipelineStage(
             LinguaFrameProperties properties,
@@ -36,11 +39,31 @@ public class AudioExtractionPipelineStage implements LocalizationPipelineStage {
             FfmpegAudioExtractionService audioExtractionService,
             JobArtifactService artifactService
     ) {
+        this(
+                properties,
+                objectStorageService,
+                workDirectoryService,
+                audioExtractionService,
+                artifactService,
+                (context, type) -> java.util.Optional.empty()
+        );
+    }
+
+    @Autowired
+    public AudioExtractionPipelineStage(
+            LinguaFrameProperties properties,
+            ObjectStorageService objectStorageService,
+            MediaWorkDirectoryService workDirectoryService,
+            FfmpegAudioExtractionService audioExtractionService,
+            JobArtifactService artifactService,
+            ArtifactCacheService artifactCacheService
+    ) {
         this.properties = properties;
         this.objectStorageService = objectStorageService;
         this.workDirectoryService = workDirectoryService;
         this.audioExtractionService = audioExtractionService;
         this.artifactService = artifactService;
+        this.artifactCacheService = artifactCacheService;
     }
 
     @Override
@@ -51,6 +74,9 @@ public class AudioExtractionPipelineStage implements LocalizationPipelineStage {
     @Override
     public void execute(LocalizationJobExecutionContextBo context) {
         if (!properties.getFfmpeg().isAudioEnabled()) {
+            return;
+        }
+        if (reuseCachedArtifact(context, JobArtifactType.EXTRACTED_AUDIO)) {
             return;
         }
 
@@ -74,6 +100,15 @@ public class AudioExtractionPipelineStage implements LocalizationPipelineStage {
         } finally {
             workDirectoryService.deleteRecursively(workDirectory);
         }
+    }
+
+    private boolean reuseCachedArtifact(LocalizationJobExecutionContextBo context, JobArtifactType type) {
+        return artifactCacheService.tryReuseArtifact(context, type)
+                .map(artifact -> {
+                    context.recordCacheHit(artifact);
+                    return true;
+                })
+                .orElse(false);
     }
 
     private void copySourceVideo(String objectKey, Path inputVideoPath) {
