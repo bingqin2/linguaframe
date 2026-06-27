@@ -160,6 +160,14 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
 - `linguaframe.demo.access-token` - empty by default; non-empty values require a matching browser token for `/api/**`.
 - `linguaframe.demo.access-header-name` - default `X-LinguaFrame-Demo-Token`.
+- `linguaframe.retention.enabled` - default `false`; enables operator-triggered retention cleanup.
+- `linguaframe.retention.dry-run` - default `true`; reports candidates without deleting objects or rows.
+- `linguaframe.retention.completed-job-ttl-days` - default `7`.
+- `linguaframe.retention.failed-job-ttl-days` - default `3`.
+- `linguaframe.retention.cancelled-job-ttl-days` - default `3`.
+- `linguaframe.retention.cleanup-batch-size` - default `25`.
+- `linguaframe.retention.scheduler-enabled` - default `false`; scheduled cleanup only runs when both this and retention are enabled.
+- `linguaframe.retention.scheduler-interval-ms` - default `3600000`.
 - `linguaframe.worker.max-retries`
 - `linguaframe.worker.stage-timeout-seconds`
 - `linguaframe.worker.dispatch-enabled`
@@ -209,6 +217,24 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.storage.secret-key`
 
 Do not commit API keys, storage credentials, database passwords, or provider secrets.
+
+## Retention Cleanup
+
+Retention cleanup is default-off and dry-run by default. It only considers terminal jobs: `COMPLETED`, `FAILED`, and `CANCELLED`. It never deletes `QUEUED`, `RETRYING`, or `PROCESSING` jobs.
+
+Preview candidates without deleting anything:
+
+```bash
+curl http://localhost:8080/api/retention/cleanup/preview
+```
+
+Run cleanup manually after setting `LINGUAFRAME_RETENTION_ENABLED=true` and `LINGUAFRAME_RETENTION_DRY_RUN=false`:
+
+```bash
+curl -X POST http://localhost:8080/api/retention/cleanup/run
+```
+
+The response only returns counts: candidate jobs, deleted jobs, deleted videos, deleted objects, skipped objects, and failures. Source video objects are deleted only when no remaining job references the same video.
 
 ## API Documentation
 

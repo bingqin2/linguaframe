@@ -25,6 +25,9 @@ public class LinguaFrameProperties {
     private final Demo demo = new Demo();
 
     @Valid
+    private final Retention retention = new Retention();
+
+    @Valid
     private final Cost cost = new Cost();
 
     @Valid
@@ -64,6 +67,10 @@ public class LinguaFrameProperties {
 
     public Demo getDemo() {
         return demo;
+    }
+
+    public Retention getRetention() {
+        return retention;
     }
 
     public Cost getCost() {
@@ -261,6 +268,99 @@ public class LinguaFrameProperties {
 
         public boolean isAccessGateEnabled() {
             return !accessToken.isBlank();
+        }
+    }
+
+    public static class Retention {
+
+        private boolean enabled = false;
+
+        private boolean dryRun = true;
+
+        @Min(1)
+        @Max(3650)
+        private int completedJobTtlDays = 7;
+
+        @Min(1)
+        @Max(3650)
+        private int failedJobTtlDays = 3;
+
+        @Min(1)
+        @Max(3650)
+        private int cancelledJobTtlDays = 3;
+
+        @Min(1)
+        @Max(1000)
+        private int cleanupBatchSize = 25;
+
+        private boolean schedulerEnabled = false;
+
+        @Min(60000)
+        @Max(86400000)
+        private long schedulerIntervalMs = 3600000L;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public boolean isDryRun() {
+            return dryRun;
+        }
+
+        public void setDryRun(boolean dryRun) {
+            this.dryRun = dryRun;
+        }
+
+        public int getCompletedJobTtlDays() {
+            return completedJobTtlDays;
+        }
+
+        public void setCompletedJobTtlDays(int completedJobTtlDays) {
+            this.completedJobTtlDays = completedJobTtlDays;
+        }
+
+        public int getFailedJobTtlDays() {
+            return failedJobTtlDays;
+        }
+
+        public void setFailedJobTtlDays(int failedJobTtlDays) {
+            this.failedJobTtlDays = failedJobTtlDays;
+        }
+
+        public int getCancelledJobTtlDays() {
+            return cancelledJobTtlDays;
+        }
+
+        public void setCancelledJobTtlDays(int cancelledJobTtlDays) {
+            this.cancelledJobTtlDays = cancelledJobTtlDays;
+        }
+
+        public int getCleanupBatchSize() {
+            return cleanupBatchSize;
+        }
+
+        public void setCleanupBatchSize(int cleanupBatchSize) {
+            this.cleanupBatchSize = cleanupBatchSize;
+        }
+
+        public boolean isSchedulerEnabled() {
+            return schedulerEnabled;
+        }
+
+        public void setSchedulerEnabled(boolean schedulerEnabled) {
+            this.schedulerEnabled = schedulerEnabled;
+        }
+
+        public long getSchedulerIntervalMs() {
+            return schedulerIntervalMs;
+        }
+
+        public void setSchedulerIntervalMs(long schedulerIntervalMs) {
+            this.schedulerIntervalMs = schedulerIntervalMs;
         }
     }
 

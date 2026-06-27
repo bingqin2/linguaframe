@@ -228,5 +228,10 @@ class JobArtifactServiceTests {
             }
             return new ByteArrayInputStream(content);
         }
+
+        @Override
+        public void delete(String objectKey) {
+            objects.remove(objectKey);
+        }
     }
 }

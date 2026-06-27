@@ -1497,6 +1497,11 @@ class LocalizationJobExecutionServiceTests {
             openedObjectKeys.add(objectKey);
             return new ByteArrayInputStream(content);
         }
+
+        @Override
+        public void delete(String objectKey) {
+            throw new UnsupportedOperationException();
+        }
     }
 
     private static class RecordingMediaWorkDirectoryService implements MediaWorkDirectoryService {

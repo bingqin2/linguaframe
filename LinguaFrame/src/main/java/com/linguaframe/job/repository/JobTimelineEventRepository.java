@@ -77,6 +77,15 @@ public class JobTimelineEventRepository {
                 .list();
     }
 
+    public int deleteByJobId(String jobId) {
+        return jdbcClient.sql("""
+                        DELETE FROM job_timeline_events
+                        WHERE job_id = :jobId
+                        """)
+                .param("jobId", jobId)
+                .update();
+    }
+
     private JobTimelineEventRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         long durationMs = rs.getLong("duration_ms");
         boolean durationMsWasNull = rs.wasNull();

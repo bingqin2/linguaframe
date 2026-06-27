@@ -286,15 +286,15 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, the React demo can save/clear the token for API calls, streams, downloads, and media previews, and Docker/env docs expose the private demo variables.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, and a default-off retention cleanup policy for terminal demo jobs and artifacts.
 
 Build:
 
 - Production Docker Compose or simple server deployment.
 - HTTPS reverse proxy.
 - Persistent object storage.
-- Environment configuration guide. Status: implemented for private demo access token and upload limits.
-- File retention policy.
+- Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
+- File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Owner-only private URL access gate. Status: implemented with optional demo token.
 

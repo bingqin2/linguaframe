@@ -78,4 +78,13 @@ public class VideoRepository {
                 ))
                 .optional();
     }
+
+    public int deleteById(String id) {
+        return jdbcClient.sql("""
+                        DELETE FROM videos
+                        WHERE id = :id
+                        """)
+                .param("id", id)
+                .update();
+    }
 }

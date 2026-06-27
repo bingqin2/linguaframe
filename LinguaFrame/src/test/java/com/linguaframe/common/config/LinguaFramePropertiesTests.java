@@ -38,6 +38,14 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getDemo().getAccessToken()).isEmpty();
         assertThat(properties.getDemo().getAccessHeaderName()).isEqualTo("X-LinguaFrame-Demo-Token");
         assertThat(properties.getDemo().isAccessGateEnabled()).isFalse();
+        assertThat(properties.getRetention().isEnabled()).isFalse();
+        assertThat(properties.getRetention().isDryRun()).isTrue();
+        assertThat(properties.getRetention().getCompletedJobTtlDays()).isEqualTo(7);
+        assertThat(properties.getRetention().getFailedJobTtlDays()).isEqualTo(3);
+        assertThat(properties.getRetention().getCancelledJobTtlDays()).isEqualTo(3);
+        assertThat(properties.getRetention().getCleanupBatchSize()).isEqualTo(25);
+        assertThat(properties.getRetention().isSchedulerEnabled()).isFalse();
+        assertThat(properties.getRetention().getSchedulerIntervalMs()).isEqualTo(3600000L);
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getCost().getTranscriptionUsdPerMinute()).isEqualByComparingTo("0");
         assertThat(properties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0");
@@ -135,6 +143,33 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getDemo().getAccessToken()).isEqualTo("test-token");
                     assertThat(boundProperties.getDemo().getAccessHeaderName()).isEqualTo("X-Test-Demo-Token");
                     assertThat(boundProperties.getDemo().isAccessGateEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void bindsRetentionRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.retention.enabled=true",
+                        "linguaframe.retention.dry-run=false",
+                        "linguaframe.retention.completed-job-ttl-days=14",
+                        "linguaframe.retention.failed-job-ttl-days=5",
+                        "linguaframe.retention.cancelled-job-ttl-days=4",
+                        "linguaframe.retention.cleanup-batch-size=50",
+                        "linguaframe.retention.scheduler-enabled=true",
+                        "linguaframe.retention.scheduler-interval-ms=600000"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getRetention().isEnabled()).isTrue();
+                    assertThat(boundProperties.getRetention().isDryRun()).isFalse();
+                    assertThat(boundProperties.getRetention().getCompletedJobTtlDays()).isEqualTo(14);
+                    assertThat(boundProperties.getRetention().getFailedJobTtlDays()).isEqualTo(5);
+                    assertThat(boundProperties.getRetention().getCancelledJobTtlDays()).isEqualTo(4);
+                    assertThat(boundProperties.getRetention().getCleanupBatchSize()).isEqualTo(50);
+                    assertThat(boundProperties.getRetention().isSchedulerEnabled()).isTrue();
+                    assertThat(boundProperties.getRetention().getSchedulerIntervalMs()).isEqualTo(600000L);
                 });
     }
 

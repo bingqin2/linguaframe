@@ -1161,3 +1161,29 @@ Post-merge verification:
 - Merged `private-demo-access-gate-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest=DemoAccessInterceptorTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 33`.
+
+## 2026-06-27
+
+Work:
+
+- Added retention runtime configuration with default-off, dry-run-first behavior.
+- Added retention candidate selection for terminal jobs with separate TTLs for completed, failed, and cancelled jobs.
+- Added object storage delete support and safe generic delete failures.
+- Added retention cleanup service behavior for dry-run preview, object deletion, dependent row cleanup, orphaned video cleanup, shared video preservation, and per-job failure counting.
+- Added operator endpoints: `GET /api/retention/cleanup/preview` and `POST /api/retention/cleanup/run`.
+- Added an optional scheduler that only runs when both retention and scheduler flags are enabled.
+- Documented retention variables, manual testing commands, product boundary, and private-demo roadmap status.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,LocalizationJobRepositoryTests test` first failed because retention config and candidate query did not exist, then passed.
+- `mvn -pl LinguaFrame -Dtest=MinioObjectStorageServiceTests,JobArtifactServiceTests,MediaUploadServiceTests test` passed after adding object delete support.
+- `mvn -pl LinguaFrame -Dtest=RetentionCleanupServiceTests test` first failed because the service did not exist, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=RetentionCleanupServiceTests,LocalizationJobRepositoryTests,JobArtifactRepositoryTests test` passed with `Tests run: 19, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=RetentionCleanupControllerTests,RetentionCleanupSchedulerTests test` first failed because the API and scheduler did not exist, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 257, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 37`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.

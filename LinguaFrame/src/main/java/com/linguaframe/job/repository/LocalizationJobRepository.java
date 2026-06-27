@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.LocalizationJobSummaryVo;
+import com.linguaframe.job.domain.vo.RetentionJobCandidateVo;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +15,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public class LocalizationJobRepository {
@@ -156,6 +158,38 @@ public class LocalizationJobRepository {
         return count == null ? 0 : count;
     }
 
+    public List<RetentionJobCandidateVo> findRetentionCandidates(
+            Set<LocalizationJobStatus> statuses,
+            Instant cutoff,
+            int limit
+    ) {
+        List<String> statusNames = statuses.stream()
+                .map(Enum::name)
+                .toList();
+        return jdbcClient.sql("""
+                        SELECT
+                            id,
+                            video_id,
+                            status,
+                            updated_at
+                        FROM localization_jobs
+                        WHERE status IN (:statuses)
+                          AND updated_at < :cutoff
+                        ORDER BY updated_at, id
+                        LIMIT :limit
+                        """)
+                .param("statuses", statusNames)
+                .param("cutoff", Timestamp.from(cutoff))
+                .param("limit", limit)
+                .query((rs, rowNum) -> new RetentionJobCandidateVo(
+                        rs.getString("id"),
+                        rs.getString("video_id"),
+                        LocalizationJobStatus.valueOf(rs.getString("status")),
+                        rs.getTimestamp("updated_at").toInstant()
+                ))
+                .list();
+    }
+
     public boolean claimForExecution(String jobId, Instant now) {
         int updated = jdbcClient.sql("""
                         UPDATE localization_jobs
@@ -272,6 +306,27 @@ public class LocalizationJobRepository {
                 .query(Boolean.class)
                 .single();
         return Boolean.TRUE.equals(cancelled);
+    }
+
+    public int countByVideoId(String videoId) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs
+                        WHERE video_id = :videoId
+                        """)
+                .param("videoId", videoId)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
+    public int deleteById(String jobId) {
+        return jdbcClient.sql("""
+                        DELETE FROM localization_jobs
+                        WHERE id = :id
+                        """)
+                .param("id", jobId)
+                .update();
     }
 
     private LocalizationJobRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
