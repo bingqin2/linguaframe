@@ -110,6 +110,6 @@
 - [x] Run script syntax validation: `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-budget-guard.sh`.
 - [x] Run Compose validation: `docker compose --env-file .env.example config --quiet`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add budget guard demo evidence`.
-- [ ] Merge `budget-guard-demo-evidence-mvp` back to `main`.
-- [ ] Run post-merge focused validation: `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` and `cd frontend && npm run test:run -- App`.
+- [x] Commit as `Add budget guard demo evidence`.
+- [x] Merge `budget-guard-demo-evidence-mvp` back to `main`.
+- [x] Run post-merge focused validation: `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` and `cd frontend && npm run test:run -- App`.
