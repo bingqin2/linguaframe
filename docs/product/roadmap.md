@@ -399,9 +399,10 @@ Build:
 - Budget checks before translation, evaluation, and TTS stages. Status: implemented for guarded AI stages using accumulated recorded estimated cost before provider execution.
 - Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
 - Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
+- Transcription provider cache based on extracted audio hash, provider, model, and prompt version. Status: implemented.
 - Cache key for translation inputs based on source text hash, target language, provider, model, and prompt version. Status: implemented.
 - TTS provider cache based on target subtitle text hash, language, provider, model, and voice. Status: implemented.
-- Cache-hit audit events. Status: implemented for artifact reuse, translation provider cache hits, and TTS provider cache hits.
+- Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, and TTS provider cache hits.
 
 Do not build yet:
 
@@ -410,13 +411,14 @@ Do not build yet:
 - Provider price automation.
 - Per-user daily budgets.
 - Global distributed cache.
-- Provider-level transcription, quality evaluation, or generic prompt-response caching.
+- Provider-level quality evaluation or generic prompt-response caching.
 
 Exit criteria:
 
 - Expensive stages can be skipped before execution when a budget is exceeded.
 - Generated artifacts expose stable content hashes.
 - Repeated compatible media artifact outputs can be reused without rewriting object storage.
+- Repeated compatible transcription provider inputs can be reused without another transcription provider call.
 - Repeated compatible translation provider inputs can be reused without another translation provider call.
 - Repeated compatible TTS provider inputs can be reused without another TTS provider call.
 - Cache behavior is visible in job events or model-call records.
