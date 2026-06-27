@@ -274,9 +274,10 @@ Responsibilities:
 - Store content hashes for source audio and translation inputs.
 - Reuse safe prior transcription results when the same audio hash, speech model, and relevant options match.
 - Reuse safe prior translation results when source text hash, target language, provider, model, and prompt version match.
+- Reuse safe prior TTS results when target subtitle text hash, language, provider, model, and voice match.
 - Avoid using stale cache entries across incompatible prompt or model versions.
 
-The current implementation reuses generated media artifacts and translation provider results. Transcription, TTS, quality evaluation, and generic prompt-response caches remain follow-up optimizations.
+The current implementation reuses generated media artifacts, translation provider results, and TTS provider results. Transcription, quality evaluation, and generic prompt-response caches remain follow-up optimizations.
 
 ## Data Model
 
@@ -484,6 +485,23 @@ Important fields:
 - `model`
 - `promptVersion`
 - `responseJson`
+
+### TtsCacheEntry
+
+Represents a reusable TTS provider audio result.
+
+Important fields:
+
+- `id`
+- `cacheKey`
+- `textHash`
+- `language`
+- `provider`
+- `model`
+- `voice`
+- `responseJson`
+- `sourceJobId`
+- `createdAt`
 - `sourceJobId`
 - `createdAt`
 

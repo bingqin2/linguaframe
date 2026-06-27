@@ -391,14 +391,15 @@ Build:
 - Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
 - Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
 - Cache key for translation inputs based on source text hash, target language, provider, model, and prompt version. Status: implemented.
-- Cache-hit audit events. Status: implemented for artifact reuse and translation provider cache hits.
+- TTS provider cache based on target subtitle text hash, language, provider, model, and voice. Status: implemented.
+- Cache-hit audit events. Status: implemented for artifact reuse, translation provider cache hits, and TTS provider cache hits.
 
 Do not build yet:
 
 - Real billing.
 - Payments.
 - Global distributed cache.
-- Provider-level transcription, TTS, quality evaluation, or generic prompt-response caching.
+- Provider-level transcription, quality evaluation, or generic prompt-response caching.
 
 Exit criteria:
 
@@ -406,6 +407,7 @@ Exit criteria:
 - Generated artifacts expose stable content hashes.
 - Repeated compatible media artifact outputs can be reused without rewriting object storage.
 - Repeated compatible translation provider inputs can be reused without another translation provider call.
+- Repeated compatible TTS provider inputs can be reused without another TTS provider call.
 - Cache behavior is visible in job events or model-call records.
 
 Suggested ExecPlan:

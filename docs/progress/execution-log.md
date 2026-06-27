@@ -1015,6 +1015,29 @@ Post-merge verification:
 - `cd frontend && npm run test:run` passed on `main` with `Tests run: 32`.
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added `tts_cache_entries` with unique cache keys and compatibility metadata for language, provider, model, and voice.
+- Added TTS cache key, repository, and service layers.
+- Serialized cached TTS audio as Base64 inside response JSON with filename and content type.
+- Updated dubbing audio generation to check artifact cache first, then TTS provider cache, then budget/provider execution.
+- Added provider cache-hit recording for `ModelCallOperation.TTS`.
+- Documented TTS provider cache behavior and kept transcription, quality evaluation, and generic prompt-response caches as future work.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=TtsCacheKeyServiceTests,TtsCacheRepositoryTests,TtsCacheServiceTests test` first failed because TTS cache types did not exist, then passed with `Tests run: 9, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests test` first failed because the stage did not accept TTS cache dependencies, then passed after stage integration.
+- `mvn -pl LinguaFrame -Dtest=DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed with `Tests run: 31, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 269, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 37`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
 - `git diff --check HEAD` passed on `main`.
 
 ## 2026-06-27

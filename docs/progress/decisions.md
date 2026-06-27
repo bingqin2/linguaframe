@@ -225,3 +225,11 @@ Decision: Add retention cleanup as a default-off, dry-run-first operator workflo
 Reason: LinguaFrame stores uploaded videos and generated artifacts in object storage, so a private demo needs a bounded cleanup path before it is useful outside local development. Keeping the policy disabled and dry-run by default avoids accidental deletion during normal demos.
 
 Impact: Operators can preview and run cleanup for terminal jobs only. Cleanup removes object storage data before database rows, preserves shared source videos when another job still references them, and exposes only aggregate count results.
+
+## 2026-06-27
+
+Decision: Add TTS provider caching after artifact and translation provider caching.
+
+Reason: TTS has a stable compatibility boundary of ordered target-subtitle text, language, provider, model, and voice. Caching at this boundary avoids repeat OpenAI TTS calls across compatible jobs without trying to solve transcription, quality evaluation, or generic prompt-response caching too early.
+
+Impact: Dubbing audio generation still checks same-video artifact reuse first. On a TTS provider cache hit, the worker skips budget/provider execution, writes a fresh `DUBBING_AUDIO` artifact for the current job, and exposes the hit through existing provider cache-hit timeline and job summary fields.
