@@ -1,0 +1,8 @@
+{$LINGUAFRAME_PUBLIC_DOMAIN} {
+	encode gzip zstd
+
+	@backend path /api/* /actuator/* /swagger-ui/* /v3/api-docs* /swagger-ui.html
+	reverse_proxy @backend linguaframe-backend:8080
+
+	reverse_proxy linguaframe-frontend:5173
+}

@@ -297,8 +297,8 @@ Status: in progress. The backend now supports an optional owner-only demo access
 
 Build:
 
-- Production Docker Compose or simple server deployment.
-- HTTPS reverse proxy.
+- Production Docker Compose or simple server deployment. Status: implemented as a private-demo Compose overlay that keeps the local stack unchanged.
+- HTTPS reverse proxy. Status: implemented with a Caddy overlay routing browser traffic to the frontend and `/api`, actuator, and Swagger traffic to the backend.
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
 - Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg reachability, optional token-gate behavior, and configured sample paths.

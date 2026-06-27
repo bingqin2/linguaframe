@@ -90,6 +90,19 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 docker compose --env-file .env up -d --build linguaframe-backend
 ```
 
+For a single-owner private server demo, use the reverse-proxy overlay instead of changing the local Compose file:
+
+```bash
+cp .env.private-demo.example .env.private-demo
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-deploy-preflight.sh
+docker compose --env-file .env.private-demo \
+  -f docker-compose.yml \
+  -f deploy/private-demo/docker-compose.private-demo.yml \
+  up -d --build
+```
+
+The overlay adds Caddy on ports 80/443 and keeps backend/frontend host ports internal. After startup, run `LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh`.
+
 ## Successful Job Demo
 
 In another terminal, run:

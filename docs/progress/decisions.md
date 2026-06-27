@@ -2,6 +2,14 @@
 
 This file records project-level decisions that affect future implementation. Feature-specific decisions should also be recorded in the relevant ExecPlan under `docs/plans/`.
 
+## 2026-06-28
+
+Decision: Add private-demo deployment as an overlay instead of changing the local Docker Compose stack.
+
+Reason: The local demo is already stable and should remain easy to run. A private server demo needs a public HTTPS entry point and internal service routing, but it should not force local contributors through reverse-proxy setup.
+
+Impact: `deploy/private-demo/docker-compose.private-demo.yml` and `deploy/private-demo/Caddyfile` define a proxy-fronted stack, `.env.private-demo.example` documents deployment values, and `scripts/demo/private-demo-deploy-preflight.sh` validates deployment shape before startup.
+
 ## 2026-06-22
 
 Decision: Build LinguaFrame as an AI video localization platform.

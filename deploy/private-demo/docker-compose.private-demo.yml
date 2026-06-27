@@ -1,0 +1,26 @@
+services:
+  linguaframe-proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      LINGUAFRAME_PUBLIC_DOMAIN: ${LINGUAFRAME_PUBLIC_DOMAIN:?set LINGUAFRAME_PUBLIC_DOMAIN in .env.private-demo}
+    ports:
+      - "${LINGUAFRAME_PUBLIC_HTTP_PORT:-80}:80"
+      - "${LINGUAFRAME_PUBLIC_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./deploy/private-demo/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - linguaframe-frontend
+      - linguaframe-backend
+
+  linguaframe-backend:
+    ports: !reset []
+
+  linguaframe-frontend:
+    ports: !reset []
+
+volumes:
+  caddy-data:
+  caddy-config:

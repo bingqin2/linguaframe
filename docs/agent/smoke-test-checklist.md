@@ -89,6 +89,24 @@ Expected:
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 - Docker builds `linguaframe-linguaframe-frontend:latest`.
 
+Validate the private-demo deployment overlay:
+
+```bash
+docker compose --env-file .env.private-demo.example \
+  -f docker-compose.yml \
+  -f deploy/private-demo/docker-compose.private-demo.yml \
+  config --quiet
+LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-deploy-preflight.sh
+```
+
+Expected:
+
+- The overlay renders `linguaframe-proxy`.
+- The proxy publishes 80/443.
+- Backend and frontend host ports are removed in the overlay.
+- Caddy routes `/api`, actuator, Swagger, downloads, previews, and SSE to the backend while browser pages route to the frontend.
+- Preflight requires a public domain and non-empty demo token without printing secrets.
+
 If the frontend image cannot build because Docker cannot resolve or pull `node:26-alpine`, use the local fallback instead of blocking backend demo validation:
 
 ```bash
