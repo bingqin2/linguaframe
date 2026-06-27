@@ -415,7 +415,7 @@ LinguaFrame can now reuse stable generated artifacts for repeat jobs from the sa
 
 Subtitle translation provider results are cached when the ordered transcript text, target language, provider, model, and prompt version match. A translation provider cache hit skips the translation provider call, reuses the stored translated segments, writes fresh subtitle artifacts for the current job, and records a `CACHE_HIT` timeline event.
 
-TTS provider results are cached when the ordered target-subtitle text, language, provider, model, and voice match. A TTS provider cache hit skips the TTS provider call, writes a fresh `DUBBING_AUDIO` artifact for the current job, and records a provider `CACHE_HIT` timeline event. Transcription, quality evaluation, and generic prompt-response caching remain future work.
+TTS provider results are cached when the ordered target-subtitle text, language, provider, model, and effective voice match. The effective voice is the job-level `ttsVoice` selected at upload time, or the configured provider default when the job did not choose one. A TTS provider cache hit skips the TTS provider call, writes a fresh `DUBBING_AUDIO` artifact for the current job, and records a provider `CACHE_HIT` timeline event. Transcription, quality evaluation, and generic prompt-response caching remain future work.
 
 `GET /api/jobs/{jobId}` includes `cacheSummary.cacheHitCount`, `cacheSummary.generatedArtifactCount`, and `cacheSummary.providerCacheHitCount`. The React demo shows artifact/provider cache-hit counts near usage/cost metadata and marks reused artifact rows as `Reused`.
 
@@ -549,6 +549,8 @@ LINGUAFRAME_TTS_PROVIDER=openai
 ```
 
 The TTS MVP creates one continuous `dubbing-audio.mp3` artifact from target subtitles. It does not do lip sync or audio/video mixing.
+
+The React upload form can optionally choose a job-level TTS voice (`alloy`, `verse`, `aria`, `sage`, or `coral`). Leaving the selector on `Default voice` uses `OPENAI_TTS_VOICE`. Job detail, job history, recent jobs, dispatch messages, OpenAI TTS requests, and TTS provider cache keys all carry the selected voice.
 
 ```bash
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests

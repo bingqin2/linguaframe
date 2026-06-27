@@ -8,6 +8,7 @@ export interface MediaUpload {
   status: string;
   jobStatus: LocalizationJobStatus;
   targetLanguage: string;
+  ttsVoice: string | null;
   createdAt: string;
 }
 
@@ -23,6 +24,7 @@ export interface LocalizationJob {
   jobId: string;
   videoId: string;
   targetLanguage: string;
+  ttsVoice: string | null;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -46,6 +48,7 @@ export interface LocalizationJobSummary {
   videoId: string;
   filename: string;
   targetLanguage: string;
+  ttsVoice: string | null;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;

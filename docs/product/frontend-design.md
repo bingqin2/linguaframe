@@ -63,6 +63,7 @@ Responsibilities:
 Responsibilities:
 
 - Play generated TTS audio.
+- Choose a job-level TTS voice during upload while allowing the configured default voice.
 - Preview subtitle-burned video.
 - Download generated files.
 - Show artifact size and generation stage.
@@ -84,7 +85,7 @@ Responsibilities:
 - Show prompt version for translation and evaluation calls.
 - Show latency, usage, estimated cost, and status for each model call.
 - Show translation quality score and detected issues when evaluation is enabled.
-- Show whether a result came from cache when duplicate-work avoidance is implemented.
+- Show selected TTS voice and whether a result came from cache when duplicate-work avoidance is implemented.
 
 ## First Demo UX
 

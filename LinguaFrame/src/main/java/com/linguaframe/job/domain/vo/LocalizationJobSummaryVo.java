@@ -11,6 +11,7 @@ public record LocalizationJobSummaryVo(
         String videoId,
         String filename,
         String targetLanguage,
+        String ttsVoice,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,

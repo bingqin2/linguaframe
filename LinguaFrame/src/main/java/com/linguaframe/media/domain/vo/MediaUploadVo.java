@@ -16,6 +16,7 @@ public record MediaUploadVo(
         MediaUploadStatus status,
         LocalizationJobStatus jobStatus,
         String targetLanguage,
+        String ttsVoice,
         Instant createdAt
 ) {
 }

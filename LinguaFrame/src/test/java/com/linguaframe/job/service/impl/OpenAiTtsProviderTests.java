@@ -79,6 +79,29 @@ class OpenAiTtsProviderTests {
     }
 
     @Test
+    void usesRequestVoiceWhenProvided() {
+        RestClient.Builder restClientBuilder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
+        RestClient restClient = testRestClient(restClientBuilder);
+        OpenAiTtsProvider provider = new OpenAiTtsProvider(
+                openAiProperties("test-openai-key", "gpt-4o-mini-tts", "alloy", "https://api.openai.test", 5),
+                restClient,
+                objectMapper,
+                new RecordingModelCallAuditService(),
+                summaryService
+        );
+
+        server.expect(requestTo("https://api.openai.test/v1/audio/speech"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.voice").value("verse"))
+                .andRespond(withSuccess(new byte[] {1}, MediaType.valueOf("audio/mpeg")));
+
+        provider.synthesize(new TtsRequestBo("tts-job-voice", "zh-CN", "verse", "你好。"));
+
+        server.verify();
+    }
+
+    @Test
     void failsFastWhenOpenAiConfigurationIsMissing() {
         RestClient.Builder restClientBuilder = RestClient.builder();
 

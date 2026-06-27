@@ -26,9 +26,18 @@ const HISTORY_STATUSES: Array<LocalizationJobStatus | 'ALL'> = [
   'FAILED',
   'CANCELLED'
 ];
+const TTS_VOICE_OPTIONS = [
+  { value: '', label: 'Default voice' },
+  { value: 'alloy', label: 'Alloy' },
+  { value: 'verse', label: 'Verse' },
+  { value: 'aria', label: 'Aria' },
+  { value: 'sage', label: 'Sage' },
+  { value: 'coral', label: 'Coral' }
+];
 
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
+  const [ttsVoice, setTtsVoice] = useState('');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
@@ -226,7 +235,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     setIsUploading(true);
     try {
-      const upload = await linguaFrameApi.uploadMedia(file, targetLanguage.trim());
+      const upload = await linguaFrameApi.uploadMedia(file, targetLanguage.trim(), ttsVoice);
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
       setSelectedRecentJob(recentJob);
@@ -292,6 +301,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setSelectedRecentJob(recentJob);
     setManualJobId(recentJob.jobId);
     setTargetLanguage(recentJob.targetLanguage);
+    setTtsVoice(recentJob.ttsVoice ?? '');
     await loadJob(recentJob.jobId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
   }
@@ -300,6 +310,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setSelectedRecentJob(null);
     setManualJobId(historyJob.jobId);
     setTargetLanguage(historyJob.targetLanguage);
+    setTtsVoice(historyJob.ttsVoice ?? '');
     const nextJob = await loadJob(historyJob.jobId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
   }
@@ -368,6 +379,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 placeholder="zh-CN"
               />
             </label>
+            <label>
+              TTS voice
+              <select value={ttsVoice} onChange={(event) => setTtsVoice(event.target.value)}>
+                {TTS_VOICE_OPTIONS.map((option) => (
+                  <option key={option.value || 'default'} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="submit" disabled={isUploading}>
               {isUploading ? 'Uploading...' : 'Upload'}
             </button>
@@ -430,7 +451,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                         <span className="status-pill">{historyJob.status}</span>
                       </span>
                       <span className="history-meta">
-                        {historyJob.targetLanguage} · {formatCost(historyJob.estimatedCostUsd)} ·
+                        {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
+                        {formatCost(historyJob.estimatedCostUsd)} ·
                         retry {historyJob.retryCount}
                       </span>
                       <small>{historyJob.jobId}</small>
@@ -451,6 +473,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                   <li key={recentJob.jobId}>
                     <button type="button" onClick={() => void openRecentJob(recentJob)}>
                       <span>{recentJob.filename}</span>
+                      <span className="history-meta">
+                        {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)}
+                      </span>
                       <small>{recentJob.jobId}</small>
                     </button>
                   </li>
@@ -563,6 +588,7 @@ function JobDetail({
       ['Status', job.status],
       ['Stage', job.failureStage ?? job.timelineEvents.at(-1)?.stage ?? 'Queued'],
       ['Language', selectedLanguage],
+      ['TTS voice', formatVoice(job.ttsVoice)],
       ['Retries', String(job.retryCount)]
     ],
     [job, selectedLanguage]
@@ -895,6 +921,7 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     jobId: upload.jobId,
     videoId: upload.videoId,
     targetLanguage: upload.targetLanguage,
+    ttsVoice: upload.ttsVoice,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -910,6 +937,10 @@ function supportsEventSource(): boolean {
 
 function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
+}
+
+function formatVoice(value: string | null | undefined): string {
+  return value?.trim() || 'Default voice';
 }
 
 function formatTimeRange(startMs: number, endMs: number): string {

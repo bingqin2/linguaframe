@@ -1297,3 +1297,27 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
+- Added job-level TTS voice selection from upload through durable jobs, job detail/list/upload responses, dispatch payloads, worker TTS requests, OpenAI TTS request bodies, and TTS provider cache keys.
+- Added nullable `localization_jobs.tts_voice` with backward-compatible record/message constructors for older jobs and payloads.
+- Added React upload voice selection with provider-default fallback, recent-job compatibility for old browser records, and selected-voice display in job metadata, history, and recent jobs.
+- Documented fallback behavior, cache compatibility, and the job-level voice decision.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='UploadIntakeSchemaTests,LocalizationJobRepositoryTests' test` first failed because the schema/entity did not expose `ttsVoice`, then passed.
+- `mvn -pl LinguaFrame -Dtest='MediaUploadControllerTests,MediaUploadServiceTests,JobDispatchOutboxServiceTests,LocalizationJobControllerTests' test` first failed because upload and dispatch did not accept or expose `ttsVoice`, then passed.
+- `mvn -pl LinguaFrame -Dtest='DubbingAudioGenerationPipelineStageTests,TtsCacheKeyServiceTests,OpenAiTtsProviderTests' test` first failed because `TtsRequestBo.voice()` and request-level OpenAI voice selection did not exist, then passed with `Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi recentJobs App` first failed because the API did not send `ttsVoice`, recent jobs did not normalize it, and the upload form had no voice selector, then passed with `Tests run: 39`.
+- `mvn -pl LinguaFrame -Dtest='UploadIntakeSchemaTests,LocalizationJobRepositoryTests,MediaUploadControllerTests,MediaUploadServiceTests,JobDispatchOutboxServiceTests,LocalizationJobControllerTests,DubbingAudioGenerationPipelineStageTests,TtsCacheKeyServiceTests,OpenAiTtsProviderTests' test` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi recentJobs App` passed with `Tests run: 39`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 307, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 39`.
+- `cd frontend && npm run build` first failed on strict TypeScript nullability for recent jobs and job summary fixtures, then passed after type normalization.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.

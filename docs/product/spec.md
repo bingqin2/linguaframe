@@ -174,6 +174,7 @@ Upload Video
 ### TTS Dubbing
 
 - The system generates a TTS dubbing audio file from translated subtitle text.
+- Each job may choose a TTS voice at upload time; jobs without a selection use the configured provider default voice.
 - The MVP may produce one continuous audio track rather than perfect segment-level lip sync.
 - The TTS artifact is stored in object storage.
 - The frontend supports playback and download.
@@ -295,7 +296,7 @@ Planned follow-up capabilities:
 - WebSocket or cross-process event bus for hosted live job progress.
 - Segment-level TTS alignment.
 - Optional audio replacement in exported video.
-- Multiple voice choices.
+- Segment-level or speaker-specific voice assignment.
 - Speaker diarization.
 - Source language auto-detection display.
 - Batch jobs.

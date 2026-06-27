@@ -26,6 +26,7 @@ describe('recentJobs', () => {
         jobId: 'job-1',
         videoId: 'video-1',
         targetLanguage: 'ja',
+        ttsVoice: null,
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -57,6 +58,33 @@ describe('recentJobs', () => {
     storage.setItem('linguaframe.recentJobs.v1', '{');
 
     expect(loadRecentJobs(storage)).toEqual([]);
+  });
+
+  test('loads jobs saved before tts voice selection existed', () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      'linguaframe.recentJobs.v1',
+      JSON.stringify([
+        {
+          jobId: 'job-legacy',
+          videoId: 'video-legacy',
+          targetLanguage: 'zh-CN',
+          filename: 'legacy.mp4',
+          createdAt: '2026-06-26T10:00:00Z'
+        }
+      ])
+    );
+
+    expect(loadRecentJobs(storage)).toEqual([
+      {
+        jobId: 'job-legacy',
+        videoId: 'video-legacy',
+        targetLanguage: 'zh-CN',
+        ttsVoice: null,
+        filename: 'legacy.mp4',
+        createdAt: '2026-06-26T10:00:00Z'
+      }
+    ]);
   });
 
   test('removes a recent job by id', () => {

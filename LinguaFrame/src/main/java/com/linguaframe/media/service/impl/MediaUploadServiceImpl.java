@@ -51,7 +51,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
     @Override
     @Transactional
-    public MediaUploadVo createUpload(MultipartFile file, String targetLanguage) {
+    public MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice) {
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
@@ -62,6 +62,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         String filename = validation.filename();
         String objectKey = "source-videos/" + videoId + "/" + filename;
         String normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage);
+        String normalizedTtsVoice = normalizeTtsVoice(ttsVoice);
         Instant createdAt = Instant.now();
 
         try {
@@ -89,6 +90,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 jobId,
                 videoId,
                 normalizedTargetLanguage,
+                normalizedTtsVoice,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -107,6 +109,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 MediaUploadStatus.UPLOADED,
                 LocalizationJobStatus.QUEUED,
                 normalizedTargetLanguage,
+                normalizedTtsVoice,
                 createdAt
         );
     }
@@ -132,5 +135,12 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             return DEFAULT_TARGET_LANGUAGE;
         }
         return targetLanguage.trim();
+    }
+
+    private String normalizeTtsVoice(String ttsVoice) {
+        if (!StringUtils.hasText(ttsVoice)) {
+            return null;
+        }
+        return ttsVoice.trim();
     }
 }

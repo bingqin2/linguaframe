@@ -166,6 +166,7 @@ class RedisLocalizationJobStatusCacheServiceTests {
                 jobId,
                 "video-" + jobId,
                 "zh-CN",
+                null,
                 status,
                 Instant.parse("2026-06-27T05:00:00Z"),
                 null,

@@ -5,9 +5,14 @@ export interface RecentJob {
   jobId: string;
   videoId: string;
   targetLanguage: string;
+  ttsVoice: string | null;
   filename: string;
   createdAt: string;
 }
+
+type RecentJobInput = Omit<RecentJob, 'ttsVoice'> & {
+  ttsVoice?: string | null;
+};
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
   const value = storage.getItem(RECENT_JOBS_KEY);
@@ -20,14 +25,19 @@ export function loadRecentJobs(storage: Storage): RecentJob[] {
     if (!Array.isArray(parsed)) {
       return [];
     }
-    return parsed.filter(isRecentJob).sort(compareNewestFirst).slice(0, MAX_RECENT_JOBS);
+    return parsed
+      .map(toRecentJob)
+      .filter((job): job is RecentJob => job !== null)
+      .sort(compareNewestFirst)
+      .slice(0, MAX_RECENT_JOBS);
   } catch {
     return [];
   }
 }
 
-export function saveRecentJob(storage: Storage, job: RecentJob): RecentJob[] {
-  const jobs = [job, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
+export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[] {
+  const normalizedJob = { ...job, ttsVoice: job.ttsVoice ?? null };
+  const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
     .slice(0, MAX_RECENT_JOBS);
   storage.setItem(RECENT_JOBS_KEY, JSON.stringify(jobs));
@@ -44,17 +54,27 @@ function compareNewestFirst(left: RecentJob, right: RecentJob): number {
   return Date.parse(right.createdAt) - Date.parse(left.createdAt);
 }
 
-function isRecentJob(value: unknown): value is RecentJob {
+function toRecentJob(value: unknown): RecentJob | null {
   if (!value || typeof value !== 'object') {
-    return false;
+    return null;
   }
 
   const candidate = value as Partial<Record<keyof RecentJob, unknown>>;
-  return (
-    typeof candidate.jobId === 'string' &&
-    typeof candidate.videoId === 'string' &&
-    typeof candidate.targetLanguage === 'string' &&
-    typeof candidate.filename === 'string' &&
-    typeof candidate.createdAt === 'string'
-  );
+  if (
+    typeof candidate.jobId !== 'string' ||
+    typeof candidate.videoId !== 'string' ||
+    typeof candidate.targetLanguage !== 'string' ||
+    typeof candidate.filename !== 'string' ||
+    typeof candidate.createdAt !== 'string'
+  ) {
+    return null;
+  }
+  return {
+    jobId: candidate.jobId,
+    videoId: candidate.videoId,
+    targetLanguage: candidate.targetLanguage,
+    ttsVoice: typeof candidate.ttsVoice === 'string' ? candidate.ttsVoice : null,
+    filename: candidate.filename,
+    createdAt: candidate.createdAt
+  };
 }

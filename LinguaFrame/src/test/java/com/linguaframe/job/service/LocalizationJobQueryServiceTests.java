@@ -142,6 +142,7 @@ class LocalizationJobQueryServiceTests {
                 jobId,
                 "video-" + jobId,
                 "zh-CN",
+                null,
                 status,
                 Instant.parse("2026-06-27T05:30:00Z"),
                 null,

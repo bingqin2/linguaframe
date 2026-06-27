@@ -51,6 +51,31 @@ describe('linguaframeApi', () => {
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('file')).toBe(file);
     expect((body as FormData).get('targetLanguage')).toBe('zh');
+    expect((body as FormData).has('ttsVoice')).toBe(false);
+  });
+
+  test('uploads media with selected tts voice when provided', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        ttsVoice: 'verse',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(new File(['demo'], 'sample.mp4', { type: 'video/mp4' }), 'zh', ' verse ');
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('ttsVoice')).toBe('verse');
   });
 
   test('uploads media with demo access token header when stored', async () => {

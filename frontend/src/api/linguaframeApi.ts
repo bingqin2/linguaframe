@@ -19,10 +19,18 @@ export interface ListJobsParams {
   offset?: number;
 }
 
-export async function uploadMedia(file: File, targetLanguage: string): Promise<MediaUpload> {
+export async function uploadMedia(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string
+): Promise<MediaUpload> {
   const body = new FormData();
   body.set('file', file);
   body.set('targetLanguage', targetLanguage);
+  const normalizedVoice = ttsVoice?.trim();
+  if (normalizedVoice) {
+    body.set('ttsVoice', normalizedVoice);
+  }
 
   return requestJson<MediaUpload>('/api/media/uploads', {
     method: 'POST',

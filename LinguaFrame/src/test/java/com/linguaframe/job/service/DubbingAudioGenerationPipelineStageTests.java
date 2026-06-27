@@ -65,6 +65,7 @@ class DubbingAudioGenerationPipelineStageTests {
 
         assertThat(ttsProvider.request.jobId()).isEqualTo("dubbing-job-1");
         assertThat(ttsProvider.request.language()).isEqualTo("zh-CN");
+        assertThat(ttsProvider.request.voice()).isEqualTo("demo-voice");
         assertThat(ttsProvider.request.text()).isEqualTo("第一句翻译\n第二句翻译");
         assertThat(artifactService.commands).hasSize(1);
         CreateJobArtifactCommand command = artifactService.commands.getFirst();
@@ -156,6 +157,57 @@ class DubbingAudioGenerationPipelineStageTests {
                     assertThat(hit.cacheKey()).isEqualTo("tts-cache-key-hit");
                     assertThat(hit.sourceJobId()).isEqualTo("source-job-tts");
                 });
+    }
+
+    @Test
+    void sendsJobTtsVoiceToProviderAndProviderCacheKey() {
+        properties.getTts().setEnabled(true);
+        properties.getTts().setProvider("openai");
+        properties.getTts().getOpenai().setModel("gpt-4o-mini-tts");
+        properties.getTts().getOpenai().setVoice("alloy");
+        RecordingTtsCacheKeyService cacheKeyService = new RecordingTtsCacheKeyService();
+        RecordingTtsCacheService cacheService = new RecordingTtsCacheService(null);
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService(),
+                new EmptyArtifactCacheService(),
+                cacheKeyService,
+                cacheService
+        );
+
+        stage.execute(contextWithTtsVoice("verse"));
+
+        assertThat(ttsProvider.request.voice()).isEqualTo("verse");
+        assertThat(cacheKeyService.voice).isEqualTo("verse");
+        assertThat(cacheService.storedLookup.voice()).isEqualTo("verse");
+    }
+
+    @Test
+    void fallsBackToConfiguredVoiceWhenJobHasNoTtsVoice() {
+        properties.getTts().setEnabled(true);
+        properties.getTts().setProvider("openai");
+        properties.getTts().getOpenai().setModel("gpt-4o-mini-tts");
+        properties.getTts().getOpenai().setVoice("alloy");
+        RecordingTtsCacheKeyService cacheKeyService = new RecordingTtsCacheKeyService();
+        RecordingTtsCacheService cacheService = new RecordingTtsCacheService(null);
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService(),
+                new EmptyArtifactCacheService(),
+                cacheKeyService,
+                cacheService
+        );
+
+        stage.execute(context());
+
+        assertThat(ttsProvider.request.voice()).isEqualTo("alloy");
+        assertThat(cacheKeyService.voice).isEqualTo("alloy");
     }
 
     @Test
@@ -266,15 +318,21 @@ class DubbingAudioGenerationPipelineStageTests {
     }
 
     private LocalizationJobExecutionContextBo context() {
+        return contextWithTtsVoice(null);
+    }
+
+    private LocalizationJobExecutionContextBo contextWithTtsVoice(String ttsVoice) {
         Instant now = Instant.parse("2026-06-26T23:00:00Z");
         return new LocalizationJobExecutionContextBo(
-                new LocalizationJobRecord("dubbing-job-1", "dubbing-video-1", "zh-CN", LocalizationJobStatus.PROCESSING, now),
+                new LocalizationJobRecord("dubbing-job-1", "dubbing-video-1", "zh-CN", ttsVoice, LocalizationJobStatus.PROCESSING, now),
                 new QueuedLocalizationJobMessage(
                         "dubbing-job-1",
                         "dubbing-video-1",
                         "source-videos/dubbing-video-1/sample.mp4",
                         "zh-CN",
-                        now
+                        ttsVoice,
+                        now,
+                        LocalizationJobStage.WORKER_SMOKE
                 ),
                 now
         );

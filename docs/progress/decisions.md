@@ -257,3 +257,11 @@ Decision: Add a local private-demo preflight before running media uploads or pro
 Reason: The private demo now depends on Docker Compose services, optional access-token gating, local `.env` values, frontend/backend reachability, and optional local media files. A preflight script catches environment and readiness problems before a user spends time or OpenAI credits on a demo run.
 
 Impact: Operators can run `scripts/demo/private-demo-preflight.sh` after starting Compose to verify required commands, Compose rendering, backend health, frontend reachability, optional token-gate behavior, and configured sample paths without uploading media or calling paid providers.
+
+## 2026-06-27
+
+Decision: Store TTS voice selection on each localization job and include it in TTS cache identity.
+
+Reason: Voice is part of the user's requested output, not just a runtime knob. A job-level value makes upload responses, job detail, split-worker dispatch messages, provider requests, and cache lookups agree even when the global default voice changes later.
+
+Impact: Jobs without a selected voice still use the configured provider default. Jobs with `ttsVoice` use that value for OpenAI TTS requests and TTS provider cache keys, so two jobs with the same subtitles but different voices do not share audio.

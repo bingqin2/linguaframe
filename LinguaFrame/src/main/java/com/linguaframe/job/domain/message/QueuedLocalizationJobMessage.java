@@ -9,6 +9,7 @@ public record QueuedLocalizationJobMessage(
         String videoId,
         String sourceObjectKey,
         String targetLanguage,
+        String ttsVoice,
         Instant createdAt,
         LocalizationJobStage startStage
 ) {
@@ -26,6 +27,17 @@ public record QueuedLocalizationJobMessage(
             String targetLanguage,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, createdAt, LocalizationJobStage.WORKER_SMOKE);
+    }
+
+    public QueuedLocalizationJobMessage(
+            String jobId,
+            String videoId,
+            String sourceObjectKey,
+            String targetLanguage,
+            Instant createdAt,
+            LocalizationJobStage startStage
+    ) {
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, createdAt, startStage);
     }
 }

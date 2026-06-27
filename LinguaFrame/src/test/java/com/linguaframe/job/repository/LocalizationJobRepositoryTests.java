@@ -81,6 +81,38 @@ class LocalizationJobRepositoryTests {
     }
 
     @Test
+    void savesAndFindsJobTtsVoice() {
+        Instant createdAt = Instant.parse("2026-06-27T14:00:00Z");
+        videoRepository.save(new VideoRecord(
+                "video-job-voice",
+                "voice-sample.mp4",
+                "video/mp4",
+                123L,
+                "source-videos/video-job-voice/voice-sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        LocalizationJobRecord record = new LocalizationJobRecord(
+                "job-voice",
+                "video-job-voice",
+                "zh-CN",
+                "verse",
+                LocalizationJobStatus.QUEUED,
+                createdAt
+        );
+
+        jobRepository.save(record);
+
+        assertThat(jobRepository.findById("job-voice"))
+                .get()
+                .satisfies(job -> assertThat(job.ttsVoice()).isEqualTo("verse"));
+        assertThat(jobRepository.findSummaries(null, 20, 0))
+                .filteredOn(summary -> summary.jobId().equals("job-voice"))
+                .singleElement()
+                .satisfies(summary -> assertThat(summary.ttsVoice()).isEqualTo("verse"));
+    }
+
+    @Test
     void returnsEmptyWhenJobDoesNotExist() {
         assertThat(jobRepository.findById("missing-job")).isEmpty();
     }

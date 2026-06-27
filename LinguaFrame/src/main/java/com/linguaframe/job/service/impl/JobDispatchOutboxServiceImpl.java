@@ -35,6 +35,7 @@ public class JobDispatchOutboxServiceImpl implements JobDispatchOutboxService {
                 video.id(),
                 video.sourceObjectKey(),
                 job.targetLanguage(),
+                job.ttsVoice(),
                 job.createdAt(),
                 LocalizationJobStage.WORKER_SMOKE
         );
