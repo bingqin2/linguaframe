@@ -272,6 +272,16 @@ class LocalizationJobControllerTests {
                 "source-artifact",
                 createdAt.plusSeconds(2)
         ));
+        timelineEventRepository.save(new JobTimelineEventRecord(
+                "job-controller-provider-cache-hit",
+                "job-controller-job-usage",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                JobTimelineEventStatus.CACHE_HIT,
+                "Reused cached TRANSLATION provider result from job source-provider-cache-job.",
+                null,
+                null,
+                createdAt.plusSeconds(3)
+        ));
         modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
                 "job-controller-job-usage",
                 LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
@@ -309,6 +319,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.usageSummary.outputTokens").value(500))
                 .andExpect(jsonPath("$.cacheSummary.cacheHitCount").value(1))
                 .andExpect(jsonPath("$.cacheSummary.generatedArtifactCount").value(1))
+                .andExpect(jsonPath("$.cacheSummary.providerCacheHitCount").value(1))
                 .andExpect(jsonPath("$.modelCalls[0].operation").value("TRANSLATION"))
                 .andExpect(jsonPath("$.modelCalls[0].status").value("SUCCEEDED"))
                 .andExpect(jsonPath("$.modelCalls[0].estimatedCostUsd").value(0.00045000))

@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
@@ -68,6 +69,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         JobDispatchEventRecord dispatchEvent = dispatchEventRepository.findLatestByJobId(jobId).orElse(null);
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
+        List<JobTimelineEventRecord> timelineEvents = timelineEventRepository.findByJobId(jobId);
         return new LocalizationJobVo(
                 record.id(),
                 record.videoId(),
@@ -83,21 +85,28 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 dispatchEvent == null ? null : dispatchEvent.status(),
                 dispatchEvent == null ? 0 : dispatchEvent.attempts(),
                 dispatchEvent == null ? null : dispatchEvent.dispatchedAt(),
-                timelineEventRepository.findByJobId(jobId).stream()
+                timelineEvents.stream()
                         .map(this::toTimelineEventVo)
                         .toList(),
                 modelCallAuditService.summarizeJob(jobId),
-                cacheSummary(artifacts),
+                cacheSummary(artifacts, timelineEvents),
                 modelCallAuditService.listModelCalls(jobId),
                 qualityEvaluationService.latestForJob(jobId).orElse(null)
         );
     }
 
-    private JobCacheSummaryVo cacheSummary(List<JobArtifactRecord> artifacts) {
+    private JobCacheSummaryVo cacheSummary(
+            List<JobArtifactRecord> artifacts,
+            List<JobTimelineEventRecord> timelineEvents
+    ) {
         int cacheHitCount = (int) artifacts.stream()
                 .filter(JobArtifactRecord::cacheHit)
                 .count();
-        return new JobCacheSummaryVo(cacheHitCount, artifacts.size() - cacheHitCount);
+        int providerCacheHitCount = (int) timelineEvents.stream()
+                .filter(event -> event.status() == JobTimelineEventStatus.CACHE_HIT)
+                .filter(event -> event.message() != null && event.message().contains("provider result"))
+                .count();
+        return new JobCacheSummaryVo(cacheHitCount, artifacts.size() - cacheHitCount, providerCacheHitCount);
     }
 
     private JobTimelineEventVo toTimelineEventVo(JobTimelineEventRecord record) {

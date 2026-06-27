@@ -199,7 +199,8 @@ Requirements:
 - Per-job cost budgets can stop expensive stages before provider calls once recorded estimated spend reaches the configured limit.
 - Artifact content hashes provide stable fingerprints for duplicate-work detection.
 - Artifact-level cache hits can reuse stable generated artifacts for repeat jobs from the same source video, target language, and artifact type.
-- Provider-level transcription, translation, and prompt-response caching can avoid duplicate model work for repeated compatible inputs in a later slice.
+- Translation provider cache hits can reuse prior translated subtitle segments when source text hash, target language, provider, model, and prompt version match.
+- Provider-level transcription, TTS, quality evaluation, and generic prompt-response caching can avoid duplicate model work for repeated compatible inputs in later slices.
 - AI infrastructure features should be observable in job detail and admin-facing views.
 
 These capabilities are follow-up engineering depth after the core upload-to-artifact workflow is working.

@@ -1016,3 +1016,35 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added durable `translation_cache_entries` for subtitle translation provider results.
+- Added stable translation cache key generation from ordered transcript segments, target language, provider, model, and prompt version.
+- Added `TranslationCacheService` to safely serialize and deserialize cached `TranslationResultBo` values.
+- Wired target subtitle export to reuse cached translations before budget guard and provider calls.
+- Added provider cache-hit timeline events and `cacheSummary.providerCacheHitCount`.
+- Updated the React demo to distinguish artifact cache hits from provider cache hits.
+- Documented translation-only provider caching and kept transcription, TTS, quality evaluation, and generic prompt-response caching as later work.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=TranslationCacheRepositoryTests test` first failed because translation cache repository types did not exist, then passed with `Tests run: 2, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=TranslationCacheKeyServiceTests test` first failed because the key service did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=TranslationCacheServiceTests test` first failed because the cache service did not exist, then passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=TargetSubtitleExportPipelineStageTests,LocalizationJobExecutionServiceTests test` first failed because provider cache hits and target subtitle cache integration did not exist, then passed with `Tests run: 19, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because `cacheSummary.providerCacheHitCount` did not exist, then passed with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the usage summary still showed one aggregate cache count, then passed with `Tests run: 28`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 215, Failures: 0, Errors: 0, Skipped: 0`.
+- After correcting `TargetSubtitleExportPipelineStage` production constructor injection, `mvn -pl LinguaFrame -Dtest=TargetSubtitleExportPipelineStageTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests,OpenAiTranslationContextTests test` passed with `Tests run: 40, Failures: 0, Errors: 0, Skipped: 0`.
+- After that constructor correction, `mvn -pl LinguaFrame test` passed again with `Tests run: 215, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 32`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice caches subtitle translation provider results only. It does not cache transcription, TTS, quality evaluation, raw OpenAI payloads, or generic prompt-response records.

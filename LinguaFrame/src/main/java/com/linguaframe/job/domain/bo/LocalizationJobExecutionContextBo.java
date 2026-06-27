@@ -3,6 +3,7 @@ package com.linguaframe.job.domain.bo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.ProviderCacheHitVo;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ public final class LocalizationJobExecutionContextBo {
     private final QueuedLocalizationJobMessage message;
     private final Instant startedAt;
     private final List<JobArtifactVo> cacheHits = new ArrayList<>();
+    private final List<ProviderCacheHitVo> providerCacheHits = new ArrayList<>();
 
     public LocalizationJobExecutionContextBo(
             LocalizationJobRecord job,
@@ -44,6 +46,16 @@ public final class LocalizationJobExecutionContextBo {
     public List<JobArtifactVo> consumeCacheHits() {
         List<JobArtifactVo> hits = List.copyOf(cacheHits);
         cacheHits.clear();
+        return hits;
+    }
+
+    public void recordProviderCacheHit(ProviderCacheHitVo hit) {
+        providerCacheHits.add(hit);
+    }
+
+    public List<ProviderCacheHitVo> consumeProviderCacheHits() {
+        List<ProviderCacheHitVo> hits = List.copyOf(providerCacheHits);
+        providerCacheHits.clear();
         return hits;
     }
 }
