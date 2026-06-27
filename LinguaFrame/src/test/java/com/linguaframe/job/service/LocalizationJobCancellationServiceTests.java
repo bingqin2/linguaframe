@@ -25,6 +25,9 @@ import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -78,6 +81,43 @@ class LocalizationJobCancellationServiceTests {
     }
 
     @Test
+    void evictsCachedJobSnapshotAfterSuccessfulCancellation() {
+        Instant now = Instant.parse("2026-06-27T03:25:00Z");
+        createJob("cancel-service-video-cache", "cancel-service-job-cache", LocalizationJobStatus.QUEUED, now);
+        LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
+        LocalizationJobCancellationService service = new LocalizationJobCancellationServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                queryService,
+                cacheService,
+                Clock.fixed(now.plusSeconds(1), ZoneOffset.UTC)
+        );
+
+        service.cancelJob("cancel-service-job-cache");
+
+        verify(cacheService).evict("cancel-service-job-cache");
+    }
+
+    @Test
+    void ignoresCacheEvictionFailureAfterSuccessfulCancellation() {
+        Instant now = Instant.parse("2026-06-27T03:26:00Z");
+        createJob("cancel-service-video-cache-failure", "cancel-service-job-cache-failure", LocalizationJobStatus.QUEUED, now);
+        LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
+        doThrow(new IllegalStateException("redis unavailable")).when(cacheService).evict("cancel-service-job-cache-failure");
+        LocalizationJobCancellationService service = new LocalizationJobCancellationServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                queryService,
+                cacheService,
+                Clock.fixed(now.plusSeconds(1), ZoneOffset.UTC)
+        );
+
+        LocalizationJobVo result = service.cancelJob("cancel-service-job-cache-failure");
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.CANCELLED);
+    }
+
+    @Test
     void rejectsTerminalJobCancellation() {
         Instant now = Instant.parse("2026-06-27T03:30:00Z");
         createJob("cancel-service-video-terminal", "cancel-service-job-terminal", LocalizationJobStatus.COMPLETED, now);
@@ -93,6 +133,7 @@ class LocalizationJobCancellationServiceTests {
                 jobRepository,
                 timelineEventRepository,
                 queryService,
+                mock(LocalizationJobStatusCacheService.class),
                 clock
         );
     }

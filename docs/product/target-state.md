@@ -130,7 +130,7 @@ The backend should provide:
 - Object storage abstraction.
 - MySQL-backed media, job, transcript, artifact, usage, and failure records.
 - RabbitMQ-backed async job processing.
-- Redis-backed job status cache, rate-limit hooks, and lightweight coordination.
+- Redis-backed job status cache for job detail snapshots, rate-limit hooks, and lightweight coordination.
 - FFmpeg integration for audio extraction and subtitle burn-in.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.

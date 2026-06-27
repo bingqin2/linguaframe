@@ -241,3 +241,11 @@ Decision: Add Redis-backed upload rate limiting before broader authentication or
 Reason: LinguaFrame already runs Redis in the local and Docker stack, but Redis was not yet part of a real backend request path. Upload and upload-validation requests are the highest-risk unauthenticated demo entry points, so a small fixed-window limiter creates a concrete hosted-demo safety feature without introducing user accounts or billing.
 
 Impact: Operators can opt in with `LINGUAFRAME_RATE_LIMIT_ENABLED=true`. The limiter applies only to upload `POST` routes, hashes client identities before writing Redis keys, returns structured `429 RATE_LIMIT_EXCEEDED` responses, and fails open by default when Redis is unavailable.
+
+## 2026-06-27
+
+Decision: Add Redis as a short-lived cache-aside layer for job detail snapshots while keeping MySQL as the source of truth.
+
+Reason: `GET /api/jobs/{jobId}` and SSE progress polling repeatedly rebuild the same sanitized `LocalizationJobVo` shape from durable tables. A small Redis cache demonstrates the planned job-status cache path without changing persistence semantics or introducing Redis pub/sub before it is needed.
+
+Impact: Job detail reads can return cached snapshots from `linguaframe:job-status:<jobId>` for a short TTL, then fall back to database reads on misses or Redis/JSON failures. Retry, cancel, and worker status transitions evict the affected job key so stale snapshots do not survive state changes.

@@ -1039,6 +1039,30 @@ Validation so far:
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
 
+## 2026-06-27
+
+Work:
+
+- Added `linguaframe.job-status-cache.enabled` and `ttl-seconds` runtime configuration.
+- Added `LocalizationJobStatusCacheService` with a Redis `StringRedisTemplate` implementation.
+- Cached serialized `LocalizationJobVo` snapshots for `GET /api/jobs/{jobId}` with key namespace `linguaframe:job-status:<jobId>`.
+- Kept `listJobs` database-backed and reused the cached detail path for SSE snapshots.
+- Evicted job detail snapshots after retry, cancellation, and worker status transitions.
+- Kept cache reads, writes, deserialization, and eviction fail-open so Redis issues do not break job APIs.
+- Documented job status cache variables, TTL, key boundary, and MySQL source-of-truth behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='LinguaFramePropertiesTests,LocalizationJobControllerTests,LocalizationJobExecutionServiceTests,LocalizationJobRetryServiceTests,LocalizationJobCancellationServiceTests' test` passed before implementation with `Tests run: 61, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest='LinguaFramePropertiesTests,RedisLocalizationJobStatusCacheServiceTests' test` first failed because job-status cache configuration and service did not exist, then passed with `Tests run: 27, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobQueryServiceTests,LocalizationJobControllerTests' test` first failed because job detail did not read or populate the cache, then passed with `Tests run: 24, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobRetryServiceTests,LocalizationJobCancellationServiceTests,LocalizationJobExecutionServiceTests' test` first failed because mutation paths did not evict cached snapshots, then passed with `Tests run: 29, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest='RedisLocalizationJobStatusCacheServiceTests,LocalizationJobQueryServiceTests,LocalizationJobRetryServiceTests,LocalizationJobCancellationServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests,LinguaFramePropertiesTests' test` passed with `Tests run: 80, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 300, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
+
 Post-merge verification:
 
 - Merged `tts-provider-cache-mvp` back to `main` with merge commit.

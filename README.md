@@ -164,6 +164,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.rate-limit.upload-max-requests` - default `20`, counted per client identity per window.
 - `linguaframe.rate-limit.upload-window-seconds` - default `60`.
 - `linguaframe.rate-limit.fail-open` - default `true`; allows uploads if Redis is temporarily unavailable.
+- `linguaframe.job-status-cache.enabled` - default `true`; enables Redis cache-aside reads for job detail snapshots.
+- `linguaframe.job-status-cache.ttl-seconds` - default `30`; time-to-live for cached `GET /api/jobs/{jobId}` snapshots.
 - `linguaframe.retention.enabled` - default `false`; enables operator-triggered retention cleanup.
 - `linguaframe.retention.dry-run` - default `true`; reports candidates without deleting objects or rows.
 - `linguaframe.retention.completed-job-ttl-days` - default `7`.
@@ -393,6 +395,8 @@ LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
 When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, and safe error summaries. Model-call summaries are count-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
+
+Job detail reads use an optional Redis cache-aside layer. MySQL remains the source of truth; Redis stores short-lived serialized `LocalizationJobVo` snapshots under `linguaframe:job-status:<jobId>`, evicts on retry, cancel, and worker status transitions, and fails open to database reads if Redis or JSON serialization is unavailable. The same cached detail path is reused by the SSE progress stream.
 
 `GET /api/jobs/{jobId}/artifacts` returns each artifact with `contentSha256`, a lowercase SHA-256 fingerprint of the stored bytes. The React demo shows the first 12 characters in the artifact table and keeps the full hash available on hover.
 

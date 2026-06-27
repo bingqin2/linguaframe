@@ -15,12 +15,14 @@ import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryService {
@@ -34,6 +36,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final JobTimelineEventRepository timelineEventRepository;
     private final ModelCallAuditService modelCallAuditService;
     private final QualityEvaluationService qualityEvaluationService;
+    private final LocalizationJobStatusCacheService jobStatusCacheService;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
@@ -41,7 +44,8 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
             JobDispatchEventRepository dispatchEventRepository,
             JobTimelineEventRepository timelineEventRepository,
             ModelCallAuditService modelCallAuditService,
-            QualityEvaluationService qualityEvaluationService
+            QualityEvaluationService qualityEvaluationService,
+            LocalizationJobStatusCacheService jobStatusCacheService
     ) {
         this.jobRepository = jobRepository;
         this.artifactRepository = artifactRepository;
@@ -49,6 +53,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         this.timelineEventRepository = timelineEventRepository;
         this.modelCallAuditService = modelCallAuditService;
         this.qualityEvaluationService = qualityEvaluationService;
+        this.jobStatusCacheService = jobStatusCacheService;
     }
 
     @Override
@@ -65,12 +70,17 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
 
     @Override
     public LocalizationJobVo getJob(String jobId) {
+        Optional<LocalizationJobVo> cachedJob = cachedJob(jobId);
+        if (cachedJob.isPresent()) {
+            return cachedJob.get();
+        }
+
         LocalizationJobRecord record = jobRepository.findById(jobId)
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         JobDispatchEventRecord dispatchEvent = dispatchEventRepository.findLatestByJobId(jobId).orElse(null);
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
         List<JobTimelineEventRecord> timelineEvents = timelineEventRepository.findByJobId(jobId);
-        return new LocalizationJobVo(
+        LocalizationJobVo job = new LocalizationJobVo(
                 record.id(),
                 record.videoId(),
                 record.targetLanguage(),
@@ -93,6 +103,24 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 modelCallAuditService.listModelCalls(jobId),
                 qualityEvaluationService.latestForJob(jobId).orElse(null)
         );
+        cacheJob(job);
+        return job;
+    }
+
+    private Optional<LocalizationJobVo> cachedJob(String jobId) {
+        try {
+            return jobStatusCacheService.get(jobId);
+        } catch (RuntimeException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private void cacheJob(LocalizationJobVo job) {
+        try {
+            jobStatusCacheService.put(job);
+        } catch (RuntimeException exception) {
+            // Job detail reads must not depend on Redis availability.
+        }
     }
 
     private JobCacheSummaryVo cacheSummary(

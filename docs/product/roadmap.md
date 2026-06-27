@@ -223,7 +223,7 @@ Build:
 - Basic model-call audit records.
 - Job timeline events.
 - Failed-stage retry behavior.
-- Redis status cache.
+- Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - Structured logs with job id.
 - OpenAPI docs.

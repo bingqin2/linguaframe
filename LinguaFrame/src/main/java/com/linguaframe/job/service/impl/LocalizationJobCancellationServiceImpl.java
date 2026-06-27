@@ -9,6 +9,7 @@ import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,26 +28,30 @@ public class LocalizationJobCancellationServiceImpl implements LocalizationJobCa
     private final LocalizationJobRepository jobRepository;
     private final JobTimelineEventRepository timelineEventRepository;
     private final LocalizationJobQueryService queryService;
+    private final LocalizationJobStatusCacheService jobStatusCacheService;
     private final Clock clock;
 
     @Autowired
     public LocalizationJobCancellationServiceImpl(
             LocalizationJobRepository jobRepository,
             JobTimelineEventRepository timelineEventRepository,
-            LocalizationJobQueryService queryService
+            LocalizationJobQueryService queryService,
+            LocalizationJobStatusCacheService jobStatusCacheService
     ) {
-        this(jobRepository, timelineEventRepository, queryService, Clock.systemUTC());
+        this(jobRepository, timelineEventRepository, queryService, jobStatusCacheService, Clock.systemUTC());
     }
 
     public LocalizationJobCancellationServiceImpl(
             LocalizationJobRepository jobRepository,
             JobTimelineEventRepository timelineEventRepository,
             LocalizationJobQueryService queryService,
+            LocalizationJobStatusCacheService jobStatusCacheService,
             Clock clock
     ) {
         this.jobRepository = jobRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.queryService = queryService;
+        this.jobStatusCacheService = jobStatusCacheService;
         this.clock = clock;
     }
 
@@ -70,6 +75,15 @@ public class LocalizationJobCancellationServiceImpl implements LocalizationJobCa
                 null,
                 now
         ));
+        evictCachedJob(jobId);
         return queryService.getJob(jobId);
+    }
+
+    private void evictCachedJob(String jobId) {
+        try {
+            jobStatusCacheService.evict(jobId);
+        } catch (RuntimeException exception) {
+            // Cache eviction is best-effort and must not roll back cancellation.
+        }
     }
 }

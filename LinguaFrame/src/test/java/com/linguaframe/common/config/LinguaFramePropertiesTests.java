@@ -64,6 +64,8 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getRateLimit().getUploadMaxRequests()).isEqualTo(20);
         assertThat(properties.getRateLimit().getUploadWindowSeconds()).isEqualTo(60);
         assertThat(properties.getRateLimit().isFailOpen()).isTrue();
+        assertThat(properties.getJobStatusCache().isEnabled()).isTrue();
+        assertThat(properties.getJobStatusCache().getTtlSeconds()).isEqualTo(30);
         assertThat(properties.getRabbitmq().getHost()).isEqualTo("localhost");
         assertThat(properties.getRabbitmq().getPort()).isEqualTo(5672);
         assertThat(properties.getRabbitmq().getUsername()).isEqualTo("linguaframe");
@@ -166,6 +168,21 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getRateLimit().getUploadMaxRequests()).isEqualTo(7);
                     assertThat(boundProperties.getRateLimit().getUploadWindowSeconds()).isEqualTo(30);
                     assertThat(boundProperties.getRateLimit().isFailOpen()).isFalse();
+                });
+    }
+
+    @Test
+    void bindsJobStatusCacheRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.job-status-cache.enabled=false",
+                        "linguaframe.job-status-cache.ttl-seconds=45"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getJobStatusCache().isEnabled()).isFalse();
+                    assertThat(boundProperties.getJobStatusCache().getTtlSeconds()).isEqualTo(45);
                 });
     }
 
@@ -388,6 +405,7 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.smoke-stage-duration-ms=-1",
                         "linguaframe.rate-limit.upload-max-requests=0",
                         "linguaframe.rate-limit.upload-window-seconds=0",
+                        "linguaframe.job-status-cache.ttl-seconds=0",
                         "linguaframe.ffmpeg.audio-timeout-seconds=0",
                         "linguaframe.ffmpeg.burn-in-timeout-seconds=0",
                         "linguaframe.cost.tts-usd-per-million-characters=-1"
