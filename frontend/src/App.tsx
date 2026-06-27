@@ -7,6 +7,7 @@ import type {
   LocalizationJobStatus,
   LocalizationJobSummary,
   MediaUpload,
+  PromptTemplate,
   SubtitleSegment,
   TranscriptSegment
 } from './domain/jobTypes';
@@ -49,6 +50,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
+  const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
+  const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
@@ -131,6 +134,31 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadHistory(historyStatusFilter);
   }, [historyStatusFilter, loadHistory]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    linguaFrameApi
+      .listPromptTemplates()
+      .then((templates) => {
+        if (ignore) {
+          return;
+        }
+        setPromptTemplates(templates);
+        setPromptTemplateError(null);
+      })
+      .catch((templateLoadError) => {
+        if (ignore) {
+          return;
+        }
+        setPromptTemplates([]);
+        setPromptTemplateError(toErrorMessage(templateLoadError));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (
@@ -385,6 +413,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               </ul>
             )}
           </section>
+
+          <PromptTemplatesPanel
+            error={promptTemplateError}
+            promptTemplates={promptTemplates}
+          />
         </aside>
 
         <section className="job-surface" aria-label="Selected job">
@@ -413,6 +446,38 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         </section>
       </section>
     </main>
+  );
+}
+
+function PromptTemplatesPanel({
+  error,
+  promptTemplates
+}: {
+  error: string | null;
+  promptTemplates: PromptTemplate[];
+}) {
+  return (
+    <section className="panel" aria-label="Prompt templates">
+      <h2>Prompt templates</h2>
+      {error ? <p className="muted">{error}</p> : null}
+      {!error && promptTemplates.length === 0 ? (
+        <p className="muted">No active prompt templates loaded.</p>
+      ) : null}
+      {promptTemplates.length > 0 ? (
+        <ul className="template-list">
+          {promptTemplates.map((template) => (
+            <li key={template.version}>
+              <strong>{template.purpose}</strong>
+              <span>{template.version}</span>
+              <small>
+                {template.provider} · {template.modelFamily}
+              </small>
+              <p>{template.outputContract}</p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 

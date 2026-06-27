@@ -6,6 +6,7 @@ import {
   jobEventsUrl,
   listJobs,
   listArtifacts,
+  listPromptTemplates,
   cancelJob,
   retryJob,
   uploadMedia
@@ -94,6 +95,28 @@ describe('linguaframeApi', () => {
 
   test('builds same-origin job event stream urls', () => {
     expect(jobEventsUrl('job 1')).toBe('/api/jobs/job%201/events');
+  });
+
+  test('lists prompt templates', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse([
+        {
+          version: 'openai-subtitle-translation-v1',
+          purpose: 'SUBTITLE_TRANSLATION',
+          provider: 'OPENAI',
+          modelFamily: 'responses',
+          systemPrompt: 'Translate subtitles.',
+          outputContract: 'Return JSON with segments[{index,text}] preserving order and timing.',
+          active: true
+        }
+      ])
+    );
+
+    const templates = await listPromptTemplates();
+
+    expect(templates[0]?.version).toBe('openai-subtitle-translation-v1');
+    expect(templates[0]?.purpose).toBe('SUBTITLE_TRANSLATION');
+    expect(fetchMock).toHaveBeenCalledWith('/api/prompt-templates', { method: 'GET' });
   });
 
   test('retries a failed job', async () => {

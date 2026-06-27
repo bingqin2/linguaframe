@@ -6,8 +6,11 @@ import com.linguaframe.job.domain.bo.QualityEvaluationRequestBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
+import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -43,13 +46,15 @@ class OpenAiQualityEvaluationProviderTests {
                 openAiProperties("test-openai-key", "test-evaluation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                testRegistry("test-evaluation-template-v7", "Test evaluation prompt.")
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-openai-key"))
                 .andExpect(jsonPath("$.model").value("test-evaluation-model"))
+                .andExpect(jsonPath("$.input[0].content[0].text").value("Test evaluation prompt."))
                 .andExpect(jsonPath("$.text.format.schema.properties.score.type").value("integer"))
                 .andRespond(withSuccess(responsesPayload("""
                         {
@@ -77,7 +82,7 @@ class OpenAiQualityEvaluationProviderTests {
         assertThat(command.operation()).isEqualTo(ModelCallOperation.EVALUATION);
         assertThat(command.provider()).isEqualTo(ModelCallProvider.OPENAI);
         assertThat(command.model()).isEqualTo("test-evaluation-model");
-        assertThat(command.promptVersion()).isEqualTo("openai-translation-quality-evaluation-v1");
+        assertThat(command.promptVersion()).isEqualTo("test-evaluation-template-v7");
         assertThat(command.inputTokens()).isEqualTo(900);
         assertThat(command.outputTokens()).isEqualTo(300);
         server.verify();
@@ -91,7 +96,8 @@ class OpenAiQualityEvaluationProviderTests {
                 openAiProperties("", "", "https://api.openai.test", 5),
                 restClientBuilder,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI quality evaluation provider requires OPENAI_API_KEY and OPENAI_EVALUATION_MODEL.");
@@ -107,7 +113,8 @@ class OpenAiQualityEvaluationProviderTests {
                 openAiProperties("test-openai-key", "test-evaluation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
@@ -173,5 +180,35 @@ class OpenAiQualityEvaluationProviderTests {
                   }
                 }
                 """.formatted(escapedOutputText, escapedOutputText);
+    }
+
+    private PromptTemplateRegistry defaultRegistry() {
+        return testRegistry(
+                "openai-translation-quality-evaluation-v1",
+                "You evaluate translated subtitle quality for video localization. Return JSON only with numeric scores from 0 to 100."
+        );
+    }
+
+    private PromptTemplateRegistry testRegistry(String version, String systemPrompt) {
+        PromptTemplateVo template = new PromptTemplateVo(
+                version,
+                PromptTemplatePurpose.TRANSLATION_QUALITY_EVALUATION,
+                "OPENAI",
+                "responses",
+                systemPrompt,
+                "Return JSON with score, verdict, completeness, readability, timingPreservation, naturalness, issues, and suggestedFixes.",
+                true
+        );
+        return new PromptTemplateRegistry() {
+            @Override
+            public PromptTemplateVo activeTemplate(PromptTemplatePurpose purpose) {
+                return template;
+            }
+
+            @Override
+            public List<PromptTemplateVo> listActiveTemplates() {
+                return List.of(template);
+            }
+        };
     }
 }

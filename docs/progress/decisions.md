@@ -177,3 +177,11 @@ Decision: Add artifact-level cache hits before provider-level prompt or response
 Reason: LinguaFrame already stores durable generated artifacts and content hashes, so reusing stable media artifacts is the smallest complete duplicate-work feature that is visible in the API, timeline, and React demo. Provider-level transcription and translation caching needs prompt-version, model, and input-key semantics that should be designed separately.
 
 Impact: Repeat jobs for the same source video and target language can reuse extracted audio, dubbing audio, and subtitle-burned video artifacts without rewriting object storage bytes. Worker summaries remain regenerated because they include the current job id and generation timestamp.
+
+## 2026-06-27
+
+Decision: Add a read-only in-code prompt template registry before database-backed prompt management.
+
+Reason: The current model-call audit path already records `promptVersion`, but the active prompt text lived inside OpenAI provider classes. A small registry makes translation and evaluation prompts inspectable in API/UI without introducing admin mutation, prompt experiments, or persistence concerns before they are needed.
+
+Impact: OpenAI translation and quality evaluation providers now consume active prompt templates from the registry, and the React demo can show which prompt versions are active. Prompt editing, A/B testing, and historical prompt storage remain future slices.

@@ -5,7 +5,10 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
+import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -41,13 +44,15 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                testRegistry("test-translation-template-v9", "Test translation prompt.")
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(header(HttpHeaders.AUTHORIZATION, "Bearer test-openai-key"))
                 .andExpect(jsonPath("$.model").value("test-translation-model"))
+                .andExpect(jsonPath("$.input[0].content[0].text").value("Test translation prompt."))
                 .andExpect(jsonPath("$.input[1].content[0].text").exists())
                 .andExpect(jsonPath("$.text.format.schema.properties.segments.type").value("array"))
                 .andRespond(withSuccess(responsesPayload("""
@@ -72,7 +77,7 @@ class OpenAiTranslationProviderTests {
         assertThat(command.operation()).isEqualTo(ModelCallOperation.TRANSLATION);
         assertThat(command.provider()).isEqualTo(ModelCallProvider.OPENAI);
         assertThat(command.model()).isEqualTo("test-translation-model");
-        assertThat(command.promptVersion()).isEqualTo("openai-subtitle-translation-v1");
+        assertThat(command.promptVersion()).isEqualTo("test-translation-template-v9");
         assertThat(command.inputTokens()).isEqualTo(1000);
         assertThat(command.outputTokens()).isEqualTo(500);
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
@@ -87,7 +92,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("", "", "https://api.openai.test", 5),
                 restClientBuilder,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI translation provider requires OPENAI_API_KEY and OPENAI_TRANSLATION_MODEL.");
@@ -103,7 +109,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                defaultRegistry()
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
@@ -132,7 +139,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("not json"), MediaType.APPLICATION_JSON));
@@ -152,7 +160,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess("{\"id\":\"resp_1\",\"output\":[]}", MediaType.APPLICATION_JSON));
@@ -172,7 +181,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":0,\"text\":\"Only one\"}]}"), MediaType.APPLICATION_JSON));
@@ -195,7 +205,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":0,\"text\":\"   \"}]}"), MediaType.APPLICATION_JSON));
@@ -215,7 +226,8 @@ class OpenAiTranslationProviderTests {
                 openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                defaultRegistry()
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andRespond(withSuccess(responsesPayload("{\"segments\":[{\"index\":9,\"text\":\"Unknown\"}]}"), MediaType.APPLICATION_JSON));
@@ -270,5 +282,35 @@ class OpenAiTranslationProviderTests {
                   }
                 }
                 """.formatted(escapedOutputText, escapedOutputText);
+    }
+
+    private PromptTemplateRegistry defaultRegistry() {
+        return testRegistry(
+                "openai-subtitle-translation-v1",
+                "You translate subtitle segments for video localization. Translate text only, preserve the meaning and line order, and return JSON only."
+        );
+    }
+
+    private PromptTemplateRegistry testRegistry(String version, String systemPrompt) {
+        PromptTemplateVo template = new PromptTemplateVo(
+                version,
+                PromptTemplatePurpose.SUBTITLE_TRANSLATION,
+                "OPENAI",
+                "responses",
+                systemPrompt,
+                "Return JSON with segments[{index,text}] preserving order and timing.",
+                true
+        );
+        return new PromptTemplateRegistry() {
+            @Override
+            public PromptTemplateVo activeTemplate(PromptTemplatePurpose purpose) {
+                return template;
+            }
+
+            @Override
+            public List<PromptTemplateVo> listActiveTemplates() {
+                return List.of(template);
+            }
+        };
     }
 }

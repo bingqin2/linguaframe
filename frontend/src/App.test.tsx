@@ -4,7 +4,12 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
-import type { LocalizationJob, LocalizationJobList, MediaUpload } from './domain/jobTypes';
+import type {
+  LocalizationJob,
+  LocalizationJobList,
+  MediaUpload,
+  PromptTemplate
+} from './domain/jobTypes';
 
 class FakeEventSource {
   static instances: FakeEventSource[] = [];
@@ -31,6 +36,7 @@ describe('App', () => {
     window.localStorage.clear();
     vi.restoreAllMocks();
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+    vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
   });
 
   test('loads server job history on startup', async () => {
@@ -59,6 +65,32 @@ describe('App', () => {
       '$0.00045000'
     );
     expect(listJobs).toHaveBeenCalledWith({ status: 'ALL', limit: 20, offset: 0 });
+  });
+
+  test('shows active prompt templates on startup', async () => {
+    render(<App />);
+
+    const templates = await screen.findByRole('region', { name: /prompt templates/i });
+    expect(within(templates).getByText('openai-subtitle-translation-v1')).toBeInTheDocument();
+    expect(
+      within(templates).getByText('openai-translation-quality-evaluation-v1')
+    ).toBeInTheDocument();
+    expect(within(templates).getByText('SUBTITLE_TRANSLATION')).toBeInTheDocument();
+    expect(
+      within(templates).getByText('Return JSON with segments[{index,text}] preserving order and timing.')
+    ).toBeInTheDocument();
+  });
+
+  test('shows non-blocking prompt template load failures', async () => {
+    vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockRejectedValue(
+      new Error('Prompt templates unavailable')
+    );
+
+    render(<App />);
+
+    const templates = await screen.findByRole('region', { name: /prompt templates/i });
+    expect(within(templates).getByText('Prompt templates unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: /job controls/i })).toBeInTheDocument();
   });
 
   test('filters server job history by status', async () => {
@@ -578,6 +610,30 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
+}
+
+function promptTemplateFixtures(): PromptTemplate[] {
+  return [
+    {
+      version: 'openai-subtitle-translation-v1',
+      purpose: 'SUBTITLE_TRANSLATION',
+      provider: 'OPENAI',
+      modelFamily: 'responses',
+      systemPrompt: 'You translate subtitle segments for video localization.',
+      outputContract: 'Return JSON with segments[{index,text}] preserving order and timing.',
+      active: true
+    },
+    {
+      version: 'openai-translation-quality-evaluation-v1',
+      purpose: 'TRANSLATION_QUALITY_EVALUATION',
+      provider: 'OPENAI',
+      modelFamily: 'responses',
+      systemPrompt: 'You evaluate translated subtitle quality for video localization.',
+      outputContract:
+        'Return JSON with score, verdict, completeness, readability, timingPreservation, naturalness, issues, and suggestedFixes.',
+      active: true
+    }
+  ];
 }
 
 function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {

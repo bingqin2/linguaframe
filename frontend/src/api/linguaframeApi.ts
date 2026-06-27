@@ -4,6 +4,7 @@ import type {
   LocalizationJobList,
   LocalizationJobStatus,
   MediaUpload,
+  PromptTemplate,
   SubtitleSegment,
   TranscriptSegment
 } from '../domain/jobTypes';
@@ -62,6 +63,12 @@ export async function listArtifacts(jobId: string): Promise<JobArtifact[]> {
   });
 }
 
+export async function listPromptTemplates(): Promise<PromptTemplate[]> {
+  return requestJson<PromptTemplate[]>('/api/prompt-templates', {
+    method: 'GET'
+  });
+}
+
 export async function listTranscript(jobId: string): Promise<TranscriptSegment[]> {
   return requestJson<TranscriptSegment[]>(`/api/jobs/${encodeURIComponent(jobId)}/transcript`, {
     method: 'GET'
@@ -97,6 +104,7 @@ export const linguaFrameApi = {
   retryJob,
   cancelJob,
   listArtifacts,
+  listPromptTemplates,
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,

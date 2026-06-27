@@ -777,6 +777,32 @@ Post-merge verification:
 
 Work:
 
+- Added a read-only prompt template domain and registry for OpenAI subtitle translation and translation quality evaluation.
+- Updated OpenAI translation and quality evaluation providers to read system prompts and prompt versions from the registry.
+- Added `GET /api/prompt-templates` for active prompt template inspection.
+- Added a React `Prompt templates` panel and frontend API support.
+- Documented the read-only in-code template MVP boundary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=PromptTemplateRegistryTests test` first failed because prompt template registry types did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranslationProviderTests,OpenAiQualityEvaluationProviderTests test` first failed because providers did not accept the registry, then passed with `Tests run: 11, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=PromptTemplateControllerTests,OpenApiDocumentationTests test` first failed because `/api/prompt-templates` returned `404`, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because `listPromptTemplates` and the prompt-template panel did not exist, then passed with `Tests run: 28`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 203, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 32`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config` passed and rendered the current demo stack configuration.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice does not add prompt editing, A/B testing, database-backed prompt history, or automatic prompt optimization.
+
+## 2026-06-27
+
+Work:
+
 - Added `GET /api/jobs/{jobId}/events` as a Server-Sent Events job snapshot stream.
 - Updated the React demo to use EventSource for active selected jobs with polling fallback.
 - Refreshed previews and history when live events move a selected job to a terminal state.

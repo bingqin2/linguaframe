@@ -50,7 +50,7 @@ LinguaFrame should use video localization as the product scenario and AI infrast
 Planned AI infrastructure capabilities:
 
 - OpenAI client boundaries for speech, translation, quality evaluation, and TTS.
-- Prompt template versioning for reproducible translation and evaluation outputs.
+- Read-only prompt template registry for reproducible translation and evaluation outputs.
 - Model-call audit records with model, prompt version, latency, usage, estimated cost, status, and safe error summaries.
 - LLM-based subtitle translation quality evaluation.
 - Cost budgets before expensive stages.
@@ -326,6 +326,14 @@ When the guard blocks, the job fails at the guarded stage, no later provider cal
 LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp. This is artifact-level reuse, not OpenAI prompt or provider response caching.
 
 `GET /api/jobs/{jobId}` includes `cacheSummary.cacheHitCount` and `cacheSummary.generatedArtifactCount`. The React demo shows cache hits near usage/cost metadata and marks reused artifact rows as `Reused`.
+
+Active prompt templates are inspectable without reading provider code:
+
+```bash
+curl http://localhost:8080/api/prompt-templates
+```
+
+The response lists the active template version, purpose, provider, model family, system prompt, output contract, and active flag for OpenAI subtitle translation and translation quality evaluation. The React demo shows these versions in a `Prompt templates` panel. This MVP is read-only and in-code; prompt editing, A/B testing, and database-backed template history are future work.
 
 Live job progress is available through Server-Sent Events:
 

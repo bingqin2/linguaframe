@@ -315,19 +315,23 @@ Suggested ExecPlan:
 
 Goal: make OpenAI usage reproducible and inspectable instead of hidden inside pipeline stages.
 
+Status: in progress. Model-call audit records are implemented, and active OpenAI translation/evaluation prompt templates are now registered in code, used by providers, exposed through `GET /api/prompt-templates`, and shown in the React demo.
+
 Build:
 
-- Prompt template records for translation, subtitle polishing, and quality evaluation.
-- Active prompt version selection.
-- Model-call audit records.
+- Prompt template records for translation, subtitle polishing, and quality evaluation. Status: implemented for read-only in-code translation and evaluation templates.
+- Active prompt version selection. Status: implemented for OpenAI translation and quality evaluation providers.
+- Model-call audit records. Status: implemented.
 - Safe input and output summaries.
 - Latency, token, audio, character, and estimated-cost fields.
-- Job detail API for model calls.
-- Frontend model-call panel.
+- Job detail API for model calls. Status: implemented.
+- Frontend model-call panel. Status: implemented.
+- Frontend prompt-template panel. Status: implemented.
 
 Do not build yet:
 
 - Multi-provider routing.
+- Prompt editing UI.
 - Automatic prompt optimization.
 - Complex experiment tracking.
 

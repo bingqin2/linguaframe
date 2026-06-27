@@ -10,8 +10,11 @@ import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
+import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.TranslationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -41,26 +44,36 @@ public class OpenAiTranslationProvider implements TranslationProvider {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
+    private final PromptTemplateRegistry promptTemplateRegistry;
 
     @Autowired
     public OpenAiTranslationProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            PromptTemplateRegistry promptTemplateRegistry
     ) {
-        this(properties, buildRestClient(properties.getTranslation().getOpenai(), restClientBuilder), objectMapper, auditService);
+        this(
+                properties,
+                buildRestClient(properties.getTranslation().getOpenai(), restClientBuilder),
+                objectMapper,
+                auditService,
+                promptTemplateRegistry
+        );
     }
 
     OpenAiTranslationProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            PromptTemplateRegistry promptTemplateRegistry
     ) {
         this.openai = properties.getTranslation().getOpenai();
         this.objectMapper = objectMapper;
         this.auditService = auditService;
+        this.promptTemplateRegistry = promptTemplateRegistry;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         this.restClient = restClient;
@@ -125,12 +138,11 @@ public class OpenAiTranslationProvider implements TranslationProvider {
     }
 
     private String buildRequestBody(String jobId, String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+        PromptTemplateVo template = promptTemplateRegistry.activeTemplate(PromptTemplatePurpose.SUBTITLE_TRANSLATION);
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("model", openai.getModel());
         request.put("input", List.of(
-                inputMessage("system", """
-                        You translate subtitle segments for video localization. Translate text only, preserve the meaning and line order, and return JSON only.
-                        """),
+                inputMessage("system", template.systemPrompt()),
                 inputMessage("user", userPayload(jobId, targetLanguage, transcriptSegments))
         ));
         request.put("text", Map.of(
@@ -303,7 +315,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
                 ModelCallOperation.TRANSLATION,
                 ModelCallProvider.OPENAI,
                 openai.getModel(),
-                "openai-subtitle-translation-v1",
+                promptTemplateRegistry.activeTemplate(PromptTemplatePurpose.SUBTITLE_TRANSLATION).version(),
                 latencyMs,
                 inputTokens,
                 outputTokens,

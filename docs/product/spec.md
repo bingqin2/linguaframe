@@ -191,7 +191,8 @@ Requirements:
 
 - The backend defines provider client interfaces for speech-to-text, language translation or polishing, and text-to-speech.
 - OpenAI is the default implementation, but domain services should depend on narrow interfaces rather than raw SDK calls.
-- Prompt templates are versioned for translation, subtitle polishing, and quality evaluation.
+- Active prompt templates are versioned and inspectable for translation and quality evaluation.
+- Prompt editing, prompt experiments, and database-backed prompt history are future enhancements.
 - Each model call records job id, stage, operation type, model, prompt version, latency, usage, estimated cost, status, and safe error summary.
 - Translation quality evaluation can run as a separate LLM-backed stage after subtitle translation.
 - Evaluation records should capture score, detected issues, and suggested fixes without blocking the whole pipeline by default.
