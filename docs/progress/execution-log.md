@@ -6,6 +6,23 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added a browser `Demo runbook` panel that shows the local startup command, E2E validation scripts, demo URLs, runtime constraints, provider modes, budget guard state, subtitle burn-in state, and sample-media guidance.
+- Kept the runbook useful when readiness loading fails by always rendering static commands and showing a runtime guidance error.
+- Updated README, Docker E2E guide, and smoke-test checklist with the in-app runbook expectations.
+
+Validation:
+
+- `cd frontend && npm run test:run -- App -t "demo runbook"` first failed because no `Demo runbook` region existed, then failed because disabled provider wording did not expose the disabled state.
+- `cd frontend && npm run test:run -- App` passed after implementation with `Test Files 1 passed` and `Tests 31 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added `scripts/demo/start-local-demo.sh` as a one-command local demo startup path.
 - The script packages the backend, recreates `linguaframe-backend`, waits for backend health, starts the local frontend fallback when needed, runs private-demo preflight, and prints the browser URL plus next E2E commands.
 - Documented the startup path in README, Docker E2E guide, and smoke-test checklist.

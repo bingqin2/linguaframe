@@ -110,6 +110,9 @@ Expected browser behavior:
 - The `Retention cleanup` panel appears in the sidebar.
 - Clicking `Preview cleanup` refreshes aggregate cleanup counts without deleting data.
 - With `.env.example`, the panel reports dry-run/default-off behavior and `Run cleanup` requires browser confirmation before calling the backend.
+- The `Demo runbook` panel shows `scripts/demo/start-local-demo.sh`, `scripts/demo/docker-e2e-success.sh`, `scripts/demo/docker-e2e-cache-hit.sh`, `scripts/demo/docker-e2e-tears-of-steel-full.sh`, `http://localhost:5173`, and `http://localhost:8080/actuator/health`.
+- The `Demo runbook` panel explains that uploads are complete files up to the configured duration and file-size limits, and shows provider modes, budget guard state, subtitle burn-in state, and sample-media guidance without exposing secrets or raw local media paths.
+- If runtime readiness loading fails, the `Demo runbook` panel still shows static commands and reports the runtime guidance error.
 - The `Demo readiness` panel shows budget guard state and the configured cost limit without exposing provider credentials.
 
 ### Docker E2E Demo
