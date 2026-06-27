@@ -1683,3 +1683,16 @@ Validation so far:
 - `scripts/demo/frontend-local-dev.sh` first failed in the sandbox with `listen EPERM` on `0.0.0.0:5173`, then started successfully with host port access.
 - `curl -fsSI http://localhost:5173` passed with `HTTP/1.1 200 OK`.
 - `LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh` passed end-to-end while the local fallback server was running.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
+- `cd frontend && npm run build` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `frontend-local-fallback-demo-runner-mvp` back to `main` with merge commit.
+- `bash -n scripts/demo/private-demo-preflight.sh scripts/demo/frontend-local-dev.sh` passed on `main`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 29`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main` after rerunning with the correct repository path.
