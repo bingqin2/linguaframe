@@ -384,6 +384,48 @@ td {
   gap: 10px;
 }
 
+.demo-runbook-panel h3 {
+  margin: 14px 0 8px;
+  color: #4f6170;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+}
+
+.runbook-list,
+.command-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.runbook-list div,
+.command-list li {
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f7fafb;
+  min-width: 0;
+}
+
+.runbook-list dt {
+  color: #657482;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.runbook-list dd {
+  margin: 3px 0 0;
+}
+
+.demo-runbook-panel code {
+  color: #16384a;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .timeline {
   display: grid;
   gap: 10px;

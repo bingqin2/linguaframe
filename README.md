@@ -144,7 +144,7 @@ The preflight checks required commands, `.env`, Docker Compose rendering, backen
 
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
-The browser demo also shows a read-only `Demo readiness` panel backed by `GET /api/runtime/dependencies`. Use the panel for quick configuration visibility from the UI, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
+The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
 
 React demo frontend commands:
 

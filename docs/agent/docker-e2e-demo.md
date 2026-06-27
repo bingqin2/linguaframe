@@ -40,6 +40,8 @@ http://localhost:5173
 
 The React demo uploads videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
+Before uploading, check the browser `Demo runbook` panel. It shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state.
+
 ## Private Demo Preflight
 
 Run this before the short or full demo scripts:
