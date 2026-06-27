@@ -1881,3 +1881,23 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Added job-scoped backend log context with safe MDC keys for `jobId`, `videoId`, `stage`, and `workerRole`.
+- Wrapped worker execution and pipeline stages with scoped MDC so stage logs can be searched by job and stage without leaking source object keys or local paths.
+- Added worker execution logs for message receipt, stale-message skips, stage planning, stage start/success/failure, handoff, cancellation, and completion.
+- Added console log patterns for default, local, Docker, and test profiles.
+- Documented Docker log inspection commands in README, the Docker E2E guide, the smoke-test checklist, and roadmap.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFrameLogContextTests,LocalizationJobExecutionServiceTests test` first failed because `LinguaFrameLogContext` did not exist, then passed with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 347, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 37 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh scripts/demo/docker-e2e-success.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

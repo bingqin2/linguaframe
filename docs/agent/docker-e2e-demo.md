@@ -54,6 +54,17 @@ After opening a job, check the `Result delivery` panel before the detailed artif
 
 Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a Markdown summary for notes or interview walkthroughs, and `Download evidence JSON` writes a local metadata file. The evidence should include job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, or media bytes.
 
+After a job starts, inspect job-scoped backend logs when debugging worker behavior:
+
+```bash
+JOB_ID=<job id from the demo output>
+docker logs linguaframe-backend 2>&1 | grep "jobId=$JOB_ID"
+docker logs linguaframe-backend 2>&1 | grep "stage=TARGET_SUBTITLE_EXPORT"
+docker logs linguaframe-backend 2>&1 | grep "workerRole=COMBINED"
+```
+
+Expected log context fields are `jobId`, `videoId`, `stage`, and `workerRole`. Logs must not include OpenAI keys, demo tokens, object storage credentials, source object keys, local filesystem paths, raw transcript text, raw subtitles, provider payloads, or media bytes.
+
 ## Private Demo Preflight
 
 Run this before the short or full demo scripts:

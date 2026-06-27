@@ -308,6 +308,25 @@ curl http://localhost:8080/api/runtime/dependencies
 
 The response includes a safe runtime contract plus MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. The runtime contract exposes the app version, latest bundled Flyway migration version, and required demo route paths so preflight can detect stale Docker backend images before upload. Demo-readiness fields for the browser panel include demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, budget settings, and feature flags. It intentionally excludes passwords, access keys, secret keys, API keys, tokens, raw local media paths, Git metadata, and FFmpeg workspace paths. This endpoint is configuration-derived only; it does not run live dependency probes, upload objects, execute FFmpeg, or call paid providers.
 
+## Job-Scoped Logs
+
+Worker execution logs include stable MDC fields when a job is being processed:
+
+```text
+jobId=<job id> videoId=<video id> stage=<stage> workerRole=<role>
+```
+
+Use them to inspect a Docker demo run without exposing secrets or media paths:
+
+```bash
+JOB_ID=<job id from the demo output>
+docker logs linguaframe-backend 2>&1 | grep "jobId=$JOB_ID"
+docker logs linguaframe-backend 2>&1 | grep "stage=TARGET_SUBTITLE_EXPORT"
+docker logs linguaframe-backend 2>&1 | grep "workerRole=OPENAI"
+```
+
+The log context is limited to safe identifiers and enum values. Do not add OpenAI keys, demo tokens, object storage credentials, source object keys, local filesystem paths, raw transcript text, raw subtitle text, provider payloads, or media bytes to logs.
+
 ## Media Upload Intake
 
 The backend can validate and accept a source video upload:
