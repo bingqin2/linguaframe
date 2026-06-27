@@ -1511,6 +1511,12 @@ Validation:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `job-diagnostics-report-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobQueryServiceTests,LocalizationJobControllerTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 35, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 50`.
+
 ## 2026-06-27
 
 Work:
