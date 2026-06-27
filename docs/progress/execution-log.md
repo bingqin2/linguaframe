@@ -1058,6 +1058,12 @@ Validation so far:
 - `rg -n "private-demo-preflight|Private Demo Preflight|preflight" README.md docs/agent/docker-e2e-demo.md docs/agent/smoke-test-checklist.md docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md` passed and found the documented workflow.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `private-demo-preflight-runbook` back to `main` with merge commit.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `scripts/demo/private-demo-preflight.sh --help` passed on `main`.
+
 ## 2026-06-27
 
 Work:

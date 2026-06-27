@@ -84,6 +84,6 @@ scripts/demo/docker-e2e-success.sh
 - [x] Run `docker compose --env-file .env.example --profile split-workers config --quiet`.
 - [x] Run `rg -n "private-demo-preflight|Private Demo Preflight|preflight" README.md docs/agent/docker-e2e-demo.md docs/agent/smoke-test-checklist.md docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add private demo preflight runbook`.
-- [ ] Merge `private-demo-preflight-runbook` back to `main`.
-- [ ] Run post-merge validation: `bash -n scripts/demo/private-demo-preflight.sh` and `scripts/demo/private-demo-preflight.sh --help`.
+- [x] Commit as `Add private demo preflight runbook`.
+- [x] Merge `private-demo-preflight-runbook` back to `main`.
+- [x] Run post-merge validation: `bash -n scripts/demo/private-demo-preflight.sh` and `scripts/demo/private-demo-preflight.sh --help`.
