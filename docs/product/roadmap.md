@@ -223,7 +223,7 @@ Build:
 - Estimated cost configuration.
 - Basic model-call audit records.
 - Job timeline events.
-- Failed-stage retry behavior.
+- Failed-stage retry behavior. Status: implemented with bounded retry count, structured conflict responses, and visible retry evidence in job detail.
 - Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - Structured logs with job id.
@@ -239,7 +239,7 @@ Exit criteria:
 
 - Job detail shows cost, usage, duration, and failed stage.
 - Job detail can expose safe model-call summaries.
-- Failed jobs can be retried safely.
+- Failed jobs can be retried safely within the configured retry limit.
 - A job timeline explains the pipeline without reading logs.
 - OpenAPI docs expose the primary APIs.
 

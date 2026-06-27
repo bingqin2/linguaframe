@@ -1338,6 +1338,34 @@ Post-merge verification:
 
 Work:
 
+- Enforced `linguaframe.worker.max-retries` in failed-job retry before state mutation or dispatch enqueue.
+- Added structured retry-limit conflict coverage for the retry API and React failed-job retry flow.
+- Exposed retry-limit configuration through `.env.example` and Docker Compose.
+- Updated the Docker retry demo script to print retry limit, failure stage, and failure reason evidence.
+- Documented bounded retry behavior in README and product docs.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobRetryServiceTests,LinguaFramePropertiesTests' test` first failed because `LocalizationJobRetryServiceImpl` did not accept configuration for retry limits, then passed with `Tests run: 21, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobControllerTests,LocalizationJobRetryServiceTests' test` passed with `Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 22`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-retry.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobRetryServiceTests,LocalizationJobControllerTests,LinguaFramePropertiesTests' test` passed with `Tests run: 42, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 22`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 313, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 43`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added read-only operator dashboard API at `GET /api/operator/dashboard`.
 - Added dashboard aggregates for job status counts, recent failed jobs, model-call totals, and cache totals from existing durable tables.
 - Added React operator dashboard panel with refresh, safe local error handling, and click-to-open for recent failed jobs.

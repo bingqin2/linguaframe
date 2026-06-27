@@ -10,9 +10,13 @@ require_command python3
 
 BASE_URL="$(demo_base_url)"
 SAMPLE_PATH="${LINGUAFRAME_DEMO_SAMPLE_PATH:-/tmp/linguaframe-demo/retry-sample.mp4}"
+MAX_RETRIES="${LINGUAFRAME_WORKER_MAX_RETRIES:-2}"
 
 wait_for_backend "$BASE_URL"
 create_demo_sample "$SAMPLE_PATH"
+
+echo "Retry demo uses LINGUAFRAME_WORKER_MAX_RETRIES=$MAX_RETRIES."
+echo "Start this run with LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=true to force the first failure."
 
 upload_response="$(upload_demo_video "$BASE_URL" "$SAMPLE_PATH")"
 job_id="$(printf '%s' "$upload_response" | extract_json_field jobId)"
@@ -22,7 +26,7 @@ failed_response="$(wait_for_job_status "$BASE_URL" "$job_id" FAILED)"
 printf '%s' "$failed_response" | print_job_summary
 
 echo
-echo "Disable LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED, restart linguaframe-backend, then press Enter to retry."
+echo "Disable LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED, restart linguaframe-backend, then press Enter to retry once."
 read -r _
 
 retry_response="$(curl -fsS -X POST "$BASE_URL/api/jobs/$job_id/retry")"

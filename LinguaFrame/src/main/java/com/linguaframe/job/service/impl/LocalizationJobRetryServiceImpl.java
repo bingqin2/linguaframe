@@ -1,5 +1,6 @@
 package com.linguaframe.job.service.impl;
 
+import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
@@ -33,6 +34,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
     private final JobDispatchOutboxService dispatchOutboxService;
     private final LocalizationJobQueryService queryService;
     private final LocalizationJobStatusCacheService jobStatusCacheService;
+    private final LinguaFrameProperties properties;
     private final Clock clock;
 
     @Autowired
@@ -42,7 +44,8 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
             JobTimelineEventRepository timelineEventRepository,
             JobDispatchOutboxService dispatchOutboxService,
             LocalizationJobQueryService queryService,
-            LocalizationJobStatusCacheService jobStatusCacheService
+            LocalizationJobStatusCacheService jobStatusCacheService,
+            LinguaFrameProperties properties
     ) {
         this(
                 jobRepository,
@@ -51,6 +54,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
                 dispatchOutboxService,
                 queryService,
                 jobStatusCacheService,
+                properties,
                 Clock.systemUTC()
         );
     }
@@ -62,6 +66,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
             JobDispatchOutboxService dispatchOutboxService,
             LocalizationJobQueryService queryService,
             LocalizationJobStatusCacheService jobStatusCacheService,
+            LinguaFrameProperties properties,
             Clock clock
     ) {
         this.jobRepository = jobRepository;
@@ -70,6 +75,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
         this.dispatchOutboxService = dispatchOutboxService;
         this.queryService = queryService;
         this.jobStatusCacheService = jobStatusCacheService;
+        this.properties = properties;
         this.clock = clock;
     }
 
@@ -80,6 +86,9 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         if (job.status() != LocalizationJobStatus.FAILED) {
             throw new JobStateConflictException("Only failed localization jobs can be retried.");
+        }
+        if (job.retryCount() >= properties.getWorker().getMaxRetries()) {
+            throw new JobStateConflictException("Retry limit reached for this localization job.");
         }
 
         VideoRecord video = videoRepository.findById(job.videoId())

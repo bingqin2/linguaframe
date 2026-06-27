@@ -185,7 +185,7 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.retention.cleanup-batch-size` - default `25`.
 - `linguaframe.retention.scheduler-enabled` - default `false`; scheduled cleanup only runs when both this and retention are enabled.
 - `linguaframe.retention.scheduler-interval-ms` - default `3600000`.
-- `linguaframe.worker.max-retries`
+- `linguaframe.worker.max-retries` - default `2`; failed jobs at or above this retry count return `409 CONFLICT` from `POST /api/jobs/{jobId}/retry`.
 - `linguaframe.worker.stage-timeout-seconds`
 - `linguaframe.worker.dispatch-enabled`
 - `linguaframe.worker.dispatch-batch-size`
@@ -318,6 +318,7 @@ The Docker profile enables a scheduled dispatcher by default:
 LINGUAFRAME_WORKER_DISPATCH_ENABLED=true
 LINGUAFRAME_WORKER_DISPATCH_BATCH_SIZE=10
 LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS=5000
+LINGUAFRAME_WORKER_MAX_RETRIES=2
 LINGUAFRAME_WORKER_ROLE=COMBINED
 RABBITMQ_JOB_EXCHANGE=linguaframe.jobs
 RABBITMQ_JOB_QUEUE=linguaframe.localization.jobs
@@ -356,6 +357,13 @@ LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=false
 ```
 
 The worker consumes queued localization messages, claims only `QUEUED` or `RETRYING` jobs, runs a deterministic smoke stage, records timeline events, and marks jobs `COMPLETED` or `FAILED`. Local and test profiles keep worker execution disabled unless explicitly overridden.
+
+Failed jobs can be retried with `POST /api/jobs/{jobId}/retry` until `retryCount` reaches `linguaframe.worker.max-retries`. The job detail UI shows the retry count, failed stage, failure reason, and timeline events so the recovery path is visible during demos. The Docker retry script demonstrates one forced failure followed by a successful retry after disabling the smoke-stage failure flag:
+
+```bash
+LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=true docker compose --env-file .env up -d --force-recreate linguaframe-backend
+scripts/demo/docker-e2e-retry.sh
+```
 
 The Docker profile also enables FFmpeg audio extraction:
 
