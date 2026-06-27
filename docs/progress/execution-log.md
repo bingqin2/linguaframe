@@ -20,6 +20,15 @@ Validation:
 - `git diff --check` passed.
 - Maven and frontend tests were not required because this slice changed deployment configuration, shell preflight, and documentation only; no Java or React runtime code changed.
 
+Post-merge verification:
+
+- Merged `codex-private-demo-reverse-proxy` back to `main` with a merge commit.
+- `bash -n scripts/demo/private-demo-deploy-preflight.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `docker compose --env-file .env.private-demo.example -f docker-compose.yml -f deploy/private-demo/docker-compose.private-demo.yml config --quiet` passed on `main`.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-deploy-preflight.sh` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:

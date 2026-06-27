@@ -99,4 +99,4 @@
 - [x] Private deployment preflight catches missing domain/token and validates the overlay shape without exposing secrets.
 - [x] Documentation gives a repeatable path from repo checkout to private demo URL readiness.
 - [x] Roadmap, decisions, execution log, and this plan are updated.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.
