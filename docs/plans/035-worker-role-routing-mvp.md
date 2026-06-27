@@ -259,21 +259,21 @@ git diff --check
 
 Expected: all commands exit 0.
 
-- [ ] **Step 2: Commit feature branch**
+- [x] **Step 2: Commit feature branch**
 
 ```bash
 git add README.md .env.example docker-compose.yml docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md docs/plans/035-worker-role-routing-mvp.md LinguaFrame/src
 git commit -m "Add worker role routing"
 ```
 
-- [ ] **Step 3: Merge back to main**
+- [x] **Step 3: Merge back to main**
 
 ```bash
 git switch main
 git merge --no-ff worker-role-routing-mvp
 ```
 
-- [ ] **Step 4: Run post-merge smoke validation**
+- [x] **Step 4: Run post-merge smoke validation**
 
 ```bash
 mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test

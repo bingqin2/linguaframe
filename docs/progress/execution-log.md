@@ -1116,3 +1116,9 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `worker-role-routing-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test` passed on `main` with `Tests run: 29, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed on `main`.
