@@ -107,6 +107,39 @@ Expected:
 - Caddy routes `/api`, actuator, Swagger, downloads, previews, and SSE to the backend while browser pages route to the frontend.
 - Preflight requires a public domain and non-empty demo token without printing secrets.
 
+Validate private-demo backup and restore static behavior:
+
+```bash
+bash -n scripts/demo/private-demo-backup.sh scripts/demo/private-demo-restore.sh
+LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-backup.sh --dry-run --output-dir /tmp/linguaframe-private-demo-backups
+```
+
+Create a synthetic restore smoke directory and run dry-run restore:
+
+```bash
+rm -rf /tmp/linguaframe-private-demo-restore-smoke
+mkdir -p /tmp/linguaframe-private-demo-restore-smoke/minio \
+  /tmp/linguaframe-private-demo-restore-smoke/caddy-data \
+  /tmp/linguaframe-private-demo-restore-smoke/caddy-config
+printf '{"backupVersion":"1","createdAt":"2026-06-28T00:00:00Z","composeProject":"linguaframe-private-demo","components":["mysql","minio","caddy-data","caddy-config"],"services":["mysql","minio","linguaframe-proxy","linguaframe-backend","linguaframe-frontend"]}\n' \
+  > /tmp/linguaframe-private-demo-restore-smoke/manifest.json
+: > /tmp/linguaframe-private-demo-restore-smoke/mysql.sql
+tar -cf /tmp/linguaframe-private-demo-restore-smoke/caddy-data.tar \
+  -C /tmp/linguaframe-private-demo-restore-smoke/caddy-data .
+tar -cf /tmp/linguaframe-private-demo-restore-smoke/caddy-config.tar \
+  -C /tmp/linguaframe-private-demo-restore-smoke/caddy-config .
+LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-restore.sh \
+  --dry-run \
+  --backup-dir /tmp/linguaframe-private-demo-restore-smoke
+```
+
+Expected:
+
+- Backup dry-run prints safe component names and target paths only.
+- Restore dry-run validates `manifest.json`, `mysql.sql`, `minio/`, and Caddy tarball shape without writing data.
+- Non-dry-run restore refuses to run unless `--yes` is present.
+- Full backup/restore requires a running private-demo stack and is not part of static validation.
+
 If the frontend image cannot build because Docker cannot resolve or pull `node:26-alpine`, use the local fallback instead of blocking backend demo validation:
 
 ```bash

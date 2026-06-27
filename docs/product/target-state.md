@@ -69,6 +69,7 @@ Stage 2 goals:
 - Use a private-demo reverse proxy that exposes only the public web entry point while keeping app and dependency ports internal.
 - Support controlled uploads from the project owner.
 - Persist job history and artifacts across restarts.
+- Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Keep file size and duration limits conservative.
 - Show repeatable demo input and output.
 

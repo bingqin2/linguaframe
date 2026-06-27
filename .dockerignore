@@ -9,6 +9,8 @@
 **/out
 logs
 tmp
+private-demo-backups
+*.linguaframe-backup
 .env
 .env.*
 !.env.example

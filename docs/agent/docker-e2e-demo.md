@@ -103,6 +103,16 @@ docker compose --env-file .env.private-demo \
 
 The overlay adds Caddy on ports 80/443 and keeps backend/frontend host ports internal. After startup, run `LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh`.
 
+For private-demo persistence checks, validate backup and restore shape before touching service data:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh --dry-run
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh --output-dir /tmp/linguaframe-private-demo-backups
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-restore.sh --dry-run --backup-dir /tmp/linguaframe-private-demo-backups/<timestamp>.linguaframe-backup
+```
+
+The backup includes MySQL job history, MinIO artifacts, and Caddy state by default. Redis and RabbitMQ snapshots are optional with `--include-volatile`.
+
 ## Successful Job Demo
 
 In another terminal, run:

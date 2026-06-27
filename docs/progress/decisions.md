@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Handle private-demo durability with operator-run backups before adding managed cloud storage or public account isolation.
+
+Reason: The current product goal is a credible single-owner demo, not a public hosted service. A scripted backup/restore path protects job history, MinIO artifacts, and proxy state while keeping deployment simple and local-first.
+
+Impact: `scripts/demo/private-demo-backup.sh` and `scripts/demo/private-demo-restore.sh` become the private-demo migration and recovery path. Managed storage, user-scoped retention, and multi-tenant restore semantics remain later public-service work.
+
+## 2026-06-28
+
 Decision: Add private-demo deployment as an overlay instead of changing the local Docker Compose stack.
 
 Reason: The local demo is already stable and should remain easy to run. A private server demo needs a public HTTPS entry point and internal service routing, but it should not force local contributors through reverse-proxy setup.

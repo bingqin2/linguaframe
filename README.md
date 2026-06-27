@@ -156,6 +156,16 @@ docker compose --env-file .env.private-demo \
 
 The overlay adds a Caddy reverse proxy on ports 80/443, keeps backend/frontend host ports internal, and routes `/api`, Swagger, actuator, downloads, previews, and SSE through the same public domain. See `docs/deployment/private-demo.md`.
 
+Private demo backups export job history, MinIO artifacts, and Caddy state without provider calls:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh --dry-run
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh --output-dir /tmp/linguaframe-private-demo-backups
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-restore.sh --dry-run --backup-dir /tmp/linguaframe-private-demo-backups/<timestamp>.linguaframe-backup
+```
+
+Real restore requires `--yes`. See `docs/deployment/private-demo.md` before restoring service data.
+
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary, and the `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
