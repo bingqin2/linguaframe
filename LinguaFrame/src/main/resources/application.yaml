@@ -42,6 +42,9 @@ linguaframe:
     smoke-stage-duration-ms: ${LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS:0}
     smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
     role: ${LINGUAFRAME_WORKER_ROLE:COMBINED}
+  demo:
+    access-token: ${LINGUAFRAME_DEMO_ACCESS_TOKEN:}
+    access-header-name: ${LINGUAFRAME_DEMO_ACCESS_HEADER_NAME:X-LinguaFrame-Demo-Token}
   cost:
     enabled: ${LINGUAFRAME_COST_ENABLED:true}
     transcription-usd-per-minute: ${LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE:0}

@@ -22,6 +22,9 @@ public class LinguaFrameProperties {
     private final Worker worker = new Worker();
 
     @Valid
+    private final Demo demo = new Demo();
+
+    @Valid
     private final Cost cost = new Cost();
 
     @Valid
@@ -57,6 +60,10 @@ public class LinguaFrameProperties {
 
     public Worker getWorker() {
         return worker;
+    }
+
+    public Demo getDemo() {
+        return demo;
     }
 
     public Cost getCost() {
@@ -226,6 +233,34 @@ public class LinguaFrameProperties {
 
         public void setRole(WorkerRole role) {
             this.role = role;
+        }
+    }
+
+    public static class Demo {
+
+        private String accessToken = "";
+
+        @NotBlank
+        private String accessHeaderName = "X-LinguaFrame-Demo-Token";
+
+        public String getAccessToken() {
+            return accessToken;
+        }
+
+        public void setAccessToken(String accessToken) {
+            this.accessToken = accessToken == null ? "" : accessToken;
+        }
+
+        public String getAccessHeaderName() {
+            return accessHeaderName;
+        }
+
+        public void setAccessHeaderName(String accessHeaderName) {
+            this.accessHeaderName = accessHeaderName;
+        }
+
+        public boolean isAccessGateEnabled() {
+            return !accessToken.isBlank();
         }
     }
 

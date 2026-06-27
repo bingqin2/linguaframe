@@ -140,6 +140,16 @@ http://localhost:5173
 
 The frontend calls backend APIs through the Vite `/api` proxy. In Docker, `linguaframe-frontend` proxies to `http://linguaframe-backend:8080`; in local development it defaults to `http://localhost:8080`.
 
+Private demo access is optional. With the default empty token, local browser and curl demos stay open. To gate `/api/**` on a private demo URL, set a long random token in your local `.env` and restart the backend:
+
+```bash
+LINGUAFRAME_DEMO_ACCESS_TOKEN=replace-with-long-random-token
+LINGUAFRAME_DEMO_ACCESS_HEADER_NAME=X-LinguaFrame-Demo-Token
+docker compose --env-file .env up -d --force-recreate linguaframe-backend linguaframe-frontend
+```
+
+Then open `http://localhost:5173`, enter the same value in `Demo access token`, and choose `Save token`. The frontend stores it in browser local storage for fetch requests and a same-site cookie for job progress streams, downloads, and media previews. Do not commit real demo tokens.
+
 ## Runtime Configuration
 
 Default backend configuration lives in `LinguaFrame/src/main/resources/application.yaml`. Local development overrides live in `LinguaFrame/src/main/resources/application-local.yaml`.
@@ -148,6 +158,8 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 
 - `linguaframe.media.max-file-size-mb`
 - `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
+- `linguaframe.demo.access-token` - empty by default; non-empty values require a matching browser token for `/api/**`.
+- `linguaframe.demo.access-header-name` - default `X-LinguaFrame-Demo-Token`.
 - `linguaframe.worker.max-retries`
 - `linguaframe.worker.stage-timeout-seconds`
 - `linguaframe.worker.dispatch-enabled`

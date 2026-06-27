@@ -9,6 +9,10 @@ import type {
   TranscriptSegment
 } from '../domain/jobTypes';
 
+export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
+export const DEMO_ACCESS_TOKEN_HEADER = 'X-LinguaFrame-Demo-Token';
+export const DEMO_ACCESS_TOKEN_COOKIE = 'LinguaFrame-Demo-Token';
+
 export interface ListJobsParams {
   status?: LocalizationJobStatus | 'ALL';
   limit?: number;
@@ -108,15 +112,72 @@ export const linguaFrameApi = {
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,
-  jobEventsUrl
+  jobEventsUrl,
+  readDemoToken,
+  writeDemoToken
 };
 
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
+  const response = await fetch(url, withDemoAccessHeader(init));
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));
   }
   return response.json() as Promise<T>;
+}
+
+export function readDemoToken(storage: Storage = window.localStorage): string {
+  return storage.getItem(DEMO_ACCESS_TOKEN_STORAGE_KEY)?.trim() ?? '';
+}
+
+export function writeDemoToken(storage: Storage, token: string): string {
+  const normalizedToken = token.trim();
+  if (normalizedToken.length === 0) {
+    storage.removeItem(DEMO_ACCESS_TOKEN_STORAGE_KEY);
+    clearDemoAccessCookie();
+    return '';
+  }
+
+  storage.setItem(DEMO_ACCESS_TOKEN_STORAGE_KEY, normalizedToken);
+  writeDemoAccessCookie(normalizedToken);
+  return normalizedToken;
+}
+
+function withDemoAccessHeader(init: RequestInit): RequestInit {
+  const token = readDemoToken();
+  if (!token) {
+    return init;
+  }
+
+  return {
+    ...init,
+    headers: {
+      ...headersToRecord(init.headers),
+      [DEMO_ACCESS_TOKEN_HEADER]: token
+    }
+  };
+}
+
+function headersToRecord(headers: HeadersInit | undefined): Record<string, string> {
+  if (!headers) {
+    return {};
+  }
+  if (headers instanceof Headers) {
+    return Object.fromEntries(headers.entries());
+  }
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(headers);
+  }
+  return headers;
+}
+
+function writeDemoAccessCookie(token: string) {
+  document.cookie = `${DEMO_ACCESS_TOKEN_COOKIE}=${encodeURIComponent(
+    token
+  )}; Path=/; SameSite=Lax`;
+}
+
+function clearDemoAccessCookie() {
+  document.cookie = `${DEMO_ACCESS_TOKEN_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 async function readErrorMessage(response: Response): Promise<string> {

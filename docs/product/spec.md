@@ -81,6 +81,8 @@ Hosted usage requires:
 ### Authentication
 
 - The MVP may support a simple local user model or a single demo user.
+- The current private demo gate is owner-only access control, not user authentication: when `linguaframe.demo.access-token` is non-empty, `/api/**` requires the matching demo token while readiness, OpenAPI, Swagger, and frontend assets remain public.
+- The React demo stores the entered token in browser local storage for fetch requests and a same-site cookie for EventSource progress, artifact downloads, and media previews.
 - The production-shaped target should support JWT authentication.
 - Uploaded videos and generated artifacts must be scoped to the owning user.
 - Admin or operator-only endpoints should not expose secrets.

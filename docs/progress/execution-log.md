@@ -1122,3 +1122,36 @@ Post-merge verification:
 - Merged `worker-role-routing-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test` passed on `main` with `Tests run: 29, Failures: 0, Errors: 0, Skipped: 0`.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added an optional Spring MVC demo access gate for `/api/**`.
+- Added `linguaframe.demo.access-token` and `linguaframe.demo.access-header-name` runtime configuration.
+- Kept local development open when the configured demo token is blank.
+- Added React demo token save/clear controls.
+- Added API header injection for JSON and multipart requests when a browser token exists.
+- Added a same-site browser cookie path so EventSource progress, artifact downloads, audio previews, and video previews work in gated demo mode.
+- Documented private demo access variables in README, `.env.example`, Compose, roadmap, spec, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoAccessInterceptorTests,LinguaFramePropertiesTests test` first failed because demo access configuration and interceptor behavior did not exist, then passed with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because token helpers, API header injection, and UI controls did not exist, then passed with `Tests run: 33`.
+- A cookie compatibility regression test first failed because gated API requests only accepted the custom header, then passed after accepting the `LinguaFrame-Demo-Token` cookie.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `mvn -pl LinguaFrame -Dtest=DemoAccessInterceptorTests,LinguaFramePropertiesTests,RuntimeDependencyControllerTests test` passed with `Tests run: 23, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed again with `Tests run: 33`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 242, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 37`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed again.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed again.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice is not JWT, multi-user authentication, OAuth, billing, or enterprise permissions.
+- Real demo tokens must stay in local `.env` or deployment secrets and must not be committed.
