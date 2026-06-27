@@ -12,6 +12,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -49,6 +50,7 @@ public class LocalizationJobController {
     private final LocalizationJobCancellationService cancellationService;
     private final LocalizationJobProgressStreamService progressStreamService;
     private final JobArtifactService artifactService;
+    private final JobEvidenceReportService evidenceReportService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
     private final ObjectMapper objectMapper;
@@ -59,6 +61,7 @@ public class LocalizationJobController {
             LocalizationJobCancellationService cancellationService,
             LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
+            JobEvidenceReportService evidenceReportService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
             ObjectMapper objectMapper
@@ -68,6 +71,7 @@ public class LocalizationJobController {
         this.cancellationService = cancellationService;
         this.progressStreamService = progressStreamService;
         this.artifactService = artifactService;
+        this.evidenceReportService = evidenceReportService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
         this.objectMapper = objectMapper;
@@ -182,6 +186,31 @@ public class LocalizationJobController {
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
                                 .filename("linguaframe-job-" + jobId + "-diagnostics.json")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @GetMapping("/{jobId}/evidence/markdown/download")
+    @Operation(summary = "Download a safe Markdown evidence report for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Evidence Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadEvidenceMarkdownReport(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = evidenceReportService.buildMarkdownReport(jobId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-evidence.md")
                                 .build()
                                 .toString()
                 )

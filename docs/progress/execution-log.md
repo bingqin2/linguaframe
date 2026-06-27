@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `GET /api/jobs/{jobId}/evidence/markdown/download` for backend-generated, sanitized Markdown demo evidence.
+- Added a React `Download backend evidence` link to the `Demo evidence` panel and API client URL helper.
+- Extended `scripts/demo/docker-e2e-success.sh` to download and validate `/tmp/linguaframe-demo/job-evidence.md`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log with backend evidence Markdown behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#downloadsJobEvidenceMarkdownReport test` first failed with HTTP 404 for the missing route, then passed after adding the report service and controller endpoint.
+- `cd frontend && npm run test:run -- App -t "exports safe browser demo evidence"` first failed because the `Download backend evidence` link was missing, then passed after adding the API helper and UI link.
+- `cd frontend && npm run test:run -- src/api/linguaframeApi.test.ts -t "evidence markdown"` passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,LocalizationJobQueryServiceTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 35, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Test Files 2 passed` and `Tests 65 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 358, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-28
+
+Work:
+
 - Added `GET /api/runtime/live-checks` for bounded non-destructive MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes.
 - Added a React `Live checks` sidebar panel and API client support for live probe summaries.
 - Updated private-demo preflight to fail before upload when a runtime live dependency is down.

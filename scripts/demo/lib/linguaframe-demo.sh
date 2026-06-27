@@ -349,6 +349,15 @@ download_job_diagnostics() {
   curl -fsS "$base_url/api/jobs/$job_id/diagnostics/download" -o "$output_path"
 }
 
+download_job_evidence_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/evidence/markdown/download" -o "$output_path"
+}
+
 print_zip_entries() {
   local archive_path="$1"
 
@@ -407,5 +416,48 @@ print("diagnosticsStatus=" + job["status"])
 print("diagnosticsArtifactCount=" + str(report.get("artifactCount", len(report.get("artifacts", [])))))
 print("diagnosticsModelCallCount=" + str(len(job.get("modelCalls", []))))
 print("diagnosticsTimelineEventCount=" + str(len(job.get("timelineEvents", []))))
+PY
+}
+
+print_evidence_markdown_summary() {
+  local evidence_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$evidence_path" "$expected_job_id" <<'PY'
+import sys
+
+evidence_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+]
+required = [
+    "# LinguaFrame Demo Evidence",
+    "- Job: " + expected_job_id,
+    "- Status: COMPLETED",
+    "- Model calls:",
+    "- Estimated cost:",
+    "- Result bundle:",
+    "- Diagnostics:",
+    "Timeline:",
+    "Artifacts:",
+]
+text = open(evidence_path, encoding="utf-8").read()
+for value in forbidden:
+    if value in text:
+        raise SystemExit("Evidence report contains forbidden sensitive string: " + value)
+for value in required:
+    if value not in text:
+        raise SystemExit("Evidence report is missing required marker: " + value)
+print("evidenceMarkdownJobId=" + expected_job_id)
+print("evidenceMarkdownBytes=" + str(len(text.encode("utf-8"))))
 PY
 }
