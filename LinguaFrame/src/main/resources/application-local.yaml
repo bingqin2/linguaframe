@@ -1,6 +1,8 @@
 logging:
   level:
     com.linguaframe: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} jobId=%X{jobId:-} videoId=%X{videoId:-} stage=%X{stage:-} workerRole=%X{workerRole:-} - %msg%n"
 
 linguaframe:
   media:

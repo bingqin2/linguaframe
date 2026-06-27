@@ -51,6 +51,7 @@ import com.linguaframe.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -234,6 +235,90 @@ class LocalizationJobExecutionServiceTests {
                 );
         assertThat(queryService.getJob("execution-job-provider-cache-hit").cacheSummary().providerCacheHitCount())
                 .isEqualTo(1);
+    }
+
+    @Test
+    void stageExecutionHasJobScopedMdcAndClearsItAfterSuccess() {
+        Instant now = Instant.parse("2026-06-27T11:20:00Z");
+        createJob("execution-video-mdc-success", "execution-job-mdc-success", LocalizationJobStatus.QUEUED, now);
+        MdcAssertingStage stage = new MdcAssertingStage(
+                "execution-job-mdc-success",
+                "execution-video-mdc-success",
+                LocalizationJobStage.WORKER_SMOKE,
+                WorkerRole.COMBINED,
+                false
+        );
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-mdc-success", "execution-video-mdc-success", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+        stage.assertObservedExpectedContext();
+        assertMdcCleared();
+    }
+
+    @Test
+    void stageExecutionClearsJobScopedMdcAfterFailure() {
+        Instant now = Instant.parse("2026-06-27T11:25:00Z");
+        createJob("execution-video-mdc-failure", "execution-job-mdc-failure", LocalizationJobStatus.QUEUED, now);
+        MdcAssertingStage stage = new MdcAssertingStage(
+                "execution-job-mdc-failure",
+                "execution-video-mdc-failure",
+                LocalizationJobStage.WORKER_SMOKE,
+                WorkerRole.COMBINED,
+                true
+        );
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-mdc-failure", "execution-video-mdc-failure", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.FAILED);
+        stage.assertObservedExpectedContext();
+        assertMdcCleared();
+    }
+
+    @Test
+    void stageExecutionMdcUsesConfiguredWorkerRole() {
+        Instant now = Instant.parse("2026-06-27T11:30:00Z");
+        createJob("execution-video-mdc-role", "execution-job-mdc-role", LocalizationJobStatus.PROCESSING, now);
+        properties.getWorker().setRole(WorkerRole.OPENAI);
+        MdcAssertingStage stage = new MdcAssertingStage(
+                "execution-job-mdc-role",
+                "execution-video-mdc-role",
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                WorkerRole.OPENAI,
+                false
+        );
+        LocalizationJobExecutionService service = service(
+                List.of(stage),
+                new RecordingPublisher(),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            service.execute(message(
+                    "execution-job-mdc-role",
+                    "execution-video-mdc-role",
+                    now,
+                    LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT
+            ));
+
+            stage.assertObservedExpectedContext();
+            assertMdcCleared();
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+            MDC.clear();
+        }
     }
 
     @Test
@@ -1326,6 +1411,13 @@ class LocalizationJobExecutionServiceTests {
         );
     }
 
+    private void assertMdcCleared() {
+        assertThat(MDC.get("jobId")).isNull();
+        assertThat(MDC.get("videoId")).isNull();
+        assertThat(MDC.get("stage")).isNull();
+        assertThat(MDC.get("workerRole")).isNull();
+    }
+
     private static class RecordingStage implements LocalizationPipelineStage {
 
         private final boolean fail;
@@ -1352,6 +1444,51 @@ class LocalizationJobExecutionServiceTests {
             if (fail) {
                 throw new IllegalStateException("stage exploded");
             }
+        }
+    }
+
+    private static class MdcAssertingStage implements LocalizationPipelineStage {
+
+        private final String expectedJobId;
+        private final String expectedVideoId;
+        private final LocalizationJobStage stage;
+        private final WorkerRole expectedWorkerRole;
+        private final boolean fail;
+        private boolean observedExpectedContext;
+
+        private MdcAssertingStage(
+                String expectedJobId,
+                String expectedVideoId,
+                LocalizationJobStage stage,
+                WorkerRole expectedWorkerRole,
+                boolean fail
+        ) {
+            this.expectedJobId = expectedJobId;
+            this.expectedVideoId = expectedVideoId;
+            this.stage = stage;
+            this.expectedWorkerRole = expectedWorkerRole;
+            this.fail = fail;
+        }
+
+        @Override
+        public LocalizationJobStage stage() {
+            return stage;
+        }
+
+        @Override
+        public void execute(LocalizationJobExecutionContextBo context) {
+            observedExpectedContext =
+                    expectedJobId.equals(MDC.get("jobId"))
+                            && expectedVideoId.equals(MDC.get("videoId"))
+                            && stage.name().equals(MDC.get("stage"))
+                            && expectedWorkerRole.name().equals(MDC.get("workerRole"));
+            if (fail) {
+                throw new IllegalStateException("stage exploded");
+            }
+        }
+
+        private void assertObservedExpectedContext() {
+            assertThat(observedExpectedContext).isTrue();
         }
     }
 

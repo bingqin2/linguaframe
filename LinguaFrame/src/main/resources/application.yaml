@@ -22,6 +22,10 @@ spring:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:100MB}
       max-request-size: ${SPRING_SERVLET_MULTIPART_MAX_REQUEST_SIZE:100MB}
 
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} jobId=%X{jobId:-} videoId=%X{videoId:-} stage=%X{stage:-} workerRole=%X{workerRole:-} - %msg%n"
+
 management:
   endpoints:
     web:

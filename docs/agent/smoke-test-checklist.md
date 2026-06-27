@@ -41,6 +41,18 @@ Expected:
 - Tags include media uploads, localization jobs, runtime dependencies, prompt templates, operator dashboard, and retention cleanup.
 - Paths cover upload, job detail, event stream, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime, prompt-template, operator, and cleanup APIs.
 
+For worker logging changes, run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -Dtest=LinguaFrameLogContextTests,LocalizationJobExecutionServiceTests test
+```
+
+Expected:
+
+- MDC helper tests prove `jobId`, `videoId`, `stage`, and `workerRole` are scoped and restored.
+- Execution tests prove the stage sees job-scoped MDC while running.
+- Execution tests prove MDC is cleared after successful and failed jobs.
+
 ### Docker Runtime Verification
 
 Run the one-command local demo startup:
@@ -209,6 +221,20 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
 - The script downloads `/tmp/linguaframe-demo/job-diagnostics.json`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
+
+Inspect job-scoped backend logs:
+
+```bash
+JOB_ID=<job id printed by the script>
+docker logs linguaframe-backend 2>&1 | grep "jobId=$JOB_ID"
+docker logs linguaframe-backend 2>&1 | grep "stage=TARGET_SUBTITLE_EXPORT"
+docker logs linguaframe-backend 2>&1 | grep "workerRole=COMBINED"
+```
+
+Expected:
+
+- Worker log lines include `jobId`, `videoId`, `stage`, and `workerRole` while processing stages.
+- Log lines do not include OpenAI keys, demo tokens, object storage credentials, source object keys, local filesystem paths, raw transcript text, raw subtitles, provider payloads, or media bytes.
 
 Run the budget guard failure path only after recreating the backend with a tiny positive budget and a non-zero local cost rate:
 

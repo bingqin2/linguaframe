@@ -7,6 +7,10 @@ spring:
   flyway:
     enabled: true
 
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%thread] %logger{36} jobId=%X{jobId:-} videoId=%X{videoId:-} stage=%X{stage:-} workerRole=%X{workerRole:-} - %msg%n"
+
 management:
   health:
     rabbit:

@@ -226,7 +226,7 @@ Build:
 - Failed-stage retry behavior. Status: implemented with bounded retry count, structured conflict responses, and visible retry evidence in job detail.
 - Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
-- Structured logs with job id.
+- Structured logs with job id. Status: implemented with worker MDC fields for job id, video id, stage, and worker role.
 - OpenAPI docs. Status: implemented with demo-token security metadata, primary controller tags, path contract tests, and Swagger demo guidance.
 
 Do not build yet:
