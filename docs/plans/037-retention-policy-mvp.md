@@ -248,21 +248,21 @@ git diff --check
 
 Expected: all commands exit 0.
 
-- [ ] **Step 3: Commit feature branch**
+- [x] **Step 3: Commit feature branch**
 
 ```bash
 git add README.md .env.example docker-compose.yml docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md docs/plans/037-retention-policy-mvp.md LinguaFrame/src
 git commit -m "Add retention policy cleanup"
 ```
 
-- [ ] **Step 4: Merge back to main**
+- [x] **Step 4: Merge back to main**
 
 ```bash
 git switch main
 git merge --no-ff retention-policy-mvp
 ```
 
-- [ ] **Step 5: Run post-merge smoke validation**
+- [x] **Step 5: Run post-merge smoke validation**
 
 ```bash
 mvn -pl LinguaFrame -Dtest=RetentionCleanupServiceTests,RetentionCleanupControllerTests test

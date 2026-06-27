@@ -1119,6 +1119,12 @@ Validation so far:
 
 Post-merge verification:
 
+- Merged `retention-policy-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=RetentionCleanupServiceTests,RetentionCleanupControllerTests test` passed on `main` with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+
+Post-merge verification:
+
 - Merged `worker-role-routing-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test` passed on `main` with `Tests run: 29, Failures: 0, Errors: 0, Skipped: 0`.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed on `main`.
