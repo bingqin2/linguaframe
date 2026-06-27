@@ -114,4 +114,4 @@
 - [x] Backup artifacts are ignored by git when stored under the repository.
 - [x] Smoke checklist and deployment docs explain backup, restore dry-run, guarded restore, and post-restore verification.
 - [x] Roadmap, decisions, execution log, and this plan are updated.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.

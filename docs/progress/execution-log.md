@@ -21,6 +21,15 @@ Validation:
 - `git diff --check` passed.
 - Full non-dry-run backup/restore was not executed because it requires a running private-demo stack and writes service data.
 
+Post-merge verification:
+
+- Merged `codex-private-demo-backup-restore` back to `main` with a merge commit.
+- `bash -n scripts/demo/private-demo-backup.sh scripts/demo/private-demo-restore.sh` passed on `main`.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-backup.sh --dry-run --output-dir /tmp/linguaframe-private-demo-backups` passed on `main`.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-restore.sh --dry-run --backup-dir /tmp/linguaframe-private-demo-restore-smoke` passed on `main`.
+- `docker compose --env-file .env.private-demo.example -f docker-compose.yml -f deploy/private-demo/docker-compose.private-demo.yml config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:
