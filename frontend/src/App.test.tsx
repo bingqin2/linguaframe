@@ -430,6 +430,7 @@ describe('App', () => {
         filename: 'subtitles.vtt',
         contentType: 'text/vtt',
         sizeBytes: 42,
+        contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         createdAt: '2026-06-26T10:00:05Z'
       },
       {
@@ -439,6 +440,7 @@ describe('App', () => {
         filename: 'dubbing.mp3',
         contentType: 'audio/mpeg',
         sizeBytes: 4200,
+        contentSha256: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',
         createdAt: '2026-06-26T10:00:06Z'
       },
       {
@@ -448,6 +450,7 @@ describe('App', () => {
         filename: 'burned-video.mp4',
         contentType: 'video/mp4',
         sizeBytes: 42000,
+        contentSha256: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
         createdAt: '2026-06-26T10:00:07Z'
       }
     ]);
@@ -468,6 +471,7 @@ describe('App', () => {
     const artifacts = screen.getByRole('region', { name: /artifacts/i });
     expect(within(artifacts).getByText('subtitles.vtt')).toBeInTheDocument();
     expect(within(artifacts).getByText('42 B')).toBeInTheDocument();
+    expect(within(artifacts).getByText('0123456789ab')).toBeInTheDocument();
     expect(within(artifacts).getByRole('link', { name: /download subtitles.vtt/i })).toHaveAttribute(
       'href',
       '/api/jobs/artifact-job/artifacts/artifact-vtt/download'

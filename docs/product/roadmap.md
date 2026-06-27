@@ -381,7 +381,7 @@ Build:
 - Per-job cost budget configuration.
 - Per-user daily cost budget hook.
 - Budget checks before translation, evaluation, and TTS stages.
-- Content hash for extracted audio.
+- Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
 - Cache key for translation inputs based on source text hash, target language, model, and prompt version.
 - Cache-hit audit events.
 
@@ -390,11 +390,13 @@ Do not build yet:
 - Real billing.
 - Payments.
 - Global distributed cache.
+- Cache result reuse or provider-call skipping.
 
 Exit criteria:
 
 - Expensive stages can be skipped before execution when a budget is exceeded.
-- Repeated compatible inputs can be detected by cache keys.
+- Generated artifacts expose stable content hashes.
+- Repeated compatible inputs can be detected by cache keys after the later cache-key slice.
 - Cache behavior is visible in job events or model-call records.
 
 Suggested ExecPlan:

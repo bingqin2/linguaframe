@@ -1,0 +1,2 @@
+ALTER TABLE job_artifacts
+    ADD COLUMN content_sha256 VARCHAR(64) NOT NULL DEFAULT '';

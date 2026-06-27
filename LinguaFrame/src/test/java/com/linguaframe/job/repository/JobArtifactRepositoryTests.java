@@ -56,6 +56,7 @@ class JobArtifactRepositoryTests {
                 "worker-summary.json",
                 "application/json",
                 123L,
+                "abc123",
                 createdAt.plusSeconds(2)
         );
         JobArtifactRecord second = new JobArtifactRecord(
@@ -66,6 +67,7 @@ class JobArtifactRepositoryTests {
                 "worker-summary.json",
                 "application/json",
                 456L,
+                "def456",
                 createdAt.plusSeconds(1)
         );
         JobArtifactRecord otherJob = new JobArtifactRecord(
@@ -76,6 +78,7 @@ class JobArtifactRepositoryTests {
                 "worker-summary.json",
                 "application/json",
                 789L,
+                "789abc",
                 createdAt.plusSeconds(3)
         );
 
@@ -84,6 +87,10 @@ class JobArtifactRepositoryTests {
         artifactRepository.save(otherJob);
 
         assertThat(artifactRepository.findById("artifact-1")).contains(first);
+        assertThat(artifactRepository.findById("artifact-1"))
+                .get()
+                .extracting(JobArtifactRecord::contentSha256)
+                .isEqualTo("abc123");
         assertThat(artifactRepository.findById("missing-artifact")).isEmpty();
         assertThat(artifactRepository.findByJobId("artifact-job-1"))
                 .containsExactly(second, first);

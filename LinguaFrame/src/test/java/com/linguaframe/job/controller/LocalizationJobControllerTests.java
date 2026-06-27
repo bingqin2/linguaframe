@@ -491,6 +491,7 @@ class LocalizationJobControllerTests {
                 "worker-summary.json",
                 "application/json",
                 42L,
+                "abc123",
                 createdAt.plusSeconds(1)
         ));
 
@@ -502,6 +503,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$[0].filename").value("worker-summary.json"))
                 .andExpect(jsonPath("$[0].contentType").value("application/json"))
                 .andExpect(jsonPath("$[0].sizeBytes").value(42))
+                .andExpect(jsonPath("$[0].contentSha256").value("abc123"))
                 .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
@@ -517,6 +519,7 @@ class LocalizationJobControllerTests {
                 "worker-summary.json",
                 "application/json",
                 11L,
+                "download-hash",
                 createdAt.plusSeconds(1)
         ));
         when(objectStorageService.open("job-artifacts/job-controller-job-download/job-controller-artifact-download/worker-summary.json"))
@@ -586,6 +589,7 @@ class LocalizationJobControllerTests {
                 "worker-summary.json",
                 "application/json",
                 2L,
+                "owner-hash",
                 createdAt.plusSeconds(1)
         ));
 

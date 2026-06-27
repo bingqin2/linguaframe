@@ -883,3 +883,27 @@ Post-merge verification:
 - `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED: "false"` plus `LINGUAFRAME_COST_MAX_JOB_COST_USD: "0"`.
 - `git diff --check HEAD` passed on `main`.
 - `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-27
+
+Work:
+
+- Added `content_sha256` to persisted job artifact metadata.
+- Computed lowercase SHA-256 fingerprints in `JobArtifactServiceImpl` from the exact artifact bytes passed to object storage.
+- Exposed `contentSha256` in artifact API responses.
+- Updated the React artifact table to show a short SHA-256 prefix with the full hash available on hover.
+- Documented artifact hashes as reproducibility and future cache-foundation metadata, not cache hits.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=JobArtifactRepositoryTests,JobArtifactServiceTests,LocalizationJobControllerTests test` first failed because `contentSha256` was not part of artifact records or VOs, then passed with `Tests run: 24, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the artifact table did not render the short hash, then passed with `Tests run: 25`.
+- `cd frontend && npm run test:run` passed with `Tests run: 29`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config` passed and rendered the current demo stack configuration.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice does not implement cache result reuse, cache-hit audit events, or provider-call skipping.

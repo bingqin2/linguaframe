@@ -273,6 +273,7 @@ class SubtitleBurnInPipelineStageTests {
                     command.filename(),
                     command.contentType(),
                     command.content().length,
+                    "artifact-hash-" + commands.size(),
                     Instant.parse("2026-06-26T23:30:00Z")
             );
         }

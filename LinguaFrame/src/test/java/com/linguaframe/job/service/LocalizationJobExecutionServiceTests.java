@@ -1054,6 +1054,7 @@ class LocalizationJobExecutionServiceTests {
                     command.filename(),
                     command.contentType(),
                     command.content().length,
+                    "recording-hash-" + commands.size(),
                     Instant.parse("2026-06-26T19:00:10Z")
             );
             artifacts.add(artifact);

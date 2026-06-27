@@ -321,6 +321,8 @@ When the guard blocks, the job fails at the guarded stage, no later provider cal
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
 
+`GET /api/jobs/{jobId}/artifacts` returns each generated artifact with `contentSha256`, a lowercase SHA-256 fingerprint of the stored bytes. The React demo shows the first 12 characters in the artifact table and keeps the full hash available on hover. This is a reproducibility and future cache foundation; it is not a cache-hit signal and does not skip provider calls.
+
 Live job progress is available through Server-Sent Events:
 
 ```bash

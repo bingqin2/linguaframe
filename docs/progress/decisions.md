@@ -161,3 +161,11 @@ Decision: Add a per-job cost budget guard based on recorded estimated cost befor
 Reason: LinguaFrame already persists model-call cost estimates per job. Checking that accumulated total before each AI stage gives the local OpenAI demo an understandable spending guard without pretending to know exact provider billing or future token/audio usage.
 
 Impact: Operators can opt in with `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true` and a positive `LINGUAFRAME_COST_MAX_JOB_COST_USD`. When the limit is reached, later AI stages fail before provider calls and the job timeline records the budget failure.
+
+## 2026-06-27
+
+Decision: Compute generated artifact SHA-256 fingerprints at artifact creation time.
+
+Reason: `JobArtifactServiceImpl` receives the exact bytes that are stored in object storage, so hashing at this boundary gives a stable reproducibility signal without coupling hash logic to FFmpeg, OpenAI, transcription, translation, TTS, or evaluation providers.
+
+Impact: Artifact APIs and the React demo can show `contentSha256` for generated outputs. This creates the foundation for future duplicate-work detection while deliberately leaving cache hits and provider-call skipping to later feature slices.

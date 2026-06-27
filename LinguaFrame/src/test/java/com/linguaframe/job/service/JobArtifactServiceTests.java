@@ -53,8 +53,12 @@ class JobArtifactServiceTests {
         assertThat(result.filename()).isEqualTo("worker-summary.json");
         assertThat(result.contentType()).isEqualTo("application/json");
         assertThat(result.sizeBytes()).isEqualTo(34);
+        assertThat(result.contentSha256())
+                .isEqualTo("a66f328b69820ccee2c4a3e7882e95e956e8e319b18020f43079398677dbfa33");
         assertThat(result.createdAt()).isEqualTo(now);
         assertThat(artifactRepository.saved).hasSize(1);
+        assertThat(artifactRepository.saved.getFirst().contentSha256())
+                .isEqualTo("a66f328b69820ccee2c4a3e7882e95e956e8e319b18020f43079398677dbfa33");
         assertThat(artifactRepository.saved.getFirst().objectKey())
                 .isEqualTo("job-artifacts/job-artifact-service-1/" + result.artifactId() + "/worker-summary.json");
         assertThat(storageService.objects)
