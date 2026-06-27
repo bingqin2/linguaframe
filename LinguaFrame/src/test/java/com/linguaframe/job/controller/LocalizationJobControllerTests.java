@@ -131,7 +131,9 @@ class LocalizationJobControllerTests {
                 1000,
                 500,
                 null,
-                null
+                null,
+                "target=zh-CN, segments=2, sourceChars=61",
+                "segments=2, targetChars=29"
         ));
 
         mockMvc.perform(get("/api/jobs"))
@@ -293,7 +295,9 @@ class LocalizationJobControllerTests {
                 1000,
                 500,
                 null,
-                null
+                null,
+                "target=zh-CN, segments=2, sourceChars=61",
+                "segments=2, targetChars=29"
         ));
         modelCallAuditService.recordFailure(new CreateModelCallRecordCommand(
                 "job-controller-job-usage",
@@ -306,6 +310,8 @@ class LocalizationJobControllerTests {
                 null,
                 null,
                 null,
+                null,
+                "characters=17",
                 null
         ), "OpenAI TTS request failed with status 401");
 
@@ -323,8 +329,12 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.modelCalls[0].operation").value("TRANSLATION"))
                 .andExpect(jsonPath("$.modelCalls[0].status").value("SUCCEEDED"))
                 .andExpect(jsonPath("$.modelCalls[0].estimatedCostUsd").value(0.00045000))
+                .andExpect(jsonPath("$.modelCalls[0].inputSummary").value("target=zh-CN, segments=2, sourceChars=61"))
+                .andExpect(jsonPath("$.modelCalls[0].outputSummary").value("segments=2, targetChars=29"))
                 .andExpect(jsonPath("$.modelCalls[1].operation").value("TTS"))
                 .andExpect(jsonPath("$.modelCalls[1].status").value("FAILED"))
+                .andExpect(jsonPath("$.modelCalls[1].inputSummary").value("characters=17"))
+                .andExpect(jsonPath("$.modelCalls[1].outputSummary").doesNotExist())
                 .andExpect(jsonPath("$.modelCalls[1].safeErrorSummary")
                         .value("OpenAI TTS request failed with status 401"));
     }

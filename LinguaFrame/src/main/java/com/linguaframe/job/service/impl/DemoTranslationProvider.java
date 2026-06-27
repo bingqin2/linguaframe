@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.TranslationProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -26,9 +27,11 @@ public class DemoTranslationProvider implements TranslationProvider {
     );
 
     private final ModelCallAuditService auditService;
+    private final ModelCallSummaryService summaryService;
 
-    public DemoTranslationProvider(ModelCallAuditService auditService) {
+    public DemoTranslationProvider(ModelCallAuditService auditService, ModelCallSummaryService summaryService) {
         this.auditService = auditService;
+        this.summaryService = summaryService;
     }
 
     @Override
@@ -44,15 +47,30 @@ public class DemoTranslationProvider implements TranslationProvider {
                     ))
                     .toList();
             TranslationResultBo result = new TranslationResultBo(segments);
-            auditService.recordSuccess(command(jobId, elapsedMillis(started)));
+            auditService.recordSuccess(command(
+                    jobId,
+                    elapsedMillis(started),
+                    inputSummary(targetLanguage, transcriptSegments),
+                    outputSummary(result)
+            ));
             return result;
         } catch (RuntimeException ex) {
-            auditService.recordFailure(command(jobId, elapsedMillis(started)), ex.getMessage());
+            auditService.recordFailure(command(
+                    jobId,
+                    elapsedMillis(started),
+                    inputSummary(targetLanguage, transcriptSegments),
+                    null
+            ), ex.getMessage());
             throw ex;
         }
     }
 
-    private CreateModelCallRecordCommand command(String jobId, long latencyMs) {
+    private CreateModelCallRecordCommand command(
+            String jobId,
+            long latencyMs,
+            String inputSummary,
+            String outputSummary
+    ) {
         return new CreateModelCallRecordCommand(
                 jobId,
                 LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
@@ -64,8 +82,35 @@ public class DemoTranslationProvider implements TranslationProvider {
                 null,
                 null,
                 null,
-                null
+                null,
+                inputSummary,
+                outputSummary
         );
+    }
+
+    private String inputSummary(String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+        return summaryService.translationInput(
+                targetLanguage,
+                transcriptSegments.size(),
+                transcriptSegments.stream()
+                        .map(TranscriptSegmentVo::text)
+                        .mapToInt(this::length)
+                        .sum()
+        );
+    }
+
+    private String outputSummary(TranslationResultBo result) {
+        return summaryService.translationOutput(
+                result.segments().size(),
+                result.segments().stream()
+                        .map(TranslationSegmentBo::text)
+                        .mapToInt(this::length)
+                        .sum()
+        );
+    }
+
+    private int length(String value) {
+        return value == null ? 0 : value.length();
     }
 
     private String translateText(String targetLanguage, String sourceText) {

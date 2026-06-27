@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.bo.TtsRequestBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +28,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class OpenAiTtsProviderTests {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ModelCallSummaryService summaryService = new ModelCallSummaryServiceImpl();
 
     @Test
     void synthesizesMp3AudioWithSpeechApi() {
@@ -38,7 +40,8 @@ class OpenAiTtsProviderTests {
                 openAiProperties("test-openai-key", "gpt-4o-mini-tts", "alloy", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/speech"))
@@ -68,6 +71,9 @@ class OpenAiTtsProviderTests {
         assertThat(command.model()).isEqualTo("gpt-4o-mini-tts");
         assertThat(command.promptVersion()).isEqualTo("openai-tts-v1");
         assertThat(command.characterCount()).isEqualTo("LinguaFrame 向你问好。\n这个演示字幕是确定性的。".length());
+        assertThat(command.inputSummary()).isEqualTo("characters=30");
+        assertThat(command.outputSummary()).isEqualTo("audioBytes=4");
+        assertThat(command.inputSummary()).doesNotContain("LinguaFrame 向你问好。");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
         server.verify();
     }
@@ -80,7 +86,8 @@ class OpenAiTtsProviderTests {
                 openAiProperties("", "", "", "https://api.openai.test", 5),
                 restClientBuilder,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI TTS provider requires OPENAI_API_KEY, OPENAI_TTS_MODEL, and OPENAI_TTS_VOICE.");
@@ -96,7 +103,8 @@ class OpenAiTtsProviderTests {
                 openAiProperties("test-openai-key", "gpt-4o-mini-tts", "alloy", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/speech"))
@@ -113,6 +121,8 @@ class OpenAiTtsProviderTests {
         assertThat(auditService.failureCommands.getFirst().operation()).isEqualTo(ModelCallOperation.TTS);
         assertThat(auditService.failureCommands.getFirst().provider()).isEqualTo(ModelCallProvider.OPENAI);
         assertThat(auditService.failureCommands.getFirst().characterCount()).isEqualTo("LinguaFrame 向你问好。".length());
+        assertThat(auditService.failureCommands.getFirst().inputSummary()).isEqualTo("characters=17");
+        assertThat(auditService.failureCommands.getFirst().outputSummary()).isNull();
         assertThat(auditService.failureSummaries).containsExactly("OpenAI TTS request failed with status 401");
         server.verify();
     }
@@ -126,7 +136,8 @@ class OpenAiTtsProviderTests {
                 openAiProperties("test-openai-key", "gpt-4o-mini-tts", "alloy", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/speech"))

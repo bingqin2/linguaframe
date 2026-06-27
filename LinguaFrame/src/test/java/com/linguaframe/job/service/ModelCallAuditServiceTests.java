@@ -40,13 +40,19 @@ class ModelCallAuditServiceTests {
                 1000,
                 500,
                 null,
-                null
+                null,
+                "target=zh-CN, segments=3, sourceChars=42",
+                "segments=3, targetChars=50"
         ));
 
         assertThat(result.estimatedCostUsd()).isEqualByComparingTo("0.00045000");
+        assertThat(result.inputSummary()).isEqualTo("target=zh-CN, segments=3, sourceChars=42");
+        assertThat(result.outputSummary()).isEqualTo("segments=3, targetChars=50");
         assertThat(repository.records).hasSize(1);
         assertThat(repository.records.getFirst().status()).isEqualTo(ModelCallStatus.SUCCEEDED);
         assertThat(repository.records.getFirst().estimatedCostUsd()).isEqualByComparingTo("0.00045000");
+        assertThat(repository.records.getFirst().inputSummary()).isEqualTo("target=zh-CN, segments=3, sourceChars=42");
+        assertThat(repository.records.getFirst().outputSummary()).isEqualTo("segments=3, targetChars=50");
     }
 
     @Test
@@ -65,7 +71,9 @@ class ModelCallAuditServiceTests {
                 null,
                 null,
                 new BigDecimal("120.0"),
-                null
+                null,
+                "audioSeconds=120.000",
+                "segments=8, transcriptChars=320"
         ));
 
         assertThat(result.estimatedCostUsd()).isEqualByComparingTo("0.01200000");
@@ -87,7 +95,9 @@ class ModelCallAuditServiceTests {
                 null,
                 null,
                 null,
-                2000
+                2000,
+                "characters=2000",
+                "audioBytes=34567"
         ));
 
         assertThat(result.estimatedCostUsd()).isEqualByComparingTo("0.03000000");
@@ -109,7 +119,9 @@ class ModelCallAuditServiceTests {
                 900,
                 300,
                 null,
-                null
+                null,
+                "target=zh-CN, sourceSegments=8, targetSegments=8",
+                "score=88, verdict=Good"
         ));
 
         assertThat(result.estimatedCostUsd()).isEqualByComparingTo("0.00031500");
@@ -130,7 +142,9 @@ class ModelCallAuditServiceTests {
                 1000,
                 500,
                 null,
-                null
+                null,
+                "target=zh-CN, segments=3, sourceChars=42",
+                "segments=3, targetChars=50"
         ));
         service.recordFailure(new CreateModelCallRecordCommand(
                 "audit-job-summary",
@@ -143,7 +157,9 @@ class ModelCallAuditServiceTests {
                 null,
                 null,
                 null,
-                2000
+                2000,
+                "characters=2000",
+                null
         ), "OpenAI TTS request failed with status 401");
 
         var summary = service.summarizeJob("audit-job-summary");
@@ -174,11 +190,17 @@ class ModelCallAuditServiceTests {
                 1000,
                 500,
                 null,
-                null
+                null,
+                longSafeError,
+                longSafeError
         ), longSafeError);
 
         assertThat(result.status()).isEqualTo(ModelCallStatus.FAILED);
+        assertThat(result.inputSummary()).hasSize(512);
+        assertThat(result.outputSummary()).hasSize(512);
         assertThat(result.safeErrorSummary()).hasSize(512);
+        assertThat(repository.records.getFirst().inputSummary()).hasSize(512);
+        assertThat(repository.records.getFirst().outputSummary()).hasSize(512);
         assertThat(repository.records.getFirst().safeErrorSummary()).hasSize(512);
     }
 

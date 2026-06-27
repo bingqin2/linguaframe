@@ -14,6 +14,7 @@ import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.QualityEvaluationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
     private final PromptTemplateRegistry promptTemplateRegistry;
+    private final ModelCallSummaryService summaryService;
 
     @Autowired
     public OpenAiQualityEvaluationProvider(
@@ -50,14 +52,16 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
             ModelCallAuditService auditService,
-            PromptTemplateRegistry promptTemplateRegistry
+            PromptTemplateRegistry promptTemplateRegistry,
+            ModelCallSummaryService summaryService
     ) {
         this(
                 properties,
                 buildRestClient(properties.getEvaluation().getOpenai(), restClientBuilder),
                 objectMapper,
                 auditService,
-                promptTemplateRegistry
+                promptTemplateRegistry,
+                summaryService
         );
     }
 
@@ -66,12 +70,14 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
             RestClient restClient,
             ObjectMapper objectMapper,
             ModelCallAuditService auditService,
-            PromptTemplateRegistry promptTemplateRegistry
+            PromptTemplateRegistry promptTemplateRegistry,
+            ModelCallSummaryService summaryService
     ) {
         this.openai = properties.getEvaluation().getOpenai();
         this.objectMapper = objectMapper;
         this.auditService = auditService;
         this.promptTemplateRegistry = promptTemplateRegistry;
+        this.summaryService = summaryService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         this.restClient = restClient;
@@ -107,10 +113,16 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
             String responseBody = sendRequest(buildRequestBody(request));
             OpenAiQualityResponse response = extractResponse(responseBody);
             QualityEvaluationResultBo result = parseQualityResult(response.outputText());
-            auditService.recordSuccess(command(request.jobId(), elapsedMillis(started), response.inputTokens(), response.outputTokens()));
+            auditService.recordSuccess(command(
+                    request,
+                    elapsedMillis(started),
+                    response.inputTokens(),
+                    response.outputTokens(),
+                    result
+            ));
             return result;
         } catch (RuntimeException ex) {
-            auditService.recordFailure(command(request.jobId(), elapsedMillis(started), null, null), ex.getMessage());
+            auditService.recordFailure(command(request, elapsedMillis(started), null, null, null), ex.getMessage());
             throw ex;
         }
     }
@@ -281,13 +293,14 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
     }
 
     private CreateModelCallRecordCommand command(
-            String jobId,
+            QualityEvaluationRequestBo request,
             long latencyMs,
             Integer inputTokens,
-            Integer outputTokens
+            Integer outputTokens,
+            QualityEvaluationResultBo result
     ) {
         return new CreateModelCallRecordCommand(
-                jobId,
+                request.jobId(),
                 LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
                 ModelCallOperation.EVALUATION,
                 ModelCallProvider.OPENAI,
@@ -297,7 +310,9 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
                 inputTokens,
                 outputTokens,
                 null,
-                null
+                null,
+                summaryService.evaluationInput(request.language(), request.sourceSegments().size(), request.targetSegments().size()),
+                result == null ? null : summaryService.evaluationOutput(result.score(), result.verdict())
         );
     }
 

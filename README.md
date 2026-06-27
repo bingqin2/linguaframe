@@ -51,7 +51,7 @@ Planned AI infrastructure capabilities:
 
 - OpenAI client boundaries for speech, translation, quality evaluation, and TTS.
 - Read-only prompt template registry for reproducible translation and evaluation outputs.
-- Model-call audit records with model, prompt version, latency, usage, estimated cost, status, and safe error summaries.
+- Model-call audit records with model, prompt version, latency, usage, estimated cost, status, safe input/output summaries, and safe error summaries.
 - LLM-based subtitle translation quality evaluation.
 - Cost budgets before expensive stages.
 - Content-hash caching to avoid duplicate transcription or translation work.
@@ -319,7 +319,7 @@ LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
 
 When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
 
-`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
+`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, and safe error summaries. Model-call summaries are count-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
 
 `GET /api/jobs/{jobId}/artifacts` returns each artifact with `contentSha256`, a lowercase SHA-256 fingerprint of the stored bytes. The React demo shows the first 12 characters in the artifact table and keeps the full hash available on hover.
 

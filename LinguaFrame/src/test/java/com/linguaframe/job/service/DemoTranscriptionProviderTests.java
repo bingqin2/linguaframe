@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.service.impl.DemoTranscriptionProvider;
+import com.linguaframe.job.service.impl.ModelCallSummaryServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -11,7 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DemoTranscriptionProviderTests {
 
     private final RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
-    private final DemoTranscriptionProvider provider = new DemoTranscriptionProvider(auditService);
+    private final DemoTranscriptionProvider provider = new DemoTranscriptionProvider(
+            auditService,
+            new ModelCallSummaryServiceImpl()
+    );
 
     @Test
     void recordsSuccessfulDemoTranscriptionAudit() {
@@ -32,6 +36,9 @@ class DemoTranscriptionProviderTests {
         assertThat(command.model()).isEqualTo("demo-transcription");
         assertThat(command.promptVersion()).isEqualTo("demo-transcription-v1");
         assertThat(command.audioSeconds()).isEqualByComparingTo("3.600");
+        assertThat(command.inputSummary()).isEqualTo("audioSeconds=3.600");
+        assertThat(command.outputSummary()).isEqualTo("segments=2, transcriptChars=61");
+        assertThat(command.outputSummary()).doesNotContain("Hello from LinguaFrame.");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
     }
 }

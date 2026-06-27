@@ -22,6 +22,8 @@ public record ModelCallVo(
         Integer outputTokens,
         BigDecimal audioSeconds,
         Integer characterCount,
+        String inputSummary,
+        String outputSummary,
         BigDecimal estimatedCostUsd,
         String safeErrorSummary,
         Instant createdAt

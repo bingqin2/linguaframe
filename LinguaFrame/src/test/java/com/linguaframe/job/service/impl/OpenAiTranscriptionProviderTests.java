@@ -5,6 +5,7 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
@@ -28,6 +29,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class OpenAiTranscriptionProviderTests {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ModelCallSummaryService summaryService = new ModelCallSummaryServiceImpl();
 
     @Test
     void transcribesVerboseJsonSegments() {
@@ -39,7 +41,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))
@@ -82,6 +85,9 @@ class OpenAiTranscriptionProviderTests {
         assertThat(command.model()).isEqualTo("whisper-1");
         assertThat(command.promptVersion()).isEqualTo("openai-audio-transcriptions-v1");
         assertThat(command.audioSeconds()).isEqualByComparingTo("3.600");
+        assertThat(command.inputSummary()).isEqualTo("audioSeconds=3.600");
+        assertThat(command.outputSummary()).isEqualTo("segments=2, transcriptChars=49");
+        assertThat(command.outputSummary()).doesNotContain("Hello from LinguaFrame.");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
         server.verify();
     }
@@ -94,7 +100,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("", "", "https://api.openai.test", 5),
                 restClientBuilder,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI transcription provider requires OPENAI_API_KEY and OPENAI_TRANSCRIPTION_MODEL.");
@@ -110,7 +117,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                auditService
+                auditService,
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))
@@ -126,6 +134,8 @@ class OpenAiTranscriptionProviderTests {
         assertThat(auditService.failureCommands.getFirst().jobId()).isEqualTo("transcription-job-2");
         assertThat(auditService.failureCommands.getFirst().provider()).isEqualTo(ModelCallProvider.OPENAI);
         assertThat(auditService.failureCommands.getFirst().model()).isEqualTo("whisper-1");
+        assertThat(auditService.failureCommands.getFirst().inputSummary()).isNull();
+        assertThat(auditService.failureCommands.getFirst().outputSummary()).isNull();
         assertThat(auditService.failureSummaries).containsExactly("OpenAI transcription request failed with status 401");
         server.verify();
     }
@@ -139,7 +149,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))
@@ -160,7 +171,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))
@@ -181,7 +193,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))
@@ -207,7 +220,8 @@ class OpenAiTranscriptionProviderTests {
                 openAiProperties("test-openai-key", "whisper-1", "https://api.openai.test", 5),
                 restClient,
                 objectMapper,
-                new RecordingModelCallAuditService()
+                new RecordingModelCallAuditService(),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/audio/transcriptions"))

@@ -275,6 +275,8 @@ class LocalizationJobRepositoryTests {
                 500,
                 null,
                 null,
+                null,
+                null,
                 estimatedCostUsd,
                 null,
                 createdAt

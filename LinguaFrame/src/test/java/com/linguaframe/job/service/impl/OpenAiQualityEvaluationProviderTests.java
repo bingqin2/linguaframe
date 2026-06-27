@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
 import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.RecordingModelCallAuditService;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 class OpenAiQualityEvaluationProviderTests {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ModelCallSummaryService summaryService = new ModelCallSummaryServiceImpl();
 
     @Test
     void evaluatesQualityWithResponsesApi() {
@@ -47,7 +49,8 @@ class OpenAiQualityEvaluationProviderTests {
                 restClient,
                 objectMapper,
                 auditService,
-                testRegistry("test-evaluation-template-v7", "Test evaluation prompt.")
+                testRegistry("test-evaluation-template-v7", "Test evaluation prompt."),
+                summaryService
         );
 
         server.expect(requestTo("https://api.openai.test/v1/responses"))
@@ -85,6 +88,9 @@ class OpenAiQualityEvaluationProviderTests {
         assertThat(command.promptVersion()).isEqualTo("test-evaluation-template-v7");
         assertThat(command.inputTokens()).isEqualTo(900);
         assertThat(command.outputTokens()).isEqualTo(300);
+        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, sourceSegments=1, targetSegments=1");
+        assertThat(command.outputSummary()).isEqualTo("score=92, verdict=GOOD");
+        assertThat(command.inputSummary()).doesNotContain("Hello from LinguaFrame.");
         server.verify();
     }
 
@@ -97,7 +103,8 @@ class OpenAiQualityEvaluationProviderTests {
                 restClientBuilder,
                 objectMapper,
                 new RecordingModelCallAuditService(),
-                defaultRegistry()
+                defaultRegistry(),
+                summaryService
         ))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI quality evaluation provider requires OPENAI_API_KEY and OPENAI_EVALUATION_MODEL.");
@@ -114,7 +121,8 @@ class OpenAiQualityEvaluationProviderTests {
                 restClient,
                 objectMapper,
                 auditService,
-                defaultRegistry()
+                defaultRegistry(),
+                summaryService
         );
         server.expect(requestTo("https://api.openai.test/v1/responses"))
                 .andExpect(method(HttpMethod.POST))
@@ -127,6 +135,8 @@ class OpenAiQualityEvaluationProviderTests {
                 .hasMessage("OpenAI quality evaluation request failed with status 401");
         assertThat(auditService.failureCommands).hasSize(1);
         assertThat(auditService.failureCommands.getFirst().operation()).isEqualTo(ModelCallOperation.EVALUATION);
+        assertThat(auditService.failureCommands.getFirst().inputSummary()).isEqualTo("target=zh-CN, sourceSegments=1, targetSegments=1");
+        assertThat(auditService.failureCommands.getFirst().outputSummary()).isNull();
         assertThat(auditService.failureSummaries).containsExactly("OpenAI quality evaluation request failed with status 401");
         server.verify();
     }

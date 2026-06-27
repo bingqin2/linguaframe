@@ -193,3 +193,11 @@ Decision: Add translation provider caching before broader provider response cach
 Reason: Subtitle translation has a stable text input, target language, provider, model, and prompt version boundary, so it can safely skip duplicate provider calls without handling binary audio, generated media bytes, or evaluation-specific semantics. This directly builds on the prompt-template registry and artifact cache while keeping the slice testable.
 
 Impact: Repeat compatible translation inputs now reuse stored translated subtitle segments, create fresh subtitle artifacts for the current job, and expose provider cache hits in job timeline, job cache summary, and the React demo. Transcription, TTS, quality evaluation, and generic prompt-response caches remain future work.
+
+## 2026-06-27
+
+Decision: Add count-only safe input and output summaries to model-call audit records.
+
+Reason: Job detail should explain what each provider call processed without persisting raw transcript text, translated subtitle text, TTS text, OpenAI payloads, secrets, media bytes, or local media paths. Counts and short verdict metadata are enough for demo observability while preserving the existing privacy boundary.
+
+Impact: Transcription, translation, quality evaluation, and TTS model calls now expose `inputSummary` and `outputSummary` in backend job detail and the React model-call panel. Summaries are nullable for older records and capped at 512 characters before persistence.

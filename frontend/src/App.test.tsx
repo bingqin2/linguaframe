@@ -257,6 +257,8 @@ describe('App', () => {
             outputTokens: 500,
             audioSeconds: null,
             characterCount: null,
+            inputSummary: 'target=zh-CN, segments=2, sourceChars=61',
+            outputSummary: 'segments=2, targetChars=29',
             estimatedCostUsd: 0.00045,
             safeErrorSummary: null,
             createdAt: '2026-06-26T10:00:02Z'
@@ -300,6 +302,9 @@ describe('App', () => {
     expect(within(usageSummary).getByText('Cache hits')).toBeInTheDocument();
     expect(within(usageSummary).getByText('1 artifacts / 1 provider')).toBeInTheDocument();
     expect(within(modelCalls).getByText('TRANSLATION')).toBeInTheDocument();
+    expect(within(modelCalls).getByText('target=zh-CN, segments=2, sourceChars=61')).toBeInTheDocument();
+    expect(within(modelCalls).getByText('segments=2, targetChars=29')).toBeInTheDocument();
+    expect(within(modelCalls).queryByText('Hello from LinguaFrame.')).not.toBeInTheDocument();
     const qualityEvaluation = screen.getByRole('region', { name: /quality evaluation/i });
     expect(within(qualityEvaluation).getByText('92 / 100')).toBeInTheDocument();
     expect(within(qualityEvaluation).getByText('GOOD')).toBeInTheDocument();

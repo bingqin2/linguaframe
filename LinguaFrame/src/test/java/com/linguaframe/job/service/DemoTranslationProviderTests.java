@@ -5,6 +5,7 @@ import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.impl.DemoTranslationProvider;
+import com.linguaframe.job.service.impl.ModelCallSummaryServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,7 +15,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DemoTranslationProviderTests {
 
     private final RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
-    private final DemoTranslationProvider provider = new DemoTranslationProvider(auditService);
+    private final DemoTranslationProvider provider = new DemoTranslationProvider(
+            auditService,
+            new ModelCallSummaryServiceImpl()
+    );
 
     @Test
     void demoProviderReturnsDeterministicChineseTextAndPreservesTiming() {
@@ -37,6 +41,10 @@ class DemoTranslationProviderTests {
         assertThat(command.provider()).isEqualTo(ModelCallProvider.DEMO);
         assertThat(command.model()).isEqualTo("demo-translation");
         assertThat(command.promptVersion()).isEqualTo("demo-translation-v1");
+        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, segments=2, sourceChars=61");
+        assertThat(command.outputSummary()).isEqualTo("segments=2, targetChars=29");
+        assertThat(command.inputSummary()).doesNotContain("Hello from LinguaFrame.");
+        assertThat(command.outputSummary()).doesNotContain("LinguaFrame 向你问好。");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
     }
 
