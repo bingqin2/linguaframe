@@ -44,7 +44,7 @@ Open Swagger UI when you need to inspect the backend API contract used by the de
 http://localhost:8080/swagger-ui/index.html
 ```
 
-The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the upload, job, progress event, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime, prompt-template, operator, and retention cleanup APIs. When `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key value; Swagger and `/v3/api-docs` stay public, while `/api/**` calls require `X-LinguaFrame-Demo-Token`.
+The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the upload, job, progress event, retry/cancel, artifact, diagnostics, transcript, subtitle, demo-session, runtime, prompt-template, operator, and retention cleanup APIs. When `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, use the React header `Owner access token` form to start a browser owner session. For Swagger and curl, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key value; Swagger and `/v3/api-docs` stay public, while `/api/**` calls require the owner-session cookie or `X-LinguaFrame-Demo-Token`.
 
 The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
@@ -73,7 +73,7 @@ Run this before the short or full demo scripts:
 scripts/demo/private-demo-preflight.sh
 ```
 
-The preflight does not upload media and does not call OpenAI unless `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg checks, OpenAI connectivity status (`SKIPPED` by default), frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+The preflight does not upload media and does not call OpenAI unless `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg checks, OpenAI connectivity status (`SKIPPED` by default), frontend reachability, owner-session status/login/logout, optional demo-token header behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
 
 If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, start the frontend locally while keeping the backend stack in Docker:
 

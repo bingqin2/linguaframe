@@ -16,6 +16,7 @@ public class DemoAccessWebMvcConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(demoAccessInterceptor)
-                .addPathPatterns("/api/**");
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/api/demo-session", "/api/demo-session/**");
     }
 }

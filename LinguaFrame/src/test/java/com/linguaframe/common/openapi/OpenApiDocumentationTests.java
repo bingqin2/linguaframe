@@ -66,6 +66,7 @@ class OpenApiDocumentationTests {
                         "Media Uploads",
                         "Localization Jobs",
                         "Runtime Dependencies",
+                        "Demo Session",
                         "Prompt Templates",
                         "Operator Dashboard",
                         "Retention Cleanup"
@@ -94,6 +95,9 @@ class OpenApiDocumentationTests {
                         "/api/jobs/{jobId}/subtitles/{language}",
                         "/api/jobs/{jobId}/artifacts/{artifactId}/download",
                         "/api/jobs/{jobId}/artifacts/archive/download",
+                        "/api/demo-session",
+                        "/api/demo-session/login",
+                        "/api/demo-session/logout",
                         "/api/runtime/dependencies",
                         "/api/runtime/live-checks",
                         "/api/prompt-templates",

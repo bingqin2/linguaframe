@@ -68,6 +68,7 @@ Stage 2 goals:
 - Use a real HTTPS URL.
 - Use a private-demo reverse proxy that exposes only the public web entry point while keeping app and dependency ports internal.
 - Support controlled uploads from the project owner.
+- Let the owner start and end a browser session with the configured private demo token, while keeping Swagger, curl, and scripts compatible with the demo access header.
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Keep file size and duration limits conservative.

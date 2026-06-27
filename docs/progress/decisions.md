@@ -385,3 +385,11 @@ Decision: Generate demo evidence bundles on demand as metadata-only ZIP archives
 Reason: A private demo needs a single shareable proof package, but the existing artifact archive is for generated media deliverables and should not mix in audit files. The evidence bundle should be reproducible from backend-safe state and script-verifiable without reading object storage bytes.
 
 Impact: `GET /api/jobs/{jobId}/evidence/bundle/download` returns a ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. It is not persisted as an artifact and excludes generated media bytes, uploaded media bytes, raw transcript text, raw subtitle text, object keys, local paths, tokens, credentials, and provider payloads.
+
+## 2026-06-28
+
+Decision: Add a private demo owner-session API before building public authentication.
+
+Reason: The browser demo needs a clear login/logout affordance for the project owner, but LinguaFrame still has no user model, owner-scoped media, account lifecycle, JWT refresh, or billing semantics. Reusing the configured demo access token keeps the private demo honest without pretending to be a public hosted service.
+
+Impact: `/api/demo-session` exposes sanitized gate state, `/api/demo-session/login` sets the same-site `LinguaFrame-Demo-Token` cookie after validating the configured token, and `/api/demo-session/logout` clears it. Other `/api/**` routes remain protected when the demo gate is enabled, while Swagger, curl, and scripts can keep using `X-LinguaFrame-Demo-Token`.

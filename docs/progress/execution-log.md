@@ -202,6 +202,28 @@ Post-merge verification:
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
 
+## 2026-06-28
+
+Work:
+
+- Planned the private demo owner-session MVP in `docs/plans/070-private-demo-owner-session-mvp.md`.
+- Added `/api/demo-session`, `/api/demo-session/login`, and `/api/demo-session/logout` for sanitized private demo session status, owner-session cookie creation, and logout.
+- Kept `/api/demo-session/**` reachable when the demo gate is enabled while preserving the existing `/api/**` token gate for protected API calls.
+- Updated the React header from raw token save/clear controls to owner-session status, login, and logout controls.
+- Preserved `X-LinguaFrame-Demo-Token` compatibility for Swagger, curl, scripts, and stored browser fallback tokens.
+- Extended private-demo preflight to verify demo-session status plus login/logout when a token is configured.
+- Documented owner-session usage, header fallback, and private-demo authentication boundaries in README, Docker E2E docs, smoke checklist, roadmap, target state, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSessionControllerTests test` first failed because `/api/demo-session` did not exist and gated requests were intercepted, then passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionControllerTests,DemoAccessInterceptorTests,OpenApiDocumentationTests test` passed with `Tests run: 16, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` first failed because session API functions did not exist, then passed with `Tests 74 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
 ## 2026-06-27
 
 Work:
