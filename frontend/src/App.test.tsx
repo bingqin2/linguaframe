@@ -75,6 +75,8 @@ describe('App', () => {
 
     const readiness = await screen.findByRole('region', { name: /demo readiness/i });
     expect(within(readiness).getByText('Protected')).toBeInTheDocument();
+    expect(within(readiness).getByText('0.0.1-SNAPSHOT')).toBeInTheDocument();
+    expect(within(readiness).getByText('V17')).toBeInTheDocument();
     expect(within(readiness).getByText('300 seconds')).toBeInTheDocument();
     expect(within(readiness).getByText('COMBINED')).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg audio')).toBeInTheDocument();
@@ -884,6 +886,17 @@ function runtimeDependenciesFixture(
   overrides: Partial<RuntimeDependencySummary> = {}
 ): RuntimeDependencySummary {
   return {
+    runtime: {
+      appVersion: '0.0.1-SNAPSHOT',
+      latestMigrationVersion: 17,
+      requiredRoutes: [
+        '/api/runtime/dependencies',
+        '/api/media/uploads',
+        '/api/jobs/{jobId}',
+        '/api/jobs/{jobId}/diagnostics/download',
+        '/api/jobs/{jobId}/artifacts/archive/download'
+      ]
+    },
     database: { type: 'mysql', host: 'localhost', port: 3306 },
     redis: { type: 'redis', host: 'localhost', port: 6379 },
     rabbitmq: { type: 'rabbitmq', host: 'localhost', port: 5672 },

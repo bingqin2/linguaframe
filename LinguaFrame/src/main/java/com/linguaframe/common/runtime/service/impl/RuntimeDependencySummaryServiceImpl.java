@@ -7,27 +7,51 @@ import com.linguaframe.common.runtime.domain.vo.FfmpegReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.MediaReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.NetworkDependencyVo;
 import com.linguaframe.common.runtime.domain.vo.ProviderReadinessVo;
+import com.linguaframe.common.runtime.domain.vo.RuntimeContractVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeDependencySummaryVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeFeatureFlagVo;
 import com.linguaframe.common.runtime.domain.vo.StorageDependencyVo;
 import com.linguaframe.common.runtime.domain.vo.WorkerReadinessVo;
 import com.linguaframe.common.runtime.service.RuntimeDependencySummaryService;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySummaryService {
 
-    private final LinguaFrameProperties properties;
+    private static final Pattern MIGRATION_VERSION_PATTERN = Pattern.compile("V(\\d+)__.+\\.sql");
+    private static final List<String> REQUIRED_ROUTES = List.of(
+            "/api/runtime/dependencies",
+            "/api/media/uploads",
+            "/api/jobs/{jobId}",
+            "/api/jobs/{jobId}/diagnostics/download",
+            "/api/jobs/{jobId}/artifacts/archive/download"
+    );
 
-    public RuntimeDependencySummaryServiceImpl(LinguaFrameProperties properties) {
+    private final LinguaFrameProperties properties;
+    private final Optional<BuildProperties> buildProperties;
+
+    public RuntimeDependencySummaryServiceImpl(
+            LinguaFrameProperties properties,
+            Optional<BuildProperties> buildProperties
+    ) {
         this.properties = properties;
+        this.buildProperties = buildProperties;
     }
 
     @Override
     public RuntimeDependencySummaryVo getSummary() {
         return new RuntimeDependencySummaryVo(
+                runtime(),
                 new NetworkDependencyVo(
                         "mysql",
                         properties.getDatabase().getHost(),
@@ -50,6 +74,35 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                 ),
                 readiness()
         );
+    }
+
+    private RuntimeContractVo runtime() {
+        return new RuntimeContractVo(
+                buildProperties.map(BuildProperties::getVersion).orElse("0.0.1-SNAPSHOT"),
+                latestMigrationVersion(),
+                REQUIRED_ROUTES
+        );
+    }
+
+    private int latestMigrationVersion() {
+        PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+        try {
+            int latest = 0;
+            Resource[] resources = resolver.getResources("classpath*:db/migration/V*__*.sql");
+            for (Resource resource : resources) {
+                String filename = resource.getFilename();
+                if (filename == null) {
+                    continue;
+                }
+                Matcher matcher = MIGRATION_VERSION_PATTERN.matcher(filename);
+                if (matcher.matches()) {
+                    latest = Math.max(latest, Integer.parseInt(matcher.group(1)));
+                }
+            }
+            return latest;
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to inspect bundled Flyway migrations", ex);
+        }
     }
 
     private DemoReadinessVo readiness() {

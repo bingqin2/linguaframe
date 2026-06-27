@@ -60,6 +60,7 @@ Self-hosted usage requires:
 - Frontend startup instructions.
 - A private-demo preflight command that verifies local readiness before media upload or paid provider-backed runs.
 - A browser-visible, read-only readiness panel that summarizes safe runtime configuration before upload.
+- A safe runtime freshness contract that reports app version, latest bundled migration version, and required demo routes without exposing secrets or Git metadata.
 - FFmpeg availability inside the backend or worker container.
 - A small sample video for smoke testing.
 

@@ -282,6 +282,7 @@ describe('linguaframeApi', () => {
 
     const dependencies = await getRuntimeDependencies();
 
+    expect(dependencies.runtime.latestMigrationVersion).toBe(17);
     expect(dependencies.readiness.worker.role).toBe('COMBINED');
     expect(dependencies.readiness.providers.translation.provider).toBe('demo');
     expect(fetchMock).toHaveBeenCalledWith('/api/runtime/dependencies', {
@@ -548,6 +549,17 @@ function operatorDashboardFixture() {
 
 function runtimeDependenciesFixture() {
   return {
+    runtime: {
+      appVersion: '0.0.1-SNAPSHOT',
+      latestMigrationVersion: 17,
+      requiredRoutes: [
+        '/api/runtime/dependencies',
+        '/api/media/uploads',
+        '/api/jobs/{jobId}',
+        '/api/jobs/{jobId}/diagnostics/download',
+        '/api/jobs/{jobId}/artifacts/archive/download'
+      ]
+    },
     database: { type: 'mysql', host: 'localhost', port: 3306 },
     redis: { type: 'redis', host: 'localhost', port: 6379 },
     rabbitmq: { type: 'rabbitmq', host: 'localhost', port: 5672 },

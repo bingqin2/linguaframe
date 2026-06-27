@@ -41,6 +41,19 @@ class RuntimeDependencyControllerTests {
         assertThat(storage.get("endpoint")).isEqualTo("http://localhost:9000");
         assertThat(storage.get("bucket")).isEqualTo("linguaframe-artifacts");
 
+        assertThat(body.get("runtime")).isInstanceOf(Map.class);
+        Map<?, ?> runtime = (Map<?, ?>) body.get("runtime");
+        assertThat(runtime.get("appVersion")).isEqualTo("0.0.1-SNAPSHOT");
+        assertThat(runtime.get("latestMigrationVersion")).isEqualTo(17);
+        assertThat((Iterable<String>) runtime.get("requiredRoutes"))
+                .contains(
+                        "/api/runtime/dependencies",
+                        "/api/media/uploads",
+                        "/api/jobs/{jobId}",
+                        "/api/jobs/{jobId}/diagnostics/download",
+                        "/api/jobs/{jobId}/artifacts/archive/download"
+                );
+
         assertThat(body.get("readiness")).isInstanceOf(Map.class);
         Map<?, ?> readiness = (Map<?, ?>) body.get("readiness");
         assertThat(readiness.get("demoAccessGate")).isEqualTo(false);

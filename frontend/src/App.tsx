@@ -692,6 +692,7 @@ function DemoReadinessPanel({
   onRefresh: () => void;
 }) {
   const readiness = dependencies?.readiness ?? null;
+  const runtime = dependencies?.runtime ?? null;
   const providerEntries = readiness
     ? (['transcription', 'translation', 'tts', 'evaluation'] as const).map((name) => [
         name,
@@ -713,6 +714,14 @@ function DemoReadinessPanel({
       {readiness ? (
         <>
           <dl className="status-grid readiness-grid">
+            <div>
+              <dt>App version</dt>
+              <dd>{runtime?.appVersion ?? 'Unknown'}</dd>
+            </div>
+            <div>
+              <dt>Migration contract</dt>
+              <dd>{runtime ? `V${runtime.latestMigrationVersion}` : 'Unknown'}</dd>
+            </div>
             <div>
               <dt>Access</dt>
               <dd>{readiness.demoAccessGate ? 'Protected' : 'Open'}</dd>

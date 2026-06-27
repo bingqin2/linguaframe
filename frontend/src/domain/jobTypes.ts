@@ -199,11 +199,18 @@ export interface RetentionCleanupResult {
 }
 
 export interface RuntimeDependencySummary {
+  runtime: RuntimeContract;
   database: NetworkDependency;
   redis: NetworkDependency;
   rabbitmq: NetworkDependency;
   storage: StorageDependency;
   readiness: DemoReadiness;
+}
+
+export interface RuntimeContract {
+  appVersion: string;
+  latestMigrationVersion: number;
+  requiredRoutes: string[];
 }
 
 export interface NetworkDependency {
