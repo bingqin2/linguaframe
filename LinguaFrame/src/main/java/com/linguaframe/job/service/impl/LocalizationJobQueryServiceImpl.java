@@ -20,6 +20,7 @@ import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
+import com.linguaframe.job.service.FailureTriageService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -40,6 +41,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final ModelCallAuditService modelCallAuditService;
     private final QualityEvaluationService qualityEvaluationService;
     private final LocalizationJobStatusCacheService jobStatusCacheService;
+    private final FailureTriageService failureTriageService;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
@@ -48,7 +50,8 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
             JobTimelineEventRepository timelineEventRepository,
             ModelCallAuditService modelCallAuditService,
             QualityEvaluationService qualityEvaluationService,
-            LocalizationJobStatusCacheService jobStatusCacheService
+            LocalizationJobStatusCacheService jobStatusCacheService,
+            FailureTriageService failureTriageService
     ) {
         this.jobRepository = jobRepository;
         this.artifactRepository = artifactRepository;
@@ -57,6 +60,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         this.modelCallAuditService = modelCallAuditService;
         this.qualityEvaluationService = qualityEvaluationService;
         this.jobStatusCacheService = jobStatusCacheService;
+        this.failureTriageService = failureTriageService;
     }
 
     @Override
@@ -83,6 +87,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         JobDispatchEventRecord dispatchEvent = dispatchEventRepository.findLatestByJobId(jobId).orElse(null);
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
         List<JobTimelineEventRecord> timelineEvents = timelineEventRepository.findByJobId(jobId);
+        var modelCalls = modelCallAuditService.listModelCalls(jobId);
         LocalizationJobVo job = new LocalizationJobVo(
                 record.id(),
                 record.videoId(),
@@ -104,8 +109,9 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                         .toList(),
                 modelCallAuditService.summarizeJob(jobId),
                 cacheSummary(artifacts, timelineEvents),
-                modelCallAuditService.listModelCalls(jobId),
-                qualityEvaluationService.latestForJob(jobId).orElse(null)
+                modelCalls,
+                qualityEvaluationService.latestForJob(jobId).orElse(null),
+                failureTriageService.triage(record, timelineEvents, modelCalls)
         );
         cacheJob(job);
         return job;

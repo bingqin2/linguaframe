@@ -46,11 +46,13 @@ http://localhost:8080/swagger-ui/index.html
 
 The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the upload, job, progress event, retry/cancel, artifact, diagnostics, transcript, subtitle, demo-session, runtime, prompt-template, operator, and retention cleanup APIs. When `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, use the React header `Owner access token` form to start a browser owner session. For Swagger and curl, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key value; Swagger and `/v3/api-docs` stay public, while `/api/**` calls require the owner-session cookie or `X-LinguaFrame-Demo-Token`.
 
-The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
+The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, failure triage, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
 Before uploading, check the browser `Demo runbook`, `Live checks`, and upload form `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The live-check panel should show database, Redis, RabbitMQ, MinIO, and FFmpeg as `UP`, `DOWN`, or `SKIPPED`. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
+
+For failed jobs, check the `Failure triage` panel before retrying. It should show a safe category such as `OPENAI_AUTH_OR_MODEL`, `OPENAI_TIMEOUT_OR_NETWORK`, `BUDGET_GUARD`, `MEDIA_PROCESSING`, `STORAGE_OR_ARTIFACT`, `WORKER_OR_QUEUE`, `CONFIGURATION`, `USER_CANCELLED`, or `UNKNOWN`, plus retryability, a recommended action, and an optional static runbook command. The same triage appears in diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal script summaries.
 
 Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a browser-generated Markdown summary for notes or interview walkthroughs, `Download evidence JSON` writes a local metadata file, `Download backend evidence` downloads the API-generated Markdown report, and `Download evidence bundle` downloads a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. The evidence should include job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, media bytes, or generated artifact bytes.
 
@@ -217,7 +219,7 @@ docker compose --env-file .env up -d --force-recreate linguaframe-backend
 scripts/demo/docker-e2e-daily-budget-guard.sh
 ```
 
-The script uploads one sample job to create same-day estimated spend, uploads a second compatible job, waits for `FAILED`, checks that `failureReason` contains `Daily cost budget exceeded`, and downloads safe evidence to:
+The script uploads one sample job to create same-day estimated spend, uploads a second compatible job, waits for `FAILED`, checks that `failureReason` contains `Daily cost budget exceeded`, checks `failureTriage.category=BUDGET_GUARD`, and downloads safe evidence to:
 
 ```text
 /tmp/linguaframe-demo/daily-budget-guard/first-job.json

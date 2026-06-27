@@ -223,7 +223,7 @@ Build:
 - Estimated cost configuration.
 - Basic model-call audit records.
 - Job timeline events.
-- Failed-stage retry behavior. Status: implemented with bounded retry count, structured conflict responses, and visible retry evidence in job detail.
+- Failed-stage retry behavior. Status: implemented with bounded retry count, structured conflict responses, visible retry evidence in job detail, and advisory failure triage for OpenAI, budget, media, storage, worker/queue, configuration, cancellation, and unknown failures.
 - Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - Structured logs with job id. Status: implemented with worker MDC fields for job id, video id, stage, and worker role.
@@ -265,7 +265,7 @@ Build:
 - Video preview.
 - Artifact downloads.
 - One-click result bundle download. Status: implemented as an on-demand ZIP archive for generated job artifacts.
-- One-click diagnostics report download. Status: implemented as metadata-only JSON for safe job debugging evidence.
+- One-click diagnostics report download. Status: implemented as metadata-only JSON for safe job debugging evidence, including advisory failure triage when a job fails.
 - One-click backend evidence Markdown download. Status: implemented as an on-demand sanitized Markdown report for readable demo evidence.
 - One-click demo evidence bundle download. Status: implemented as an on-demand metadata-only ZIP with manifest, Markdown evidence, and diagnostics JSON.
 - Browser cache replay evidence. Status: implemented as a read-only selected-job comparison panel that shows provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe replay evidence exports.

@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
+import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import org.springframework.stereotype.Service;
@@ -49,6 +50,16 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         if (job.failureStage() != null || hasText(job.failureReason())) {
             lines.add("- Failure: " + valueOrDefault(job.failureStage(), "Unknown")
                     + " / " + valueOrDefault(job.failureReason(), "No reason"));
+        }
+        FailureTriageVo triage = job.failureTriage();
+        if (triage != null) {
+            lines.add("- Failure triage: " + triage.category()
+                    + ", retryable=" + triage.retryable()
+                    + ", " + triage.summary()
+                    + " Action: " + triage.recommendedAction());
+            if (hasText(triage.runbookCommand())) {
+                lines.add("- Failure runbook: " + triage.runbookCommand());
+            }
         }
 
         QualityEvaluationVo quality = job.qualityEvaluation();
