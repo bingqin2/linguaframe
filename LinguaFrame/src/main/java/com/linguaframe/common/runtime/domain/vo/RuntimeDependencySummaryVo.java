@@ -4,6 +4,7 @@ public record RuntimeDependencySummaryVo(
         NetworkDependencyVo database,
         NetworkDependencyVo redis,
         NetworkDependencyVo rabbitmq,
-        StorageDependencyVo storage
+        StorageDependencyVo storage,
+        DemoReadinessVo readiness
 ) {
 }

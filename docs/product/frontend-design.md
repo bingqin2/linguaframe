@@ -98,6 +98,15 @@ Responsibilities:
 - Let the viewer open a failed job from the dashboard without terminal access.
 - Keep dashboard failures local so upload, history, and job detail remain usable.
 
+### Demo Readiness
+
+Responsibilities:
+
+- Show a read-only summary of private-demo configuration before upload.
+- Display demo access state, media duration limit, worker mode, FFmpeg audio and burn-in readiness, provider modes, and feature flags.
+- Keep readiness API failures local to the panel so upload, history, and job detail remain usable.
+- Treat the panel as configuration visibility only; it should not execute dependency probes, FFmpeg, uploads, or provider calls.
+
 ## First Demo UX
 
 The first demo should be simple:

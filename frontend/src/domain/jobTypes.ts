@@ -188,6 +188,72 @@ export interface OperatorCacheSummary {
   providerCacheHitCount: number;
 }
 
+export interface RuntimeDependencySummary {
+  database: NetworkDependency;
+  redis: NetworkDependency;
+  rabbitmq: NetworkDependency;
+  storage: StorageDependency;
+  readiness: DemoReadiness;
+}
+
+export interface NetworkDependency {
+  type: string;
+  host: string;
+  port: number;
+}
+
+export interface StorageDependency {
+  type: string;
+  endpoint: string;
+  bucket: string;
+}
+
+export interface DemoReadiness {
+  demoAccessGate: boolean;
+  worker: WorkerReadiness;
+  media: MediaReadiness;
+  ffmpeg: FfmpegReadiness;
+  providers: Record<'transcription' | 'translation' | 'tts' | 'evaluation', ProviderReadiness>;
+  features: Record<
+    'jobStatusCache' | 'uploadRateLimit' | 'retentionCleanup' | 'costTracking' | 'budgetGuard',
+    RuntimeFeatureFlag
+  >;
+}
+
+export interface WorkerReadiness {
+  dispatchEnabled: boolean;
+  executionEnabled: boolean;
+  role: 'COMBINED' | 'FFMPEG' | 'OPENAI';
+  maxRetries: number;
+  dispatchBatchSize: number;
+  dispatchIntervalMs: number;
+}
+
+export interface MediaReadiness {
+  maxFileSizeMb: number;
+  maxDurationSeconds: number;
+}
+
+export interface FfmpegReadiness {
+  audioEnabled: boolean;
+  burnInEnabled: boolean;
+  binaryConfigured: boolean;
+  workspaceConfigured: boolean;
+  audioTimeoutSeconds: number;
+  burnInTimeoutSeconds: number;
+}
+
+export interface ProviderReadiness {
+  enabled: boolean;
+  provider: string;
+  model: string;
+  credentialsConfigured: boolean;
+}
+
+export interface RuntimeFeatureFlag {
+  enabled: boolean;
+}
+
 export interface JobArtifact {
   artifactId: string;
   jobId: string;

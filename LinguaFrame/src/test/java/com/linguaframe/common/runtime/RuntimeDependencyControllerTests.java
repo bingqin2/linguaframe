@@ -40,6 +40,48 @@ class RuntimeDependencyControllerTests {
         assertThat(storage.get("type")).isEqualTo("minio");
         assertThat(storage.get("endpoint")).isEqualTo("http://localhost:9000");
         assertThat(storage.get("bucket")).isEqualTo("linguaframe-artifacts");
+
+        assertThat(body.get("readiness")).isInstanceOf(Map.class);
+        Map<?, ?> readiness = (Map<?, ?>) body.get("readiness");
+        assertThat(readiness.get("demoAccessGate")).isEqualTo(false);
+
+        assertThat(readiness.get("worker")).isInstanceOf(Map.class);
+        Map<?, ?> worker = (Map<?, ?>) readiness.get("worker");
+        assertThat(worker.get("dispatchEnabled")).isEqualTo(false);
+        assertThat(worker.get("executionEnabled")).isEqualTo(false);
+        assertThat(worker.get("role")).isEqualTo("COMBINED");
+        assertThat(worker.get("maxRetries")).isEqualTo(2);
+        assertThat(worker.get("dispatchBatchSize")).isEqualTo(10);
+        assertThat(worker.get("dispatchIntervalMs")).isEqualTo(5000);
+
+        assertThat(readiness.get("media")).isInstanceOf(Map.class);
+        Map<?, ?> media = (Map<?, ?>) readiness.get("media");
+        assertThat(media.get("maxFileSizeMb")).isEqualTo(100);
+        assertThat(media.get("maxDurationSeconds")).isEqualTo(300);
+
+        assertThat(readiness.get("ffmpeg")).isInstanceOf(Map.class);
+        Map<?, ?> ffmpeg = (Map<?, ?>) readiness.get("ffmpeg");
+        assertThat(ffmpeg.get("audioEnabled")).isEqualTo(false);
+        assertThat(ffmpeg.get("burnInEnabled")).isEqualTo(false);
+        assertThat(ffmpeg.get("binaryConfigured")).isEqualTo(true);
+        assertThat(ffmpeg.get("workspaceConfigured")).isEqualTo(true);
+        assertThat(ffmpeg.get("audioTimeoutSeconds")).isEqualTo(120);
+        assertThat(ffmpeg.get("burnInTimeoutSeconds")).isEqualTo(180);
+
+        assertThat(readiness.get("providers")).isInstanceOf(Map.class);
+        Map<?, ?> providers = (Map<?, ?>) readiness.get("providers");
+        assertProviderReadiness(providers.get("transcription"), false, "demo", false);
+        assertProviderReadiness(providers.get("translation"), false, "demo", false);
+        assertProviderReadiness(providers.get("tts"), false, "demo", false);
+        assertProviderReadiness(providers.get("evaluation"), false, "demo", false);
+
+        assertThat(readiness.get("features")).isInstanceOf(Map.class);
+        Map<?, ?> features = (Map<?, ?>) readiness.get("features");
+        assertFeatureFlag(features.get("jobStatusCache"), true);
+        assertFeatureFlag(features.get("uploadRateLimit"), false);
+        assertFeatureFlag(features.get("retentionCleanup"), false);
+        assertFeatureFlag(features.get("costTracking"), true);
+        assertFeatureFlag(features.get("budgetGuard"), false);
     }
 
     @Test
@@ -53,8 +95,26 @@ class RuntimeDependencyControllerTests {
                 .doesNotContain("secret")
                 .doesNotContain("accessKey")
                 .doesNotContain("secretKey")
+                .doesNotContain("apiKey")
+                .doesNotContain("accessToken")
+                .doesNotContain("workDir")
+                .doesNotContain("/tmp/linguaframe-media")
                 .doesNotContain("linguaframe_dev_password")
                 .doesNotContain("linguaframe_minio_password");
+    }
+
+    private void assertProviderReadiness(Object value, boolean enabled, String provider, boolean credentialsConfigured) {
+        assertThat(value).isInstanceOf(Map.class);
+        Map<?, ?> dependency = (Map<?, ?>) value;
+        assertThat(dependency.get("enabled")).isEqualTo(enabled);
+        assertThat(dependency.get("provider")).isEqualTo(provider);
+        assertThat(dependency.get("credentialsConfigured")).isEqualTo(credentialsConfigured);
+    }
+
+    private void assertFeatureFlag(Object value, boolean enabled) {
+        assertThat(value).isInstanceOf(Map.class);
+        Map<?, ?> dependency = (Map<?, ?>) value;
+        assertThat(dependency.get("enabled")).isEqualTo(enabled);
     }
 
     private void assertNetworkDependency(Object value, String type, String host, int port) {

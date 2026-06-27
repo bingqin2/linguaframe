@@ -133,6 +133,8 @@ scripts/demo/docker-e2e-success.sh
 
 The preflight checks required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
 
+The browser demo also shows a read-only `Demo readiness` panel backed by `GET /api/runtime/dependencies`. Use the panel for quick configuration visibility from the UI, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
+
 React demo frontend commands:
 
 ```bash
@@ -275,7 +277,7 @@ The backend exposes a non-secret dependency summary for local readiness checks:
 curl http://localhost:8080/api/runtime/dependencies
 ```
 
-The response includes MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. It intentionally excludes passwords, access keys, and secret keys.
+The response includes MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata plus safe demo-readiness fields for the browser panel: demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, and feature flags. It intentionally excludes passwords, access keys, secret keys, API keys, tokens, raw local media paths, and FFmpeg workspace paths. This endpoint is configuration-derived only; it does not run live dependency probes, upload objects, execute FFmpeg, or call paid providers.
 
 ## Media Upload Intake
 
