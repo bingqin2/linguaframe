@@ -7,6 +7,7 @@ import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.ArtifactCacheService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.SubtitleExportService;
 import com.linguaframe.job.service.SubtitleService;
@@ -15,6 +16,7 @@ import com.linguaframe.media.domain.bo.BurnedVideoBo;
 import com.linguaframe.media.service.FfmpegSubtitleBurnInService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import com.linguaframe.storage.service.ObjectStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -34,6 +36,7 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
     private final SubtitleService subtitleService;
     private final SubtitleExportService subtitleExportService;
     private final JobArtifactService artifactService;
+    private final ArtifactCacheService artifactCacheService;
 
     public SubtitleBurnInPipelineStage(
             LinguaFrameProperties properties,
@@ -44,6 +47,29 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
             SubtitleExportService subtitleExportService,
             JobArtifactService artifactService
     ) {
+        this(
+                properties,
+                objectStorageService,
+                workDirectoryService,
+                burnInService,
+                subtitleService,
+                subtitleExportService,
+                artifactService,
+                (context, type) -> java.util.Optional.empty()
+        );
+    }
+
+    @Autowired
+    public SubtitleBurnInPipelineStage(
+            LinguaFrameProperties properties,
+            ObjectStorageService objectStorageService,
+            MediaWorkDirectoryService workDirectoryService,
+            FfmpegSubtitleBurnInService burnInService,
+            SubtitleService subtitleService,
+            SubtitleExportService subtitleExportService,
+            JobArtifactService artifactService,
+            ArtifactCacheService artifactCacheService
+    ) {
         this.properties = properties;
         this.objectStorageService = objectStorageService;
         this.workDirectoryService = workDirectoryService;
@@ -51,6 +77,7 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
         this.subtitleService = subtitleService;
         this.subtitleExportService = subtitleExportService;
         this.artifactService = artifactService;
+        this.artifactCacheService = artifactCacheService;
     }
 
     @Override
@@ -61,6 +88,9 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
     @Override
     public void execute(LocalizationJobExecutionContextBo context) {
         if (!properties.getFfmpeg().isBurnInEnabled()) {
+            return;
+        }
+        if (reuseCachedArtifact(context, JobArtifactType.BURNED_VIDEO)) {
             return;
         }
 
@@ -94,6 +124,15 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
         } finally {
             workDirectoryService.deleteRecursively(workDirectory);
         }
+    }
+
+    private boolean reuseCachedArtifact(LocalizationJobExecutionContextBo context, JobArtifactType type) {
+        return artifactCacheService.tryReuseArtifact(context, type)
+                .map(artifact -> {
+                    context.recordCacheHit(artifact);
+                    return true;
+                })
+                .orElse(false);
     }
 
     private void copySourceVideo(String objectKey, Path inputVideoPath) {

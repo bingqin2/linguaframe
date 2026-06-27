@@ -5,5 +5,6 @@ public enum JobTimelineEventStatus {
     STARTED,
     SUCCEEDED,
     FAILED,
-    SKIPPED
+    SKIPPED,
+    CACHE_HIT
 }

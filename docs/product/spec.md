@@ -196,8 +196,9 @@ Requirements:
 - Translation quality evaluation can run as a separate LLM-backed stage after subtitle translation.
 - Evaluation records should capture score, detected issues, and suggested fixes without blocking the whole pipeline by default.
 - Per-job cost budgets can stop expensive stages before provider calls once recorded estimated spend reaches the configured limit.
-- Artifact content hashes provide stable fingerprints for future duplicate-work detection.
-- Content-hash caching can avoid duplicate transcription or translation work for repeated inputs in a later slice.
+- Artifact content hashes provide stable fingerprints for duplicate-work detection.
+- Artifact-level cache hits can reuse stable generated artifacts for repeat jobs from the same source video, target language, and artifact type.
+- Provider-level transcription, translation, and prompt-response caching can avoid duplicate model work for repeated compatible inputs in a later slice.
 - AI infrastructure features should be observable in job detail and admin-facing views.
 
 These capabilities are follow-up engineering depth after the core upload-to-artifact workflow is working.

@@ -321,7 +321,11 @@ When the guard blocks, the job fails at the guarded stage, no later provider cal
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, and safe error summaries.
 
-`GET /api/jobs/{jobId}/artifacts` returns each generated artifact with `contentSha256`, a lowercase SHA-256 fingerprint of the stored bytes. The React demo shows the first 12 characters in the artifact table and keeps the full hash available on hover. This is a reproducibility and future cache foundation; it is not a cache-hit signal and does not skip provider calls.
+`GET /api/jobs/{jobId}/artifacts` returns each artifact with `contentSha256`, a lowercase SHA-256 fingerprint of the stored bytes. The React demo shows the first 12 characters in the artifact table and keeps the full hash available on hover.
+
+LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp. This is artifact-level reuse, not OpenAI prompt or provider response caching.
+
+`GET /api/jobs/{jobId}` includes `cacheSummary.cacheHitCount` and `cacheSummary.generatedArtifactCount`. The React demo shows cache hits near usage/cost metadata and marks reused artifact rows as `Reused`.
 
 Live job progress is available through Server-Sent Events:
 

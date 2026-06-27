@@ -24,6 +24,7 @@ public record LocalizationJobVo(
         Instant dispatchedAt,
         List<JobTimelineEventVo> timelineEvents,
         JobUsageSummaryVo usageSummary,
+        JobCacheSummaryVo cacheSummary,
         List<ModelCallVo> modelCalls,
         QualityEvaluationVo qualityEvaluation
 ) {

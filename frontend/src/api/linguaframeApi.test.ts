@@ -77,6 +77,10 @@ describe('linguaframeApi', () => {
           audioSeconds: null,
           characterCount: null
         },
+        cacheSummary: {
+          cacheHitCount: 1,
+          generatedArtifactCount: 2
+        },
         modelCalls: []
       })
     );
@@ -84,6 +88,7 @@ describe('linguaframeApi', () => {
     const job = await getJob('job-1');
 
     expect(job.status).toBe('PROCESSING');
+    expect(job.cacheSummary.cacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
   });
 
@@ -110,6 +115,10 @@ describe('linguaframeApi', () => {
         dispatchedAt: null,
         timelineEvents: [],
         usageSummary: null,
+        cacheSummary: {
+          cacheHitCount: 0,
+          generatedArtifactCount: 0
+        },
         modelCalls: []
       })
     );
@@ -139,6 +148,10 @@ describe('linguaframeApi', () => {
         dispatchedAt: null,
         timelineEvents: [],
         usageSummary: null,
+        cacheSummary: {
+          cacheHitCount: 0,
+          generatedArtifactCount: 0
+        },
         modelCalls: []
       })
     );
@@ -160,6 +173,8 @@ describe('linguaframeApi', () => {
           contentType: 'text/vtt',
           sizeBytes: 42,
           contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+          cacheHit: true,
+          sourceArtifactId: 'source-artifact-1',
           createdAt: '2026-06-26T10:00:05Z'
         }
       ])
@@ -171,6 +186,8 @@ describe('linguaframeApi', () => {
     expect(artifacts[0]?.contentSha256).toBe(
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
     );
+    expect(artifacts[0]?.cacheHit).toBe(true);
+    expect(artifacts[0]?.sourceArtifactId).toBe('source-artifact-1');
     expect(artifactDownloadUrl('job-1', 'artifact-1')).toBe(
       '/api/jobs/job-1/artifacts/artifact-1/download'
     );

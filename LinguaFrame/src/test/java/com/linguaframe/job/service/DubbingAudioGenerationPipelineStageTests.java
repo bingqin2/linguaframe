@@ -73,6 +73,41 @@ class DubbingAudioGenerationPipelineStageTests {
     }
 
     @Test
+    void reusesCachedDubbingAudioBeforeCallingTtsProvider() {
+        properties.getTts().setEnabled(true);
+        RecordingArtifactCacheService cacheService = new RecordingArtifactCacheService(
+                new JobArtifactVo(
+                        "cached-dubbing-artifact",
+                        "dubbing-job-1",
+                        JobArtifactType.DUBBING_AUDIO,
+                        "dubbing-audio.mp3",
+                        "audio/mpeg",
+                        123L,
+                        "cached-dubbing-hash",
+                        true,
+                        "source-dubbing-artifact",
+                        Instant.parse("2026-06-27T09:20:00Z")
+                )
+        );
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService(),
+                cacheService
+        );
+        LocalizationJobExecutionContextBo context = context();
+
+        stage.execute(context);
+
+        assertThat(cacheService.requestedTypes).containsExactly(JobArtifactType.DUBBING_AUDIO);
+        assertThat(context.consumeCacheHits()).containsExactly(cacheService.artifact);
+        assertThat(ttsProvider.request).isNull();
+        assertThat(artifactService.commands).isEmpty();
+    }
+
+    @Test
     void failsWhenEnabledAndTargetSubtitlesAreMissing() {
         properties.getTts().setEnabled(true);
         DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
@@ -112,7 +147,8 @@ class DubbingAudioGenerationPipelineStageTests {
                 artifactService,
                 subtitleService,
                 ttsProvider,
-                new NoopCostBudgetGuardService()
+                new NoopCostBudgetGuardService(),
+                new EmptyArtifactCacheService()
         );
     }
 
@@ -176,8 +212,18 @@ class DubbingAudioGenerationPipelineStageTests {
                     command.contentType(),
                     command.content().length,
                     "artifact-hash-" + commands.size(),
+                    false,
+                    null,
                     Instant.parse("2026-06-26T23:00:00Z")
             );
+        }
+
+        @Override
+        public JobArtifactVo createReusedArtifact(
+                String jobId,
+                com.linguaframe.job.domain.entity.JobArtifactRecord source
+        ) {
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -193,6 +239,36 @@ class DubbingAudioGenerationPipelineStageTests {
                     0L,
                     new ByteArrayInputStream("".getBytes(StandardCharsets.UTF_8))
             );
+        }
+    }
+
+    private static class EmptyArtifactCacheService implements ArtifactCacheService {
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    private static class RecordingArtifactCacheService implements ArtifactCacheService {
+
+        private final JobArtifactVo artifact;
+        private final List<JobArtifactType> requestedTypes = new ArrayList<>();
+
+        private RecordingArtifactCacheService(JobArtifactVo artifact) {
+            this.artifact = artifact;
+        }
+
+        @Override
+        public java.util.Optional<JobArtifactVo> tryReuseArtifact(
+                LocalizationJobExecutionContextBo context,
+                JobArtifactType type
+        ) {
+            requestedTypes.add(type);
+            return java.util.Optional.of(artifact);
         }
     }
 

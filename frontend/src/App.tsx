@@ -510,6 +510,10 @@ function JobDetail({
           <span>Latency</span>
           <strong>{job.usageSummary?.totalLatencyMs ?? 0} ms</strong>
         </div>
+        <div>
+          <span>Cache hits</span>
+          <strong>{job.cacheSummary.cacheHitCount} reused</strong>
+        </div>
       </section>
 
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
@@ -614,6 +618,7 @@ function JobDetail({
                 <th>Content type</th>
                 <th>Size</th>
                 <th>SHA-256</th>
+                <th>Cache</th>
                 <th>Download</th>
               </tr>
             </thead>
@@ -626,6 +631,9 @@ function JobDetail({
                   <td>{formatBytes(artifact.sizeBytes)}</td>
                   <td title={artifact.contentSha256 || undefined}>
                     {formatArtifactHash(artifact.contentSha256)}
+                  </td>
+                  <td title={artifact.sourceArtifactId ?? undefined}>
+                    {artifact.cacheHit ? 'Reused' : 'Generated'}
                   </td>
                   <td>
                     <a href={linguaFrameApi.artifactDownloadUrl(job.jobId, artifact.artifactId)}>

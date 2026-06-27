@@ -246,6 +246,32 @@ class LocalizationJobControllerTests {
     void returnsLocalizationJobWithUsageSummaryAndModelCalls() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T18:00:00Z");
         createJob("job-controller-video-usage", "job-controller-job-usage", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-generated-artifact",
+                "job-controller-job-usage",
+                JobArtifactType.EXTRACTED_AUDIO,
+                "job-artifacts/job-controller-job-usage/generated/audio.wav",
+                "audio.wav",
+                "audio/wav",
+                10L,
+                "generated-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-reused-artifact",
+                "job-controller-job-usage",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/source-job/source-artifact/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                20L,
+                "reused-hash",
+                true,
+                "source-artifact",
+                createdAt.plusSeconds(2)
+        ));
         modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
                 "job-controller-job-usage",
                 LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
@@ -281,6 +307,8 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.usageSummary.estimatedCostUsd").value(0.00045000))
                 .andExpect(jsonPath("$.usageSummary.inputTokens").value(1000))
                 .andExpect(jsonPath("$.usageSummary.outputTokens").value(500))
+                .andExpect(jsonPath("$.cacheSummary.cacheHitCount").value(1))
+                .andExpect(jsonPath("$.cacheSummary.generatedArtifactCount").value(1))
                 .andExpect(jsonPath("$.modelCalls[0].operation").value("TRANSLATION"))
                 .andExpect(jsonPath("$.modelCalls[0].status").value("SUCCEEDED"))
                 .andExpect(jsonPath("$.modelCalls[0].estimatedCostUsd").value(0.00045000))
@@ -492,6 +520,8 @@ class LocalizationJobControllerTests {
                 "application/json",
                 42L,
                 "abc123",
+                true,
+                "job-controller-source-artifact",
                 createdAt.plusSeconds(1)
         ));
 
@@ -504,6 +534,8 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$[0].contentType").value("application/json"))
                 .andExpect(jsonPath("$[0].sizeBytes").value(42))
                 .andExpect(jsonPath("$[0].contentSha256").value("abc123"))
+                .andExpect(jsonPath("$[0].cacheHit").value(true))
+                .andExpect(jsonPath("$[0].sourceArtifactId").value("job-controller-source-artifact"))
                 .andExpect(jsonPath("$[0].createdAt").exists());
     }
 
@@ -520,6 +552,8 @@ class LocalizationJobControllerTests {
                 "application/json",
                 11L,
                 "download-hash",
+                false,
+                null,
                 createdAt.plusSeconds(1)
         ));
         when(objectStorageService.open("job-artifacts/job-controller-job-download/job-controller-artifact-download/worker-summary.json"))
@@ -590,6 +624,8 @@ class LocalizationJobControllerTests {
                 "application/json",
                 2L,
                 "owner-hash",
+                false,
+                null,
                 createdAt.plusSeconds(1)
         ));
 
