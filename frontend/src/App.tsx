@@ -55,6 +55,55 @@ interface ResultDeliverable {
   status: DeliverableStatus;
 }
 
+interface DemoEvidence {
+  generatedAt: string;
+  job: {
+    jobId: string;
+    videoId: string;
+    targetLanguage: string;
+    status: LocalizationJobStatus;
+    retryCount: number;
+    failureStage: string | null;
+    failureReason: string | null;
+  };
+  previews: {
+    transcriptSegmentCount: number;
+    subtitleSegmentCount: number;
+    subtitleLanguage: string;
+  };
+  usage: {
+    modelCallCount: number;
+    failedModelCallCount: number;
+    estimatedCostUsd: number;
+    totalLatencyMs: number;
+  };
+  cache: {
+    artifactCacheHitCount: number;
+    generatedArtifactCount: number;
+    providerCacheHitCount: number;
+  };
+  qualityEvaluation: {
+    score: number;
+    verdict: string;
+    status: string;
+  } | null;
+  timeline: Array<{
+    stage: string;
+    status: string;
+  }>;
+  artifacts: Array<{
+    type: JobArtifact['type'];
+    filename: string;
+    sizeBytes: number;
+    sha256: string;
+    cacheState: 'Generated' | 'Reused';
+  }>;
+  links: {
+    resultBundle: string;
+    diagnostics: string;
+  };
+}
+
 const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
   { key: 'transcript-json', label: 'Transcript JSON', artifactType: 'TRANSCRIPT_JSON', preview: 'transcript' },
   { key: 'source-srt', label: 'Source SRT', artifactType: 'SUBTITLE_SRT', preview: 'transcript' },
@@ -1232,6 +1281,14 @@ function JobDetail({
     () => buildResultDeliverables(artifacts, transcript.length > 0, subtitles.length > 0),
     [artifacts, subtitles.length, transcript.length]
   );
+  const demoEvidence = useMemo(
+    () => buildDemoEvidence(job, artifacts, transcript.length, subtitles.length, selectedLanguage),
+    [artifacts, job, selectedLanguage, subtitles.length, transcript.length]
+  );
+  const demoEvidenceMarkdown = useMemo(
+    () => formatDemoEvidenceMarkdown(demoEvidence),
+    [demoEvidence]
+  );
 
   const statusItems = useMemo(
     () => [
@@ -1313,6 +1370,8 @@ function JobDetail({
         job={job}
         modelCallLabel={modelCallLabel}
       />
+
+      <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
 
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
 
@@ -1571,6 +1630,65 @@ function ResultDeliveryPanel({
   );
 }
 
+function DemoEvidencePanel({
+  evidence,
+  markdown
+}: {
+  evidence: DemoEvidence;
+  markdown: string;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+
+  const handleCopyEvidence = useCallback(async () => {
+    if (!canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Evidence copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownloadEvidence = useCallback(() => {
+    const blob = new Blob([JSON.stringify(evidence, null, 2)], {
+      type: 'application/json'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-demo-evidence-${sanitizeFilename(evidence.job.jobId)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Evidence JSON downloaded.');
+  }, [evidence]);
+
+  return (
+    <section className="panel demo-evidence-panel" aria-label="Demo evidence">
+      <div className="panel-heading">
+        <h3>Demo evidence</h3>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleCopyEvidence}
+            disabled={!canCopy}
+          >
+            Copy evidence
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadEvidence}>
+            Download evidence JSON
+          </button>
+        </div>
+      </div>
+      {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      <pre className="evidence-preview">{markdown}</pre>
+    </section>
+  );
+}
+
 function QualityEvaluationPanel({
   evaluation
 }: {
@@ -1717,6 +1835,114 @@ function resultStatusClassName(status: DeliverableStatus): string {
     return 'status-pill warning';
   }
   return 'status-pill';
+}
+
+function buildDemoEvidence(
+  job: LocalizationJob,
+  artifacts: JobArtifact[],
+  transcriptSegmentCount: number,
+  subtitleSegmentCount: number,
+  selectedLanguage: string
+): DemoEvidence {
+  return {
+    generatedAt: new Date().toISOString(),
+    job: {
+      jobId: job.jobId,
+      videoId: job.videoId,
+      targetLanguage: job.targetLanguage,
+      status: job.status,
+      retryCount: job.retryCount,
+      failureStage: job.failureStage,
+      failureReason: job.failureReason
+    },
+    previews: {
+      transcriptSegmentCount,
+      subtitleSegmentCount,
+      subtitleLanguage: selectedLanguage
+    },
+    usage: {
+      modelCallCount: job.usageSummary?.modelCallCount ?? job.modelCalls.length,
+      failedModelCallCount: job.usageSummary?.failedModelCallCount ?? 0,
+      estimatedCostUsd: job.usageSummary?.estimatedCostUsd ?? 0,
+      totalLatencyMs: job.usageSummary?.totalLatencyMs ?? 0
+    },
+    cache: {
+      artifactCacheHitCount: job.cacheSummary.cacheHitCount,
+      generatedArtifactCount: job.cacheSummary.generatedArtifactCount,
+      providerCacheHitCount: job.cacheSummary.providerCacheHitCount
+    },
+    qualityEvaluation: job.qualityEvaluation
+      ? {
+          score: job.qualityEvaluation.score,
+          verdict: job.qualityEvaluation.verdict,
+          status: job.qualityEvaluation.status
+        }
+      : null,
+    timeline: job.timelineEvents.map((event) => ({
+      stage: event.stage,
+      status: event.status
+    })),
+    artifacts: artifacts.map((artifact) => ({
+      type: artifact.type,
+      filename: artifact.filename,
+      sizeBytes: artifact.sizeBytes,
+      sha256: formatArtifactHash(artifact.contentSha256),
+      cacheState: artifact.cacheHit ? 'Reused' : 'Generated'
+    })),
+    links: {
+      resultBundle: linguaFrameApi.artifactArchiveDownloadUrl(job.jobId),
+      diagnostics: linguaFrameApi.jobDiagnosticsDownloadUrl(job.jobId)
+    }
+  };
+}
+
+function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
+  const lines = [
+    '# LinguaFrame Demo Evidence',
+    '',
+    `- Job: ${evidence.job.jobId}`,
+    `- Video: ${evidence.job.videoId}`,
+    `- Target language: ${evidence.job.targetLanguage}`,
+    `- Status: ${evidence.job.status}`,
+    `- Retries: ${evidence.job.retryCount}`,
+    `- Model calls: ${evidence.usage.modelCallCount}`,
+    `- Failed model calls: ${evidence.usage.failedModelCallCount}`,
+    `- Estimated cost: ${formatCost(evidence.usage.estimatedCostUsd)}`,
+    `- Cache hits: ${evidence.cache.artifactCacheHitCount} artifacts / ${evidence.cache.providerCacheHitCount} provider`,
+    `- Transcript preview segments: ${evidence.previews.transcriptSegmentCount}`,
+    `- Subtitle preview segments: ${evidence.previews.subtitleSegmentCount}`,
+    `- Artifacts: ${evidence.artifacts.length}`,
+    `- Result bundle: ${evidence.links.resultBundle}`,
+    `- Diagnostics: ${evidence.links.diagnostics}`
+  ];
+
+  if (evidence.job.failureStage || evidence.job.failureReason) {
+    lines.push(`- Failure: ${evidence.job.failureStage ?? 'Unknown'} / ${evidence.job.failureReason ?? 'No reason'}`);
+  }
+  if (evidence.qualityEvaluation) {
+    lines.push(
+      `- Quality: ${evidence.qualityEvaluation.score} / 100, ${evidence.qualityEvaluation.verdict}, ${evidence.qualityEvaluation.status}`
+    );
+  }
+  if (evidence.timeline.length > 0) {
+    lines.push('', 'Timeline:');
+    evidence.timeline.forEach((event) => {
+      lines.push(`- ${event.stage}: ${event.status}`);
+    });
+  }
+  if (evidence.artifacts.length > 0) {
+    lines.push('', 'Artifacts:');
+    evidence.artifacts.forEach((artifact) => {
+      lines.push(
+        `- ${artifact.type}: ${artifact.filename}, ${formatBytes(artifact.sizeBytes)}, ${artifact.sha256}, ${artifact.cacheState}`
+      );
+    });
+  }
+  return lines.join('\n');
+}
+
+function sanitizeFilename(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'job';
 }
 
 function formatCost(value: number): string {

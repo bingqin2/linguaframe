@@ -1011,6 +1011,111 @@ describe('App', () => {
     );
   });
 
+  test('exports safe browser demo evidence for a selected job', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    const createObjectUrl = vi.fn().mockReturnValue('blob:linguaframe-evidence');
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: createObjectUrl,
+      configurable: true
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: revokeObjectUrl,
+      configurable: true
+    });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'evidence-job', videoId: 'evidence-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: 'Sensitive source line that must not be exported'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([
+      {
+        language: 'zh-CN',
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: '敏感字幕不能导出'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      {
+        artifactId: 'artifact-vtt',
+        jobId: 'evidence-job',
+        type: 'SUBTITLE_VTT',
+        filename: 'subtitles.vtt',
+        contentType: 'text/vtt',
+        sizeBytes: 42,
+        contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        cacheHit: true,
+        sourceArtifactId: 'source-vtt-artifact',
+        createdAt: '2026-06-26T10:00:05Z'
+      }
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'evidence-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const evidence = await screen.findByRole('region', { name: /demo evidence/i });
+    const evidencePreview = evidence.querySelector('.evidence-preview');
+    expect(evidencePreview).not.toBeNull();
+    const evidenceText = evidencePreview?.textContent ?? '';
+    expect(evidenceText).toContain('Job: evidence-job');
+    expect(evidenceText).toContain('Status: QUEUED');
+    expect(evidenceText).toContain('Artifacts: 1');
+    expect(evidenceText).toContain('Transcript preview segments: 1');
+    expect(evidenceText).toContain('Subtitle preview segments: 1');
+    expect(evidenceText).toContain('Result bundle: /api/jobs/evidence-job/artifacts/archive/download');
+    expect(evidenceText).toContain('Diagnostics: /api/jobs/evidence-job/diagnostics/download');
+    expect(evidenceText).not.toContain('Sensitive source line');
+    expect(evidenceText).not.toContain('敏感字幕');
+    expect(evidenceText).not.toContain('source-vtt-artifact');
+
+    await userEvent.click(within(evidence).getByRole('button', { name: /copy evidence/i }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('# LinguaFrame Demo Evidence'));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('- Job: evidence-job'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive source line'));
+    expect(await within(evidence).findByText('Evidence copied.')).toBeInTheDocument();
+
+    await userEvent.click(within(evidence).getByRole('button', { name: /download evidence json/i }));
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(anchorClick).toHaveBeenCalled();
+    expect(await within(evidence).findByText('Evidence JSON downloaded.')).toBeInTheDocument();
+  });
+
+  test('shows clipboard unavailable state for browser demo evidence', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: undefined,
+      configurable: true
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ jobId: 'no-clipboard-job' }));
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'no-clipboard-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const evidence = await screen.findByRole('region', { name: /demo evidence/i });
+    expect(within(evidence).getByText('Clipboard copy is unavailable in this browser.')).toBeInTheDocument();
+    expect(within(evidence).getByRole('button', { name: /copy evidence/i })).toBeDisabled();
+  });
+
   test('shows preview-only and missing result delivery states', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'preview-only-job', videoId: 'preview-only-video', targetLanguage: 'zh-CN' })

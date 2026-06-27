@@ -1816,3 +1816,22 @@ Post-merge verification:
 - `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added a browser `Demo evidence` panel to the selected job view.
+- Generated safe Markdown and JSON evidence from already-loaded job detail, timeline, usage, cache, artifact, transcript-count, subtitle-count, and quality evaluation metadata.
+- Added `Copy evidence` with Clipboard API detection and `Download evidence JSON` with a local Blob download.
+- Kept raw transcript text, raw subtitle text, source artifact ids, object keys, local paths, tokens, provider payloads, and media bytes out of exported evidence.
+- Documented browser evidence export behavior in README, the Docker E2E guide, and the smoke-test checklist.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "demo evidence"` first failed because the `Demo evidence` region did not exist, then passed with `Tests 2 passed | 35 skipped`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 37 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

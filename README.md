@@ -148,6 +148,8 @@ The browser demo also shows a `Demo runbook` panel with the startup command, E2E
 
 For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.
 
+The selected job view also includes a `Demo evidence` panel. Use `Copy evidence` for a Markdown summary or `Download evidence JSON` for a local metadata file that records job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes without raw transcript text, raw subtitles, object keys, local paths, tokens, provider payloads, or media bytes.
+
 React demo frontend commands:
 
 ```bash
@@ -461,6 +463,8 @@ Job detail reads use an optional Redis cache-aside layer. MySQL remains the sour
 `GET /api/jobs/{jobId}/artifacts/archive/download` returns a ZIP bundle for the job's generated artifacts. The archive is generated on demand, is not persisted to object storage, excludes the source video, and includes a `manifest.json` with safe artifact metadata. The React demo exposes this as `Download result bundle` in the `Artifacts` panel.
 
 `GET /api/jobs/{jobId}/diagnostics/download` returns a metadata-only JSON diagnostics report for the job. It includes sanitized job detail, timeline events, model-call summaries, quality evaluation, and artifact hashes/counts, but excludes object storage keys, local media paths, raw transcript or subtitle text, provider payloads, credentials, and uploaded bytes. The React demo exposes this as `Download diagnostics` in the selected job header.
+
+The browser-only `Demo evidence` export is a convenience summary built from already-loaded safe frontend state. It is useful for demos and interviews, but the backend diagnostics report remains the fuller machine-readable source for job debugging.
 
 LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP artifact cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp.
 
