@@ -74,6 +74,54 @@ class QualityEvaluationServiceTests {
         assertThat(repository.records).hasSize(1);
     }
 
+    @Test
+    void storesCachedEvaluationWithoutCallingProvider() {
+        InMemoryQualityEvaluationRepository repository = new InMemoryQualityEvaluationRepository();
+        RecordingQualityEvaluationProvider provider = new RecordingQualityEvaluationProvider(new QualityEvaluationResultBo(
+                1,
+                "SHOULD_NOT_BE_USED",
+                1,
+                1,
+                1,
+                1,
+                List.of(),
+                List.of()
+        ));
+        QualityEvaluationService service = new QualityEvaluationServiceImpl(
+                repository,
+                provider,
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+        QualityEvaluationResultBo cachedResult = new QualityEvaluationResultBo(
+                88,
+                "CACHED_GOOD",
+                89,
+                87,
+                90,
+                86,
+                List.of("Cached issue"),
+                List.of("Cached fix")
+        );
+
+        var result = service.storeCachedEvaluation("quality-service-cache-job", "zh-CN", cachedResult);
+
+        assertThat(provider.request).isNull();
+        assertThat(result.jobId()).isEqualTo("quality-service-cache-job");
+        assertThat(result.score()).isEqualTo(88);
+        assertThat(result.verdict()).isEqualTo("CACHED_GOOD");
+        assertThat(result.status()).isEqualTo(QualityEvaluationStatus.SUCCEEDED);
+        assertThat(result.safeErrorSummary()).isNull();
+        assertThat(result.createdAt()).isEqualTo(now);
+        assertThat(repository.records)
+                .singleElement()
+                .satisfies(record -> {
+                    assertThat(record.jobId()).isEqualTo("quality-service-cache-job");
+                    assertThat(record.language()).isEqualTo("zh-CN");
+                    assertThat(record.score()).isEqualTo(88);
+                    assertThat(record.status()).isEqualTo(QualityEvaluationStatus.SUCCEEDED);
+                });
+    }
+
     private List<TranscriptSegmentVo> sourceSegments() {
         return List.of(new TranscriptSegmentVo(0, 0L, 1_000L, "Hello from LinguaFrame."));
     }

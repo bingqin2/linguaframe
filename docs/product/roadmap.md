@@ -401,8 +401,9 @@ Build:
 - Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
 - Transcription provider cache based on extracted audio hash, provider, model, and prompt version. Status: implemented.
 - Cache key for translation inputs based on source text hash, target language, provider, model, and prompt version. Status: implemented.
+- Quality evaluation provider cache based on source transcript hash, target subtitle hash, target language, provider, model, and prompt version. Status: implemented.
 - TTS provider cache based on target subtitle text hash, language, provider, model, and voice. Status: implemented.
-- Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, and TTS provider cache hits.
+- Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, quality evaluation provider cache hits, and TTS provider cache hits.
 
 Do not build yet:
 
@@ -411,7 +412,7 @@ Do not build yet:
 - Provider price automation.
 - Per-user daily budgets.
 - Global distributed cache.
-- Provider-level quality evaluation or generic prompt-response caching.
+- Generic prompt-response caching.
 
 Exit criteria:
 

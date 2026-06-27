@@ -316,6 +316,14 @@ Impact: `GET /api/runtime/dependencies` now includes budget guard state, max per
 
 ## 2026-06-27
 
+Decision: Add quality evaluation provider caching as structured evaluation-result reuse with fresh current-job persistence.
+
+Reason: Quality evaluation has a stable compatibility boundary of source transcript hash, target subtitle hash, target language, provider, model, and prompt version. Caching at this boundary skips duplicate evaluation provider calls while preserving a current-job quality evaluation row and avoiding raw provider payloads, local paths, object keys, secrets, and uploaded media bytes in cache identity.
+
+Impact: Repeat compatible quality evaluation inputs now reuse stored structured evaluation results, create fresh `quality_evaluations` rows for the current job, and expose the hit through existing provider cache-hit timeline and job summary fields. Generic prompt-response caching remains future work.
+
+## 2026-06-27
+
 Decision: Add transcription provider caching as transcript-segment reuse, not raw audio artifact reuse.
 
 Reason: Transcription has a stable compatibility boundary of extracted-audio hash, provider, model, and prompt/version. Caching at this boundary can skip duplicate speech-to-text provider calls while preserving fresh job artifacts and avoiding raw audio bytes, object keys, local paths, provider payloads, or secrets in cache identity.

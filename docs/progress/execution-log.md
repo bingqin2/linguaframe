@@ -1578,3 +1578,29 @@ Post-merge verification:
 - Merged `transcription-provider-cache-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest='TranscriptionCacheRepositoryTests,TranscriptionCacheKeyServiceTests,TranscriptionCacheServiceTests,TranscriptSubtitleExportPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed on `main` with `Tests run: 35, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 29`.
+
+## 2026-06-27
+
+Work:
+
+- Added durable quality evaluation provider cache schema, repository, key service, and JSON serialization service.
+- Added `QualityEvaluationService.storeCachedEvaluation` so cache hits write fresh current-job evaluation rows without provider calls.
+- Wired `QualityEvaluationPipelineStage` to look up cached evaluation results by source transcript hash, target subtitle hash, target language, provider, model, and prompt version before budget/provider execution.
+- Reused cached structured evaluation results and reported provider `CACHE_HIT` timeline events through the existing execution context.
+- Documented quality evaluation cache behavior, smoke-test expectations, and product status.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationCacheRepositoryTests test` first failed because cache command and repository types did not exist, then passed with `Tests run: 2`.
+- `mvn -pl LinguaFrame -Dtest='QualityEvaluationCacheKeyServiceTests,QualityEvaluationCacheServiceTests' test` first failed because cache key/service types did not exist, then passed with `Tests run: 6`.
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationServiceTests test` first failed because `storeCachedEvaluation` did not exist and recording stubs needed the new method, then passed with `Tests run: 3`.
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationPipelineStageTests test` first failed because the stage did not accept cache services, then passed with `Tests run: 2`.
+- `mvn -pl LinguaFrame -Dtest='QualityEvaluationPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed with `Tests run: 26`.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='QualityEvaluationCacheRepositoryTests,QualityEvaluationCacheKeyServiceTests,QualityEvaluationCacheServiceTests,QualityEvaluationServiceTests,QualityEvaluationPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed with `Tests run: 37`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 341, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

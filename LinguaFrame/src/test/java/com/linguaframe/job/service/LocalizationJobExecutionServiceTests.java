@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
+import com.linguaframe.job.domain.bo.QualityEvaluationResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.bo.TtsRequestBo;
@@ -227,9 +228,9 @@ class LocalizationJobExecutionServiceTests {
         assertThat(timelineEventRepository.findByJobId("execution-job-provider-cache-hit"))
                 .extracting(event -> event.stage() + ":" + event.status() + ":" + event.message())
                 .contains(
-                        LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT
+                        LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION
                                 + ":" + JobTimelineEventStatus.CACHE_HIT
-                                + ":Reused cached TRANSCRIPTION provider result from job source-provider-cache-job."
+                                + ":Reused cached EVALUATION provider result from job source-provider-cache-job."
                 );
         assertThat(queryService.getJob("execution-job-provider-cache-hit").cacheSummary().providerCacheHitCount())
                 .isEqualTo(1);
@@ -1392,13 +1393,13 @@ class LocalizationJobExecutionServiceTests {
 
         @Override
         public LocalizationJobStage stage() {
-            return LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT;
+            return LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION;
         }
 
         @Override
         public void execute(LocalizationJobExecutionContextBo context) {
             context.recordProviderCacheHit(new com.linguaframe.job.domain.vo.ProviderCacheHitVo(
-                    ModelCallOperation.TRANSCRIPTION,
+                    ModelCallOperation.EVALUATION,
                     "provider-cache-key",
                     "source-provider-cache-job"
             ));
@@ -1765,6 +1766,32 @@ class LocalizationJobExecutionServiceTests {
                     88,
                     List.of("No blocking issue."),
                     List.of("Review terminology."),
+                    QualityEvaluationStatus.SUCCEEDED,
+                    null,
+                    Instant.parse("2026-06-27T01:00:10Z")
+            );
+        }
+
+        @Override
+        public QualityEvaluationVo storeCachedEvaluation(
+                String jobId,
+                String language,
+                QualityEvaluationResultBo result
+        ) {
+            this.jobId = jobId;
+            this.language = language;
+            return new QualityEvaluationVo(
+                    "recording-cached-quality-evaluation",
+                    jobId,
+                    language,
+                    result.score(),
+                    result.verdict(),
+                    result.completeness(),
+                    result.readability(),
+                    result.timingPreservation(),
+                    result.naturalness(),
+                    result.issues(),
+                    result.suggestedFixes(),
                     QualityEvaluationStatus.SUCCEEDED,
                     null,
                     Instant.parse("2026-06-27T01:00:10Z")
