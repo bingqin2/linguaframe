@@ -875,3 +875,11 @@ Validation:
 Notes:
 
 - The guard checks accumulated recorded estimated cost before the next AI stage. It intentionally does not forecast the next provider call cost.
+
+Post-merge verification:
+
+- Merged `cost-budget-guard-mvp` back to `main` with merge commit `5ebaaaf`.
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,CostBudgetGuardServiceTests,CostBudgetedPipelineStageTests,DubbingAudioGenerationPipelineStageTests,LocalizationJobExecutionServiceTests test` passed on `main` with `Tests run: 39, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered `LINGUAFRAME_COST_BUDGET_GUARD_ENABLED: "false"` plus `LINGUAFRAME_COST_MAX_JOB_COST_USD: "0"`.
+- `git diff --check HEAD` passed on `main`.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
