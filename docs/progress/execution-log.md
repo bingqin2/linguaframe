@@ -1626,3 +1626,11 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
 - `scripts/demo/docker-e2e-cache-hit.sh` first exposed a stale backend container missing `/api/jobs/{jobId}/diagnostics/download`; after packaging the current backend jar and recreating `linguaframe-backend`, it passed. Evidence: first job `modelCallCount=2`, `providerCacheHitCount=0`; second job `modelCallCount=0`, `providerCacheHitCount=2`; downloaded evidence to `/tmp/linguaframe-demo/cache-hit/`.
+
+Post-merge verification:
+
+- Merged `cache-hit-demo-evidence-mvp` back to `main` with merge commit.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-cache-hit.sh` passed on `main`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 47, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
