@@ -224,6 +224,28 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
 
+## 2026-06-28
+
+Work:
+
+- Planned the OpenAI demo profile smoke runner MVP in `docs/plans/071-openai-demo-profile-smoke-runner-mvp.md`.
+- Added script-level private demo token support to `scripts/demo/lib/linguaframe-demo.sh` so terminal E2E flows can run against gated `/api/**` endpoints.
+- Added `.env.openai-demo.example` as a no-secret real OpenAI demo profile with OpenAI transcription, translation, evaluation, connectivity check, FFmpeg audio, and burn-in enabled while keeping TTS disabled by default.
+- Added `scripts/demo/openai-demo-preflight.sh` to validate local OpenAI demo configuration, run private-demo preflight, check provider readiness, and require the OpenAI live check to be `UP`.
+- Added `scripts/demo/docker-e2e-openai-smoke.sh` to require a real speech MP4, run OpenAI preflight, upload media, verify OpenAI model calls, download artifacts, and collect diagnostics/evidence outputs.
+- Documented the OpenAI smoke path in README, Docker E2E docs, smoke checklist, roadmap, target state, and decisions.
+
+Validation so far:
+
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `demo_curl` did not exist, then passed after adding the wrapper and fake-curl shell test.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/openai-demo-preflight.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-cache-hit.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.openai-demo.example config --quiet` passed.
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests,RuntimeLiveCheckServiceTests,DemoSessionControllerTests test` passed with `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Tests 74 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `git diff --check` passed.
+
 ## 2026-06-27
 
 Work:

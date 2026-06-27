@@ -45,6 +45,7 @@ Stage 1 goals:
 - Validate MinIO artifact storage.
 - Validate FFmpeg availability.
 - Validate OpenAI API calls with a short sample video.
+- Validate real OpenAI demo runs through an explicit no-secret env template, preflight, and smoke runner instead of enabling paid providers by default.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment

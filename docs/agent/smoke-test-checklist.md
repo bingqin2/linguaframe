@@ -343,6 +343,27 @@ Expected:
 - Evidence files are written under `/tmp/linguaframe-demo/daily-budget-guard/`.
 - The budget identity is a safe configured label and must not be a raw token, IP address, media path, or provider payload.
 
+Run the real OpenAI smoke path only with a local ignored `.env.openai-demo` and a short speech MP4:
+
+```bash
+cp .env.openai-demo.example .env.openai-demo
+# Edit OPENAI_API_KEY and current model values in .env.openai-demo.
+docker compose --env-file .env.openai-demo up -d --build
+LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-demo-preflight.sh
+LINGUAFRAME_ENV_FILE=.env.openai-demo \
+LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
+scripts/demo/docker-e2e-openai-smoke.sh
+```
+
+Expected:
+
+- Preflight prints `openai=UP` and safe provider readiness for transcription, translation, and evaluation.
+- The job reaches `COMPLETED`.
+- Job summary includes successful `OPENAI` model calls for transcription and translation.
+- Quality evaluation score, verdict, and status are printed when evaluation is enabled.
+- Evidence files are written under `/tmp/linguaframe-demo/openai-smoke/`.
+- Output and evidence do not include `OPENAI_API_KEY`, bearer headers, raw provider payloads, object keys, or raw local paths.
+
 Inspect the downloaded artifacts:
 
 ```bash

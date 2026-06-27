@@ -306,6 +306,7 @@ Build:
 - Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure, including app version, bundled migration contract, budget guard state, and configured per-job estimate limit.
 - Browser-visible live dependency checks. Status: implemented through `GET /api/runtime/live-checks` and the React `Live checks` panel with bounded non-destructive probes and safe status messages.
 - Explicit OpenAI connectivity check. Status: implemented as a disabled-by-default `openai` live-check probe that can verify configured model metadata access before provider-backed uploads.
+- OpenAI demo smoke profile. Status: implemented with a separate no-secret env template, preflight script, and provider-backed smoke runner for real credential demos.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
@@ -332,7 +333,7 @@ Suggested ExecPlan:
 
 Goal: make OpenAI usage reproducible and inspectable instead of hidden inside pipeline stages.
 
-Status: in progress. Model-call audit records are implemented with safe input/output summaries, and active OpenAI translation/evaluation prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, and shown in the React demo.
+Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, and shown in the React demo. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default.
 
 Build:
 
