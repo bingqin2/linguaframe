@@ -34,6 +34,9 @@ linguaframe:
     upload-max-requests: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_MAX_REQUESTS:20}
     upload-window-seconds: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_WINDOW_SECONDS:60}
     fail-open: ${LINGUAFRAME_RATE_LIMIT_FAIL_OPEN:true}
+  job-status-cache:
+    enabled: ${LINGUAFRAME_JOB_STATUS_CACHE_ENABLED:true}
+    ttl-seconds: ${LINGUAFRAME_JOB_STATUS_CACHE_TTL_SECONDS:30}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}

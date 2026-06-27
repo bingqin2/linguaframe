@@ -40,6 +40,9 @@ public class LinguaFrameProperties {
     private final RateLimit rateLimit = new RateLimit();
 
     @Valid
+    private final JobStatusCache jobStatusCache = new JobStatusCache();
+
+    @Valid
     private final Rabbitmq rabbitmq = new Rabbitmq();
 
     @Valid
@@ -90,6 +93,10 @@ public class LinguaFrameProperties {
 
     public RateLimit getRateLimit() {
         return rateLimit;
+    }
+
+    public JobStatusCache getJobStatusCache() {
+        return jobStatusCache;
     }
 
     public Rabbitmq getRabbitmq() {
@@ -965,6 +972,31 @@ public class LinguaFrameProperties {
 
         public void setFailOpen(boolean failOpen) {
             this.failOpen = failOpen;
+        }
+    }
+
+    public static class JobStatusCache {
+
+        private boolean enabled = true;
+
+        @Min(1)
+        @Max(3600)
+        private int ttlSeconds = 30;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getTtlSeconds() {
+            return ttlSeconds;
+        }
+
+        public void setTtlSeconds(int ttlSeconds) {
+            this.ttlSeconds = ttlSeconds;
         }
     }
 

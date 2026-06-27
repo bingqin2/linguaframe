@@ -17,6 +17,7 @@ import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobQueuePublisher;
 import com.linguaframe.job.service.LocalizationJobExecutionService;
+import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.WorkerStageRouter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +29,28 @@ import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecutionService {
+
+    private static final LocalizationJobStatusCacheService NOOP_JOB_STATUS_CACHE =
+            new LocalizationJobStatusCacheService() {
+                @Override
+                public Optional<com.linguaframe.job.domain.vo.LocalizationJobVo> get(String jobId) {
+                    return Optional.empty();
+                }
+
+                @Override
+                public void put(com.linguaframe.job.domain.vo.LocalizationJobVo job) {
+                }
+
+                @Override
+                public void evict(String jobId) {
+                }
+            };
 
     private final LocalizationJobRepository jobRepository;
     private final JobTimelineEventRepository timelineEventRepository;
@@ -40,6 +58,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
     private final LinguaFrameProperties properties;
     private final WorkerStageRouter stageRouter;
     private final JobQueuePublisher publisher;
+    private final LocalizationJobStatusCacheService jobStatusCacheService;
     private final Clock clock;
     private final AtomicLong timelineSequence = new AtomicLong();
 
@@ -50,9 +69,19 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             List<LocalizationPipelineStage> stages,
             LinguaFrameProperties properties,
             WorkerStageRouter stageRouter,
-            JobQueuePublisher publisher
+            JobQueuePublisher publisher,
+            LocalizationJobStatusCacheService jobStatusCacheService
     ) {
-        this(jobRepository, timelineEventRepository, stages, properties, stageRouter, publisher, Clock.systemUTC());
+        this(
+                jobRepository,
+                timelineEventRepository,
+                stages,
+                properties,
+                stageRouter,
+                publisher,
+                jobStatusCacheService,
+                Clock.systemUTC()
+        );
     }
 
     public LocalizationJobExecutionServiceImpl(
@@ -69,6 +98,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
                 new WorkerStageRouterImpl(),
                 message -> {
                 },
+                NOOP_JOB_STATUS_CACHE,
                 clock
         );
     }
@@ -80,6 +110,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             LinguaFrameProperties properties,
             WorkerStageRouter stageRouter,
             JobQueuePublisher publisher,
+            LocalizationJobStatusCacheService jobStatusCacheService,
             Clock clock
     ) {
         this.jobRepository = jobRepository;
@@ -90,6 +121,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
         this.properties = properties;
         this.stageRouter = stageRouter;
         this.publisher = publisher;
+        this.jobStatusCacheService = jobStatusCacheService;
         this.clock = clock;
     }
 
@@ -105,6 +137,9 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             saveTimeline(job.id(), LocalizationJobStage.WORKER_RECEIVED, JobTimelineEventStatus.SKIPPED,
                     "Worker skipped stale localization job message.", null, null, startedAt);
             return new LocalizationJobExecutionResultVo(job.id(), false, job.status());
+        }
+        if (firstSegment) {
+            evictCachedJob(job.id());
         }
         if (!firstSegment && job.status() != LocalizationJobStatus.PROCESSING) {
             saveTimeline(job.id(), startStage, JobTimelineEventStatus.SKIPPED,
@@ -147,6 +182,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
                 jobRepository.markFailed(job.id(), stage.stage(), error, Instant.now(clock));
                 saveTimeline(job.id(), stage.stage(), JobTimelineEventStatus.FAILED,
                         stage.stage().name() + " failed.", durationMs(stageStartedAt, Instant.now(clock)), error, Instant.now(clock));
+                evictCachedJob(job.id());
                 return new LocalizationJobExecutionResultVo(job.id(), true, LocalizationJobStatus.FAILED);
             }
             for (JobArtifactVo artifact : context.consumeCacheHits()) {
@@ -176,6 +212,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             jobRepository.markCompleted(job.id(), completedAt);
             saveTimeline(job.id(), LocalizationJobStage.COMPLETED, JobTimelineEventStatus.SUCCEEDED,
                     "Localization job completed.", durationMs(startedAt, completedAt), null, completedAt);
+            evictCachedJob(job.id());
             return new LocalizationJobExecutionResultVo(job.id(), true, LocalizationJobStatus.COMPLETED);
         }
     }
@@ -203,6 +240,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
     ) {
         jobRepository.markFailed(jobId, stage, error, occurredAt);
         saveTimeline(jobId, stage, JobTimelineEventStatus.FAILED, stage.name() + " failed.", null, error, occurredAt);
+        evictCachedJob(jobId);
         return new LocalizationJobExecutionResultVo(jobId, true, LocalizationJobStatus.FAILED);
     }
 
@@ -217,7 +255,16 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
     ) {
         saveTimeline(jobId, stage, JobTimelineEventStatus.SKIPPED,
                 "Localization job cancelled.", null, null, occurredAt);
+        evictCachedJob(jobId);
         return new LocalizationJobExecutionResultVo(jobId, true, LocalizationJobStatus.CANCELLED);
+    }
+
+    private void evictCachedJob(String jobId) {
+        try {
+            jobStatusCacheService.evict(jobId);
+        } catch (RuntimeException exception) {
+            // Cache eviction is best-effort and must not roll back worker state changes.
+        }
     }
 
     private void saveTimeline(

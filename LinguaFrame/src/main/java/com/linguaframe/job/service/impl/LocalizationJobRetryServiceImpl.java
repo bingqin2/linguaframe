@@ -12,6 +12,7 @@ import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
     private final JobTimelineEventRepository timelineEventRepository;
     private final JobDispatchOutboxService dispatchOutboxService;
     private final LocalizationJobQueryService queryService;
+    private final LocalizationJobStatusCacheService jobStatusCacheService;
     private final Clock clock;
 
     @Autowired
@@ -39,17 +41,27 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
             VideoRepository videoRepository,
             JobTimelineEventRepository timelineEventRepository,
             JobDispatchOutboxService dispatchOutboxService,
-            LocalizationJobQueryService queryService
+            LocalizationJobQueryService queryService,
+            LocalizationJobStatusCacheService jobStatusCacheService
     ) {
-        this(jobRepository, videoRepository, timelineEventRepository, dispatchOutboxService, queryService, Clock.systemUTC());
+        this(
+                jobRepository,
+                videoRepository,
+                timelineEventRepository,
+                dispatchOutboxService,
+                queryService,
+                jobStatusCacheService,
+                Clock.systemUTC()
+        );
     }
 
-    LocalizationJobRetryServiceImpl(
+    public LocalizationJobRetryServiceImpl(
             LocalizationJobRepository jobRepository,
             VideoRepository videoRepository,
             JobTimelineEventRepository timelineEventRepository,
             JobDispatchOutboxService dispatchOutboxService,
             LocalizationJobQueryService queryService,
+            LocalizationJobStatusCacheService jobStatusCacheService,
             Clock clock
     ) {
         this.jobRepository = jobRepository;
@@ -57,6 +69,7 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
         this.timelineEventRepository = timelineEventRepository;
         this.dispatchOutboxService = dispatchOutboxService;
         this.queryService = queryService;
+        this.jobStatusCacheService = jobStatusCacheService;
         this.clock = clock;
     }
 
@@ -89,6 +102,15 @@ public class LocalizationJobRetryServiceImpl implements LocalizationJobRetryServ
                 now
         ));
         dispatchOutboxService.enqueueLocalizationJobQueued(video, retryingJob);
+        evictCachedJob(jobId);
         return queryService.getJob(jobId);
+    }
+
+    private void evictCachedJob(String jobId) {
+        try {
+            jobStatusCacheService.evict(jobId);
+        } catch (RuntimeException exception) {
+            // Cache eviction is best-effort and must not roll back retry.
+        }
     }
 }

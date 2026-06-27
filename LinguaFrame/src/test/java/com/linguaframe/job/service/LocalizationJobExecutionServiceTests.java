@@ -68,6 +68,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -132,6 +134,52 @@ class LocalizationJobExecutionServiceTests {
                         LocalizationJobStage.WORKER_SMOKE + ":" + JobTimelineEventStatus.SUCCEEDED,
                         LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
                 );
+    }
+
+    @Test
+    void evictsCachedJobSnapshotDuringProcessingAndCompletion() {
+        Instant now = Instant.parse("2026-06-27T06:10:00Z");
+        createJob("execution-video-cache-evict", "execution-job-cache-evict", LocalizationJobStatus.QUEUED, now);
+        RecordingStage stage = new RecordingStage(false);
+        LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                properties,
+                new WorkerStageRouterImpl(),
+                message -> {
+                },
+                cacheService,
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        service.execute(message("execution-job-cache-evict", "execution-video-cache-evict", now));
+
+        verify(cacheService, org.mockito.Mockito.atLeast(2)).evict("execution-job-cache-evict");
+    }
+
+    @Test
+    void evictsCachedJobSnapshotWhenStageFails() {
+        Instant now = Instant.parse("2026-06-27T06:15:00Z");
+        createJob("execution-video-cache-fail", "execution-job-cache-fail", LocalizationJobStatus.QUEUED, now);
+        RecordingStage stage = new RecordingStage(true);
+        LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                properties,
+                new WorkerStageRouterImpl(),
+                message -> {
+                },
+                cacheService,
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        service.execute(message("execution-job-cache-fail", "execution-video-cache-fail", now));
+
+        verify(cacheService, org.mockito.Mockito.atLeast(2)).evict("execution-job-cache-fail");
     }
 
     @Test
@@ -1267,6 +1315,7 @@ class LocalizationJobExecutionServiceTests {
                 properties,
                 new WorkerStageRouterImpl(),
                 publisher,
+                mock(LocalizationJobStatusCacheService.class),
                 clock
         );
     }

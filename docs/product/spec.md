@@ -254,7 +254,7 @@ The first resume-ready MVP supports:
 - React upload and job detail UI.
 - Spring Boot backend.
 - MySQL-backed video, job, transcript, artifact, and usage records.
-- Redis-backed job status cache and rate-limit hooks. Upload rate limiting is implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
+- Redis-backed job status cache and rate-limit hooks. Job detail and SSE snapshots use short-lived cache-aside Redis entries, and upload rate limiting is implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - RabbitMQ-backed async processing.
 - MinIO-backed file storage.
 - FFmpeg audio extraction and subtitle burn-in.
