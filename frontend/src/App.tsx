@@ -40,6 +40,38 @@ const TTS_VOICE_OPTIONS = [
   { value: 'coral', label: 'Coral' }
 ];
 
+type DeliverableStatus = 'Ready' | 'Preview only' | 'Missing';
+
+interface ResultDeliverableDefinition {
+  key: string;
+  label: string;
+  artifactType: JobArtifact['type'];
+  preview: 'transcript' | 'subtitle' | null;
+}
+
+interface ResultDeliverable {
+  definition: ResultDeliverableDefinition;
+  artifact: JobArtifact | null;
+  status: DeliverableStatus;
+}
+
+const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
+  { key: 'transcript-json', label: 'Transcript JSON', artifactType: 'TRANSCRIPT_JSON', preview: 'transcript' },
+  { key: 'source-srt', label: 'Source SRT', artifactType: 'SUBTITLE_SRT', preview: 'transcript' },
+  { key: 'source-vtt', label: 'Source VTT', artifactType: 'SUBTITLE_VTT', preview: 'transcript' },
+  {
+    key: 'target-subtitle-json',
+    label: 'Target subtitle JSON',
+    artifactType: 'TARGET_SUBTITLE_JSON',
+    preview: 'subtitle'
+  },
+  { key: 'target-srt', label: 'Target SRT', artifactType: 'TARGET_SUBTITLE_SRT', preview: 'subtitle' },
+  { key: 'target-vtt', label: 'Target VTT', artifactType: 'TARGET_SUBTITLE_VTT', preview: 'subtitle' },
+  { key: 'dubbing-audio', label: 'Dubbing audio', artifactType: 'DUBBING_AUDIO', preview: null },
+  { key: 'burned-video', label: 'Burned video', artifactType: 'BURNED_VIDEO', preview: null },
+  { key: 'worker-summary', label: 'Worker summary', artifactType: 'WORKER_SUMMARY', preview: null }
+];
+
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [ttsVoice, setTtsVoice] = useState('');
@@ -1196,6 +1228,10 @@ function JobDetail({
 }) {
   const estimatedCost = formatCost(job.usageSummary?.estimatedCostUsd ?? 0);
   const modelCallLabel = `${job.usageSummary?.modelCallCount ?? job.modelCalls.length} calls`;
+  const deliverables = useMemo(
+    () => buildResultDeliverables(artifacts, transcript.length > 0, subtitles.length > 0),
+    [artifacts, subtitles.length, transcript.length]
+  );
 
   const statusItems = useMemo(
     () => [
@@ -1270,6 +1306,13 @@ function JobDetail({
           </strong>
         </div>
       </section>
+
+      <ResultDeliveryPanel
+        deliverables={deliverables}
+        estimatedCost={estimatedCost}
+        job={job}
+        modelCallLabel={modelCallLabel}
+      />
 
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
 
@@ -1439,6 +1482,95 @@ function JobDetail({
   );
 }
 
+function ResultDeliveryPanel({
+  deliverables,
+  estimatedCost,
+  job,
+  modelCallLabel
+}: {
+  deliverables: ResultDeliverable[];
+  estimatedCost: string;
+  job: LocalizationJob;
+  modelCallLabel: string;
+}) {
+  const generatedCount = deliverables.filter(
+    (deliverable) => deliverable.artifact && !deliverable.artifact.cacheHit
+  ).length;
+  const reusedCount = deliverables.filter((deliverable) => deliverable.artifact?.cacheHit).length;
+  const missingCount = deliverables.filter((deliverable) => deliverable.status === 'Missing').length;
+
+  return (
+    <section className="panel result-delivery-panel" aria-label="Result delivery">
+      <div className="panel-heading">
+        <h3>Result delivery</h3>
+        <div className="panel-actions">
+          <a className="secondary-link" href={linguaFrameApi.artifactArchiveDownloadUrl(job.jobId)}>
+            Download result bundle
+          </a>
+          <a className="secondary-link" href={linguaFrameApi.jobDiagnosticsDownloadUrl(job.jobId)}>
+            Download diagnostics
+          </a>
+        </div>
+      </div>
+
+      <dl className="metrics-grid result-delivery-metrics">
+        <div>
+          <dt>Generated</dt>
+          <dd>{generatedCount} generated</dd>
+        </div>
+        <div>
+          <dt>Reused</dt>
+          <dd>{reusedCount} reused</dd>
+        </div>
+        <div>
+          <dt>Missing</dt>
+          <dd>{missingCount} missing</dd>
+        </div>
+        <div>
+          <dt>Model calls</dt>
+          <dd>{modelCallLabel}</dd>
+        </div>
+        <div>
+          <dt>Estimated cost</dt>
+          <dd>{estimatedCost}</dd>
+        </div>
+      </dl>
+
+      <ul className="result-deliverable-list">
+        {deliverables.map((deliverable) => (
+          <li key={deliverable.definition.key}>
+            <div className="result-deliverable-main">
+              <strong>{deliverable.definition.label}</strong>
+              <span className={resultStatusClassName(deliverable.status)}>{deliverable.status}</span>
+            </div>
+            {deliverable.artifact ? (
+              <div className="result-deliverable-meta">
+                <span>{deliverable.artifact.filename}</span>
+                <span>SHA-256</span>
+                <span title={deliverable.artifact.contentSha256 || undefined}>
+                  {formatArtifactHash(deliverable.artifact.contentSha256)}
+                </span>
+                <span title={deliverable.artifact.sourceArtifactId ?? undefined}>
+                  {deliverable.artifact.cacheHit ? 'Reused' : 'Generated'}
+                </span>
+                <a href={linguaFrameApi.artifactDownloadUrl(job.jobId, deliverable.artifact.artifactId)}>
+                  Download {deliverable.definition.label}
+                </a>
+              </div>
+            ) : (
+              <p className="muted">
+                {deliverable.status === 'Preview only'
+                  ? 'Preview data is available, but no downloadable artifact has been stored yet.'
+                  : 'No preview or downloadable artifact is available yet.'}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function QualityEvaluationPanel({
   evaluation
 }: {
@@ -1555,6 +1687,36 @@ function toErrorMessage(error: unknown): string {
 
 function supportsEventSource(): boolean {
   return typeof window.EventSource === 'function';
+}
+
+function buildResultDeliverables(
+  artifacts: JobArtifact[],
+  hasTranscriptPreview: boolean,
+  hasSubtitlePreview: boolean
+): ResultDeliverable[] {
+  return RESULT_DELIVERABLES.map((definition) => {
+    const artifact = artifacts.find((candidate) => candidate.type === definition.artifactType) ?? null;
+    let status: DeliverableStatus = 'Missing';
+    if (artifact) {
+      status = 'Ready';
+    } else if (
+      (definition.preview === 'transcript' && hasTranscriptPreview) ||
+      (definition.preview === 'subtitle' && hasSubtitlePreview)
+    ) {
+      status = 'Preview only';
+    }
+    return { definition, artifact, status };
+  });
+}
+
+function resultStatusClassName(status: DeliverableStatus): string {
+  if (status === 'Ready') {
+    return 'status-pill success';
+  }
+  if (status === 'Preview only') {
+    return 'status-pill warning';
+  }
+  return 'status-pill';
 }
 
 function formatCost(value: number): string {
