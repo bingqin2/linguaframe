@@ -16,6 +16,9 @@ import {
   getRetentionCleanupPreview,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
+  getDemoSession,
+  loginDemoSession,
+  logoutDemoSession,
   readDemoToken,
   cancelJob,
   retryJob,
@@ -115,6 +118,67 @@ describe('linguaframeApi', () => {
           'X-LinguaFrame-Demo-Token': 'private-demo-token'
         }
       })
+    );
+  });
+
+  test('reads private demo owner session status', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        accessGateEnabled: true,
+        authenticated: false,
+        headerName: 'X-LinguaFrame-Demo-Token',
+        mode: 'OWNER_SESSION_REQUIRED'
+      })
+    );
+
+    const status = await getDemoSession();
+
+    expect(status.mode).toBe('OWNER_SESSION_REQUIRED');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/demo-session',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+
+  test('creates and clears private demo owner session without storing fallback token', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          accessGateEnabled: true,
+          authenticated: true,
+          headerName: 'X-LinguaFrame-Demo-Token',
+          mode: 'OWNER_SESSION_ACTIVE'
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          accessGateEnabled: true,
+          authenticated: false,
+          headerName: 'X-LinguaFrame-Demo-Token',
+          mode: 'OWNER_SESSION_REQUIRED'
+        })
+      );
+
+    const loginStatus = await loginDemoSession('private-demo-token');
+    const logoutStatus = await logoutDemoSession();
+
+    expect(loginStatus.authenticated).toBe(true);
+    expect(logoutStatus.authenticated).toBe(false);
+    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBeNull();
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/demo-session/login',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: 'private-demo-token' })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/demo-session/logout',
+      expect.objectContaining({ method: 'POST' })
     );
   });
 

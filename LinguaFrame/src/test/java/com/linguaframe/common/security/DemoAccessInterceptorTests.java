@@ -105,6 +105,16 @@ class DemoAccessInterceptorTests {
         }
 
         @Test
+        void leavesDemoSessionEndpointsOpenForBrowserLogin() throws Exception {
+            mockMvc.perform(get("/api/demo-session"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.authenticated").value(false));
+
+            mockMvc.perform(get("/api/runtime/dependencies"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
         void leavesDeploymentReadinessEndpointsOpen() throws Exception {
             mockMvc.perform(get("/actuator/health"))
                     .andExpect(status().isOk());

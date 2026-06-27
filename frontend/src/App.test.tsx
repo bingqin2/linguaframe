@@ -10,6 +10,7 @@ import type {
   LocalizationJobList,
   MediaUpload,
   MediaUploadValidation,
+  DemoSessionStatus,
   OperatorDashboard,
   PromptTemplate,
   RetentionCleanupResult,
@@ -45,6 +46,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
     vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockResolvedValue(
       retentionCleanupResultFixture()
     );
@@ -474,20 +476,81 @@ describe('App', () => {
     expect(screen.getByRole('complementary', { name: /job controls/i })).toBeInTheDocument();
   });
 
-  test('saves and clears the private demo access token', async () => {
+  test('shows open demo owner session status on startup', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(
+      demoSessionStatusFixture({
+        accessGateEnabled: false,
+        authenticated: true,
+        mode: 'OPEN'
+      })
+    );
+
     render(<App />);
 
-    const tokenInput = screen.getByLabelText(/demo access token/i);
+    expect(await screen.findByText('Open demo')).toBeInTheDocument();
+  });
+
+  test('creates and clears a private demo owner session', async () => {
+    const getDemoSession = vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(
+      demoSessionStatusFixture({
+        accessGateEnabled: true,
+        authenticated: false,
+        mode: 'OWNER_SESSION_REQUIRED'
+      })
+    );
+    const loginDemoSession = vi.spyOn(linguaFrameApi, 'loginDemoSession').mockResolvedValue(
+      demoSessionStatusFixture({
+        accessGateEnabled: true,
+        authenticated: true,
+        mode: 'OWNER_SESSION_ACTIVE'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'logoutDemoSession').mockResolvedValue(
+      demoSessionStatusFixture({
+        accessGateEnabled: true,
+        authenticated: false,
+        mode: 'OWNER_SESSION_REQUIRED'
+      })
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText('Owner session required')).toBeInTheDocument();
+    const tokenInput = screen.getByLabelText(/owner access token/i);
     await userEvent.type(tokenInput, 'private-demo-token');
-    await userEvent.click(screen.getByRole('button', { name: /save token/i }));
+    await userEvent.click(screen.getByRole('button', { name: /start session/i }));
 
-    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBe('private-demo-token');
-    expect(screen.getByText(/token saved/i)).toBeInTheDocument();
+    expect(loginDemoSession).toHaveBeenCalledWith('private-demo-token');
+    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBeNull();
+    await waitFor(() => {
+      expect(screen.getAllByText('Owner session active').length).toBeGreaterThan(0);
+    });
 
-    await userEvent.click(screen.getByRole('button', { name: /clear token/i }));
+    await userEvent.click(screen.getByRole('button', { name: /end session/i }));
 
     expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBeNull();
     expect(tokenInput).toHaveValue('');
+    expect(await screen.findByText('Owner session ended.')).toBeInTheDocument();
+    expect(getDemoSession).toHaveBeenCalled();
+  });
+
+  test('shows private demo owner session login failures', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(
+      demoSessionStatusFixture({
+        accessGateEnabled: true,
+        authenticated: false,
+        mode: 'OWNER_SESSION_REQUIRED'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'loginDemoSession').mockRejectedValue(new Error('Owner token rejected'));
+
+    render(<App />);
+
+    const tokenInput = await screen.findByLabelText(/owner access token/i);
+    await userEvent.type(tokenInput, 'wrong-token');
+    await userEvent.click(screen.getByRole('button', { name: /start session/i }));
+
+    expect(await screen.findByText('Owner token rejected')).toBeInTheDocument();
   });
 
   test('shows demo token required errors from protected APIs', async () => {
@@ -498,7 +561,7 @@ describe('App', () => {
     render(<App />);
 
     expect(await screen.findByText('Demo access token is required.')).toBeInTheDocument();
-    expect(screen.getByLabelText(/demo access token/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/owner access token/i)).toBeInTheDocument();
   });
 
   test('filters server job history by status', async () => {
@@ -1684,6 +1747,16 @@ function runtimeLiveChecksFixture(
       ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' },
       openai: { status: 'SKIPPED', latencyMs: 1, message: 'OpenAI connectivity check is disabled' }
     },
+    ...overrides
+  };
+}
+
+function demoSessionStatusFixture(overrides: Partial<DemoSessionStatus> = {}): DemoSessionStatus {
+  return {
+    accessGateEnabled: false,
+    authenticated: true,
+    headerName: 'X-LinguaFrame-Demo-Token',
+    mode: 'OPEN',
     ...overrides
   };
 }

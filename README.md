@@ -141,7 +141,7 @@ scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
 
-The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, owner-session login/logout, optional demo-token header behavior, and configured sample video paths before any media upload or paid provider call.
 
 Private server demo preparation uses a separate Compose overlay so local Docker behavior stays unchanged:
 
@@ -210,7 +210,14 @@ LINGUAFRAME_DEMO_ACCESS_HEADER_NAME=X-LinguaFrame-Demo-Token
 docker compose --env-file .env up -d --force-recreate linguaframe-backend linguaframe-frontend
 ```
 
-Then open `http://localhost:5173`, enter the same value in `Demo access token`, and choose `Save token`. The frontend stores it in browser local storage for fetch requests and a same-site cookie for job progress streams, downloads, and media previews. Do not commit real demo tokens.
+Then open `http://localhost:5173`, enter the same value in `Owner access token`, and choose `Start session`. The backend validates the configured token and sets a same-site `LinguaFrame-Demo-Token` owner-session cookie for browser API calls, job progress streams, downloads, and media previews. Choose `End session` to clear it. This is a single-owner private demo gate, not public authentication, accounts, JWT, or billing. Do not commit real demo tokens.
+
+Terminal, script, and Swagger flows can still use the header fallback:
+
+```bash
+curl -H "X-LinguaFrame-Demo-Token: $LINGUAFRAME_DEMO_ACCESS_TOKEN" \
+  http://localhost:8080/api/runtime/dependencies
+```
 
 ## Runtime Configuration
 
@@ -220,7 +227,7 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 
 - `linguaframe.media.max-file-size-mb`
 - `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
-- `linguaframe.demo.access-token` - empty by default; non-empty values require a matching browser token for `/api/**`.
+- `linguaframe.demo.access-token` - empty by default; non-empty values require a matching owner-session cookie or demo access header for `/api/**`.
 - `linguaframe.demo.access-header-name` - default `X-LinguaFrame-Demo-Token`.
 - `linguaframe.rate-limit.enabled` - default `false`; enables Redis-backed upload rate limiting.
 - `linguaframe.rate-limit.upload-max-requests` - default `20`, counted per client identity per window.

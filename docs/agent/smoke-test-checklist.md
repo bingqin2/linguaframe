@@ -181,7 +181,10 @@ http://localhost:8080/swagger-ui/index.html
 Expected browser behavior:
 
 - Swagger UI lists the primary demo API groups and the `DemoAccessToken` authorization option.
-- When private demo access is enabled, Swagger API calls to `/api/**` succeed only after authorizing with the configured demo token.
+- When private demo access is enabled, the React header shows `Owner session required` before login.
+- Entering the configured token in `Owner access token` and choosing `Start session` changes the header to `Owner session active`; choosing `End session` clears the owner session.
+- Swagger and curl API calls to `/api/**` still succeed only after sending the configured token through `X-LinguaFrame-Demo-Token`.
+- Anonymous browser requests to `/api/demo-session` remain reachable so a locked-out owner can log in, while other `/api/**` requests stay protected.
 - Choosing a file and clicking `Validate file` shows an `Upload validation` panel with backend validation code, message, filename, content type, file size versus max size, and duration versus max duration.
 - Clicking `Upload` validates the selected file before creating a job.
 - Invalid upload validation responses block `POST /api/media/uploads` and leave the upload controls usable.

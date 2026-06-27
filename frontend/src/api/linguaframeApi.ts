@@ -1,5 +1,6 @@
 import type {
   JobArtifact,
+  DemoSessionStatus,
   LocalizationJob,
   LocalizationJobList,
   LocalizationJobStatus,
@@ -22,6 +23,28 @@ export interface ListJobsParams {
   status?: LocalizationJobStatus | 'ALL';
   limit?: number;
   offset?: number;
+}
+
+export async function getDemoSession(): Promise<DemoSessionStatus> {
+  return requestJson<DemoSessionStatus>('/api/demo-session', {
+    method: 'GET'
+  });
+}
+
+export async function loginDemoSession(token: string): Promise<DemoSessionStatus> {
+  return requestJson<DemoSessionStatus>('/api/demo-session/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ token: token.trim() })
+  });
+}
+
+export async function logoutDemoSession(): Promise<DemoSessionStatus> {
+  return requestJson<DemoSessionStatus>('/api/demo-session/logout', {
+    method: 'POST'
+  });
 }
 
 export async function validateUpload(file: File): Promise<MediaUploadValidation> {
@@ -171,6 +194,9 @@ export function jobEventsUrl(jobId: string): string {
 }
 
 export const linguaFrameApi = {
+  getDemoSession,
+  loginDemoSession,
+  logoutDemoSession,
   validateUpload,
   uploadMedia,
   listJobs,

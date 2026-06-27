@@ -325,6 +325,70 @@ check_demo_token_gate() {
   pass "Demo access token gate works with header $DEMO_HEADER_NAME"
 }
 
+check_demo_session() {
+  local endpoint="$BASE_URL/api/demo-session"
+  local response
+  local response_file
+
+  if ! response="$(curl -fsS "$endpoint")"; then
+    fail "Demo owner-session status failed at $endpoint"
+  fi
+
+  response_file="$(mktemp)"
+  printf '%s' "$response" > "$response_file"
+  if ! python3 - "$response_file" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as file:
+    body = json.load(file)
+
+required = {"accessGateEnabled", "authenticated", "headerName", "mode"}
+missing = sorted(required - set(body))
+if missing:
+    raise SystemExit("Demo session response is missing fields: " + ", ".join(missing))
+if body["mode"] not in {"OPEN", "OWNER_SESSION_ACTIVE", "OWNER_SESSION_REQUIRED"}:
+    raise SystemExit("Demo session response has invalid mode: " + str(body["mode"]))
+print("demoSessionMode=" + str(body["mode"]))
+print("demoSessionAuthenticated=" + str(body["authenticated"]))
+PY
+  then
+    rm -f "$response_file"
+    fail "Demo owner-session status shape is invalid"
+  fi
+  rm -f "$response_file"
+
+  if [[ -n "$DEMO_TOKEN" ]]; then
+    local cookie_file
+    local payload_file
+    local login_status
+    local logout_status
+    cookie_file="$(mktemp)"
+    payload_file="$(mktemp)"
+    python3 - "$DEMO_TOKEN" "$payload_file" <<'PY'
+import json
+import sys
+
+with open(sys.argv[2], "w", encoding="utf-8") as file:
+    json.dump({"token": sys.argv[1]}, file)
+PY
+    login_status="$(http_status -c "$cookie_file" -H "Content-Type: application/json" --data-binary "@$payload_file" "$BASE_URL/api/demo-session/login")"
+    if [[ "$login_status" != "200" ]]; then
+      rm -f "$cookie_file" "$payload_file"
+      fail "Expected demo owner-session login to return 200, got $login_status"
+    fi
+    logout_status="$(http_status -b "$cookie_file" -X POST "$BASE_URL/api/demo-session/logout")"
+    rm -f "$cookie_file" "$payload_file"
+    if [[ "$logout_status" != "200" ]]; then
+      fail "Expected demo owner-session logout to return 200, got $logout_status"
+    fi
+    pass "Demo owner-session login and logout work"
+    return 0
+  fi
+
+  pass "Demo owner-session status works in open mode"
+}
+
 check_media_path() {
   local variable_name="$1"
   local value="${!variable_name:-}"
@@ -365,6 +429,7 @@ main() {
   check_runtime_contract
   check_runtime_live_checks
   check_frontend
+  check_demo_session
   check_demo_token_gate
   check_sample_paths
 

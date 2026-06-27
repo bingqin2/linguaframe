@@ -34,6 +34,15 @@ export interface MediaUploadValidation {
   supportedContentTypes: string[];
 }
 
+export type DemoSessionMode = 'OPEN' | 'OWNER_SESSION_ACTIVE' | 'OWNER_SESSION_REQUIRED';
+
+export interface DemoSessionStatus {
+  accessGateEnabled: boolean;
+  authenticated: boolean;
+  headerName: string;
+  mode: DemoSessionMode;
+}
+
 export type LocalizationJobStatus =
   | 'QUEUED'
   | 'RETRYING'

@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   JobArtifact,
+  DemoSessionStatus,
   LocalizationJob,
   LocalizationJobStatus,
   LocalizationJobSummary,
@@ -183,6 +184,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [demoTokenInput, setDemoTokenInput] = useState(() => readDemoToken(window.localStorage));
   const [demoTokenStatus, setDemoTokenStatus] = useState<string | null>(null);
+  const [demoSessionStatus, setDemoSessionStatus] = useState<DemoSessionStatus | null>(null);
+  const [isChangingDemoSession, setIsChangingDemoSession] = useState(false);
   const [job, setJob] = useState<LocalizationJob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isValidatingUpload, setIsValidatingUpload] = useState(false);
@@ -232,6 +235,17 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const storedToken = readDemoToken(window.localStorage);
     if (storedToken) {
       writeDemoToken(window.localStorage, storedToken);
+    }
+  }, []);
+
+  const loadDemoSession = useCallback(async () => {
+    try {
+      const status = await linguaFrameApi.getDemoSession();
+      setDemoSessionStatus(status);
+      setDemoTokenStatus(null);
+    } catch (sessionError) {
+      setDemoSessionStatus(null);
+      setDemoTokenStatus(toErrorMessage(sessionError));
     }
   }, []);
 
@@ -361,6 +375,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     setPreviewErrors(errors);
   }, []);
+
+  useEffect(() => {
+    void loadDemoSession();
+  }, [loadDemoSession]);
 
   useEffect(() => {
     void loadHistory(historyStatusFilter);
@@ -624,21 +642,47 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
-  function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const storedToken = writeDemoToken(window.localStorage, demoTokenInput);
-    setDemoTokenInput(storedToken);
-    setDemoTokenStatus(storedToken ? 'Token saved.' : 'Token cleared.');
-    void loadRuntimeDependencies();
-    void loadRetentionCleanupPreview();
+    const token = demoTokenInput.trim();
+    if (!token) {
+      setDemoTokenStatus('Enter the owner access token.');
+      return;
+    }
+
+    setIsChangingDemoSession(true);
+    try {
+      const status = await linguaFrameApi.loginDemoSession(token);
+      writeDemoToken(window.localStorage, '');
+      setDemoSessionStatus(status);
+      setDemoTokenInput('');
+      setDemoTokenStatus(status.authenticated ? 'Owner session active' : 'Owner session required');
+      void loadRuntimeDependencies();
+      void loadRetentionCleanupPreview();
+    } catch (sessionError) {
+      setDemoTokenStatus(toErrorMessage(sessionError));
+    } finally {
+      setIsChangingDemoSession(false);
+    }
   }
 
-  function handleClearDemoToken() {
-    writeDemoToken(window.localStorage, '');
-    setDemoTokenInput('');
-    setDemoTokenStatus('Token cleared.');
-    void loadRuntimeDependencies();
-    void loadRetentionCleanupPreview();
+  async function handleClearDemoToken() {
+    setIsChangingDemoSession(true);
+    try {
+      const status = await linguaFrameApi.logoutDemoSession();
+      writeDemoToken(window.localStorage, '');
+      setDemoSessionStatus(status);
+      setDemoTokenInput('');
+      setDemoTokenStatus('Owner session ended.');
+      void loadRuntimeDependencies();
+      void loadRetentionCleanupPreview();
+    } catch (sessionError) {
+      writeDemoToken(window.localStorage, '');
+      setDemoTokenInput('');
+      setDemoTokenStatus(toErrorMessage(sessionError));
+    } finally {
+      setIsChangingDemoSession(false);
+    }
   }
 
   async function handleRunRetentionCleanup() {
@@ -670,10 +714,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           <p>Upload a video, follow the localization pipeline, and inspect generated outputs.</p>
         </div>
         <div className="header-tools">
-          <span className="runtime-badge">Browser demo</span>
+          <span className="runtime-badge">{formatDemoSessionStatus(demoSessionStatus)}</span>
           <form className="demo-token-form" onSubmit={handleSaveDemoToken}>
             <label>
-              Demo access token
+              Owner access token
               <input
                 type="password"
                 value={demoTokenInput}
@@ -685,9 +729,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               />
             </label>
             <div className="demo-token-actions">
-              <button type="submit">Save token</button>
-              <button type="button" className="secondary-button" onClick={handleClearDemoToken}>
-                Clear token
+              <button type="submit" disabled={isChangingDemoSession}>
+                Start session
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleClearDemoToken}
+                disabled={isChangingDemoSession}
+              >
+                End session
               </button>
             </div>
             {demoTokenStatus ? <p className="token-status">{demoTokenStatus}</p> : null}
@@ -2533,6 +2584,16 @@ function formatProviderReadiness(name: string, provider: ProviderReadiness): str
     return `${name}: ${status} / ${credentials}`;
   }
   return `${name}: ${status} / ${model} / ${credentials}`;
+}
+
+function formatDemoSessionStatus(status: DemoSessionStatus | null): string {
+  if (!status) {
+    return 'Checking owner session';
+  }
+  if (!status.accessGateEnabled) {
+    return 'Open demo';
+  }
+  return status.authenticated ? 'Owner session active' : 'Owner session required';
 }
 
 function formatRetentionOutcome(result: RetentionCleanupResult): string {
