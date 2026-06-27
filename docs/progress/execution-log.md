@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added typed frontend upload validation for `POST /api/media/uploads/validate`.
+- Added browser upload preflight state, `Validate file` action, validation result panel, and upload gating that blocks job creation unless validation returns `READY`.
+- Updated README, Docker E2E guide, and smoke-test checklist with browser upload preflight behavior.
+
+Validation:
+
+- `cd frontend && npm run test:run -- linguaframeApi` first failed because `validateUpload` did not exist, then passed with `Tests 23 passed`.
+- `cd frontend && npm run test:run -- App -t "validates selected file|blocks upload|upload validation|uploads a video"` first failed because the upload form did not validate before upload, did not expose `Validate file`, and did not render an upload validation panel.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed after implementation with `Test Files 2 passed` and `Tests 57 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed after rerunning from the correct repository path.
+
+## 2026-06-27
+
+Work:
+
 - Added a browser `Demo runbook` panel that shows the local startup command, E2E validation scripts, demo URLs, runtime constraints, provider modes, budget guard state, subtitle burn-in state, and sample-media guidance.
 - Kept the runbook useful when readiness loading fails by always rendering static commands and showing a runtime guidance error.
 - Updated README, Docker E2E guide, and smoke-test checklist with the in-app runbook expectations.

@@ -8,6 +8,7 @@ import type {
   LocalizationJob,
   LocalizationJobList,
   MediaUpload,
+  MediaUploadValidation,
   OperatorDashboard,
   PromptTemplate,
   RetentionCleanupResult,
@@ -470,6 +471,9 @@ describe('App', () => {
 
   test('uploads a video, stores it as a recent job, and selects the created job', async () => {
     const listJobs = vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+    const validateUpload = vi
+      .spyOn(linguaFrameApi, 'validateUpload')
+      .mockResolvedValue(mediaUploadValidationFixture());
     vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
@@ -488,9 +492,9 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /upload/i }));
 
     expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
-    expect(screen.getByText('sample.mp4')).toBeInTheDocument();
     const selectedJob = screen.getByRole('region', { name: /selected job/i });
     expect(within(selectedJob).getByText('QUEUED')).toBeInTheDocument();
+    expect(screen.getAllByText('sample.mp4').length).toBeGreaterThan(0);
     expect(JSON.parse(window.localStorage.getItem('linguaframe.recentJobs.v1') ?? '[]')).toEqual([
       expect.objectContaining({
         jobId: 'job-1',
@@ -504,7 +508,82 @@ describe('App', () => {
       'zh-CN',
       'verse'
     );
+    expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
+  });
+
+  test('validates selected file before upload when requested', async () => {
+    vi.spyOn(linguaFrameApi, 'validateUpload').mockResolvedValue(
+      mediaUploadValidationFixture({
+        filename: 'sample.mp4',
+        fileSizeBytes: 1048576,
+        durationSeconds: 42
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.upload(
+      screen.getByLabelText(/video file/i),
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' })
+    );
+    await userEvent.click(screen.getByRole('button', { name: /validate file/i }));
+
+    const validation = await screen.findByRole('region', { name: /upload validation/i });
+    expect(within(validation).getByText('READY')).toBeInTheDocument();
+    expect(within(validation).getByText('File is ready for upload.')).toBeInTheDocument();
+    expect(within(validation).getByText('sample.mp4')).toBeInTheDocument();
+    expect(within(validation).getByText('video/mp4')).toBeInTheDocument();
+    expect(within(validation).getByText('1.00 MB / 100.00 MB')).toBeInTheDocument();
+    expect(within(validation).getByText('42 seconds / 300 seconds')).toBeInTheDocument();
+  });
+
+  test('blocks upload when validation rejects the selected file', async () => {
+    const validateUpload = vi.spyOn(linguaFrameApi, 'validateUpload').mockResolvedValue(
+      mediaUploadValidationFixture({
+        valid: false,
+        code: 'DURATION_TOO_LONG',
+        message: 'The uploaded video exceeds the 300 second duration limit.',
+        durationSeconds: 301
+      })
+    );
+    const uploadMedia = vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
+
+    render(<App />);
+
+    await userEvent.upload(
+      screen.getByLabelText(/video file/i),
+      new File(['demo'], 'long.mp4', { type: 'video/mp4' })
+    );
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    const validation = await screen.findByRole('region', { name: /upload validation/i });
+    expect(validateUpload).toHaveBeenCalledTimes(1);
+    expect(uploadMedia).not.toHaveBeenCalled();
+    expect(within(validation).getByText('DURATION_TOO_LONG')).toBeInTheDocument();
+    expect(
+      within(validation).getByText('The uploaded video exceeds the 300 second duration limit.')
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('keeps upload controls usable when upload validation request fails', async () => {
+    vi.spyOn(linguaFrameApi, 'validateUpload').mockRejectedValue(
+      new Error('Validation unavailable')
+    );
+    const uploadMedia = vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
+
+    render(<App />);
+
+    await userEvent.upload(
+      screen.getByLabelText(/video file/i),
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' })
+    );
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    expect(await screen.findByText('Validation unavailable')).toBeInTheDocument();
+    expect(uploadMedia).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
   test('opens a known job id manually', async () => {
@@ -1083,6 +1162,24 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
     createdAt: '2026-06-26T10:00:00Z',
+    ...overrides
+  };
+}
+
+function mediaUploadValidationFixture(
+  overrides: Partial<MediaUploadValidation> = {}
+): MediaUploadValidation {
+  return {
+    valid: true,
+    code: 'READY',
+    message: 'File is ready for upload.',
+    filename: 'sample.mp4',
+    contentType: 'video/mp4',
+    fileSizeBytes: 1234,
+    maxFileSizeBytes: 104857600,
+    durationSeconds: 42,
+    maxDurationSeconds: 300,
+    supportedContentTypes: ['video/mp4', 'video/quicktime'],
     ...overrides
   };
 }

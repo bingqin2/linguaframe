@@ -12,6 +12,28 @@ export interface MediaUpload {
   createdAt: string;
 }
 
+export type MediaUploadValidationCode =
+  | 'READY'
+  | 'MISSING_FILE'
+  | 'EMPTY_FILE'
+  | 'UNSUPPORTED_CONTENT_TYPE'
+  | 'FILE_TOO_LARGE'
+  | 'UNREADABLE_MEDIA'
+  | 'DURATION_TOO_LONG';
+
+export interface MediaUploadValidation {
+  valid: boolean;
+  code: MediaUploadValidationCode;
+  message: string;
+  filename: string | null;
+  contentType: string | null;
+  fileSizeBytes: number;
+  maxFileSizeBytes: number;
+  durationSeconds: number | null;
+  maxDurationSeconds: number;
+  supportedContentTypes: string[];
+}
+
 export type LocalizationJobStatus =
   | 'QUEUED'
   | 'RETRYING'
