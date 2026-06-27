@@ -299,8 +299,8 @@ Build:
 - HTTPS reverse proxy.
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
-- Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, optional token-gate behavior, and configured sample paths.
-- Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure, including budget guard state and configured per-job estimate limit.
+- Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, backend runtime freshness, optional token-gate behavior, and configured sample paths.
+- Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure, including app version, bundled migration contract, budget guard state, and configured per-job estimate limit.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.

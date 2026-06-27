@@ -132,7 +132,7 @@ scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
 
-The preflight checks required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
 
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
@@ -282,7 +282,7 @@ The backend exposes a non-secret dependency summary for local readiness checks:
 curl http://localhost:8080/api/runtime/dependencies
 ```
 
-The response includes MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata plus safe demo-readiness fields for the browser panel: demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, and feature flags. It intentionally excludes passwords, access keys, secret keys, API keys, tokens, raw local media paths, and FFmpeg workspace paths. This endpoint is configuration-derived only; it does not run live dependency probes, upload objects, execute FFmpeg, or call paid providers.
+The response includes a safe runtime contract plus MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. The runtime contract exposes the app version, latest bundled Flyway migration version, and required demo route paths so preflight can detect stale Docker backend images before upload. Demo-readiness fields for the browser panel include demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, budget settings, and feature flags. It intentionally excludes passwords, access keys, secret keys, API keys, tokens, raw local media paths, Git metadata, and FFmpeg workspace paths. This endpoint is configuration-derived only; it does not run live dependency probes, upload objects, execute FFmpeg, or call paid providers.
 
 ## Media Upload Intake
 

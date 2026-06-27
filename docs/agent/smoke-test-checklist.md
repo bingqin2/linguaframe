@@ -104,6 +104,9 @@ Expected:
 
 - Docker Compose config renders for the default stack and the split-worker profile.
 - Backend health returns `UP`.
+- Backend runtime contract is current: `runtime.latestMigrationVersion` is at least the highest local `LinguaFrame/src/main/resources/db/migration/V*__*.sql` version.
+- Required demo routes are listed in `runtime.requiredRoutes`, including diagnostics and artifact archive downloads.
+- A stale backend container fails preflight before media upload and prints the backend package/recreate commands.
 - Frontend responds on `http://localhost:5173`.
 - If `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, anonymous `/api/**` access returns `401` and the configured header succeeds.
 - If `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH` is configured, the path points to a readable non-empty file.

@@ -1634,3 +1634,26 @@ Post-merge verification:
 - `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 47, Failures: 0, Errors: 0, Skipped: 0`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added a sanitized runtime contract to `GET /api/runtime/dependencies` with app version, latest bundled Flyway migration version, and required demo route paths.
+- Added a private-demo preflight runtime freshness check that compares the running backend migration contract with local migration files and fails early when the backend container is stale.
+- Updated the React demo readiness panel to show runtime app version and migration contract.
+- Documented stale-container detection and backend package/recreate commands in README, Docker E2E docs, smoke checklist, spec, and roadmap.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` first failed because `runtime` was missing, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed.
+- `LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh` failed early against the currently running stale backend with the expected runtime freshness message and backend recreate commands.
+- `cd frontend && npm run test:run -- App linguaframeApi` first failed because the readiness panel did not show runtime metadata, then passed with `Tests run: 50`.
+- `mvn -pl LinguaFrame -am package -DskipTests` passed and produced the backend jar for Docker.
+- `docker compose --env-file .env.example up -d --build linguaframe-backend` passed and recreated the backend with the runtime contract.
+- `LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh` then passed the backend runtime freshness check with `runtimeLatestMigrationVersion=17` and `localLatestMigrationVersion=17`; it still failed later because the frontend was not running.
+- `docker compose --env-file .env.example up -d --build linguaframe-frontend` could not complete because Docker failed to resolve `hub-mirror.c.163.com` while loading `node:26-alpine`.
+- `cd frontend && npm run build` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

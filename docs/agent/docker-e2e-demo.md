@@ -38,7 +38,14 @@ Run this before the short or full demo scripts:
 scripts/demo/private-demo-preflight.sh
 ```
 
-The preflight does not upload media and does not call OpenAI. It verifies required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+The preflight does not upload media and does not call OpenAI. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+
+If the backend container was built from older code, preflight fails before any upload with the package and recreate commands:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env up -d --build linguaframe-backend
+```
 
 ## Successful Job Demo
 

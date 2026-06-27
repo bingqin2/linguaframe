@@ -2,7 +2,11 @@
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 ENV_FILE="${LINGUAFRAME_ENV_FILE:-.env}"
+BACKEND_RECREATE_COMMAND_1="JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests"
+BACKEND_RECREATE_COMMAND_2="docker compose --env-file $ENV_FILE up -d --build linguaframe-backend"
 
 env_value() {
   local key="$1"
@@ -114,6 +118,111 @@ check_backend_health() {
   pass "Backend health is UP at $BASE_URL"
 }
 
+fetch_runtime_dependencies() {
+  local endpoint="$BASE_URL/api/runtime/dependencies"
+
+  if [[ -n "$DEMO_TOKEN" ]]; then
+    curl -fsS -H "$DEMO_HEADER_NAME: $DEMO_TOKEN" "$endpoint"
+  else
+    curl -fsS "$endpoint"
+  fi
+}
+
+local_latest_migration_version() {
+  python3 - "$REPO_ROOT/LinguaFrame/src/main/resources/db/migration" <<'PY'
+import pathlib
+import re
+import sys
+
+migration_dir = pathlib.Path(sys.argv[1])
+latest = 0
+for path in migration_dir.glob("V*__*.sql"):
+    match = re.match(r"V(\d+)__.+\.sql", path.name)
+    if match:
+        latest = max(latest, int(match.group(1)))
+print(latest)
+PY
+}
+
+check_runtime_contract() {
+  local response
+  local local_latest
+  local response_file
+
+  if ! response="$(fetch_runtime_dependencies)"; then
+    fail "Runtime dependency summary failed at $BASE_URL/api/runtime/dependencies"
+  fi
+
+  local_latest="$(local_latest_migration_version)"
+  response_file="$(mktemp)"
+  printf '%s' "$response" > "$response_file"
+  if ! python3 - "$response_file" "$local_latest" "$BACKEND_RECREATE_COMMAND_1" "$BACKEND_RECREATE_COMMAND_2" <<'PY'
+import json
+import sys
+
+response_path = sys.argv[1]
+local_latest = int(sys.argv[2])
+package_command = sys.argv[3]
+recreate_command = sys.argv[4]
+required_routes = {
+    "/api/runtime/dependencies",
+    "/api/media/uploads",
+    "/api/jobs/{jobId}",
+    "/api/jobs/{jobId}/diagnostics/download",
+    "/api/jobs/{jobId}/artifacts/archive/download",
+}
+
+with open(response_path, encoding="utf-8") as file:
+    body = json.load(file)
+runtime = body.get("runtime")
+if not isinstance(runtime, dict):
+    raise SystemExit(
+        "Backend runtime contract is missing. The backend container is likely stale.\n"
+        "Rebuild and recreate it with:\n"
+        + package_command + "\n"
+        + recreate_command
+    )
+
+running_latest = runtime.get("latestMigrationVersion")
+if not isinstance(running_latest, int):
+    raise SystemExit("Backend runtime.latestMigrationVersion is missing or invalid")
+if running_latest < local_latest:
+    raise SystemExit(
+        "Backend runtime migration contract is stale: running="
+        + str(running_latest)
+        + ", local="
+        + str(local_latest)
+        + ".\nRebuild and recreate it with:\n"
+        + package_command
+        + "\n"
+        + recreate_command
+    )
+
+routes = set(runtime.get("requiredRoutes") or [])
+missing_routes = sorted(required_routes - routes)
+if missing_routes:
+    raise SystemExit(
+        "Backend runtime contract is missing required demo routes: "
+        + ", ".join(missing_routes)
+        + ".\nRebuild and recreate it with:\n"
+        + package_command
+        + "\n"
+        + recreate_command
+    )
+
+print("runtimeAppVersion=" + str(runtime.get("appVersion", "unknown")))
+print("runtimeLatestMigrationVersion=" + str(running_latest))
+print("localLatestMigrationVersion=" + str(local_latest))
+PY
+  then
+    rm -f "$response_file"
+    fail "Backend runtime freshness check failed"
+  fi
+  rm -f "$response_file"
+
+  pass "Backend runtime contract is current"
+}
+
 check_frontend() {
   if ! curl -fsSI "$FRONTEND_URL" >/dev/null; then
     fail "Frontend did not respond at $FRONTEND_URL. Start the frontend with: docker compose --env-file $ENV_FILE up -d --build linguaframe-frontend"
@@ -179,11 +288,13 @@ main() {
 
   require_command docker
   require_command curl
+  require_command python3
   require_command mvn
   check_optional_command ffmpeg "ffmpeg not found. Existing MP4 demos can still run, but the short demo cannot generate a sample automatically."
   check_env_file
   check_compose_config
   check_backend_health
+  check_runtime_contract
   check_frontend
   check_demo_token_gate
   check_sample_paths
