@@ -250,6 +250,9 @@ Expected:
 - `GET /api/jobs/{jobId}` for the second job reports `cacheSummary.providerCacheHitCount >= 1`.
 - The second job still writes fresh `TRANSCRIPT_JSON`, `SUBTITLE_SRT`, and `SUBTITLE_VTT` artifacts.
 - The second job does not create another transcription provider model call.
+- With quality evaluation enabled, the second compatible quality evaluation job timeline includes `CACHE_HIT`.
+- The second compatible quality evaluation job writes a fresh current-job `qualityEvaluation` result in `GET /api/jobs/{jobId}`.
+- The second compatible quality evaluation job does not create another evaluation provider model call.
 
 ### Optional OpenAI Transcription Verification
 

@@ -161,6 +161,16 @@ class CostBudgetedPipelineStageTests {
         }
 
         @Override
+        public QualityEvaluationVo storeCachedEvaluation(
+                String jobId,
+                String language,
+                QualityEvaluationResultBo result
+        ) {
+            called = true;
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public java.util.Optional<QualityEvaluationVo> latestForJob(String jobId) {
             return java.util.Optional.empty();
         }

@@ -70,6 +70,13 @@ public class QualityEvaluationServiceImpl implements QualityEvaluationService {
     }
 
     @Override
+    public QualityEvaluationVo storeCachedEvaluation(String jobId, String language, QualityEvaluationResultBo result) {
+        QualityEvaluationRecord record = succeededRecord(jobId, language, result);
+        repository.save(record);
+        return toVo(record);
+    }
+
+    @Override
     public Optional<QualityEvaluationVo> latestForJob(String jobId) {
         return repository.findByJobId(jobId).stream()
                 .reduce((first, second) -> second)
