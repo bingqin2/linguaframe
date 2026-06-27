@@ -227,7 +227,7 @@ Build:
 - Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - Structured logs with job id.
-- OpenAPI docs.
+- OpenAPI docs. Status: implemented with demo-token security metadata, primary controller tags, path contract tests, and Swagger demo guidance.
 
 Do not build yet:
 

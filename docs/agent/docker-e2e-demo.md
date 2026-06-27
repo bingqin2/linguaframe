@@ -38,6 +38,14 @@ Open the browser demo:
 http://localhost:5173
 ```
 
+Open Swagger UI when you need to inspect the backend API contract used by the demo:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the upload, job, progress event, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime, prompt-template, operator, and retention cleanup APIs. When `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key value; Swagger and `/v3/api-docs` stay public, while `/api/**` calls require `X-LinguaFrame-Demo-Token`.
+
 The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
 Before uploading, check the browser `Demo runbook` panel and the upload form's `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
