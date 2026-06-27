@@ -36,6 +36,15 @@ linguaframe:
   demo:
     access-token: ${LINGUAFRAME_DEMO_ACCESS_TOKEN:}
     access-header-name: ${LINGUAFRAME_DEMO_ACCESS_HEADER_NAME:X-LinguaFrame-Demo-Token}
+  retention:
+    enabled: ${LINGUAFRAME_RETENTION_ENABLED:false}
+    dry-run: ${LINGUAFRAME_RETENTION_DRY_RUN:true}
+    completed-job-ttl-days: ${LINGUAFRAME_RETENTION_COMPLETED_JOB_TTL_DAYS:7}
+    failed-job-ttl-days: ${LINGUAFRAME_RETENTION_FAILED_JOB_TTL_DAYS:3}
+    cancelled-job-ttl-days: ${LINGUAFRAME_RETENTION_CANCELLED_JOB_TTL_DAYS:3}
+    cleanup-batch-size: ${LINGUAFRAME_RETENTION_CLEANUP_BATCH_SIZE:25}
+    scheduler-enabled: ${LINGUAFRAME_RETENTION_SCHEDULER_ENABLED:false}
+    scheduler-interval-ms: ${LINGUAFRAME_RETENTION_SCHEDULER_INTERVAL_MS:3600000}
   ffmpeg:
     binary-path: ${LINGUAFRAME_FFMPEG_BINARY_PATH:ffmpeg}
     audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:true}

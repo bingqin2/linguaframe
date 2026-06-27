@@ -10,4 +10,6 @@ public interface ObjectStorageService {
     StoredObjectBo store(StoreObjectCommand command);
 
     InputStream open(String objectKey);
+
+    void delete(String objectKey);
 }

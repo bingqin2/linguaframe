@@ -74,7 +74,7 @@ Hosted usage requires:
 - Upload size and duration limits.
 - Authentication and rate limiting.
 - Cost controls before expensive OpenAI processing.
-- Storage retention policies.
+- Storage retention policies. The current MVP supports a default-off retention cleanup for terminal jobs and their stored objects.
 
 ## Functional Requirements
 
@@ -86,6 +86,14 @@ Hosted usage requires:
 - The production-shaped target should support JWT authentication.
 - Uploaded videos and generated artifacts must be scoped to the owning user.
 - Admin or operator-only endpoints should not expose secrets.
+
+### Retention Cleanup
+
+- Retention cleanup is disabled by default and dry-run by default.
+- Eligible jobs must be terminal: `COMPLETED`, `FAILED`, or `CANCELLED`.
+- Non-terminal jobs must never be deleted by retention cleanup.
+- Cleanup deletes object storage data before database rows and reports only aggregate counts.
+- Source video objects and video rows are deleted only when no remaining job references that video.
 
 ### Video Upload
 

@@ -217,3 +217,11 @@ Decision: Add an optional owner-only demo access token before building JWT users
 Reason: LinguaFrame needs a private hosted demo gate now, but a real user model would require owner-scoped media, artifact authorization, account lifecycle, and token refresh semantics. A single configured demo token protects `/api/**` without pretending to be production authentication.
 
 Impact: Local development remains open when `LINGUAFRAME_DEMO_ACCESS_TOKEN` is empty. Private demos can set the token in `.env`; the React UI stores the entered token for fetch APIs and writes a same-site cookie so EventSource, artifact downloads, audio previews, and video previews continue to work.
+
+## 2026-06-27
+
+Decision: Add retention cleanup as a default-off, dry-run-first operator workflow before public hosted usage.
+
+Reason: LinguaFrame stores uploaded videos and generated artifacts in object storage, so a private demo needs a bounded cleanup path before it is useful outside local development. Keeping the policy disabled and dry-run by default avoids accidental deletion during normal demos.
+
+Impact: Operators can preview and run cleanup for terminal jobs only. Cleanup removes object storage data before database rows, preserves shared source videos when another job still references them, and exposes only aggregate count results.

@@ -7,6 +7,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.domain.enums.ModelCallStatus;
+import com.linguaframe.job.domain.vo.RetentionJobCandidateVo;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -19,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -239,6 +241,55 @@ class LocalizationJobRepositoryTests {
                 });
         assertThat(jobRepository.countSummaries(null)).isEqualTo(3);
         assertThat(jobRepository.countSummaries(LocalizationJobStatus.FAILED)).isEqualTo(1);
+    }
+
+    @Test
+    void findsRetentionCandidatesForOnlyRequestedTerminalStatusesOlderThanCutoff() {
+        Instant base = Instant.parse("2026-06-27T12:00:00Z");
+        createJob("video-retention-completed-old", "job-retention-completed-old", LocalizationJobStatus.COMPLETED, base.minusSeconds(900));
+        createJob("video-retention-failed-old", "job-retention-failed-old", LocalizationJobStatus.FAILED, base.minusSeconds(800));
+        createJob("video-retention-cancelled-old", "job-retention-cancelled-old", LocalizationJobStatus.CANCELLED, base.minusSeconds(700));
+        createJob("video-retention-completed-new", "job-retention-completed-new", LocalizationJobStatus.COMPLETED, base.minusSeconds(100));
+        createJob("video-retention-queued-old", "job-retention-queued-old", LocalizationJobStatus.QUEUED, base.minusSeconds(1000));
+        createJob("video-retention-retrying-old", "job-retention-retrying-old", LocalizationJobStatus.RETRYING, base.minusSeconds(1000));
+        createJob("video-retention-processing-old", "job-retention-processing-old", LocalizationJobStatus.PROCESSING, base.minusSeconds(1000));
+
+        assertThat(jobRepository.findRetentionCandidates(
+                EnumSet.of(
+                        LocalizationJobStatus.COMPLETED,
+                        LocalizationJobStatus.FAILED,
+                        LocalizationJobStatus.CANCELLED
+                ),
+                base.minusSeconds(600),
+                10
+        ))
+                .extracting(RetentionJobCandidateVo::jobId)
+                .containsExactly(
+                        "job-retention-completed-old",
+                        "job-retention-failed-old",
+                        "job-retention-cancelled-old"
+                );
+    }
+
+    @Test
+    void retentionCandidateQueryHonorsLimitAndRequestedStatusSet() {
+        Instant base = Instant.parse("2026-06-27T13:00:00Z");
+        createJob("video-ret-limit-oldest", "job-retention-limit-completed-oldest", LocalizationJobStatus.COMPLETED, base.minusSeconds(300));
+        createJob("video-ret-limit-middle", "job-retention-limit-completed-middle", LocalizationJobStatus.COMPLETED, base.minusSeconds(200));
+        createJob("video-ret-limit-failed", "job-retention-limit-failed-old", LocalizationJobStatus.FAILED, base.minusSeconds(100));
+
+        assertThat(jobRepository.findRetentionCandidates(
+                EnumSet.of(LocalizationJobStatus.COMPLETED),
+                base,
+                1
+        ))
+                .singleElement()
+                .satisfies(candidate -> {
+                    assertThat(candidate.jobId()).isEqualTo("job-retention-limit-completed-oldest");
+                    assertThat(candidate.videoId()).isEqualTo("video-ret-limit-oldest");
+                    assertThat(candidate.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+                    assertThat(candidate.updatedAt()).isEqualTo(base.minusSeconds(300));
+                });
     }
 
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {

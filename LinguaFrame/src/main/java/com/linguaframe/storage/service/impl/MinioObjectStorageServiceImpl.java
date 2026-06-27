@@ -9,6 +9,8 @@ import io.minio.GetObjectArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.RemoveObjectArgs;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -19,12 +21,18 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
     private final LinguaFrameProperties.Storage storageProperties;
     private final MinioClient minioClient;
 
+    @Autowired
     public MinioObjectStorageServiceImpl(LinguaFrameProperties properties) {
         this.storageProperties = properties.getStorage();
         this.minioClient = MinioClient.builder()
                 .endpoint(storageProperties.getEndpoint())
                 .credentials(storageProperties.getAccessKey(), storageProperties.getSecretKey())
                 .build();
+    }
+
+    public MinioObjectStorageServiceImpl(LinguaFrameProperties properties, MinioClient minioClient) {
+        this.storageProperties = properties.getStorage();
+        this.minioClient = minioClient;
     }
 
     @Override
@@ -52,6 +60,18 @@ public class MinioObjectStorageServiceImpl implements ObjectStorageService {
                     .build());
         } catch (Exception ex) {
             throw new IllegalStateException("Object storage read failed.", ex);
+        }
+    }
+
+    @Override
+    public void delete(String objectKey) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(storageProperties.getBucket())
+                    .object(objectKey)
+                    .build());
+        } catch (Exception ex) {
+            throw new IllegalStateException("Object storage delete failed.", ex);
         }
     }
 

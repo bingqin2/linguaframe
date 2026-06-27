@@ -154,6 +154,15 @@ public class JobDispatchEventRepository {
                 .update();
     }
 
+    public int deleteByJobId(String jobId) {
+        return jdbcClient.sql("""
+                        DELETE FROM job_dispatch_events
+                        WHERE job_id = :jobId
+                        """)
+                .param("jobId", jobId)
+                .update();
+    }
+
     private JobDispatchEventRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
         Timestamp dispatchedAt = rs.getTimestamp("dispatched_at");
         return new JobDispatchEventRecord(

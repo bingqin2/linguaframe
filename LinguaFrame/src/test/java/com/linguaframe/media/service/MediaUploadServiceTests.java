@@ -191,6 +191,10 @@ class MediaUploadServiceTests {
         public InputStream open(String objectKey) {
             return new ByteArrayInputStream(new byte[0]);
         }
+
+        @Override
+        public void delete(String objectKey) {
+        }
     }
 
     private static class RecordingMediaDurationProbeService implements MediaDurationProbeService {
