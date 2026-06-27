@@ -126,6 +126,14 @@ Private demo preflight:
 
 ```bash
 cp .env.example .env
+scripts/demo/start-local-demo.sh
+```
+
+The one-command startup packages the backend jar, recreates the Docker backend container from the selected env file, starts the local Vite frontend fallback if `http://localhost:5173` is not already reachable, and runs private-demo preflight. Use it as the default local browser-demo entry point.
+
+Lower-level private demo commands:
+
+```bash
 docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/docker-e2e-success.sh

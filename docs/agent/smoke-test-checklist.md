@@ -30,6 +30,21 @@ JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Content
 
 ### Docker Runtime Verification
 
+Run the one-command local demo startup:
+
+```bash
+scripts/demo/start-local-demo.sh
+```
+
+Expected:
+
+- The script packages `LinguaFrame/target/LinguaFrame-0.0.1-SNAPSHOT.jar`.
+- The script recreates `linguaframe-backend` from the selected env file.
+- The backend health endpoint responds on `http://localhost:8080/actuator/health`.
+- If `http://localhost:5173` is unavailable, the script starts `scripts/demo/frontend-local-dev.sh` for the current session and waits for it to respond.
+- `scripts/demo/private-demo-preflight.sh` passes before any media upload.
+- The script prints `http://localhost:5173`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
+
 Validate Compose configuration and rebuild the backend image:
 
 ```bash

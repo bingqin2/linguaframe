@@ -2,6 +2,22 @@
 
 This file records implementation progress, validation commands, failures, and follow-up notes.
 
+## 2026-06-27
+
+Work:
+
+- Added `scripts/demo/start-local-demo.sh` as a one-command local demo startup path.
+- The script packages the backend, recreates `linguaframe-backend`, waits for backend health, starts the local frontend fallback when needed, runs private-demo preflight, and prints the browser URL plus next E2E commands.
+- Documented the startup path in README, Docker E2E guide, and smoke-test checklist.
+
+Validation:
+
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `scripts/demo/start-local-demo.sh --help` and `scripts/demo/frontend-local-dev.sh --help` passed.
+- `cd frontend && npm run test:run -- App` passed with `Test Files 1 passed` and `Tests 29 passed`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `scripts/demo/start-local-demo.sh` passed against the local Docker stack: Maven package succeeded, `linguaframe-backend` rebuilt and restarted, the local Vite fallback started at `http://localhost:5173`, private-demo preflight passed, and the script stopped only the frontend process it started.
+
 ## 2026-06-22
 
 Work:

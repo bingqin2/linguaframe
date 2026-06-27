@@ -76,4 +76,4 @@ fi
 echo "Starting LinguaFrame frontend at $FRONTEND_URL"
 echo "Press Ctrl+C to stop it."
 cd "$FRONTEND_DIR"
-exec npm run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
+exec npm run dev -- --port "$FRONTEND_PORT"
