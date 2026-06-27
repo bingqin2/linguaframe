@@ -1604,3 +1604,9 @@ Validation:
 - `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `quality-evaluation-provider-cache-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='QualityEvaluationCacheRepositoryTests,QualityEvaluationCacheKeyServiceTests,QualityEvaluationCacheServiceTests,QualityEvaluationServiceTests,QualityEvaluationPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed on `main` with `Tests run: 37, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 29`.
