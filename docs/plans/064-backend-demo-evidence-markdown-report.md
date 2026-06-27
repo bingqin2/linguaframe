@@ -61,4 +61,4 @@
 - [x] The browser exposes the backend Markdown report without removing existing local evidence export.
 - [x] The Docker success script downloads and validates `job-evidence.md`.
 - [x] Tests and docs cover the new report contract, safety rules, and demo workflow.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.
