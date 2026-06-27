@@ -10,8 +10,56 @@ require_command() {
   fi
 }
 
+env_value() {
+  local key="$1"
+  local fallback="${2:-}"
+  local env_file="${LINGUAFRAME_ENV_FILE:-.env}"
+
+  if [[ ! -f "$env_file" ]]; then
+    printf '%s' "$fallback"
+    return 0
+  fi
+
+  local line
+  line="$(grep -E "^${key}=" "$env_file" | tail -n 1 || true)"
+  if [[ -z "$line" ]]; then
+    printf '%s' "$fallback"
+    return 0
+  fi
+
+  local value="${line#*=}"
+  value="${value%\"}"
+  value="${value#\"}"
+  value="${value%\'}"
+  value="${value#\'}"
+  printf '%s' "$value"
+}
+
+demo_access_token() {
+  printf '%s' "${LINGUAFRAME_DEMO_ACCESS_TOKEN:-$(env_value LINGUAFRAME_DEMO_ACCESS_TOKEN)}"
+}
+
+demo_access_header_name() {
+  printf '%s' "${LINGUAFRAME_DEMO_ACCESS_HEADER_NAME:-$(env_value LINGUAFRAME_DEMO_ACCESS_HEADER_NAME X-LinguaFrame-Demo-Token)}"
+}
+
+demo_curl() {
+  local curl_bin="${LINGUAFRAME_DEMO_CURL_BIN:-curl}"
+  local token
+  token="$(demo_access_token)"
+
+  if [[ -n "$token" ]]; then
+    "$curl_bin" -H "$(demo_access_header_name): $token" "$@"
+    return 0
+  fi
+
+  "$curl_bin" "$@"
+}
+
 demo_base_url() {
-  echo "${LINGUAFRAME_DEMO_BASE_URL:-http://localhost:8080}"
+  local backend_port
+  backend_port="$(env_value LINGUAFRAME_BACKEND_PORT 8080)"
+  echo "${LINGUAFRAME_DEMO_BASE_URL:-http://localhost:${backend_port}}"
 }
 
 wait_for_backend() {
@@ -73,7 +121,7 @@ upload_demo_video() {
   local base_url="$1"
   local sample_path="$2"
 
-  curl -fsS \
+  demo_curl -fsS \
     -F "file=@${sample_path};type=video/mp4" \
     -F "targetLanguage=zh-CN" \
     "$base_url/api/media/uploads"
@@ -89,7 +137,7 @@ wait_for_job_status() {
   local status
 
   for ((i = 1; i <= attempts; i++)); do
-    response="$(curl -fsS "$base_url/api/jobs/$job_id")"
+    response="$(demo_curl -fsS "$base_url/api/jobs/$job_id")"
     status="$(printf '%s' "$response" | extract_json_field status)"
     if [[ "$status" == "$expected_status" ]]; then
       printf '%s\n' "$response"
@@ -99,7 +147,7 @@ wait_for_job_status() {
   done
 
   echo "Job $job_id did not reach $expected_status" >&2
-  curl -fsS "$base_url/api/jobs/$job_id" >&2 || true
+  demo_curl -fsS "$base_url/api/jobs/$job_id" >&2 || true
   exit 1
 }
 
@@ -109,7 +157,7 @@ download_job_detail() {
   local output_path="$3"
 
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
 }
 
 print_job_summary() {
@@ -254,14 +302,14 @@ list_job_artifacts() {
   local base_url="$1"
   local job_id="$2"
 
-  curl -fsS "$base_url/api/jobs/$job_id/artifacts"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/artifacts"
 }
 
 get_job_transcript() {
   local base_url="$1"
   local job_id="$2"
 
-  curl -fsS "$base_url/api/jobs/$job_id/transcript"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/transcript"
 }
 
 get_job_subtitles() {
@@ -269,7 +317,7 @@ get_job_subtitles() {
   local job_id="$2"
   local language="$3"
 
-  curl -fsS "$base_url/api/jobs/$job_id/subtitles/$language"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/subtitles/$language"
 }
 
 download_first_artifact() {
@@ -282,7 +330,7 @@ download_first_artifact() {
   artifacts_json="$(list_job_artifacts "$base_url" "$job_id")"
   artifact_id="$(printf '%s' "$artifacts_json" | python3 -c 'import json, sys; print(json.load(sys.stdin)[0]["artifactId"])')"
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
 
 download_artifact_by_type() {
@@ -304,7 +352,7 @@ for artifact in json.load(sys.stdin):
 raise SystemExit(1)
 ' "$artifact_type")"
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
 
 download_optional_artifact_by_type() {
@@ -328,7 +376,7 @@ raise SystemExit(1)
     return 1
   fi
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
 
 download_artifact_archive() {
@@ -337,7 +385,7 @@ download_artifact_archive() {
   local output_path="$3"
 
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/artifacts/archive/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/artifacts/archive/download" -o "$output_path"
 }
 
 download_job_diagnostics() {
@@ -346,7 +394,7 @@ download_job_diagnostics() {
   local output_path="$3"
 
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/diagnostics/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/diagnostics/download" -o "$output_path"
 }
 
 download_job_evidence_markdown() {
@@ -355,7 +403,7 @@ download_job_evidence_markdown() {
   local output_path="$3"
 
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/evidence/markdown/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/evidence/markdown/download" -o "$output_path"
 }
 
 download_job_evidence_bundle() {
@@ -364,7 +412,7 @@ download_job_evidence_bundle() {
   local output_path="$3"
 
   mkdir -p "$(dirname "$output_path")"
-  curl -fsS "$base_url/api/jobs/$job_id/evidence/bundle/download" -o "$output_path"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/evidence/bundle/download" -o "$output_path"
 }
 
 print_zip_entries() {

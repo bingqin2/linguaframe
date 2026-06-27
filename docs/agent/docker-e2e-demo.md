@@ -297,6 +297,43 @@ LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2
 
 The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
 
+## Recommended OpenAI Smoke Demo
+
+Use this path when you have real OpenAI credentials and want one repeatable provider-backed proof run. The default deterministic demo stays on `.env.example`; the OpenAI smoke uses a separate ignored env file:
+
+```bash
+cp .env.openai-demo.example .env.openai-demo
+```
+
+Set the local values in `.env.openai-demo`:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_TRANSCRIPTION_MODEL=whisper-1
+OPENAI_TRANSLATION_MODEL=<current text model>
+OPENAI_EVALUATION_MODEL=<current text model>
+LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL=<current text model>
+```
+
+Recreate the backend and run preflight:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env.openai-demo up -d --build
+LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-demo-preflight.sh
+```
+
+Then run the smoke with a real short speech MP4:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.openai-demo \
+LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
+scripts/demo/docker-e2e-openai-smoke.sh
+```
+
+Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
+
 ## Optional OpenAI Transcription Demo
 
 Use this path only with a local `.env` file that contains real OpenAI credentials and with a real short speech sample. The generated default demo sample is a synthetic test video with a tone and should not be used to judge speech-to-text behavior.

@@ -40,6 +40,7 @@ logs/
 .env.*
 !.env.example
 !.env.private-demo.example
+!.env.openai-demo.example
 *.local
 application-*.local.yaml
 application-*.local.yml

@@ -660,6 +660,43 @@ Cancellation is allowed for `QUEUED`, `RETRYING`, and `PROCESSING` jobs. It mark
 
 This worker execution path now runs FFmpeg audio extraction and subtitle burn-in in Docker, stores `EXTRACTED_AUDIO` as `audio.wav`, exports deterministic transcript/source subtitle/target subtitle artifacts, and stores `BURNED_VIDEO` as `burned-video.mp4` by default. TTS remains available as an opt-in worker stage.
 
+### Recommended OpenAI Demo Profile
+
+Use this path when you have real OpenAI credentials and want a repeatable provider-backed proof run. The checked-in template contains no secrets and keeps TTS disabled by default to control cost and runtime:
+
+```bash
+cp .env.openai-demo.example .env.openai-demo
+```
+
+Edit `.env.openai-demo` locally:
+
+```text
+OPENAI_API_KEY=<your key>
+OPENAI_BASE_URL=https://api.openai.com
+OPENAI_TRANSCRIPTION_MODEL=whisper-1
+OPENAI_TRANSLATION_MODEL=<current text model>
+OPENAI_EVALUATION_MODEL=<current text model>
+LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL=<current text model>
+```
+
+Then recreate the backend and prove connectivity before uploading media:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
+docker compose --env-file .env.openai-demo up -d --build
+LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-demo-preflight.sh
+```
+
+Run the paid smoke only with a real short speech sample:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.openai-demo \
+LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
+scripts/demo/docker-e2e-openai-smoke.sh
+```
+
+The smoke runner verifies successful OpenAI transcription and translation model calls, quality evaluation when enabled, generated artifacts, diagnostics, backend evidence Markdown, evidence bundle, and result bundle. This path can consume OpenAI credits. Do not commit `.env.openai-demo`, keys, raw provider payloads, or local media paths.
+
 ### Optional OpenAI Transcription
 
 OpenAI transcription is opt-in so the default demo stays reproducible and cost-free. Create a local `.env` file and keep it out of git:
@@ -786,6 +823,8 @@ scripts/demo/docker-e2e-success.sh
 ```
 
 The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, `/tmp/linguaframe-demo/artifacts.zip`, `/tmp/linguaframe-demo/job-diagnostics.json`, `/tmp/linguaframe-demo/job-evidence.md`, `/tmp/linguaframe-demo/job-evidence.zip`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. It also prints the ZIP entry list, diagnostics summary, Markdown evidence summary, and evidence bundle summary so terminal demos can inspect both artifact packaging and safe job evidence. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling quality evaluation adds a non-blocking evaluation result and one model call, and enabling TTS adds another model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+
+For the recommended real OpenAI path, use `scripts/demo/docker-e2e-openai-smoke.sh` with `.env.openai-demo` and a short speech sample. The regular `docker-e2e-success.sh` remains the deterministic, no-cost path for local checks.
 
 To prove provider-cache reuse, run:
 

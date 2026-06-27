@@ -393,3 +393,11 @@ Decision: Add a private demo owner-session API before building public authentica
 Reason: The browser demo needs a clear login/logout affordance for the project owner, but LinguaFrame still has no user model, owner-scoped media, account lifecycle, JWT refresh, or billing semantics. Reusing the configured demo access token keeps the private demo honest without pretending to be a public hosted service.
 
 Impact: `/api/demo-session` exposes sanitized gate state, `/api/demo-session/login` sets the same-site `LinguaFrame-Demo-Token` cookie after validating the configured token, and `/api/demo-session/logout` clears it. Other `/api/**` routes remain protected when the demo gate is enabled, while Swagger, curl, and scripts can keep using `X-LinguaFrame-Demo-Token`.
+
+## 2026-06-28
+
+Decision: Use a separate OpenAI demo profile instead of making `.env.example` provider-backed.
+
+Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.
+
+Impact: `.env.openai-demo.example`, `scripts/demo/openai-demo-preflight.sh`, and `scripts/demo/docker-e2e-openai-smoke.sh` define the recommended real OpenAI proof path. Existing deterministic scripts remain the default, while terminal E2E helpers now support the private demo token header when a gate is configured.
