@@ -125,6 +125,39 @@ curl -fL "http://localhost:8080/api/jobs/$JOB_ID/artifacts/$ARTIFACT_ID/download
 
 This demo verifies FFmpeg audio extraction, deterministic transcript/source subtitle/target subtitle export, and FFmpeg subtitle burn-in. With `.env.example`, it does not perform OpenAI transcription, OpenAI translation, or OpenAI TTS; transcript and target subtitles use deterministic demo providers.
 
+## Provider Cache-Hit Demo
+
+Run this after the successful job path when you need terminal evidence that repeat compatible jobs reuse provider results:
+
+```bash
+scripts/demo/docker-e2e-cache-hit.sh
+```
+
+The script uploads the same sample twice with the same target language and current provider/model/prompt settings. It waits for both jobs to complete, downloads job detail and diagnostics reports for both runs, validates diagnostics safety, and fails if the second job has no provider cache hit.
+
+Expected output includes:
+
+```text
+First job summary:
+modelCallCount=2
+providerCacheHitCount=0
+Second job summary:
+providerCacheHitCount=1
+- PROVIDER_CACHE_HIT ...
+Cache-hit comparison:
+firstModelCallCount=2
+secondProviderCacheHitCount=1
+```
+
+Exact model-call and cache-hit counts can be higher when TTS or quality evaluation is enabled. Evidence files are written to:
+
+```text
+/tmp/linguaframe-demo/cache-hit/first-job.json
+/tmp/linguaframe-demo/cache-hit/second-job.json
+/tmp/linguaframe-demo/cache-hit/first-diagnostics.json
+/tmp/linguaframe-demo/cache-hit/second-diagnostics.json
+```
+
 ## Full Tears of Steel Demo
 
 Use this path for a larger public-media demo after the short smoke path is working. The local source video is not committed to git; see `docs/product/demo-references.md` for attribution and license notes.
