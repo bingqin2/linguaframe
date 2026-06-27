@@ -142,4 +142,4 @@ Rejected alternative: only enhance the browser JSON export. That remains browser
 - [x] The React demo exposes one-click evidence bundle download.
 - [x] Docker success demo downloads and validates `job-evidence.zip`.
 - [x] Tests and docs cover safety rules and usage.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.

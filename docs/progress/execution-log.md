@@ -25,6 +25,13 @@ Validation:
 - `git diff --check` passed.
 - `mvn -pl LinguaFrame test` passed with `Tests run: 359, Failures: 0, Errors: 0, Skipped: 0`.
 
+Post-merge verification:
+
+- Merged `codex-demo-run-evidence-bundle-mvp` back to `main` with a merge commit.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed on `main` with `Test Files 2 passed` and `Tests 66 passed`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
