@@ -5,16 +5,19 @@ import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
+import com.linguaframe.job.domain.bo.TtsCacheLookupBo;
 import com.linguaframe.job.domain.bo.TtsRequestBo;
 import com.linguaframe.job.domain.bo.TtsResultBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.exception.CostBudgetExceededException;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
+import com.linguaframe.job.domain.vo.TtsCacheHitVo;
 import com.linguaframe.job.service.impl.DubbingAudioGenerationPipelineStage;
 import org.junit.jupiter.api.Test;
 
@@ -108,6 +111,116 @@ class DubbingAudioGenerationPipelineStageTests {
     }
 
     @Test
+    void reusesCachedTtsProviderResultBeforeCallingTtsProvider() {
+        properties.getTts().setEnabled(true);
+        properties.getTts().setProvider("openai");
+        properties.getTts().getOpenai().setModel("gpt-4o-mini-tts");
+        properties.getTts().getOpenai().setVoice("alloy");
+        RecordingTtsCacheKeyService cacheKeyService = new RecordingTtsCacheKeyService();
+        RecordingTtsCacheService cacheService = new RecordingTtsCacheService(new TtsCacheHitVo(
+                "tts-cache-key-hit",
+                "source-job-tts",
+                new TtsResultBo(new byte[] {4, 5, 6}, "cached-dubbing.mp3", "audio/mpeg")
+        ));
+        RecordingCostBudgetGuardService budgetGuardService = new RecordingCostBudgetGuardService();
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                budgetGuardService,
+                new EmptyArtifactCacheService(),
+                cacheKeyService,
+                cacheService
+        );
+        LocalizationJobExecutionContextBo context = context();
+
+        stage.execute(context);
+
+        assertThat(cacheKeyService.text).isEqualTo("第一句翻译\n第二句翻译");
+        assertThat(cacheKeyService.provider).isEqualTo("OPENAI");
+        assertThat(cacheKeyService.model).isEqualTo("gpt-4o-mini-tts");
+        assertThat(cacheKeyService.voice).isEqualTo("alloy");
+        assertThat(cacheService.lookup.cacheKey()).isEqualTo("tts-cache-key-hit");
+        assertThat(ttsProvider.request).isNull();
+        assertThat(budgetGuardService.calls).isZero();
+        assertThat(artifactService.commands).hasSize(1);
+        CreateJobArtifactCommand command = artifactService.commands.getFirst();
+        assertThat(command.type()).isEqualTo(JobArtifactType.DUBBING_AUDIO);
+        assertThat(command.filename()).isEqualTo("cached-dubbing.mp3");
+        assertThat(command.content()).containsExactly(4, 5, 6);
+        assertThat(context.consumeProviderCacheHits())
+                .singleElement()
+                .satisfies(hit -> {
+                    assertThat(hit.operation()).isEqualTo(ModelCallOperation.TTS);
+                    assertThat(hit.cacheKey()).isEqualTo("tts-cache-key-hit");
+                    assertThat(hit.sourceJobId()).isEqualTo("source-job-tts");
+                });
+    }
+
+    @Test
+    void artifactCacheHitSkipsTtsProviderCacheLookup() {
+        properties.getTts().setEnabled(true);
+        RecordingArtifactCacheService artifactCacheService = new RecordingArtifactCacheService(
+                new JobArtifactVo(
+                        "cached-dubbing-artifact",
+                        "dubbing-job-1",
+                        JobArtifactType.DUBBING_AUDIO,
+                        "dubbing-audio.mp3",
+                        "audio/mpeg",
+                        123L,
+                        "cached-dubbing-hash",
+                        true,
+                        "source-dubbing-artifact",
+                        Instant.parse("2026-06-27T09:20:00Z")
+                )
+        );
+        RecordingTtsCacheKeyService cacheKeyService = new RecordingTtsCacheKeyService();
+        RecordingTtsCacheService cacheService = new RecordingTtsCacheService(null);
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService(),
+                artifactCacheService,
+                cacheKeyService,
+                cacheService
+        );
+
+        stage.execute(context());
+
+        assertThat(cacheKeyService.text).isNull();
+        assertThat(cacheService.lookup).isNull();
+        assertThat(ttsProvider.request).isNull();
+        assertThat(artifactService.commands).isEmpty();
+    }
+
+    @Test
+    void storesTtsProviderResultAfterCacheMiss() {
+        properties.getTts().setEnabled(true);
+        RecordingTtsCacheKeyService cacheKeyService = new RecordingTtsCacheKeyService();
+        RecordingTtsCacheService cacheService = new RecordingTtsCacheService(null);
+        DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
+                properties,
+                artifactService,
+                subtitleService,
+                ttsProvider,
+                new NoopCostBudgetGuardService(),
+                new EmptyArtifactCacheService(),
+                cacheKeyService,
+                cacheService
+        );
+
+        stage.execute(context());
+
+        assertThat(ttsProvider.request).isNotNull();
+        assertThat(cacheService.storedJobId).isEqualTo("dubbing-job-1");
+        assertThat(cacheService.storedLookup.cacheKey()).isEqualTo("tts-cache-key-hit");
+        assertThat(cacheService.storedResult.audioContent()).containsExactly(9, 8, 7);
+    }
+
+    @Test
     void failsWhenEnabledAndTargetSubtitlesAreMissing() {
         properties.getTts().setEnabled(true);
         DubbingAudioGenerationPipelineStage stage = new DubbingAudioGenerationPipelineStage(
@@ -175,6 +288,58 @@ class DubbingAudioGenerationPipelineStageTests {
         public TtsResultBo synthesize(TtsRequestBo request) {
             this.request = request;
             return new TtsResultBo(new byte[] {9, 8, 7}, "dubbing-audio.mp3", "audio/mpeg");
+        }
+    }
+
+    private static class RecordingTtsCacheKeyService implements TtsCacheKeyService {
+
+        private String language;
+        private String provider;
+        private String model;
+        private String voice;
+        private String text;
+
+        @Override
+        public TtsCacheLookupBo build(String language, String provider, String model, String voice, String text) {
+            this.language = language;
+            this.provider = provider;
+            this.model = model;
+            this.voice = voice;
+            this.text = text;
+            return new TtsCacheLookupBo(
+                    "tts-cache-key-hit",
+                    "tts-text-hash",
+                    language,
+                    provider,
+                    model,
+                    voice
+            );
+        }
+    }
+
+    private static class RecordingTtsCacheService implements TtsCacheService {
+
+        private final TtsCacheHitVo hit;
+        private TtsCacheLookupBo lookup;
+        private TtsCacheLookupBo storedLookup;
+        private String storedJobId;
+        private TtsResultBo storedResult;
+
+        private RecordingTtsCacheService(TtsCacheHitVo hit) {
+            this.hit = hit;
+        }
+
+        @Override
+        public java.util.Optional<TtsCacheHitVo> findCachedTts(TtsCacheLookupBo lookup) {
+            this.lookup = lookup;
+            return java.util.Optional.ofNullable(hit);
+        }
+
+        @Override
+        public void storeTts(TtsCacheLookupBo lookup, String jobId, TtsResultBo result) {
+            this.storedLookup = lookup;
+            this.storedJobId = jobId;
+            this.storedResult = result;
         }
     }
 
@@ -276,6 +441,16 @@ class DubbingAudioGenerationPipelineStageTests {
 
         @Override
         public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+        }
+    }
+
+    private static class RecordingCostBudgetGuardService implements CostBudgetGuardService {
+
+        private int calls;
+
+        @Override
+        public void assertWithinBudget(String jobId, LocalizationJobStage stage) {
+            calls++;
         }
     }
 

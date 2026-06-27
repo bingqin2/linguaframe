@@ -383,7 +383,9 @@ When the guard blocks, the job fails at the guarded stage, no later provider cal
 
 LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP artifact cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp.
 
-Subtitle translation provider results are also cached when the ordered transcript text, target language, provider, model, and prompt version match. A translation provider cache hit skips the translation provider call, reuses the stored translated segments, writes fresh subtitle artifacts for the current job, and records a `CACHE_HIT` timeline event. This is translation-only provider caching; transcription, TTS, quality evaluation, and generic prompt-response caching remain future work.
+Subtitle translation provider results are cached when the ordered transcript text, target language, provider, model, and prompt version match. A translation provider cache hit skips the translation provider call, reuses the stored translated segments, writes fresh subtitle artifacts for the current job, and records a `CACHE_HIT` timeline event.
+
+TTS provider results are cached when the ordered target-subtitle text, language, provider, model, and voice match. A TTS provider cache hit skips the TTS provider call, writes a fresh `DUBBING_AUDIO` artifact for the current job, and records a provider `CACHE_HIT` timeline event. Transcription, quality evaluation, and generic prompt-response caching remain future work.
 
 `GET /api/jobs/{jobId}` includes `cacheSummary.cacheHitCount`, `cacheSummary.generatedArtifactCount`, and `cacheSummary.providerCacheHitCount`. The React demo shows artifact/provider cache-hit counts near usage/cost metadata and marks reused artifact rows as `Reused`.
 
@@ -427,6 +429,8 @@ When translation is enabled with `LINGUAFRAME_TRANSLATION_PROVIDER=demo`, the wo
 When TTS is enabled with `LINGUAFRAME_TTS_PROVIDER=demo`, the worker uses a deterministic demo TTS provider and stores:
 
 - `DUBBING_AUDIO` as `dubbing-audio.mp3`
+
+Compatible repeat TTS inputs can reuse cached provider audio before calling the configured provider. Same-video artifact reuse still runs first, so duplicate jobs for the same source video can skip both provider lookup and object rewrites.
 
 When subtitle burn-in is enabled, the worker uses FFmpeg and target subtitles to store:
 
