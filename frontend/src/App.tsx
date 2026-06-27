@@ -2074,7 +2074,8 @@ function formatRuntimeCheckName(name: RuntimeLiveCheckName): string {
     redis: 'Redis',
     rabbitmq: 'RabbitMQ',
     minio: 'MinIO',
-    ffmpeg: 'FFmpeg'
+    ffmpeg: 'FFmpeg',
+    openai: 'OpenAI'
   };
   return labels[name];
 }

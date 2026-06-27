@@ -4,6 +4,7 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.common.runtime.domain.enums.RuntimeProbeStatus;
 import com.linguaframe.common.runtime.domain.vo.RuntimeLiveCheckSummaryVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeProbeResultVo;
+import com.linguaframe.common.runtime.service.OpenAiConnectivityCheckService;
 import com.linguaframe.common.runtime.service.RuntimeLiveCheckService;
 import com.linguaframe.storage.service.ObjectStorageHealthCheckService;
 import org.springframework.amqp.rabbit.connection.Connection;
@@ -32,6 +33,7 @@ public class RuntimeLiveCheckServiceImpl implements RuntimeLiveCheckService {
     private final ConnectionFactory rabbitConnectionFactory;
     private final ObjectStorageHealthCheckService objectStorageHealthCheckService;
     private final LinguaFrameProperties properties;
+    private final OpenAiConnectivityCheckService openAiConnectivityCheckService;
     private final Clock clock;
 
     @Autowired
@@ -40,9 +42,11 @@ public class RuntimeLiveCheckServiceImpl implements RuntimeLiveCheckService {
             StringRedisTemplate redisTemplate,
             ConnectionFactory rabbitConnectionFactory,
             ObjectStorageHealthCheckService objectStorageHealthCheckService,
+            OpenAiConnectivityCheckService openAiConnectivityCheckService,
             LinguaFrameProperties properties
     ) {
-        this(jdbcClient, redisTemplate, rabbitConnectionFactory, objectStorageHealthCheckService, properties, Clock.systemUTC());
+        this(jdbcClient, redisTemplate, rabbitConnectionFactory, objectStorageHealthCheckService, properties,
+                openAiConnectivityCheckService, Clock.systemUTC());
     }
 
     public RuntimeLiveCheckServiceImpl(
@@ -51,6 +55,7 @@ public class RuntimeLiveCheckServiceImpl implements RuntimeLiveCheckService {
             ConnectionFactory rabbitConnectionFactory,
             ObjectStorageHealthCheckService objectStorageHealthCheckService,
             LinguaFrameProperties properties,
+            OpenAiConnectivityCheckService openAiConnectivityCheckService,
             Clock clock
     ) {
         this.jdbcClient = jdbcClient;
@@ -58,6 +63,7 @@ public class RuntimeLiveCheckServiceImpl implements RuntimeLiveCheckService {
         this.rabbitConnectionFactory = rabbitConnectionFactory;
         this.objectStorageHealthCheckService = objectStorageHealthCheckService;
         this.properties = properties;
+        this.openAiConnectivityCheckService = openAiConnectivityCheckService;
         this.clock = clock;
     }
 
@@ -69,6 +75,7 @@ public class RuntimeLiveCheckServiceImpl implements RuntimeLiveCheckService {
         checks.put("rabbitmq", probe("RabbitMQ connection opened", "RabbitMQ connection failed", this::checkRabbitmq));
         checks.put("minio", probe("MinIO bucket is reachable", "MinIO bucket check failed", this::checkMinio));
         checks.put("ffmpeg", probe("FFmpeg binary responded", "FFmpeg binary check failed", this::checkFfmpeg));
+        checks.put("openai", openAiConnectivityCheckService.check());
         boolean healthy = checks.values().stream()
                 .noneMatch(result -> result.status() == RuntimeProbeStatus.DOWN);
         return new RuntimeLiveCheckSummaryVo(healthy, Instant.now(clock), checks);

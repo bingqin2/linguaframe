@@ -113,6 +113,10 @@ linguaframe:
       model: ${OPENAI_EVALUATION_MODEL:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       timeout-seconds: ${OPENAI_EVALUATION_TIMEOUT_SECONDS:60}
+  openai-connectivity:
+    enabled: ${LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED:false}
+    timeout-seconds: ${LINGUAFRAME_OPENAI_CONNECTIVITY_TIMEOUT_SECONDS:5}
+    model: ${LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL:}
   database:
     host: ${MYSQL_HOST:localhost}
     port: ${MYSQL_PORT:3306}

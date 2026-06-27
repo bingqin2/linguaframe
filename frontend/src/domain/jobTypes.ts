@@ -235,7 +235,7 @@ export interface RuntimeLiveCheckSummary {
   checks: Record<RuntimeLiveCheckName, RuntimeProbeResult>;
 }
 
-export type RuntimeLiveCheckName = 'database' | 'redis' | 'rabbitmq' | 'minio' | 'ffmpeg';
+export type RuntimeLiveCheckName = 'database' | 'redis' | 'rabbitmq' | 'minio' | 'ffmpeg' | 'openai';
 
 export interface RuntimeProbeResult {
   status: RuntimeProbeStatus;

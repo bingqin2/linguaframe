@@ -120,8 +120,13 @@ describe('App', () => {
     expect(within(liveChecks).getByText('RabbitMQ')).toBeInTheDocument();
     expect(within(liveChecks).getByText('MinIO')).toBeInTheDocument();
     expect(within(liveChecks).getByText('FFmpeg')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('OpenAI')).toBeInTheDocument();
     expect(within(liveChecks).getAllByText('UP')).toHaveLength(5);
+    expect(within(liveChecks).getByText('SKIPPED')).toBeInTheDocument();
     expect(within(liveChecks).getByText(/database probe succeeded/i)).toBeInTheDocument();
+    expect(within(liveChecks).getByText(/OpenAI connectivity check is disabled/i)).toBeInTheDocument();
+    expect(liveChecks).not.toHaveTextContent('sk-test-secret');
+    expect(liveChecks).not.toHaveTextContent('Bearer');
   });
 
   test('marks live dependency checks as blocked when a probe is down', async () => {
@@ -146,6 +151,31 @@ describe('App', () => {
     expect(within(liveChecks).getByText('Redis')).toBeInTheDocument();
     expect(within(liveChecks).getByText('DOWN')).toBeInTheDocument();
     expect(within(liveChecks).getByText(/Redis ping failed/i)).toBeInTheDocument();
+  });
+
+  test('shows enabled OpenAI live check status safely', async () => {
+    vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(
+      runtimeLiveChecksFixture({
+        checks: {
+          ...runtimeLiveChecksFixture().checks,
+          openai: {
+            status: 'UP',
+            latencyMs: 33,
+            message: 'OpenAI model metadata endpoint is reachable'
+          }
+        }
+      })
+    );
+
+    render(<App />);
+
+    const liveChecks = await screen.findByRole('region', { name: /live checks/i });
+    expect(within(liveChecks).getByText('OpenAI')).toBeInTheDocument();
+    expect(within(liveChecks).getAllByText('UP')).toHaveLength(6);
+    expect(within(liveChecks).getByText(/OpenAI model metadata endpoint is reachable/i))
+      .toBeInTheDocument();
+    expect(liveChecks).not.toHaveTextContent('sk-test-secret');
+    expect(liveChecks).not.toHaveTextContent('Bearer');
   });
 
   test('keeps upload controls usable when live dependency checks fail', async () => {
@@ -1380,7 +1410,8 @@ function runtimeLiveChecksFixture(
       redis: { status: 'UP', latencyMs: 4, message: 'Redis ping succeeded' },
       rabbitmq: { status: 'UP', latencyMs: 6, message: 'RabbitMQ connection succeeded' },
       minio: { status: 'UP', latencyMs: 7, message: 'MinIO bucket is reachable' },
-      ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' }
+      ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' },
+      openai: { status: 'SKIPPED', latencyMs: 1, message: 'OpenAI connectivity check is disabled' }
     },
     ...overrides
   };

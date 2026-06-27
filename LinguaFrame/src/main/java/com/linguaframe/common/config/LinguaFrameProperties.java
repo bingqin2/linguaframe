@@ -63,6 +63,9 @@ public class LinguaFrameProperties {
     @Valid
     private final Evaluation evaluation = new Evaluation();
 
+    @Valid
+    private final OpenAiConnectivity openAiConnectivity = new OpenAiConnectivity();
+
     public Media getMedia() {
         return media;
     }
@@ -125,6 +128,10 @@ public class LinguaFrameProperties {
 
     public Evaluation getEvaluation() {
         return evaluation;
+    }
+
+    public OpenAiConnectivity getOpenAiConnectivity() {
+        return openAiConnectivity;
     }
 
     public static class Media {
@@ -872,6 +879,41 @@ public class LinguaFrameProperties {
             public void setTimeoutSeconds(int timeoutSeconds) {
                 this.timeoutSeconds = timeoutSeconds;
             }
+        }
+    }
+
+    public static class OpenAiConnectivity {
+
+        private boolean enabled = false;
+
+        @Min(1)
+        @Max(60)
+        private int timeoutSeconds = 5;
+
+        private String model = "";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getTimeoutSeconds() {
+            return timeoutSeconds;
+        }
+
+        public void setTimeoutSeconds(int timeoutSeconds) {
+            this.timeoutSeconds = timeoutSeconds;
+        }
+
+        public String getModel() {
+            return model;
+        }
+
+        public void setModel(String model) {
+            this.model = model == null ? "" : model;
         }
     }
 

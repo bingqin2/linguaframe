@@ -463,6 +463,9 @@ OPENAI_TTS_VOICE=
 OPENAI_TTS_TIMEOUT_SECONDS=120
 OPENAI_EVALUATION_MODEL=
 OPENAI_EVALUATION_TIMEOUT_SECONDS=60
+LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=false
+LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL=
+LINGUAFRAME_OPENAI_CONNECTIVITY_TIMEOUT_SECONDS=5
 ```
 
 Cost rates default to `0` in `.env.example` because provider pricing changes. Treat `estimatedCostUsd` as a local estimate, not billing-source-of-truth data.
@@ -475,6 +478,8 @@ LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
 ```
 
 When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
+
+The OpenAI connectivity check is disabled by default and does not run during normal local startup. To prove OpenAI credentials and model access before uploading media, set `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`, configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and either `LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL` or one provider model, then restart the backend. The `Live checks` panel and `scripts/demo/private-demo-preflight.sh` report the probe as `UP`, `DOWN`, or `SKIPPED` without exposing the API key, bearer header, raw provider response, or request payload. The probe calls only the model metadata endpoint; it does not upload media or run transcription, translation, TTS, or evaluation.
 
 The React `Demo readiness` panel shows whether budget guard is enabled plus the configured per-job and daily demo budget limits. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
 
