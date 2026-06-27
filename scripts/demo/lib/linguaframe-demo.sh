@@ -210,6 +210,30 @@ raise SystemExit(1)
   curl -fsS "$base_url/api/jobs/$job_id/artifacts/$artifact_id/download" -o "$output_path"
 }
 
+download_artifact_archive() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/artifacts/archive/download" -o "$output_path"
+}
+
+print_zip_entries() {
+  local archive_path="$1"
+
+  python3 - "$archive_path" <<'PY'
+import sys
+import zipfile
+
+archive_path = sys.argv[1]
+with zipfile.ZipFile(archive_path) as archive:
+    print("archiveEntryCount=" + str(len(archive.namelist())))
+    for name in archive.namelist():
+        print("- ZIP_ENTRY " + name)
+PY
+}
+
 print_artifact_summary() {
   python3 -c '
 import json

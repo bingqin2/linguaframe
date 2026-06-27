@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
+  artifactArchiveDownloadUrl,
   artifactDownloadUrl,
   getJob,
   jobEventsUrl,
@@ -152,6 +153,12 @@ describe('linguaframeApi', () => {
     expect(job.cacheSummary.cacheHitCount).toBe(1);
     expect(job.cacheSummary.providerCacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
+  });
+
+  test('builds artifact archive download URL with encoded job id', () => {
+    expect(artifactArchiveDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/artifacts/archive/download'
+    );
   });
 
   test('sends demo access token header for json api requests when stored', async () => {

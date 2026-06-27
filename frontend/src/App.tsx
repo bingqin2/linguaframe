@@ -987,7 +987,12 @@ function JobDetail({
       </section>
 
       <section className="panel" aria-label="Artifacts">
-        <h3>Artifacts</h3>
+        <div className="panel-heading artifact-panel-heading">
+          <h3>Artifacts</h3>
+          <a className="secondary-link" href={linguaFrameApi.artifactArchiveDownloadUrl(job.jobId)}>
+            Download result bundle
+          </a>
+        </div>
         {previewErrors.length > 0 ? (
           <ul className="error-list">
             {previewErrors.map((previewError) => (

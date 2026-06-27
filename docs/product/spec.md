@@ -187,6 +187,7 @@ Upload Video
 - Replacing the original voice track with perfectly aligned dubbing audio is a future enhancement.
 - The generated video artifact is stored in object storage and can be previewed or downloaded.
 - Generated artifacts expose lowercase SHA-256 content fingerprints for reproducibility and future duplicate-work detection.
+- A job result bundle can be downloaded as an on-demand ZIP containing generated artifacts and a safe manifest, without including the uploaded source video.
 
 ### Cost Tracking
 

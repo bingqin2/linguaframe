@@ -1,6 +1,7 @@
 package com.linguaframe.job.controller;
 
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
@@ -123,5 +124,21 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(resource.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/artifacts/archive/download")
+    public ResponseEntity<InputStreamResource> downloadArtifactArchive(@PathVariable String jobId) {
+        StoredArtifactArchiveBo archive = artifactService.openArtifactArchive(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(archive.contentType()))
+                .contentLength(archive.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(archive.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(archive.inputStream()));
     }
 }
