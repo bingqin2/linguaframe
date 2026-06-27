@@ -1065,6 +1065,11 @@ Validation so far:
 
 Post-merge verification:
 
+- Merged `redis-job-status-cache-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='RedisLocalizationJobStatusCacheServiceTests,LocalizationJobQueryServiceTests,LocalizationJobRetryServiceTests,LocalizationJobCancellationServiceTests,LocalizationJobExecutionServiceTests,LocalizationJobControllerTests,LinguaFramePropertiesTests' test` passed on `main` with `Tests run: 80, Failures: 0, Errors: 0, Skipped: 0`.
+
+Post-merge verification:
+
 - Merged `tts-provider-cache-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest=TtsCacheServiceTests,DubbingAudioGenerationPipelineStageTests test` passed on `main` with `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.

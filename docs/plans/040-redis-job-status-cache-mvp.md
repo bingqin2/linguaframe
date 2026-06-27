@@ -100,4 +100,4 @@
 - [x] Run full validation: `mvn -pl LinguaFrame test`.
 - [x] Run Compose validation: `docker compose --env-file .env.example config --quiet` and `docker compose --env-file .env.example --profile split-workers config --quiet`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add Redis job status cache`, merge `redis-job-status-cache-mvp` back to `main`, and run a post-merge focused validation.
+- [x] Commit as `Add Redis job status cache`, merge `redis-job-status-cache-mvp` back to `main`, and run a post-merge focused validation.
