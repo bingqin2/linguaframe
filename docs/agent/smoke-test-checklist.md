@@ -48,6 +48,17 @@ Expected:
 - Docker builds `linguaframe-linguaframe-backend:latest`.
 - Docker builds `linguaframe-linguaframe-frontend:latest`.
 
+If the frontend image cannot build because Docker cannot resolve or pull `node:26-alpine`, use the local fallback instead of blocking backend demo validation:
+
+```bash
+scripts/demo/frontend-local-dev.sh
+```
+
+Expected:
+
+- The script serves Vite on `http://localhost:5173`.
+- `LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh` reports `Frontend responds at http://localhost:5173`.
+
 ### Frontend Demo Verification
 
 Run frontend checks:

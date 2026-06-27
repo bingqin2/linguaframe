@@ -1667,3 +1667,19 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added `scripts/demo/frontend-local-dev.sh` as a local Vite fallback when Docker cannot build the frontend image.
+- Updated private-demo preflight frontend failure guidance to include both Docker and local fallback startup commands.
+- Documented the fallback in README, Docker E2E docs, and the smoke-test checklist.
+
+Validation so far:
+
+- `bash -n scripts/demo/private-demo-preflight.sh scripts/demo/frontend-local-dev.sh` passed.
+- `scripts/demo/frontend-local-dev.sh --help` passed after making the script executable.
+- `scripts/demo/frontend-local-dev.sh` first failed in the sandbox with `listen EPERM` on `0.0.0.0:5173`, then started successfully with host port access.
+- `curl -fsSI http://localhost:5173` passed with `HTTP/1.1 200 OK`.
+- `LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh` passed end-to-end while the local fallback server was running.

@@ -225,7 +225,7 @@ PY
 
 check_frontend() {
   if ! curl -fsSI "$FRONTEND_URL" >/dev/null; then
-    fail "Frontend did not respond at $FRONTEND_URL. Start the frontend with: docker compose --env-file $ENV_FILE up -d --build linguaframe-frontend"
+    fail "Frontend did not respond at $FRONTEND_URL. Start it with Docker: docker compose --env-file $ENV_FILE up -d --build linguaframe-frontend. If Docker cannot pull the Node frontend image, use the local fallback: scripts/demo/frontend-local-dev.sh"
   fi
   pass "Frontend responds at $FRONTEND_URL"
 }

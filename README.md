@@ -148,6 +148,14 @@ npm run test:run
 npm run build
 ```
 
+If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, keep the backend in Docker and start the browser demo with the local fallback:
+
+```bash
+scripts/demo/frontend-local-dev.sh
+```
+
+The fallback uses the existing `frontend/package-lock.json`, installs dependencies only when `frontend/node_modules` is missing, and serves the Vite app on `http://localhost:5173`.
+
 With Docker Compose running, open:
 
 ```text
