@@ -268,6 +268,7 @@ Build:
 - One-click diagnostics report download. Status: implemented as metadata-only JSON for safe job debugging evidence.
 - One-click backend evidence Markdown download. Status: implemented as an on-demand sanitized Markdown report for readable demo evidence.
 - One-click demo evidence bundle download. Status: implemented as an on-demand metadata-only ZIP with manifest, Markdown evidence, and diagnostics JSON.
+- Browser cache replay evidence. Status: implemented as a read-only selected-job comparison panel that shows provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe replay evidence exports.
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
@@ -408,6 +409,7 @@ Build:
 - Quality evaluation provider cache based on source transcript hash, target subtitle hash, target language, provider, model, and prompt version. Status: implemented.
 - TTS provider cache based on target subtitle text hash, language, provider, model, and voice. Status: implemented.
 - Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, quality evaluation provider cache hits, and TTS provider cache hits.
+- Browser-visible cache replay evidence. Status: implemented by composing existing safe job detail and artifact APIs in the React demo without adding a backend aggregate endpoint.
 
 Do not build yet:
 

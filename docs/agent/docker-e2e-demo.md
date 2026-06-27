@@ -237,6 +237,8 @@ scripts/demo/docker-e2e-cache-hit.sh
 
 The script uploads the same sample twice with the same target language and current provider/model/prompt settings. It waits for both jobs to complete, downloads job detail and diagnostics reports for both runs, validates diagnostics safety, and fails if the second job has no provider cache hit.
 
+After the script passes, open the React frontend, open the first completed job, click `Pin as baseline` in the `Cache replay` panel, and choose the second completed job as the comparison. The panel should show provider cache-hit stages, reused/generated artifact counts, model-call delta, estimated-cost delta, and safe copy/download replay evidence actions.
+
 Expected output includes:
 
 ```text

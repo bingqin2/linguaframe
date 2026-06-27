@@ -168,6 +168,8 @@ Real restore requires `--yes`. See `docs/deployment/private-demo.md` before rest
 
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
+In the browser, open the first completed cache-hit demo job and use `Cache replay` -> `Pin as baseline`, then choose the second completed job as the comparison. The panel shows provider cache-hit stages, artifact reused/generated counts, model-call delta, estimated-cost delta, and safe replay evidence export actions.
+
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary, and the `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
 For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.
