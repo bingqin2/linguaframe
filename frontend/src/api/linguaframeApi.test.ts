@@ -6,6 +6,7 @@ import {
   artifactDownloadUrl,
   getJob,
   jobDiagnosticsDownloadUrl,
+  jobEvidenceMarkdownDownloadUrl,
   jobEventsUrl,
   listJobs,
   listArtifacts,
@@ -232,6 +233,12 @@ describe('linguaframeApi', () => {
   test('builds diagnostics download URL with encoded job id', () => {
     expect(jobDiagnosticsDownloadUrl('job with/slash')).toBe(
       '/api/jobs/job%20with%2Fslash/diagnostics/download'
+    );
+  });
+
+  test('builds evidence markdown download URL with encoded job id', () => {
+    expect(jobEvidenceMarkdownDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/evidence/markdown/download'
     );
   });
 

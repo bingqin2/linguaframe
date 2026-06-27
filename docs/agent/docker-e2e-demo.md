@@ -52,7 +52,7 @@ Before uploading, check the browser `Demo runbook`, `Live checks`, and upload fo
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
 
-Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a Markdown summary for notes or interview walkthroughs, and `Download evidence JSON` writes a local metadata file. The evidence should include job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, or media bytes.
+Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a browser-generated Markdown summary for notes or interview walkthroughs, `Download evidence JSON` writes a local metadata file, and `Download backend evidence` downloads the API-generated Markdown report. The evidence should include job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, or media bytes.
 
 After a job starts, inspect job-scoped backend logs when debugging worker behavior:
 

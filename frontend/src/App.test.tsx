@@ -1144,6 +1144,10 @@ describe('App', () => {
     expect(evidenceText).toContain('Subtitle preview segments: 1');
     expect(evidenceText).toContain('Result bundle: /api/jobs/evidence-job/artifacts/archive/download');
     expect(evidenceText).toContain('Diagnostics: /api/jobs/evidence-job/diagnostics/download');
+    expect(within(evidence).getByRole('link', { name: /download backend evidence/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/evidence-job/evidence/markdown/download'
+    );
     expect(evidenceText).not.toContain('Sensitive source line');
     expect(evidenceText).not.toContain('敏感字幕');
     expect(evidenceText).not.toContain('source-vtt-artifact');

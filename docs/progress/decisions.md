@@ -337,3 +337,11 @@ Decision: Generate job diagnostics reports on demand as metadata-only JSON.
 Reason: Demo failures and successful runs need shareable debugging evidence, but copying multiple API responses risks exposing object storage keys, local paths, raw transcript or subtitle text, provider payloads, credentials, or uploaded media bytes.
 
 Impact: `GET /api/jobs/{jobId}/diagnostics/download` returns sanitized job detail plus artifact metadata and hashes without adding persistence. The React demo links to it from the selected job header, and demo scripts download and validate the JSON report for success, retry, and budget-guard paths.
+
+## 2026-06-28
+
+Decision: Generate backend demo evidence Markdown on demand from the sanitized diagnostics surface.
+
+Reason: Demo reviewers need a readable, shareable report that can be downloaded from the API and reproduced by scripts, while browser-only evidence is tied to already-loaded frontend state and diagnostics JSON is optimized for machines.
+
+Impact: `GET /api/jobs/{jobId}/evidence/markdown/download` returns a text/markdown attachment with job status, timeline, usage, cache, quality, artifact hash, result bundle, and diagnostics links. The report is not persisted as an artifact and excludes raw transcript text, raw subtitle text, object keys, local paths, tokens, provider payloads, and media bytes.
