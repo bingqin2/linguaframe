@@ -91,6 +91,6 @@
 - [x] Run focused backend validation: `mvn -pl LinguaFrame -Dtest='RetentionCleanupControllerTests,RuntimeDependencyControllerTests' test`.
 - [x] Run full backend validation: `mvn -pl LinguaFrame test`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add retention cleanup operator panel`.
-- [ ] Merge `retention-cleanup-panel-mvp` back to `main`.
-- [ ] Run post-merge focused validation: `cd frontend && npm run test:run -- linguaframeApi App`.
+- [x] Commit as `Add retention cleanup operator panel`.
+- [x] Merge `retention-cleanup-panel-mvp` back to `main`.
+- [x] Run post-merge focused validation: `cd frontend && npm run test:run -- linguaframeApi App`.

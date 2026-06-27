@@ -1477,3 +1477,8 @@ Validation:
 - `mvn -pl LinguaFrame -Dtest='RetentionCleanupControllerTests,RuntimeDependencyControllerTests' test` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
 - `mvn -pl LinguaFrame test` passed with `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `retention-cleanup-panel-mvp` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 49`.
