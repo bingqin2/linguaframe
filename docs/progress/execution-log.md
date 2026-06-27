@@ -24,6 +24,20 @@ Validation:
 
 Work:
 
+- Merged `browser-upload-preflight-mvp` back to `main` with a merge commit.
+
+Validation:
+
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Test Files 2 passed` and `Tests 57 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
 - Added a browser `Demo runbook` panel that shows the local startup command, E2E validation scripts, demo URLs, runtime constraints, provider modes, budget guard state, subtitle burn-in state, and sample-media guidance.
 - Kept the runbook useful when readiness loading fails by always rendering static commands and showing a runtime guidance error.
 - Updated README, Docker E2E guide, and smoke-test checklist with the in-app runbook expectations.
