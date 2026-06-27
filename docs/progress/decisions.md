@@ -265,3 +265,11 @@ Decision: Store TTS voice selection on each localization job and include it in T
 Reason: Voice is part of the user's requested output, not just a runtime knob. A job-level value makes upload responses, job detail, split-worker dispatch messages, provider requests, and cache lookups agree even when the global default voice changes later.
 
 Impact: Jobs without a selected voice still use the configured provider default. Jobs with `ttsVoice` use that value for OpenAI TTS requests and TTS provider cache keys, so two jobs with the same subtitles but different voices do not share audio.
+
+## 2026-06-27
+
+Decision: Compute operator dashboard metrics read-only from existing durable tables.
+
+Reason: The current demo needs browser-visible health, failures, cost, and cache signals, but a new reporting schema or mutable admin surface would add operational semantics the product does not have yet.
+
+Impact: `GET /api/operator/dashboard` aggregates jobs, model calls, artifacts, and cache-hit timeline events on demand. It is protected by the existing demo access gate when configured and deliberately does not add queue purge, retention execution, billing, or user administration.

@@ -627,6 +627,8 @@ scripts/demo/docker-e2e-success.sh
 
 The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling quality evaluation adds a non-blocking evaluation result and one model call, and enabling TTS adds another model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
 
+The React demo includes a read-only operator dashboard backed by `GET /api/operator/dashboard`. It summarizes job status counts, recent failed jobs, model-call cost, and cache effectiveness from existing durable tables. It is a demo observability surface, not a full admin dashboard.
+
 For the full test matrix, expected outputs, artifact checks, and cleanup commands, see `docs/agent/smoke-test-checklist.md`.
 
 ## Resume Target

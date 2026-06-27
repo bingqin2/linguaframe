@@ -1327,3 +1327,28 @@ Post-merge verification:
 - Merged `tts-voice-selection-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest='UploadIntakeSchemaTests,LocalizationJobRepositoryTests,MediaUploadControllerTests,MediaUploadServiceTests,JobDispatchOutboxServiceTests,LocalizationJobControllerTests,DubbingAudioGenerationPipelineStageTests,TtsCacheKeyServiceTests,OpenAiTtsProviderTests' test` passed on `main` with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- linguaframeApi recentJobs App` passed on `main` with `Tests run: 39`.
+
+## 2026-06-27
+
+Work:
+
+- Added read-only operator dashboard API at `GET /api/operator/dashboard`.
+- Added dashboard aggregates for job status counts, recent failed jobs, model-call totals, and cache totals from existing durable tables.
+- Added React operator dashboard panel with refresh, safe local error handling, and click-to-open for recent failed jobs.
+- Documented the dashboard as demo observability, not a full mutable admin dashboard.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='OperatorDashboardRepositoryTests,OperatorDashboardControllerTests,DemoAccessInterceptorTests' test` first failed because `OperatorDashboardRepository` did not exist, then passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because `getOperatorDashboard` and dashboard UI did not exist, then passed with `Tests run: 37`.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='OperatorDashboardRepositoryTests,OperatorDashboardControllerTests,DemoAccessInterceptorTests' test` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 37`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 310, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 42`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
