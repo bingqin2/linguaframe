@@ -241,6 +241,8 @@ Do not commit API keys, storage credentials, database passwords, or provider sec
 
 Retention cleanup is default-off and dry-run by default. It only considers terminal jobs: `COMPLETED`, `FAILED`, and `CANCELLED`. It never deletes `QUEUED`, `RETRYING`, or `PROCESSING` jobs.
 
+In the browser demo, open the `Retention cleanup` panel in the left sidebar to preview cleanup counts. Use `Run cleanup` only after confirming the browser prompt. The backend configuration still decides whether the run is a dry run or a deleting run.
+
 Preview candidates without deleting anything:
 
 ```bash

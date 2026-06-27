@@ -6,6 +6,7 @@ import type {
   MediaUpload,
   OperatorDashboard,
   PromptTemplate,
+  RetentionCleanupResult,
   RuntimeDependencySummary,
   SubtitleSegment,
   TranscriptSegment
@@ -95,6 +96,18 @@ export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary
   });
 }
 
+export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
+  return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
+    method: 'GET'
+  });
+}
+
+export async function runRetentionCleanup(): Promise<RetentionCleanupResult> {
+  return requestJson<RetentionCleanupResult>('/api/retention/cleanup/run', {
+    method: 'POST'
+  });
+}
+
 export async function listTranscript(jobId: string): Promise<TranscriptSegment[]> {
   return requestJson<TranscriptSegment[]>(`/api/jobs/${encodeURIComponent(jobId)}/transcript`, {
     method: 'GET'
@@ -137,6 +150,8 @@ export const linguaFrameApi = {
   listPromptTemplates,
   getOperatorDashboard,
   getRuntimeDependencies,
+  getRetentionCleanupPreview,
+  runRetentionCleanup,
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,

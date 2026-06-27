@@ -188,6 +188,16 @@ export interface OperatorCacheSummary {
   providerCacheHitCount: number;
 }
 
+export interface RetentionCleanupResult {
+  dryRun: boolean;
+  candidateJobCount: number;
+  deletedJobCount: number;
+  deletedVideoCount: number;
+  deletedObjectCount: number;
+  skippedObjectCount: number;
+  failureCount: number;
+}
+
 export interface RuntimeDependencySummary {
   database: NetworkDependency;
   redis: NetworkDependency;

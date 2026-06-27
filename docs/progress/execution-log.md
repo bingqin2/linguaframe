@@ -1455,3 +1455,25 @@ Validation:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
+- Added typed frontend API helpers for retention cleanup preview and run endpoints.
+- Added a React `Retention cleanup` sidebar panel with dry-run/delete-mode copy, aggregate counts, preview refresh, and confirmation-gated manual run.
+- Documented the browser retention workflow while keeping curl commands as the terminal fallback.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- linguaframeApi` passed with `Tests run: 20`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
+
+Validation:
+
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 49`.
+- `cd frontend && npm run test:run` passed with `Tests run: 54`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `mvn -pl LinguaFrame -Dtest='RetentionCleanupControllerTests,RuntimeDependencyControllerTests' test` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
