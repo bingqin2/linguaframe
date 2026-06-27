@@ -125,6 +125,6 @@
 - [x] Run script syntax validation: `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh`.
 - [x] Run Compose validation: `docker compose --env-file .env.example config --quiet` and `docker compose --env-file .env.example --profile split-workers config --quiet`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add job result bundle download`.
-- [ ] Merge `job-result-bundle-download-mvp` back to `main`.
-- [ ] Run post-merge focused validation: backend focused command and `cd frontend && npm run test:run -- linguaframeApi App`.
+- [x] Commit as `Add job result bundle download`.
+- [x] Merge `job-result-bundle-download-mvp` back to `main`.
+- [x] Run post-merge focused validation: backend focused command and `cd frontend && npm run test:run -- linguaframeApi App`.

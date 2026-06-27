@@ -1041,6 +1041,12 @@ Validation so far:
 
 Post-merge verification:
 
+- Merged `job-result-bundle-download-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='JobArtifactServiceTests,LocalizationJobControllerTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 34, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 42`.
+
+Post-merge verification:
+
 - Merged `demo-readiness-panel-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest='RuntimeDependencyControllerTests,LinguaFramePropertiesTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 41`.
