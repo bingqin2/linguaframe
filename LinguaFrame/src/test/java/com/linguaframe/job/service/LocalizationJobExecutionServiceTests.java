@@ -85,6 +85,9 @@ class LocalizationJobExecutionServiceTests {
     private JobTimelineEventRepository timelineEventRepository;
 
     @Autowired
+    private LocalizationJobQueryService queryService;
+
+    @Autowired
     private JdbcClient jdbcClient;
 
     @Autowired
@@ -224,10 +227,12 @@ class LocalizationJobExecutionServiceTests {
         assertThat(timelineEventRepository.findByJobId("execution-job-provider-cache-hit"))
                 .extracting(event -> event.stage() + ":" + event.status() + ":" + event.message())
                 .contains(
-                        LocalizationJobStage.TARGET_SUBTITLE_EXPORT
+                        LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT
                                 + ":" + JobTimelineEventStatus.CACHE_HIT
-                                + ":Reused cached TRANSLATION provider result from job source-provider-cache-job."
+                                + ":Reused cached TRANSCRIPTION provider result from job source-provider-cache-job."
                 );
+        assertThat(queryService.getJob("execution-job-provider-cache-hit").cacheSummary().providerCacheHitCount())
+                .isEqualTo(1);
     }
 
     @Test
@@ -1387,13 +1392,13 @@ class LocalizationJobExecutionServiceTests {
 
         @Override
         public LocalizationJobStage stage() {
-            return LocalizationJobStage.TARGET_SUBTITLE_EXPORT;
+            return LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT;
         }
 
         @Override
         public void execute(LocalizationJobExecutionContextBo context) {
             context.recordProviderCacheHit(new com.linguaframe.job.domain.vo.ProviderCacheHitVo(
-                    ModelCallOperation.TRANSLATION,
+                    ModelCallOperation.TRANSCRIPTION,
                     "provider-cache-key",
                     "source-provider-cache-job"
             ));

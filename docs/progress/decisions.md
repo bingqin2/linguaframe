@@ -316,6 +316,14 @@ Impact: `GET /api/runtime/dependencies` now includes budget guard state, max per
 
 ## 2026-06-27
 
+Decision: Add transcription provider caching as transcript-segment reuse, not raw audio artifact reuse.
+
+Reason: Transcription has a stable compatibility boundary of extracted-audio hash, provider, model, and prompt/version. Caching at this boundary can skip duplicate speech-to-text provider calls while preserving fresh job artifacts and avoiding raw audio bytes, object keys, local paths, provider payloads, or secrets in cache identity.
+
+Impact: Repeat compatible transcription inputs now reuse stored transcript segments, create fresh transcript/SRT/VTT artifacts for the current job, and expose the hit through existing provider cache-hit timeline and job summary fields. Raw extracted-audio artifact reuse remains the artifact cache's responsibility.
+
+## 2026-06-27
+
 Decision: Generate job diagnostics reports on demand as metadata-only JSON.
 
 Reason: Demo failures and successful runs need shareable debugging evidence, but copying multiple API responses risks exposing object storage keys, local paths, raw transcript or subtitle text, provider payloads, credentials, or uploaded media bytes.

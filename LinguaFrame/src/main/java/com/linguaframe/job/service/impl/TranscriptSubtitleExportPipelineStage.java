@@ -4,21 +4,29 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
+import com.linguaframe.job.domain.bo.TranscriptionCacheLookupBo;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.ProviderCacheHitVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.domain.vo.TranscriptionCacheHitVo;
 import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
 import com.linguaframe.job.service.SubtitleExportService;
 import com.linguaframe.job.service.TranscriptService;
+import com.linguaframe.job.service.TranscriptionCacheKeyService;
+import com.linguaframe.job.service.TranscriptionCacheService;
 import com.linguaframe.job.service.TranscriptionProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class TranscriptSubtitleExportPipelineStage implements LocalizationPipelineStage {
@@ -29,6 +37,8 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
     private final TranscriptService transcriptService;
     private final SubtitleExportService subtitleExportService;
     private final CostBudgetGuardService costBudgetGuardService;
+    private final TranscriptionCacheKeyService transcriptionCacheKeyService;
+    private final TranscriptionCacheService transcriptionCacheService;
 
     public TranscriptSubtitleExportPipelineStage(
             LinguaFrameProperties properties,
@@ -38,12 +48,37 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
             SubtitleExportService subtitleExportService,
             CostBudgetGuardService costBudgetGuardService
     ) {
+        this(
+                properties,
+                artifactService,
+                transcriptionProvider,
+                transcriptService,
+                subtitleExportService,
+                costBudgetGuardService,
+                null,
+                null
+        );
+    }
+
+    @Autowired
+    public TranscriptSubtitleExportPipelineStage(
+            LinguaFrameProperties properties,
+            JobArtifactService artifactService,
+            TranscriptionProvider transcriptionProvider,
+            TranscriptService transcriptService,
+            SubtitleExportService subtitleExportService,
+            CostBudgetGuardService costBudgetGuardService,
+            TranscriptionCacheKeyService transcriptionCacheKeyService,
+            TranscriptionCacheService transcriptionCacheService
+    ) {
         this.properties = properties;
         this.artifactService = artifactService;
         this.transcriptionProvider = transcriptionProvider;
         this.transcriptService = transcriptService;
         this.subtitleExportService = subtitleExportService;
         this.costBudgetGuardService = costBudgetGuardService;
+        this.transcriptionCacheKeyService = transcriptionCacheKeyService;
+        this.transcriptionCacheService = transcriptionCacheService;
     }
 
     @Override
@@ -58,9 +93,26 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
         }
 
         byte[] audioContent = readExtractedAudio(context.job().id());
-        costBudgetGuardService.assertWithinBudget(context.job().id(), stage());
-        TranscriptionResultBo result = transcriptionProvider.transcribe(context.job().id(), audioContent);
+        TranscriptionCacheLookupBo lookup = buildCacheLookup(audioContent);
+        Optional<TranscriptionCacheHitVo> cacheHit = lookup == null || transcriptionCacheService == null
+                ? Optional.empty()
+                : transcriptionCacheService.findCachedTranscription(lookup);
+        TranscriptionResultBo result;
+        if (cacheHit.isPresent()) {
+            result = cacheHit.get().result();
+            context.recordProviderCacheHit(new ProviderCacheHitVo(
+                    ModelCallOperation.TRANSCRIPTION,
+                    cacheHit.get().cacheKey(),
+                    cacheHit.get().sourceJobId()
+            ));
+        } else {
+            costBudgetGuardService.assertWithinBudget(context.job().id(), stage());
+            result = transcriptionProvider.transcribe(context.job().id(), audioContent);
+        }
         List<TranscriptSegmentVo> segments = transcriptService.replaceTranscript(context.job().id(), result);
+        if (cacheHit.isEmpty() && lookup != null && transcriptionCacheService != null) {
+            transcriptionCacheService.storeTranscription(lookup, context.job().id(), result);
+        }
 
         artifactService.createArtifact(new CreateJobArtifactCommand(
                 context.job().id(),
@@ -83,6 +135,39 @@ public class TranscriptSubtitleExportPipelineStage implements LocalizationPipeli
                 "text/vtt",
                 subtitleExportService.exportVtt(segments)
         ));
+    }
+
+    private TranscriptionCacheLookupBo buildCacheLookup(byte[] audioContent) {
+        if (transcriptionCacheKeyService == null) {
+            return null;
+        }
+        return transcriptionCacheKeyService.build(
+                cacheProvider(),
+                cacheModel(),
+                cachePromptVersion(),
+                audioContent
+        );
+    }
+
+    private String cacheProvider() {
+        if ("openai".equalsIgnoreCase(properties.getTranscription().getProvider())) {
+            return "OPENAI";
+        }
+        return "DEMO";
+    }
+
+    private String cacheModel() {
+        if ("openai".equalsIgnoreCase(properties.getTranscription().getProvider())) {
+            return properties.getTranscription().getOpenai().getModel();
+        }
+        return "demo-transcription";
+    }
+
+    private String cachePromptVersion() {
+        if ("openai".equalsIgnoreCase(properties.getTranscription().getProvider())) {
+            return "openai-audio-transcriptions-v1";
+        }
+        return "demo-transcription-v1";
     }
 
     private byte[] readExtractedAudio(String jobId) {

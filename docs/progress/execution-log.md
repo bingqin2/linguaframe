@@ -1548,3 +1548,27 @@ Post-merge verification:
 - Merged `budget-guard-demo-evidence-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 29`.
+
+## 2026-06-27
+
+Work:
+
+- Added durable transcription provider cache schema, repository, key service, and JSON serialization service.
+- Wired `TranscriptSubtitleExportPipelineStage` to look up cached transcription results by extracted-audio hash, provider, model, and prompt version before budget/provider execution.
+- Reused cached transcript segments to write fresh transcript/SRT/VTT artifacts and report provider `CACHE_HIT` timeline events through the existing execution context.
+- Documented transcription cache behavior, smoke-test expectations, and product status.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=TranscriptionCacheRepositoryTests test` passed with `Tests run: 2`.
+- `mvn -pl LinguaFrame -Dtest='TranscriptionCacheKeyServiceTests,TranscriptionCacheServiceTests' test` passed with `Tests run: 7`.
+- `mvn -pl LinguaFrame -Dtest=TranscriptSubtitleExportPipelineStageTests test` first failed because the stage did not accept cache services, then passed with `Tests run: 2`.
+- `mvn -pl LinguaFrame -Dtest='TranscriptSubtitleExportPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed with `Tests run: 26`.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='TranscriptionCacheRepositoryTests,TranscriptionCacheKeyServiceTests,TranscriptionCacheServiceTests,TranscriptSubtitleExportPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed with `Tests run: 35`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 330, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

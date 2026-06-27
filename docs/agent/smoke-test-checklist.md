@@ -232,12 +232,24 @@ Expected job detail fields from `GET /api/jobs/{jobId}`:
 - `usageSummary.modelCallCount`
 - `usageSummary.failedModelCallCount`
 - `usageSummary.estimatedCostUsd`
+- `cacheSummary.providerCacheHitCount`
 - `modelCalls`
 - `modelCalls[].operation`
 - `modelCalls[].provider`
 - `modelCalls[].model`
 - `modelCalls[].status`
 - `modelCalls[].latencyMs`
+
+### Provider Cache Verification
+
+Run two compatible jobs with the same extracted audio, provider, model, and prompt/version settings.
+
+Expected:
+
+- The second compatible transcription job timeline includes `CACHE_HIT`.
+- `GET /api/jobs/{jobId}` for the second job reports `cacheSummary.providerCacheHitCount >= 1`.
+- The second job still writes fresh `TRANSCRIPT_JSON`, `SUBTITLE_SRT`, and `SUBTITLE_VTT` artifacts.
+- The second job does not create another transcription provider model call.
 
 ### Optional OpenAI Transcription Verification
 
