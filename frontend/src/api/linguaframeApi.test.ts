@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import type { RetentionCleanupResult } from '../domain/jobTypes';
 import {
   artifactArchiveDownloadUrl,
   artifactDownloadUrl,
@@ -9,10 +10,12 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getRetentionCleanupPreview,
   getRuntimeDependencies,
   readDemoToken,
   cancelJob,
   retryJob,
+  runRetentionCleanup,
   writeDemoToken,
   uploadMedia
 } from './linguaframeApi';
@@ -282,6 +285,37 @@ describe('linguaframeApi', () => {
     });
   });
 
+  test('fetches retention cleanup preview', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(jsonResponse(retentionCleanupResultFixture()));
+
+    const result = await getRetentionCleanupPreview();
+
+    expect(result.dryRun).toBe(true);
+    expect(result.candidateJobCount).toBe(2);
+    expect(fetchMock).toHaveBeenCalledWith('/api/retention/cleanup/preview', {
+      method: 'GET'
+    });
+  });
+
+  test('runs retention cleanup with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(jsonResponse(retentionCleanupResultFixture({ dryRun: false })));
+
+    const result = await runRetentionCleanup();
+
+    expect(result.dryRun).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith('/api/retention/cleanup/run', {
+      method: 'POST',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
   test('retries a failed job', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -544,5 +578,20 @@ function runtimeDependenciesFixture() {
         budgetGuard: { enabled: false }
       }
     }
+  };
+}
+
+function retentionCleanupResultFixture(
+  overrides: Partial<RetentionCleanupResult> = {}
+): RetentionCleanupResult {
+  return {
+    dryRun: true,
+    candidateJobCount: 2,
+    deletedJobCount: 0,
+    deletedVideoCount: 0,
+    deletedObjectCount: 0,
+    skippedObjectCount: 1,
+    failureCount: 0,
+    ...overrides
   };
 }

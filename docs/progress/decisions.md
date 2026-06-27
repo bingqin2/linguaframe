@@ -297,3 +297,11 @@ Decision: Generate job artifact ZIP bundles on demand instead of storing archive
 Reason: A result bundle is a demo export convenience over existing durable artifacts, not a new pipeline output. Persisting ZIPs would duplicate object storage, complicate retention, and create another artifact type to cache or invalidate.
 
 Impact: `GET /api/jobs/{jobId}/artifacts/archive/download` streams a ZIP containing generated artifacts plus a safe manifest. The archive excludes source videos, secrets, tokens, raw local paths, and storage credentials, and it does not create object storage or database rows.
+
+## 2026-06-27
+
+Decision: Expose retention cleanup in the browser as a manual, confirmation-gated operator action.
+
+Reason: The private demo needs a visible way to manage terminal jobs and stored artifacts without terminal-only curl commands, but cleanup can delete durable data when retention is enabled and dry-run is disabled.
+
+Impact: The React demo can preview cleanup counts and manually run cleanup through the existing backend endpoints. The browser does not schedule cleanup, does not bypass backend retention flags, and requires a confirmation prompt before calling the run endpoint.

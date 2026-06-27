@@ -10,6 +10,7 @@ import type {
   MediaUpload,
   OperatorDashboard,
   PromptTemplate,
+  RetentionCleanupResult,
   RuntimeDependencySummary
 } from './domain/jobTypes';
 
@@ -40,6 +41,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
+    vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockResolvedValue(
+      retentionCleanupResultFixture()
+    );
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
   });
 
@@ -140,6 +144,83 @@ describe('App', () => {
 
     const dashboard = await screen.findByRole('region', { name: /operator dashboard/i });
     expect(within(dashboard).getByText('Dashboard unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows retention cleanup preview in the operator sidebar', async () => {
+    render(<App />);
+
+    const cleanup = await screen.findByRole('region', { name: /retention cleanup/i });
+    expect(within(cleanup).getByText('Dry run')).toBeInTheDocument();
+    expect(within(cleanup).getByText('2 terminal jobs would be considered.')).toBeInTheDocument();
+    expect(within(cleanup).getByText('2 jobs')).toBeInTheDocument();
+    expect(within(cleanup).getByText('1 objects')).toBeInTheDocument();
+    expect(within(cleanup).getByRole('button', { name: /preview cleanup/i })).toBeInTheDocument();
+    expect(within(cleanup).getByRole('button', { name: /run cleanup/i })).toBeInTheDocument();
+  });
+
+  test('refreshes retention cleanup preview', async () => {
+    const preview = vi
+      .spyOn(linguaFrameApi, 'getRetentionCleanupPreview')
+      .mockResolvedValueOnce(retentionCleanupResultFixture())
+      .mockResolvedValueOnce(retentionCleanupResultFixture({ candidateJobCount: 4 }));
+
+    render(<App />);
+
+    const cleanup = await screen.findByRole('region', { name: /retention cleanup/i });
+    await userEvent.click(within(cleanup).getByRole('button', { name: /preview cleanup/i }));
+
+    expect(preview).toHaveBeenCalledTimes(2);
+    expect(await within(cleanup).findByText('4 jobs')).toBeInTheDocument();
+  });
+
+  test('does not run retention cleanup when confirmation is cancelled', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const runCleanup = vi.spyOn(linguaFrameApi, 'runRetentionCleanup').mockResolvedValue(
+      retentionCleanupResultFixture({ dryRun: false })
+    );
+
+    render(<App />);
+
+    const cleanup = await screen.findByRole('region', { name: /retention cleanup/i });
+    await userEvent.click(within(cleanup).getByRole('button', { name: /run cleanup/i }));
+
+    expect(runCleanup).not.toHaveBeenCalled();
+  });
+
+  test('runs retention cleanup after confirmation and shows delete-mode result', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const runCleanup = vi.spyOn(linguaFrameApi, 'runRetentionCleanup').mockResolvedValue(
+      retentionCleanupResultFixture({
+        dryRun: false,
+        deletedJobCount: 2,
+        deletedVideoCount: 1,
+        deletedObjectCount: 5,
+        skippedObjectCount: 0
+      })
+    );
+
+    render(<App />);
+
+    const cleanup = await screen.findByRole('region', { name: /retention cleanup/i });
+    await userEvent.click(within(cleanup).getByRole('button', { name: /run cleanup/i }));
+
+    expect(runCleanup).toHaveBeenCalledTimes(1);
+    expect(await within(cleanup).findByText('Delete mode')).toBeInTheDocument();
+    expect(
+      within(cleanup).getByText('2 jobs, 1 videos, and 5 objects deleted.')
+    ).toBeInTheDocument();
+  });
+
+  test('keeps upload controls usable when retention cleanup preview fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockRejectedValue(
+      new Error('Cleanup unavailable')
+    );
+
+    render(<App />);
+
+    const cleanup = await screen.findByRole('region', { name: /retention cleanup/i });
+    expect(within(cleanup).getByText('Cleanup unavailable')).toBeInTheDocument();
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
@@ -827,6 +908,21 @@ function runtimeDependenciesFixture(
         budgetGuard: { enabled: false }
       }
     },
+    ...overrides
+  };
+}
+
+function retentionCleanupResultFixture(
+  overrides: Partial<RetentionCleanupResult> = {}
+): RetentionCleanupResult {
+  return {
+    dryRun: true,
+    candidateJobCount: 2,
+    deletedJobCount: 0,
+    deletedVideoCount: 0,
+    deletedObjectCount: 0,
+    skippedObjectCount: 1,
+    failureCount: 0,
     ...overrides
   };
 }

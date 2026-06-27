@@ -288,7 +288,7 @@ MVP frontend scope:
 - Cost and usage summary.
 - Failed-job retry button.
 - Server-Sent Events for live selected-job progress with polling fallback.
-- Read-only operator dashboard for job status counts, recent failures, model-call totals, and cache totals.
+- Operator dashboard for job status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
 - Read-only demo readiness panel for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, and runtime feature flags.
 
 The frontend should not start as a marketing landing page. The first screen should be the working video localization experience.
@@ -309,7 +309,7 @@ Planned follow-up capabilities:
 - S3 or cloud object storage.
 - Queue worker split from API process.
 - Cost budget limits per user.
-- Full admin dashboard for queue control, retention actions, failures, and usage.
+- Full admin dashboard for queue control, user management, billing controls, and advanced failure administration.
 - LLM gateway interfaces for speech, translation, quality evaluation, and TTS.
 - Prompt template versioning for reproducible AI outputs.
 - Model-call audit records with latency, token usage, cost, prompt version, safe summaries, and failure details.

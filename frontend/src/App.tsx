@@ -10,6 +10,7 @@ import type {
   OperatorDashboard,
   PromptTemplate,
   ProviderReadiness,
+  RetentionCleanupResult,
   RuntimeDependencySummary,
   SubtitleSegment,
   TranscriptSegment
@@ -69,6 +70,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
   const [operatorDashboardError, setOperatorDashboardError] = useState<string | null>(null);
   const [isLoadingOperatorDashboard, setIsLoadingOperatorDashboard] = useState(false);
+  const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
+  const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
+  const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
+  const [isRunningRetentionCleanup, setIsRunningRetentionCleanup] = useState(false);
   const [runtimeDependencies, setRuntimeDependencies] = useState<RuntimeDependencySummary | null>(
     null
   );
@@ -156,6 +161,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadRetentionCleanupPreview = useCallback(async () => {
+    setIsLoadingRetentionCleanup(true);
+    try {
+      const result = await linguaFrameApi.getRetentionCleanupPreview();
+      setRetentionCleanup(result);
+      setRetentionCleanupError(null);
+    } catch (retentionLoadError) {
+      setRetentionCleanup(null);
+      setRetentionCleanupError(toErrorMessage(retentionLoadError));
+    } finally {
+      setIsLoadingRetentionCleanup(false);
+    }
+  }, []);
+
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
     const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
@@ -199,6 +218,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
+
+  useEffect(() => {
+    void loadRetentionCleanupPreview();
+  }, [loadRetentionCleanupPreview]);
 
   useEffect(() => {
     let ignore = false;
@@ -378,6 +401,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setDemoTokenInput(storedToken);
     setDemoTokenStatus(storedToken ? 'Token saved.' : 'Token cleared.');
     void loadRuntimeDependencies();
+    void loadRetentionCleanupPreview();
   }
 
   function handleClearDemoToken() {
@@ -385,6 +409,28 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setDemoTokenInput('');
     setDemoTokenStatus('Token cleared.');
     void loadRuntimeDependencies();
+    void loadRetentionCleanupPreview();
+  }
+
+  async function handleRunRetentionCleanup() {
+    const confirmed = window.confirm(
+      'Run retention cleanup now? The backend retention configuration decides whether this is a dry run or a deleting run.'
+    );
+    if (!confirmed) {
+      return;
+    }
+    setIsRunningRetentionCleanup(true);
+    try {
+      const result = await linguaFrameApi.runRetentionCleanup();
+      setRetentionCleanup(result);
+      setRetentionCleanupError(null);
+      void loadOperatorDashboard();
+      void loadHistory(historyStatusFilter);
+    } catch (retentionRunError) {
+      setRetentionCleanupError(toErrorMessage(retentionRunError));
+    } finally {
+      setIsRunningRetentionCleanup(false);
+    }
   }
 
   return (
@@ -535,6 +581,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             isLoading={isLoadingOperatorDashboard}
             onRefresh={loadOperatorDashboard}
             onOpenFailure={openDashboardFailure}
+          />
+
+          <RetentionCleanupPanel
+            result={retentionCleanup}
+            error={retentionCleanupError}
+            isLoading={isLoadingRetentionCleanup}
+            isRunning={isRunningRetentionCleanup}
+            onPreview={loadRetentionCleanupPreview}
+            onRun={handleRunRetentionCleanup}
           />
 
           <section className="panel">
@@ -791,6 +846,81 @@ function OperatorDashboardPanel({
           ) : (
             <p className="muted">No recent failed jobs.</p>
           )}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function RetentionCleanupPanel({
+  result,
+  error,
+  isLoading,
+  isRunning,
+  onPreview,
+  onRun
+}: {
+  result: RetentionCleanupResult | null;
+  error: string | null;
+  isLoading: boolean;
+  isRunning: boolean;
+  onPreview: () => void;
+  onRun: () => void;
+}) {
+  return (
+    <section className="panel" aria-label="Retention cleanup">
+      <div className="panel-heading">
+        <h2>Retention cleanup</h2>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={isLoading || isRunning}
+            onClick={onPreview}
+          >
+            Preview cleanup
+          </button>
+          <button type="button" disabled={isLoading || isRunning} onClick={onRun}>
+            {isRunning ? 'Running...' : 'Run cleanup'}
+          </button>
+        </div>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !result ? <p className="muted">Loading cleanup preview...</p> : null}
+      {result ? (
+        <>
+          <p className="mode-line">
+            <span className={result.dryRun ? 'status-pill' : 'status-pill danger'}>
+              {result.dryRun ? 'Dry run' : 'Delete mode'}
+            </span>
+            <span>{formatRetentionOutcome(result)}</span>
+          </p>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Candidates</dt>
+              <dd>{result.candidateJobCount} jobs</dd>
+            </div>
+            <div>
+              <dt>Jobs</dt>
+              <dd>{result.deletedJobCount} deleted</dd>
+            </div>
+            <div>
+              <dt>Videos</dt>
+              <dd>{result.deletedVideoCount} deleted</dd>
+            </div>
+            <div>
+              <dt>Objects</dt>
+              <dd>{result.deletedObjectCount} deleted</dd>
+            </div>
+            <div>
+              <dt>Skipped</dt>
+              <dd>{result.skippedObjectCount} objects</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>{result.failureCount} failed</dd>
+            </div>
+          </dl>
         </>
       ) : null}
     </section>
@@ -1206,6 +1336,13 @@ function formatProviderReadiness(name: string, provider: ProviderReadiness): str
   const model = provider.model?.trim() || 'default';
   const credentials = provider.credentialsConfigured ? 'credentials set' : 'credentials missing';
   return `${name}: ${provider.provider} / ${model} / ${credentials}`;
+}
+
+function formatRetentionOutcome(result: RetentionCleanupResult): string {
+  if (result.dryRun) {
+    return `${result.candidateJobCount} terminal jobs would be considered.`;
+  }
+  return `${result.deletedJobCount} jobs, ${result.deletedVideoCount} videos, and ${result.deletedObjectCount} objects deleted.`;
 }
 
 function formatFeatureName(name: string): string {

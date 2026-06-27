@@ -80,6 +80,9 @@ Expected browser behavior:
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.
 - Audio and video previews appear for `DUBBING_AUDIO` and `BURNED_VIDEO` artifacts.
 - Failed jobs show a retry button.
+- The `Retention cleanup` panel appears in the sidebar.
+- Clicking `Preview cleanup` refreshes aggregate cleanup counts without deleting data.
+- With `.env.example`, the panel reports dry-run/default-off behavior and `Run cleanup` requires browser confirmation before calling the backend.
 
 ### Docker E2E Demo
 
