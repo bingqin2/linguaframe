@@ -981,3 +981,38 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config` passed on `main` and rendered the current demo stack configuration.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added a read-only prompt template registry with active OpenAI translation and quality-evaluation templates.
+- Replaced hardcoded OpenAI provider system prompts and audit prompt versions with registry-backed templates.
+- Exposed active templates through `GET /api/prompt-templates`.
+- Added a React prompt-template panel that shows active versions, purposes, providers, and output contracts.
+- Documented the MVP boundary: in-code read-only templates now; editing, experiments, and database-backed history later.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=PromptTemplateRegistryTests test` first failed because prompt template registry types did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranslationProviderTests,OpenAiQualityEvaluationProviderTests test` first failed because providers did not accept registry-backed prompts, then passed with `Tests run: 11, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=PromptTemplateControllerTests,OpenApiDocumentationTests test` first failed because `/api/prompt-templates` did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the frontend API and prompt-template panel did not exist, then passed with `Tests run: 28`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 203, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 32`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config` passed and rendered the current demo stack configuration.
+- `git diff --check` passed.
+
+Notes:
+
+- This slice does not add prompt editing, A/B testing, database-backed prompt history, or automatic prompt optimization.
+
+Post-merge verification:
+
+- Merged `prompt-template-registry-mvp` back to `main` with merge commit `001bf5f`.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 203, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 32`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check HEAD` passed on `main`.
