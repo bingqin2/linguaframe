@@ -2,6 +2,28 @@
 
 This file records implementation progress, validation commands, failures, and follow-up notes.
 
+## 2026-06-28
+
+Work:
+
+- Added `GET /api/runtime/live-checks` for bounded non-destructive MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes.
+- Added a React `Live checks` sidebar panel and API client support for live probe summaries.
+- Updated private-demo preflight to fail before upload when a runtime live dependency is down.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, and this execution log with live-check behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeLiveCheckServiceTests,RuntimeDependencyControllerTests,MinioObjectStorageServiceTests test` passed during backend implementation with `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Test Files 2 passed` and `Tests 64 passed`.
+- `mvn -pl LinguaFrame -Dtest=RuntimeLiveCheckServiceTests,RuntimeDependencyControllerTests,MinioObjectStorageServiceTests,OpenApiDocumentationTests,DemoAccessInterceptorTests test` first failed because the new live-check service had ambiguous constructors and then passed after marking the production constructor with `@Autowired`.
+- `mvn -pl LinguaFrame test` first failed because the live-check service depended directly on the MinIO object storage bean that several controller tests replace with an `ObjectStorageService` mock; it passed after moving bucket reachability into a separate `ObjectStorageHealthCheckService`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 357, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Test Files 3 passed` and `Tests 69 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/private-demo-preflight.sh scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
 ## 2026-06-27
 
 Work:

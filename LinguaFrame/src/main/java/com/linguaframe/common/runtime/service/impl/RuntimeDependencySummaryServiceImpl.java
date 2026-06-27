@@ -31,6 +31,7 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
     private static final Pattern MIGRATION_VERSION_PATTERN = Pattern.compile("V(\\d+)__.+\\.sql");
     private static final List<String> REQUIRED_ROUTES = List.of(
             "/api/runtime/dependencies",
+            "/api/runtime/live-checks",
             "/api/media/uploads",
             "/api/jobs/{jobId}",
             "/api/jobs/{jobId}/diagnostics/download",

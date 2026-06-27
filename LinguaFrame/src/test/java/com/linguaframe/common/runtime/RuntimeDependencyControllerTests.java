@@ -1,5 +1,9 @@
 package com.linguaframe.common.runtime;
 
+import com.linguaframe.common.runtime.domain.enums.RuntimeProbeStatus;
+import com.linguaframe.common.runtime.domain.vo.RuntimeLiveCheckSummaryVo;
+import com.linguaframe.common.runtime.domain.vo.RuntimeProbeResultVo;
+import com.linguaframe.common.runtime.service.RuntimeLiveCheckService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -8,10 +12,14 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -22,6 +30,9 @@ class RuntimeDependencyControllerTests {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @MockitoBean
+    private RuntimeLiveCheckService liveCheckService;
 
     @Test
     void runtimeDependenciesReturnsSanitizedConfiguration() {
@@ -48,6 +59,7 @@ class RuntimeDependencyControllerTests {
         assertThat((Iterable<String>) runtime.get("requiredRoutes"))
                 .contains(
                         "/api/runtime/dependencies",
+                        "/api/runtime/live-checks",
                         "/api/media/uploads",
                         "/api/jobs/{jobId}",
                         "/api/jobs/{jobId}/diagnostics/download",
@@ -127,6 +139,26 @@ class RuntimeDependencyControllerTests {
                 .doesNotContain("linguaframe_minio_password");
     }
 
+    @Test
+    void runtimeLiveChecksReturnsSafeProbeSummary() {
+        when(liveCheckService.check()).thenReturn(liveChecks());
+
+        ResponseEntity<Map> response = restTemplate.getForEntity(url("/api/runtime/live-checks"), Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("healthy")).isEqualTo(true);
+        assertThat(response.getBody().get("checkedAt")).isEqualTo("2026-06-28T00:00:00Z");
+
+        assertThat(response.getBody().get("checks")).isInstanceOf(Map.class);
+        Map<?, ?> checks = (Map<?, ?>) response.getBody().get("checks");
+        assertProbe(checks.get("database"), "UP", "Database query succeeded");
+        assertProbe(checks.get("redis"), "UP", "Redis ping succeeded");
+        assertProbe(checks.get("rabbitmq"), "UP", "RabbitMQ connection opened");
+        assertProbe(checks.get("minio"), "UP", "MinIO bucket is reachable");
+        assertProbe(checks.get("ffmpeg"), "UP", "FFmpeg binary responded");
+    }
+
     private void assertProviderReadiness(Object value, boolean enabled, String provider, boolean credentialsConfigured) {
         assertThat(value).isInstanceOf(Map.class);
         Map<?, ?> dependency = (Map<?, ?>) value;
@@ -147,6 +179,24 @@ class RuntimeDependencyControllerTests {
         assertThat(dependency.get("type")).isEqualTo(type);
         assertThat(dependency.get("host")).isEqualTo(host);
         assertThat(dependency.get("port")).isEqualTo(port);
+    }
+
+    private void assertProbe(Object value, String status, String message) {
+        assertThat(value).isInstanceOf(Map.class);
+        Map<?, ?> probe = (Map<?, ?>) value;
+        assertThat(probe.get("status")).isEqualTo(status);
+        assertThat(probe.get("message")).isEqualTo(message);
+        assertThat(probe.get("latencyMs")).isEqualTo(1);
+    }
+
+    private RuntimeLiveCheckSummaryVo liveChecks() {
+        Map<String, RuntimeProbeResultVo> checks = new LinkedHashMap<>();
+        checks.put("database", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "Database query succeeded"));
+        checks.put("redis", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "Redis ping succeeded"));
+        checks.put("rabbitmq", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "RabbitMQ connection opened"));
+        checks.put("minio", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "MinIO bucket is reachable"));
+        checks.put("ffmpeg", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "FFmpeg binary responded"));
+        return new RuntimeLiveCheckSummaryVo(true, Instant.parse("2026-06-28T00:00:00Z"), checks);
     }
 
     private String url(String path) {

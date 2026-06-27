@@ -475,6 +475,17 @@ td {
   gap: 10px;
 }
 
+.live-check-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.live-check-list small {
+  grid-column: 1 / -1;
+  color: #5f7180;
+}
+
 .demo-runbook-panel h3 {
   margin: 14px 0 8px;
   color: #4f6170;

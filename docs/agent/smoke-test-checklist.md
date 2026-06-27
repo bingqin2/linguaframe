@@ -39,7 +39,7 @@ Expected:
 - `/v3/api-docs` exposes `LinguaFrame API` metadata.
 - `components.securitySchemes.DemoAccessToken` documents the `X-LinguaFrame-Demo-Token` header.
 - Tags include media uploads, localization jobs, runtime dependencies, prompt templates, operator dashboard, and retention cleanup.
-- Paths cover upload, job detail, event stream, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime, prompt-template, operator, and cleanup APIs.
+- Paths cover upload, job detail, event stream, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime dependencies, runtime live checks, prompt-template, operator, and cleanup APIs.
 
 For worker logging changes, run:
 
@@ -68,6 +68,7 @@ Expected:
 - The backend health endpoint responds on `http://localhost:8080/actuator/health`.
 - If `http://localhost:5173` is unavailable, the script starts `scripts/demo/frontend-local-dev.sh` for the current session and waits for it to respond.
 - `scripts/demo/private-demo-preflight.sh` passes before any media upload.
+- Preflight prints live dependency check lines for database, Redis, RabbitMQ, MinIO, and FFmpeg.
 - The script prints `http://localhost:5173`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
 
 Validate Compose configuration and rebuild the backend image:
@@ -156,6 +157,8 @@ Expected browser behavior:
 - The `Demo runbook` panel explains that uploads are complete files up to the configured duration and file-size limits, and shows provider modes, budget guard state, subtitle burn-in state, and sample-media guidance without exposing secrets or raw local media paths.
 - If runtime readiness loading fails, the `Demo runbook` panel still shows static commands and reports the runtime guidance error.
 - The `Demo readiness` panel shows budget guard state, the configured per-job cost limit, daily demo budget state, daily limit, and safe budget identity without exposing provider credentials.
+- The `Live checks` panel shows overall `Ready` or `Blocked`, plus database, Redis, RabbitMQ, MinIO, and FFmpeg statuses from `GET /api/runtime/live-checks`.
+- If live checks fail to load, the `Live checks` panel shows a short unavailable message and leaves upload controls usable.
 
 ### Docker E2E Demo
 
@@ -177,6 +180,7 @@ Expected:
 - Backend health returns `UP`.
 - Backend runtime contract is current: `runtime.latestMigrationVersion` is at least the highest local `LinguaFrame/src/main/resources/db/migration/V*__*.sql` version.
 - Required demo routes are listed in `runtime.requiredRoutes`, including diagnostics and artifact archive downloads.
+- Runtime live dependency checks pass for database, Redis, RabbitMQ, MinIO, and FFmpeg, or preflight fails before upload with the failing dependency names.
 - A stale backend container fails preflight before media upload and prints the backend package/recreate commands.
 - Frontend responds on `http://localhost:5173`.
 - If `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, anonymous `/api/**` access returns `401` and the configured header succeeds.
