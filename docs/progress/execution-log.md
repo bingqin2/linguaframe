@@ -2035,6 +2035,16 @@ Validation so far:
 - `cd frontend && npm run build` passed and produced the production Vite bundle.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `failure-triage-retry-guidance` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=FailureTriageServiceTests,LocalizationJobQueryServiceTests,JobEvidenceReportServiceTests,RedisLocalizationJobStatusCacheServiceTests,LocalizationJobRetryServiceTests test` passed on `main` with `Tests run: 31, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 47 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-budget-guard.sh scripts/demo/docker-e2e-daily-budget-guard.sh scripts/demo/docker-e2e-openai-smoke.sh` passed on `main`.
+- `cd frontend && npm run build` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-27
 
 Work:
