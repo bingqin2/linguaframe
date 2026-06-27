@@ -1807,3 +1807,12 @@ Validation so far:
 - `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `job-result-delivery-panel-mvp` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 35 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
