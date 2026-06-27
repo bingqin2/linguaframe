@@ -175,6 +175,14 @@ if job.get("failureStage"):
     print("failureStage=" + job["failureStage"])
 if job.get("failureReason"):
     print("failureReason=" + job["failureReason"])
+triage = job.get("failureTriage")
+if triage:
+    print("failureTriageCategory=" + triage["category"])
+    print("failureTriageRetryable=" + str(triage["retryable"]).lower())
+    print("failureTriageSummary=" + triage["summary"])
+    print("failureTriageRecommendedAction=" + triage["recommendedAction"])
+    if triage.get("runbookCommand"):
+        print("failureTriageRunbookCommand=" + triage["runbookCommand"])
 summary = job.get("usageSummary") or {}
 print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
 print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
@@ -282,6 +290,12 @@ print("jobId=" + job["jobId"])
 print("status=" + job["status"])
 print("failureStage=" + str(job.get("failureStage")))
 print("failureReason=" + str(job.get("failureReason")))
+triage = job.get("failureTriage")
+if triage:
+    print("failureTriageCategory=" + triage["category"])
+    print("failureTriageRetryable=" + str(triage["retryable"]).lower())
+    print("failureTriageSummary=" + triage["summary"])
+    print("failureTriageRecommendedAction=" + triage["recommendedAction"])
 summary = job.get("usageSummary") or {}
 print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
 print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
@@ -295,6 +309,9 @@ if job["status"] != "FAILED":
 reason = job.get("failureReason") or ""
 if expected_reason not in reason:
     raise SystemExit("Expected budget guard failure reason containing " + expected_reason)
+triage = job.get("failureTriage") or {}
+if triage.get("category") != "BUDGET_GUARD":
+    raise SystemExit("Expected failureTriage.category=BUDGET_GUARD")
 ' "$expected_reason"
 }
 
@@ -473,6 +490,10 @@ print("diagnosticsStatus=" + job["status"])
 print("diagnosticsArtifactCount=" + str(report.get("artifactCount", len(report.get("artifacts", [])))))
 print("diagnosticsModelCallCount=" + str(len(job.get("modelCalls", []))))
 print("diagnosticsTimelineEventCount=" + str(len(job.get("timelineEvents", []))))
+triage = job.get("failureTriage")
+if triage:
+    print("diagnosticsFailureTriageCategory=" + triage["category"])
+    print("diagnosticsFailureTriageRetryable=" + str(triage["retryable"]).lower())
 PY
 }
 

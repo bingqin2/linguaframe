@@ -454,7 +454,7 @@ LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=false
 
 The worker consumes queued localization messages, claims only `QUEUED` or `RETRYING` jobs, runs a deterministic smoke stage, records timeline events, and marks jobs `COMPLETED` or `FAILED`. Local and test profiles keep worker execution disabled unless explicitly overridden.
 
-Failed jobs can be retried with `POST /api/jobs/{jobId}/retry` until `retryCount` reaches `linguaframe.worker.max-retries`. The job detail UI shows the retry count, failed stage, failure reason, and timeline events so the recovery path is visible during demos. The Docker retry script demonstrates one forced failure followed by a successful retry after disabling the smoke-stage failure flag:
+Failed jobs can be retried with `POST /api/jobs/{jobId}/retry` until `retryCount` reaches `linguaframe.worker.max-retries`. The job detail UI shows the retry count, failed stage, failure reason, timeline events, and safe failure triage so the recovery path is visible during demos. Triage can identify OpenAI credential/model problems, OpenAI network/timeouts, budget guard blocks, media processing, storage/artifact failures, worker/queue issues, cancellation, configuration gaps, or unknown failures. Retry semantics remain backend-controlled; triage only explains the likely next action. The Docker retry script demonstrates one forced failure followed by a successful retry after disabling the smoke-stage failure flag:
 
 ```bash
 LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED=true docker compose --env-file .env up -d --force-recreate linguaframe-backend
@@ -543,7 +543,7 @@ scripts/demo/docker-e2e-daily-budget-guard.sh
 
 The daily script completes one job to create same-day estimated spend, uploads a second job, expects `FAILED` with `Daily cost budget exceeded`, and writes safe evidence to `/tmp/linguaframe-demo/daily-budget-guard/`.
 
-`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, and safe error summaries. Model-call summaries are count-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
+`GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, optional `qualityEvaluation`, and optional `failureTriage` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, safe error summaries, failure category, retryability, and recommended next action. Model-call and triage summaries are count- or metadata-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
 
 Job detail reads use an optional Redis cache-aside layer. MySQL remains the source of truth; Redis stores short-lived serialized `LocalizationJobVo` snapshots under `linguaframe:job-status:<jobId>`, evicts on retry, cancel, and worker status transitions, and fails open to database reads if Redis or JSON serialization is unavailable. The same cached detail path is reused by the SSE progress stream.
 
@@ -551,7 +551,7 @@ Job detail reads use an optional Redis cache-aside layer. MySQL remains the sour
 
 `GET /api/jobs/{jobId}/artifacts/archive/download` returns a ZIP bundle for the job's generated artifacts. The archive is generated on demand, is not persisted to object storage, excludes the source video, and includes a `manifest.json` with safe artifact metadata. The React demo exposes this as `Download result bundle` in the `Artifacts` panel.
 
-`GET /api/jobs/{jobId}/diagnostics/download` returns a metadata-only JSON diagnostics report for the job. It includes sanitized job detail, timeline events, model-call summaries, quality evaluation, and artifact hashes/counts, but excludes object storage keys, local media paths, raw transcript or subtitle text, provider payloads, credentials, and uploaded bytes. The React demo exposes this as `Download diagnostics` in the selected job header.
+`GET /api/jobs/{jobId}/diagnostics/download` returns a metadata-only JSON diagnostics report for the job. It includes sanitized job detail, timeline events, model-call summaries, quality evaluation, failure triage, and artifact hashes/counts, but excludes object storage keys, local media paths, raw transcript or subtitle text, provider payloads, credentials, and uploaded bytes. The React demo exposes this as `Download diagnostics` in the selected job header.
 
 `GET /api/jobs/{jobId}/evidence/markdown/download` returns a backend-generated Markdown evidence report for the same sanitized job surface. It is designed for readable demo notes and interview walkthroughs, while the diagnostics JSON remains the fuller machine-readable source for job debugging.
 

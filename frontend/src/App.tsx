@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
+  FailureTriage,
   JobArtifact,
   DemoSessionStatus,
   LocalizationJob,
@@ -68,6 +69,7 @@ interface DemoEvidence {
     retryCount: number;
     failureStage: string | null;
     failureReason: string | null;
+    failureTriage: FailureTriage | null;
   };
   previews: {
     transcriptSegmentCount: number;
@@ -1633,6 +1635,8 @@ function JobDetail({
         modelCallLabel={modelCallLabel}
       />
 
+      <FailureTriagePanel triage={job.failureTriage} />
+
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
 
       <CacheReplayPanel
@@ -1900,6 +1904,43 @@ function ResultDeliveryPanel({
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function FailureTriagePanel({ triage }: { triage: FailureTriage | null }) {
+  if (!triage) {
+    return null;
+  }
+
+  return (
+    <section className="panel" aria-label="Failure triage">
+      <h3>Failure triage</h3>
+      <dl className="status-grid">
+        <div>
+          <dt>Category</dt>
+          <dd>{triage.category}</dd>
+        </div>
+        <div>
+          <dt>Retryable</dt>
+          <dd>{triage.retryable ? 'Yes' : 'No'}</dd>
+        </div>
+        {triage.runbookCommand ? (
+          <div>
+            <dt>Runbook</dt>
+            <dd>{triage.runbookCommand}</dd>
+          </div>
+        ) : null}
+      </dl>
+      <p>{triage.summary}</p>
+      <p className="mode-line">{triage.recommendedAction}</p>
+      {triage.safeDetails.length > 0 ? (
+        <ul>
+          {triage.safeDetails.map((detail) => (
+            <li key={detail}>{detail}</li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }
@@ -2316,7 +2357,8 @@ function buildDemoEvidence(
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
-      failureReason: job.failureReason
+      failureReason: job.failureReason,
+      failureTriage: job.failureTriage
     },
     previews: {
       transcriptSegmentCount,
@@ -2385,6 +2427,15 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
 
   if (evidence.job.failureStage || evidence.job.failureReason) {
     lines.push(`- Failure: ${evidence.job.failureStage ?? 'Unknown'} / ${evidence.job.failureReason ?? 'No reason'}`);
+  }
+  if (evidence.job.failureTriage) {
+    lines.push(
+      `- Failure triage: ${evidence.job.failureTriage.category}, retryable=${evidence.job.failureTriage.retryable}, ${evidence.job.failureTriage.summary}`
+    );
+    lines.push(`- Failure action: ${evidence.job.failureTriage.recommendedAction}`);
+    if (evidence.job.failureTriage.runbookCommand) {
+      lines.push(`- Failure runbook: ${evidence.job.failureTriage.runbookCommand}`);
+    }
   }
   if (evidence.qualityEvaluation) {
     lines.push(

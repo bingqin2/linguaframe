@@ -401,3 +401,11 @@ Decision: Use a separate OpenAI demo profile instead of making `.env.example` pr
 Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.
 
 Impact: `.env.openai-demo.example`, `scripts/demo/openai-demo-preflight.sh`, and `scripts/demo/docker-e2e-openai-smoke.sh` define the recommended real OpenAI proof path. Existing deterministic scripts remain the default, while terminal E2E helpers now support the private demo token header when a gate is configured.
+
+## 2026-06-28
+
+Decision: Keep failed-job triage advisory instead of changing retry semantics.
+
+Reason: Retry transitions already have backend ownership, bounded retry counts, cache eviction, and dispatch side effects. The next demo gap is explaining likely causes and next actions safely across browser, diagnostics, evidence, and terminal scripts, not adding another automatic recovery path.
+
+Impact: Failed or cancelled job detail can include `failureTriage` with category, retryability, summary, recommended action, static runbook command, and safe details. The same structure flows through diagnostics JSON, backend Markdown evidence, browser evidence export, and script summaries without exposing secrets, object keys, local paths, provider payloads, raw transcript/subtitle text, or media bytes.

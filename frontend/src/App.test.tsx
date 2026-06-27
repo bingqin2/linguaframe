@@ -802,6 +802,14 @@ describe('App', () => {
       jobFixture({
         status: 'FAILED',
         failureReason: 'stage failed safely',
+        failureTriage: {
+          category: 'OPENAI_AUTH_OR_MODEL',
+          summary: 'OpenAI rejected the configured credentials or model.',
+          recommendedAction: 'Run the OpenAI preflight, then fix OPENAI_API_KEY or model values before retrying.',
+          retryable: false,
+          runbookCommand: 'scripts/demo/openai-demo-preflight.sh',
+          safeDetails: ['failureStage=TARGET_SUBTITLE_EXPORT']
+        },
         modelCalls: [
           {
             modelCallId: 'call-1',
@@ -865,6 +873,11 @@ describe('App', () => {
     expect(within(modelCalls).getByText('target=zh-CN, segments=2, sourceChars=61')).toBeInTheDocument();
     expect(within(modelCalls).getByText('segments=2, targetChars=29')).toBeInTheDocument();
     expect(within(modelCalls).queryByText('Hello from LinguaFrame.')).not.toBeInTheDocument();
+    const failureTriage = screen.getByRole('region', { name: /failure triage/i });
+    expect(within(failureTriage).getByText('OPENAI_AUTH_OR_MODEL')).toBeInTheDocument();
+    expect(within(failureTriage).getByText('OpenAI rejected the configured credentials or model.')).toBeInTheDocument();
+    expect(within(failureTriage).getByText(/Run the OpenAI preflight/)).toBeInTheDocument();
+    expect(within(failureTriage).getByText('scripts/demo/openai-demo-preflight.sh')).toBeInTheDocument();
     const qualityEvaluation = screen.getByRole('region', { name: /quality evaluation/i });
     expect(within(qualityEvaluation).getByText('92 / 100')).toBeInTheDocument();
     expect(within(qualityEvaluation).getByText('GOOD')).toBeInTheDocument();
@@ -884,6 +897,24 @@ describe('App', () => {
     await userEvent.click(retryButton);
 
     await waitFor(() => expect(retryJob).toHaveBeenCalledWith('job-1'));
+  });
+
+  test('does not render failure triage for completed jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'COMPLETED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    await waitFor(() =>
+      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
+        .toBeInTheDocument()
+    );
+    expect(screen.queryByRole('region', { name: /failure triage/i })).not.toBeInTheDocument();
   });
 
   test('keeps selected failed job visible when retry is rejected by the backend', async () => {
@@ -1918,6 +1949,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
       providerCacheHitCount: 1
     },
     qualityEvaluation: null,
+    failureTriage: null,
     ...overrides
   };
 }

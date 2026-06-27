@@ -6,6 +6,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.enums.FailureTriageCategory;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
@@ -24,6 +25,7 @@ import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.impl.FailureTriageServiceImpl;
 import com.linguaframe.job.service.impl.LocalizationJobQueryServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +50,7 @@ class LocalizationJobQueryServiceTests {
     private final ModelCallAuditService modelCallAuditService = mock(ModelCallAuditService.class);
     private final QualityEvaluationService qualityEvaluationService = mock(QualityEvaluationService.class);
     private final LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
+    private final FailureTriageService failureTriageService = new FailureTriageServiceImpl();
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
@@ -282,6 +285,59 @@ class LocalizationJobQueryServiceTests {
         assertThat(json).doesNotContain("provider request payload");
     }
 
+    @Test
+    void getJobIncludesFailureTriageForFailedJobs() {
+        Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
+        when(cacheService.get("job-query-triage")).thenReturn(Optional.empty());
+        when(jobRepository.findById("job-query-triage")).thenReturn(Optional.of(new LocalizationJobRecord(
+                "job-query-triage",
+                "video-query-triage",
+                "zh-CN",
+                LocalizationJobStatus.FAILED,
+                createdAt,
+                createdAt,
+                null,
+                createdAt,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                "OpenAI request failed with status 401 invalid_api_key",
+                0,
+                createdAt
+        )));
+        when(dispatchEventRepository.findLatestByJobId("job-query-triage")).thenReturn(Optional.empty());
+        when(artifactRepository.findByJobId("job-query-triage")).thenReturn(List.of());
+        when(timelineEventRepository.findByJobId("job-query-triage")).thenReturn(List.of());
+        when(modelCallAuditService.summarizeJob("job-query-triage")).thenReturn(emptyUsage());
+        when(modelCallAuditService.listModelCalls("job-query-triage")).thenReturn(List.of(new ModelCallVo(
+                "model-call-query-triage",
+                "job-query-triage",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini",
+                "translation-v1",
+                ModelCallStatus.FAILED,
+                900L,
+                100,
+                null,
+                null,
+                300,
+                "target=zh-CN, segments=2",
+                null,
+                "demo-owner",
+                BigDecimal.ZERO,
+                "OpenAI request failed with status 401 invalid_api_key",
+                Instant.parse("2026-06-27T05:33:00Z")
+        )));
+        when(qualityEvaluationService.latestForJob("job-query-triage")).thenReturn(Optional.empty());
+        LocalizationJobQueryServiceImpl service = service();
+
+        LocalizationJobVo result = service.getJob("job-query-triage");
+
+        assertThat(result.failureTriage()).isNotNull();
+        assertThat(result.failureTriage().category()).isEqualTo(FailureTriageCategory.OPENAI_AUTH_OR_MODEL);
+        assertThat(result.failureTriage().runbookCommand()).isEqualTo("scripts/demo/openai-demo-preflight.sh");
+    }
+
     private LocalizationJobQueryServiceImpl service() {
         return new LocalizationJobQueryServiceImpl(
                 jobRepository,
@@ -290,7 +346,8 @@ class LocalizationJobQueryServiceTests {
                 timelineEventRepository,
                 modelCallAuditService,
                 qualityEvaluationService,
-                cacheService
+                cacheService,
+                failureTriageService
         );
     }
 
@@ -315,6 +372,7 @@ class LocalizationJobQueryServiceTests {
                 emptyUsage(),
                 new JobCacheSummaryVo(0, 0, 0),
                 List.of(),
+                null,
                 null
         );
     }

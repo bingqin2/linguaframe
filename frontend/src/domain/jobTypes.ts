@@ -72,6 +72,27 @@ export interface LocalizationJob {
   cacheSummary: JobCacheSummary;
   modelCalls: ModelCall[];
   qualityEvaluation: QualityEvaluation | null;
+  failureTriage: FailureTriage | null;
+}
+
+export type FailureTriageCategory =
+  | 'CONFIGURATION'
+  | 'OPENAI_AUTH_OR_MODEL'
+  | 'OPENAI_TIMEOUT_OR_NETWORK'
+  | 'BUDGET_GUARD'
+  | 'MEDIA_PROCESSING'
+  | 'STORAGE_OR_ARTIFACT'
+  | 'WORKER_OR_QUEUE'
+  | 'USER_CANCELLED'
+  | 'UNKNOWN';
+
+export interface FailureTriage {
+  category: FailureTriageCategory;
+  summary: string;
+  recommendedAction: string;
+  retryable: boolean;
+  runbookCommand: string | null;
+  safeDetails: string[];
 }
 
 export interface LocalizationJobSummary {

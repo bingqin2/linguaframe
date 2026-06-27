@@ -193,6 +193,7 @@ LinguaFrame must:
 - Never process arbitrary file paths supplied by the user.
 - Avoid overwriting artifacts without explicit versioning or idempotent keys.
 - Record provider failures safely.
+- Explain failed jobs with safe advisory triage that maps known OpenAI, budget, media, storage, worker/queue, configuration, cancellation, and unknown failures to recommended next actions.
 - Track estimated cost per job.
 - Enforce per-job and per-user budget limits before expensive OpenAI stages.
 - Cache duplicate inputs by content hash when it avoids repeated model calls safely.

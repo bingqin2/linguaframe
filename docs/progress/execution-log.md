@@ -2013,6 +2013,28 @@ Post-merge verification:
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
 
+## 2026-06-28
+
+Work:
+
+- Planned the failure triage and retry guidance MVP in `docs/plans/072-failure-triage-retry-guidance-mvp.md`.
+- Added safe `failureTriage` job detail metadata for failed and cancelled jobs.
+- Added backend triage categories for OpenAI auth/model errors, OpenAI network/timeouts, budget guard blocks, media processing, storage/artifact failures, worker/queue issues, configuration gaps, user cancellation, and unknown failures.
+- Propagated triage through diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal demo summaries.
+- Added a React `Failure triage` panel for selected failed jobs while keeping retry behavior backend-controlled.
+- Updated budget-guard demo script checks to require `failureTriage.category=BUDGET_GUARD`.
+- Documented failed-job triage behavior in README, the Docker E2E guide, the smoke-test checklist, roadmap, target state, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=FailureTriageServiceTests,LocalizationJobQueryServiceTests,JobEvidenceReportServiceTests test` passed with `Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=RedisLocalizationJobStatusCacheServiceTests,LocalizationJobRetryServiceTests test` passed with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-budget-guard.sh scripts/demo/docker-e2e-daily-budget-guard.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+- `cd frontend && npm run test:run -- App` first failed because the completed-job triage absence test matched the status-filter option, then passed with `Tests 47 passed` after scoping the assertion to the selected job region.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `git diff --check` passed.
+
 ## 2026-06-27
 
 Work:

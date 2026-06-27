@@ -192,6 +192,8 @@ Expected browser behavior:
 - A recent job appears in the browser-local recent jobs list.
 - The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
 - Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
+- Failed jobs render a `Failure triage` panel with category, retryability, recommended action, optional static runbook command, and safe details.
+- Failed-job diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal demo summaries include the same safe failure triage without secrets, object keys, local paths, provider payloads, media bytes, raw transcript text, or raw subtitle text.
 - The `Result delivery` panel renders expected deliverables with `Ready`, `Preview only`, and `Missing` states.
 - The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
 - The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.

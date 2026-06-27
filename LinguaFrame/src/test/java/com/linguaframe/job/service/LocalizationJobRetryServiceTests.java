@@ -80,6 +80,7 @@ class LocalizationJobRetryServiceTests {
                 null,
                 null,
                 java.util.List.of(),
+                null,
                 null
         );
         when(jobRepository.findById("retry-cache-job"))
@@ -205,6 +206,7 @@ class LocalizationJobRetryServiceTests {
                 null,
                 null,
                 java.util.List.of(),
+                null,
                 null
         );
         when(jobRepository.findById("retry-allowed-job"))
