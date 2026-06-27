@@ -24,6 +24,16 @@ Validation:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `codex-runtime-live-dependency-checks-mvp` back to `main` with a merge commit.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 357, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Test Files 3 passed` and `Tests 69 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/private-demo-preflight.sh scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-27
 
 Work:
