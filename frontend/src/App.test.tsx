@@ -12,7 +12,8 @@ import type {
   OperatorDashboard,
   PromptTemplate,
   RetentionCleanupResult,
-  RuntimeDependencySummary
+  RuntimeDependencySummary,
+  RuntimeLiveCheckSummary
 } from './domain/jobTypes';
 
 class FakeEventSource {
@@ -42,6 +43,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
+    vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockResolvedValue(
       retentionCleanupResultFixture()
     );
@@ -105,6 +107,57 @@ describe('App', () => {
 
     const readiness = await screen.findByRole('region', { name: /demo readiness/i });
     expect(within(readiness).getByText('Readiness unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows live dependency checks in the sidebar', async () => {
+    render(<App />);
+
+    const liveChecks = await screen.findByRole('region', { name: /live checks/i });
+    expect(within(liveChecks).getByText('Ready')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('Database')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('Redis')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('RabbitMQ')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('MinIO')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('FFmpeg')).toBeInTheDocument();
+    expect(within(liveChecks).getAllByText('UP')).toHaveLength(5);
+    expect(within(liveChecks).getByText(/database probe succeeded/i)).toBeInTheDocument();
+  });
+
+  test('marks live dependency checks as blocked when a probe is down', async () => {
+    vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(
+      runtimeLiveChecksFixture({
+        healthy: false,
+        checks: {
+          ...runtimeLiveChecksFixture().checks,
+          redis: {
+            status: 'DOWN',
+            latencyMs: 12,
+            message: 'Redis ping failed'
+          }
+        }
+      })
+    );
+
+    render(<App />);
+
+    const liveChecks = await screen.findByRole('region', { name: /live checks/i });
+    expect(within(liveChecks).getByText('Blocked')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('Redis')).toBeInTheDocument();
+    expect(within(liveChecks).getByText('DOWN')).toBeInTheDocument();
+    expect(within(liveChecks).getByText(/Redis ping failed/i)).toBeInTheDocument();
+  });
+
+  test('keeps upload controls usable when live dependency checks fail', async () => {
+    vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockRejectedValue(
+      new Error('Probe unavailable')
+    );
+
+    render(<App />);
+
+    const liveChecks = await screen.findByRole('region', { name: /live checks/i });
+    expect(within(liveChecks).getByText('Live checks unavailable: Probe unavailable'))
+      .toBeInTheDocument();
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
@@ -1303,6 +1356,23 @@ function runtimeDependenciesFixture(
         budgetGuard: { enabled: false },
         dailyBudgetGuard: { enabled: false }
       }
+    },
+    ...overrides
+  };
+}
+
+function runtimeLiveChecksFixture(
+  overrides: Partial<RuntimeLiveCheckSummary> = {}
+): RuntimeLiveCheckSummary {
+  return {
+    healthy: true,
+    checkedAt: '2026-06-28T08:00:00Z',
+    checks: {
+      database: { status: 'UP', latencyMs: 5, message: 'Database probe succeeded' },
+      redis: { status: 'UP', latencyMs: 4, message: 'Redis ping succeeded' },
+      rabbitmq: { status: 'UP', latencyMs: 6, message: 'RabbitMQ connection succeeded' },
+      minio: { status: 'UP', latencyMs: 7, message: 'MinIO bucket is reachable' },
+      ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' }
     },
     ...overrides
   };

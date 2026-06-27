@@ -13,6 +13,8 @@ import type {
   ProviderReadiness,
   RetentionCleanupResult,
   RuntimeDependencySummary,
+  RuntimeLiveCheckName,
+  RuntimeLiveCheckSummary,
   SubtitleSegment,
   TranscriptSegment
 } from './domain/jobTypes';
@@ -163,6 +165,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     null
   );
   const [runtimeDependenciesError, setRuntimeDependenciesError] = useState<string | null>(null);
+  const [runtimeLiveChecks, setRuntimeLiveChecks] = useState<RuntimeLiveCheckSummary | null>(null);
+  const [runtimeLiveChecksError, setRuntimeLiveChecksError] = useState<string | null>(null);
   const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
@@ -234,16 +238,28 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
-    try {
-      const dependencies = await linguaFrameApi.getRuntimeDependencies();
-      setRuntimeDependencies(dependencies);
+    const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
+      linguaFrameApi.getRuntimeDependencies(),
+      linguaFrameApi.getRuntimeLiveChecks()
+    ]);
+
+    if (dependenciesResult.status === 'fulfilled') {
+      setRuntimeDependencies(dependenciesResult.value);
       setRuntimeDependenciesError(null);
-    } catch (dependenciesLoadError) {
+    } else {
       setRuntimeDependencies(null);
-      setRuntimeDependenciesError(toErrorMessage(dependenciesLoadError));
-    } finally {
-      setIsLoadingRuntimeDependencies(false);
+      setRuntimeDependenciesError(toErrorMessage(dependenciesResult.reason));
     }
+
+    if (liveChecksResult.status === 'fulfilled') {
+      setRuntimeLiveChecks(liveChecksResult.value);
+      setRuntimeLiveChecksError(null);
+    } else {
+      setRuntimeLiveChecks(null);
+      setRuntimeLiveChecksError(toErrorMessage(liveChecksResult.reason));
+    }
+
+    setIsLoadingRuntimeDependencies(false);
   }, []);
 
   const loadRetentionCleanupPreview = useCallback(async () => {
@@ -601,6 +617,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             onRefresh={loadRuntimeDependencies}
           />
 
+          <RuntimeLiveChecksPanel
+            liveChecks={runtimeLiveChecks}
+            error={runtimeLiveChecksError}
+            isLoading={isLoadingRuntimeDependencies}
+            onRefresh={loadRuntimeDependencies}
+          />
+
           <DemoRunbookPanel
             dependencies={runtimeDependencies}
             error={runtimeDependenciesError}
@@ -936,6 +959,62 @@ function DemoReadinessPanel({
               <li key={name}>
                 <span>{formatFeatureName(name)}</span>
                 <span>{formatEnabled(feature.enabled)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function RuntimeLiveChecksPanel({
+  liveChecks,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  liveChecks: RuntimeLiveCheckSummary | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const checkEntries = liveChecks
+    ? (Object.entries(liveChecks.checks) as Array<[RuntimeLiveCheckName, RuntimeLiveCheckSummary['checks'][RuntimeLiveCheckName]]>)
+    : [];
+
+  return (
+    <section className="panel" aria-label="Live checks">
+      <div className="panel-heading">
+        <h2>Live checks</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">Live checks unavailable: {error}</p> : null}
+      {isLoading && !liveChecks ? <p className="muted">Checking runtime...</p> : null}
+      {liveChecks ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>{liveChecks.healthy ? 'Ready' : 'Blocked'}</dd>
+            </div>
+            <div>
+              <dt>Checked at</dt>
+              <dd>{formatIsoDateTime(liveChecks.checkedAt)}</dd>
+            </div>
+          </dl>
+          <ul className="feature-list live-check-list" aria-label="Runtime live dependency checks">
+            {checkEntries.map(([name, result]) => (
+              <li key={name}>
+                <span>{formatRuntimeCheckName(name)}</span>
+                <span className={runtimeProbeStatusClassName(result.status)}>
+                  {result.status}
+                </span>
+                <small>
+                  {result.latencyMs} ms · {result.message}
+                </small>
               </li>
             ))}
           </ul>
@@ -1977,6 +2056,27 @@ function formatConfigured(value: boolean): string {
   return value ? 'Configured' : 'Missing';
 }
 
+function formatRuntimeCheckName(name: RuntimeLiveCheckName): string {
+  const labels: Record<RuntimeLiveCheckName, string> = {
+    database: 'Database',
+    redis: 'Redis',
+    rabbitmq: 'RabbitMQ',
+    minio: 'MinIO',
+    ffmpeg: 'FFmpeg'
+  };
+  return labels[name];
+}
+
+function runtimeProbeStatusClassName(status: string): string {
+  if (status === 'UP') {
+    return 'status-pill success';
+  }
+  if (status === 'DOWN') {
+    return 'status-pill danger';
+  }
+  return 'status-pill warning';
+}
+
 function formatProviderReadiness(name: string, provider: ProviderReadiness): string {
   const model = provider.model?.trim() || 'default';
   const credentials = provider.credentialsConfigured ? 'credentials set' : 'credentials missing';
@@ -2003,6 +2103,14 @@ function formatFeatureName(name: string): string {
     budgetGuard: 'Budget guard'
   };
   return labels[name] ?? name;
+}
+
+function formatIsoDateTime(value: string): string {
+  const timestamp = Date.parse(value);
+  if (Number.isNaN(timestamp)) {
+    return value;
+  }
+  return new Date(timestamp).toLocaleString();
 }
 
 function formatTimeRange(startMs: number, endMs: number): string {

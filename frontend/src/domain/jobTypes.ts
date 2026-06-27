@@ -229,6 +229,22 @@ export interface RuntimeDependencySummary {
   readiness: DemoReadiness;
 }
 
+export interface RuntimeLiveCheckSummary {
+  healthy: boolean;
+  checkedAt: string;
+  checks: Record<RuntimeLiveCheckName, RuntimeProbeResult>;
+}
+
+export type RuntimeLiveCheckName = 'database' | 'redis' | 'rabbitmq' | 'minio' | 'ffmpeg';
+
+export interface RuntimeProbeResult {
+  status: RuntimeProbeStatus;
+  latencyMs: number;
+  message: string;
+}
+
+export type RuntimeProbeStatus = 'UP' | 'DOWN' | 'SKIPPED';
+
 export interface RuntimeContract {
   appVersion: string;
   latestMigrationVersion: number;

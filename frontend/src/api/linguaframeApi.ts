@@ -9,6 +9,7 @@ import type {
   PromptTemplate,
   RetentionCleanupResult,
   RuntimeDependencySummary,
+  RuntimeLiveCheckSummary,
   SubtitleSegment,
   TranscriptSegment
 } from '../domain/jobTypes';
@@ -107,6 +108,12 @@ export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary
   });
 }
 
+export async function getRuntimeLiveChecks(): Promise<RuntimeLiveCheckSummary> {
+  return requestJson<RuntimeLiveCheckSummary>('/api/runtime/live-checks', {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -166,6 +173,7 @@ export const linguaFrameApi = {
   listPromptTemplates,
   getOperatorDashboard,
   getRuntimeDependencies,
+  getRuntimeLiveChecks,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

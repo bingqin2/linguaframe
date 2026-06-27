@@ -13,6 +13,7 @@ import {
   getOperatorDashboard,
   getRetentionCleanupPreview,
   getRuntimeDependencies,
+  getRuntimeLiveChecks,
   readDemoToken,
   cancelJob,
   retryJob,
@@ -356,6 +357,24 @@ describe('linguaframeApi', () => {
     });
   });
 
+  test('fetches runtime live checks with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(runtimeLiveChecksFixture())
+    );
+
+    const liveChecks = await getRuntimeLiveChecks();
+
+    expect(liveChecks.healthy).toBe(true);
+    expect(liveChecks.checks.database.status).toBe('UP');
+    expect(fetchMock).toHaveBeenCalledWith('/api/runtime/live-checks', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
   test('fetches retention cleanup preview', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
@@ -659,6 +678,20 @@ function runtimeDependenciesFixture() {
         costTracking: { enabled: true },
         budgetGuard: { enabled: false }
       }
+    }
+  };
+}
+
+function runtimeLiveChecksFixture() {
+  return {
+    healthy: true,
+    checkedAt: '2026-06-28T08:00:00Z',
+    checks: {
+      database: { status: 'UP', latencyMs: 5, message: 'Database probe succeeded' },
+      redis: { status: 'UP', latencyMs: 4, message: 'Redis ping succeeded' },
+      rabbitmq: { status: 'UP', latencyMs: 6, message: 'RabbitMQ connection succeeded' },
+      minio: { status: 'UP', latencyMs: 7, message: 'MinIO bucket is reachable' },
+      ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' }
     }
   };
 }

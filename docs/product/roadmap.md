@@ -291,7 +291,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, and browser-visible configuration readiness through the React demo.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, and bounded live dependency checks through the React demo.
 
 Build:
 
@@ -299,8 +299,9 @@ Build:
 - HTTPS reverse proxy.
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
-- Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, backend runtime freshness, optional token-gate behavior, and configured sample paths.
+- Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg reachability, optional token-gate behavior, and configured sample paths.
 - Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure, including app version, bundled migration contract, budget guard state, and configured per-job estimate limit.
+- Browser-visible live dependency checks. Status: implemented through `GET /api/runtime/live-checks` and the React `Live checks` panel with bounded non-destructive probes and safe status messages.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.

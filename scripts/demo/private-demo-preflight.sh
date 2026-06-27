@@ -166,6 +166,7 @@ package_command = sys.argv[3]
 recreate_command = sys.argv[4]
 required_routes = {
     "/api/runtime/dependencies",
+    "/api/runtime/live-checks",
     "/api/media/uploads",
     "/api/jobs/{jobId}",
     "/api/jobs/{jobId}/diagnostics/download",
@@ -221,6 +222,69 @@ PY
   rm -f "$response_file"
 
   pass "Backend runtime contract is current"
+}
+
+fetch_runtime_live_checks() {
+  local endpoint="$BASE_URL/api/runtime/live-checks"
+
+  if [[ -n "$DEMO_TOKEN" ]]; then
+    curl -fsS -H "$DEMO_HEADER_NAME: $DEMO_TOKEN" "$endpoint"
+  else
+    curl -fsS "$endpoint"
+  fi
+}
+
+check_runtime_live_checks() {
+  local response
+  local response_file
+
+  if ! response="$(fetch_runtime_live_checks)"; then
+    fail "Runtime live dependency checks failed at $BASE_URL/api/runtime/live-checks"
+  fi
+
+  response_file="$(mktemp)"
+  printf '%s' "$response" > "$response_file"
+  if ! python3 - "$response_file" <<'PY'
+import json
+import sys
+
+required_checks = ["database", "redis", "rabbitmq", "minio", "ffmpeg"]
+
+with open(sys.argv[1], encoding="utf-8") as file:
+    body = json.load(file)
+
+checks = body.get("checks")
+if not isinstance(checks, dict):
+    raise SystemExit("Runtime live checks response is missing checks")
+
+failures = []
+for name in required_checks:
+    probe = checks.get(name)
+    if not isinstance(probe, dict):
+        failures.append(f"{name}: missing")
+        continue
+    status = probe.get("status")
+    message = str(probe.get("message", ""))
+    latency_ms = probe.get("latencyMs")
+    print(f"{name}={status} latencyMs={latency_ms} message={message}")
+    if status == "DOWN":
+        failures.append(f"{name}: {message}")
+    elif status not in {"UP", "SKIPPED"}:
+        failures.append(f"{name}: invalid status {status}")
+
+if body.get("healthy") is not True:
+    failures.append("overall: runtime is not healthy")
+
+if failures:
+    raise SystemExit("Runtime live checks failed:\n" + "\n".join(failures))
+PY
+  then
+    rm -f "$response_file"
+    fail "Runtime live dependency checks failed"
+  fi
+  rm -f "$response_file"
+
+  pass "Runtime live dependency checks passed"
 }
 
 check_frontend() {
@@ -295,6 +359,7 @@ main() {
   check_compose_config
   check_backend_health
   check_runtime_contract
+  check_runtime_live_checks
   check_frontend
   check_demo_token_gate
   check_sample_paths

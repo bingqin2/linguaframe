@@ -140,11 +140,11 @@ scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
 
-The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
 
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
-The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
+The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary, and the `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
 For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.
 
@@ -301,7 +301,7 @@ http://localhost:8080/swagger-ui/index.html
 
 When private demo access is enabled with `LINGUAFRAME_DEMO_ACCESS_TOKEN`, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key scheme. Enter the same token value that the browser sends through the `X-LinguaFrame-Demo-Token` header. `/v3/api-docs` and Swagger UI remain public for deployment checks; only `/api/**` calls require the configured demo token.
 
-## Runtime Dependency Summary
+## Runtime Dependency Summary And Live Checks
 
 The backend exposes a non-secret dependency summary for local readiness checks:
 
@@ -310,6 +310,14 @@ curl http://localhost:8080/api/runtime/dependencies
 ```
 
 The response includes a safe runtime contract plus MySQL, Redis, RabbitMQ, and MinIO host, port, endpoint, and bucket metadata. The runtime contract exposes the app version, latest bundled Flyway migration version, and required demo route paths so preflight can detect stale Docker backend images before upload. Demo-readiness fields for the browser panel include demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, budget settings, and feature flags. It intentionally excludes passwords, access keys, secret keys, API keys, tokens, raw local media paths, Git metadata, and FFmpeg workspace paths. This endpoint is configuration-derived only; it does not run live dependency probes, upload objects, execute FFmpeg, or call paid providers.
+
+Use the live-check endpoint for bounded active probes:
+
+```bash
+curl http://localhost:8080/api/runtime/live-checks
+```
+
+The response reports `UP`, `DOWN`, or `SKIPPED` for database, Redis, RabbitMQ, MinIO, and FFmpeg with safe latency and summary messages. It runs non-destructive checks only and does not upload media, create objects, delete objects, or call OpenAI.
 
 ## Job-Scoped Logs
 

@@ -1,16 +1,20 @@
 package com.linguaframe.storage.service;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.storage.service.impl.MinioObjectStorageHealthCheckService;
 import com.linguaframe.storage.service.impl.MinioObjectStorageServiceImpl;
+import io.minio.BucketExistsArgs;
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
 import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class MinioObjectStorageServiceTests {
 
@@ -40,6 +44,21 @@ class MinioObjectStorageServiceTests {
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("Object storage delete failed.")
                 .hasRootCauseMessage("secret access key leaked");
+    }
+
+    @Test
+    void checksConfiguredBucketForHealthProbe() throws Exception {
+        MinioClient minioClient = mock(MinioClient.class);
+        LinguaFrameProperties properties = properties();
+        MinioObjectStorageHealthCheckService service = new MinioObjectStorageHealthCheckService(properties, minioClient);
+        when(minioClient.bucketExists(org.mockito.ArgumentMatchers.any(BucketExistsArgs.class)))
+                .thenReturn(true);
+
+        assertThat(service.bucketExistsForHealthCheck()).isTrue();
+
+        verify(minioClient).bucketExists(argThat((BucketExistsArgs args) ->
+                args.bucket().equals("linguaframe-artifacts")
+        ));
     }
 
     private LinguaFrameProperties properties() {

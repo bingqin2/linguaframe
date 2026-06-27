@@ -93,6 +93,7 @@ class OpenApiDocumentationTests {
                         "/api/jobs/{jobId}/artifacts/{artifactId}/download",
                         "/api/jobs/{jobId}/artifacts/archive/download",
                         "/api/runtime/dependencies",
+                        "/api/runtime/live-checks",
                         "/api/prompt-templates",
                         "/api/operator/dashboard",
                         "/api/retention/cleanup/preview",
