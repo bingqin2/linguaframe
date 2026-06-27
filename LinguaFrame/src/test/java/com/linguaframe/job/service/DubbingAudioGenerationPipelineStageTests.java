@@ -175,6 +175,7 @@ class DubbingAudioGenerationPipelineStageTests {
                     command.filename(),
                     command.contentType(),
                     command.content().length,
+                    "artifact-hash-" + commands.size(),
                     Instant.parse("2026-06-26T23:00:00Z")
             );
         }

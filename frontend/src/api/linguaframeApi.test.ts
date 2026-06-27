@@ -159,6 +159,7 @@ describe('linguaframeApi', () => {
           filename: 'subtitles.vtt',
           contentType: 'text/vtt',
           sizeBytes: 42,
+          contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
           createdAt: '2026-06-26T10:00:05Z'
         }
       ])
@@ -167,6 +168,9 @@ describe('linguaframeApi', () => {
     const artifacts = await listArtifacts('job-1');
 
     expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]?.contentSha256).toBe(
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef'
+    );
     expect(artifactDownloadUrl('job-1', 'artifact-1')).toBe(
       '/api/jobs/job-1/artifacts/artifact-1/download'
     );

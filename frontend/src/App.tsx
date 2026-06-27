@@ -613,6 +613,7 @@ function JobDetail({
                 <th>Filename</th>
                 <th>Content type</th>
                 <th>Size</th>
+                <th>SHA-256</th>
                 <th>Download</th>
               </tr>
             </thead>
@@ -623,6 +624,9 @@ function JobDetail({
                   <td>{artifact.filename}</td>
                   <td>{artifact.contentType}</td>
                   <td>{formatBytes(artifact.sizeBytes)}</td>
+                  <td title={artifact.contentSha256 || undefined}>
+                    {formatArtifactHash(artifact.contentSha256)}
+                  </td>
                   <td>
                     <a href={linguaFrameApi.artifactDownloadUrl(job.jobId, artifact.artifactId)}>
                       Download {artifact.filename}
@@ -805,4 +809,11 @@ function formatBytes(sizeBytes: number): string {
     return `${(sizeBytes / 1024).toFixed(1)} KB`;
   }
   return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatArtifactHash(contentSha256: string): string {
+  if (!contentSha256) {
+    return '-';
+  }
+  return contentSha256.slice(0, 12);
 }

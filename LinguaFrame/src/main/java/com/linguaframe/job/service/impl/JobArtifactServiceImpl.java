@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -59,6 +61,7 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 command.filename(),
                 command.contentType(),
                 command.content().length,
+                sha256Hex(command.content()),
                 createdAt
         );
         artifactRepository.save(record);
@@ -94,7 +97,21 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 record.filename(),
                 record.contentType(),
                 record.sizeBytes(),
+                record.contentSha256(),
                 record.createdAt()
         );
+    }
+
+    private String sha256Hex(byte[] content) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(content);
+            StringBuilder builder = new StringBuilder(digest.length * 2);
+            for (byte value : digest) {
+                builder.append(String.format("%02x", value));
+            }
+            return builder.toString();
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 digest algorithm is unavailable.", ex);
+        }
     }
 }

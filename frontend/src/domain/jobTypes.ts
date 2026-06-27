@@ -149,6 +149,7 @@ export interface JobArtifact {
   filename: string;
   contentType: string;
   sizeBytes: number;
+  contentSha256: string;
   createdAt: string;
 }
 

@@ -12,6 +12,7 @@ public record JobArtifactRecord(
         String filename,
         String contentType,
         long sizeBytes,
+        String contentSha256,
         Instant createdAt
 ) {
 }

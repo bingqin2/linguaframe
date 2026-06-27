@@ -30,6 +30,7 @@ public class JobArtifactRepository {
                             filename,
                             content_type,
                             size_bytes,
+                            content_sha256,
                             created_at
                         )
                         VALUES (
@@ -40,6 +41,7 @@ public class JobArtifactRepository {
                             :filename,
                             :contentType,
                             :sizeBytes,
+                            :contentSha256,
                             :createdAt
                         )
                         """)
@@ -50,6 +52,7 @@ public class JobArtifactRepository {
                 .param("filename", record.filename())
                 .param("contentType", record.contentType())
                 .param("sizeBytes", record.sizeBytes())
+                .param("contentSha256", record.contentSha256())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .update();
     }
@@ -64,6 +67,7 @@ public class JobArtifactRepository {
                             filename,
                             content_type,
                             size_bytes,
+                            content_sha256,
                             created_at
                         FROM job_artifacts
                         WHERE id = :id
@@ -83,6 +87,7 @@ public class JobArtifactRepository {
                             filename,
                             content_type,
                             size_bytes,
+                            content_sha256,
                             created_at
                         FROM job_artifacts
                         WHERE job_id = :jobId
@@ -102,6 +107,7 @@ public class JobArtifactRepository {
                 rs.getString("filename"),
                 rs.getString("content_type"),
                 rs.getLong("size_bytes"),
+                rs.getString("content_sha256"),
                 rs.getTimestamp("created_at").toInstant()
         );
     }

@@ -254,6 +254,7 @@ class CostBudgetedPipelineStageTests {
                     "audio.wav",
                     "audio/wav",
                     3L,
+                    "audio-hash",
                     Instant.parse("2026-06-27T02:30:00Z")
             ));
         }
