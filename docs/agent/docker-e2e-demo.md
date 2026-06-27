@@ -30,6 +30,16 @@ http://localhost:5173
 
 The React demo uploads videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
+## Private Demo Preflight
+
+Run this before the short or full demo scripts:
+
+```bash
+scripts/demo/private-demo-preflight.sh
+```
+
+The preflight does not upload media and does not call OpenAI. It verifies required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+
 ## Successful Job Demo
 
 In another terminal, run:

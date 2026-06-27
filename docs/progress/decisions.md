@@ -249,3 +249,11 @@ Decision: Add Redis as a short-lived cache-aside layer for job detail snapshots 
 Reason: `GET /api/jobs/{jobId}` and SSE progress polling repeatedly rebuild the same sanitized `LocalizationJobVo` shape from durable tables. A small Redis cache demonstrates the planned job-status cache path without changing persistence semantics or introducing Redis pub/sub before it is needed.
 
 Impact: Job detail reads can return cached snapshots from `linguaframe:job-status:<jobId>` for a short TTL, then fall back to database reads on misses or Redis/JSON failures. Retry, cancel, and worker status transitions evict the affected job key so stale snapshots do not survive state changes.
+
+## 2026-06-27
+
+Decision: Add a local private-demo preflight before running media uploads or provider-backed demo jobs.
+
+Reason: The private demo now depends on Docker Compose services, optional access-token gating, local `.env` values, frontend/backend reachability, and optional local media files. A preflight script catches environment and readiness problems before a user spends time or OpenAI credits on a demo run.
+
+Impact: Operators can run `scripts/demo/private-demo-preflight.sh` after starting Compose to verify required commands, Compose rendering, backend health, frontend reachability, optional token-gate behavior, and configured sample paths without uploading media or calling paid providers.

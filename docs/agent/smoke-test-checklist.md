@@ -88,6 +88,20 @@ Start the stack:
 docker compose --env-file .env.example up -d
 ```
 
+Run private-demo preflight before uploading media:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh
+```
+
+Expected:
+
+- Docker Compose config renders for the default stack and the split-worker profile.
+- Backend health returns `UP`.
+- Frontend responds on `http://localhost:5173`.
+- If `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, anonymous `/api/**` access returns `401` and the configured header succeeds.
+- If `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH` is configured, the path points to a readable non-empty file.
+
 Run the successful E2E path:
 
 ```bash
