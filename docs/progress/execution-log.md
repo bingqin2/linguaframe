@@ -1901,3 +1901,12 @@ Validation so far:
 - `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh scripts/demo/docker-e2e-success.sh` passed.
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `codex-job-scoped-structured-logging-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=LinguaFrameLogContextTests,LocalizationJobExecutionServiceTests test` passed on `main` with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 37 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
