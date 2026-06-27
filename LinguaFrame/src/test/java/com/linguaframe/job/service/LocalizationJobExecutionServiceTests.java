@@ -14,6 +14,7 @@ import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.WorkerRole;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
 import com.linguaframe.job.domain.exception.CostBudgetExceededException;
@@ -32,6 +33,7 @@ import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
 import com.linguaframe.job.service.impl.AudioExtractionPipelineStage;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
 import com.linguaframe.job.service.impl.WorkerSmokePipelineStage;
+import com.linguaframe.job.service.impl.WorkerStageRouterImpl;
 import com.linguaframe.media.domain.bo.BurnInSubtitlesCommand;
 import com.linguaframe.media.domain.bo.BurnedVideoBo;
 import com.linguaframe.media.domain.bo.ExtractAudioCommand;
@@ -178,6 +180,180 @@ class LocalizationJobExecutionServiceTests {
                                 + ":" + JobTimelineEventStatus.CACHE_HIT
                                 + ":Reused cached TRANSLATION provider result from job source-provider-cache-job."
                 );
+    }
+
+    @Test
+    void ffmpegWorkerRunsInitialSegmentAndPublishesOpenAiHandoff() {
+        Instant now = Instant.parse("2026-06-27T10:20:00Z");
+        createJob("execution-video-ffmpeg-start", "execution-job-ffmpeg-start", LocalizationJobStatus.QUEUED, now);
+        properties.getWorker().setRole(WorkerRole.FFMPEG);
+        RecordingStage smokeStage = new RecordingStage(false, LocalizationJobStage.WORKER_SMOKE);
+        RecordingStage audioStage = new RecordingStage(false, LocalizationJobStage.AUDIO_EXTRACTION);
+        RecordingStage transcriptStage = new RecordingStage(false, LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT);
+        RecordingPublisher publisher = new RecordingPublisher();
+        LocalizationJobExecutionService service = service(
+                List.of(smokeStage, audioStage, transcriptStage),
+                publisher,
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message("execution-job-ffmpeg-start", "execution-video-ffmpeg-start", now));
+
+            assertThat(result.executed()).isTrue();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.PROCESSING);
+            assertThat(smokeStage.context).isNotNull();
+            assertThat(audioStage.context).isNotNull();
+            assertThat(transcriptStage.context).isNull();
+            assertThat(publisher.messages).singleElement()
+                    .satisfies(message -> assertThat(message.startStage())
+                            .isEqualTo(LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT));
+            assertThat(jobRepository.findById("execution-job-ffmpeg-start"))
+                    .get()
+                    .extracting(LocalizationJobRecord::status)
+                    .isEqualTo(LocalizationJobStatus.PROCESSING);
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+        }
+    }
+
+    @Test
+    void openAiWorkerRunsModelSegmentAndPublishesFfmpegHandoff() {
+        Instant now = Instant.parse("2026-06-27T10:25:00Z");
+        createJob("execution-video-openai", "execution-job-openai", LocalizationJobStatus.PROCESSING, now);
+        properties.getWorker().setRole(WorkerRole.OPENAI);
+        RecordingStage transcriptStage = new RecordingStage(false, LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT);
+        RecordingStage targetStage = new RecordingStage(false, LocalizationJobStage.TARGET_SUBTITLE_EXPORT);
+        RecordingStage evaluationStage = new RecordingStage(false, LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION);
+        RecordingStage ttsStage = new RecordingStage(false, LocalizationJobStage.DUBBING_AUDIO_GENERATION);
+        RecordingStage burnInStage = new RecordingStage(false, LocalizationJobStage.SUBTITLE_BURN_IN);
+        RecordingPublisher publisher = new RecordingPublisher();
+        LocalizationJobExecutionService service = service(
+                List.of(transcriptStage, targetStage, evaluationStage, ttsStage, burnInStage),
+                publisher,
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message(
+                    "execution-job-openai",
+                    "execution-video-openai",
+                    now,
+                    LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT
+            ));
+
+            assertThat(result.executed()).isTrue();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.PROCESSING);
+            assertThat(transcriptStage.context).isNotNull();
+            assertThat(targetStage.context).isNotNull();
+            assertThat(evaluationStage.context).isNotNull();
+            assertThat(ttsStage.context).isNotNull();
+            assertThat(burnInStage.context).isNull();
+            assertThat(publisher.messages).singleElement()
+                    .satisfies(message -> assertThat(message.startStage()).isEqualTo(LocalizationJobStage.SUBTITLE_BURN_IN));
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+        }
+    }
+
+    @Test
+    void ffmpegWorkerRunsFinalSegmentAndMarksCompleted() {
+        Instant now = Instant.parse("2026-06-27T10:30:00Z");
+        createJob("execution-video-ffmpeg-final", "execution-job-ffmpeg-final", LocalizationJobStatus.PROCESSING, now);
+        properties.getWorker().setRole(WorkerRole.FFMPEG);
+        RecordingStage burnInStage = new RecordingStage(false, LocalizationJobStage.SUBTITLE_BURN_IN);
+        RecordingStage summaryStage = new RecordingStage(false, LocalizationJobStage.ARTIFACT_SUMMARY);
+        RecordingPublisher publisher = new RecordingPublisher();
+        LocalizationJobExecutionService service = service(
+                List.of(burnInStage, summaryStage),
+                publisher,
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message(
+                    "execution-job-ffmpeg-final",
+                    "execution-video-ffmpeg-final",
+                    now,
+                    LocalizationJobStage.SUBTITLE_BURN_IN
+            ));
+
+            assertThat(result.executed()).isTrue();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+            assertThat(burnInStage.context).isNotNull();
+            assertThat(summaryStage.context).isNotNull();
+            assertThat(publisher.messages).isEmpty();
+            assertThat(jobRepository.findById("execution-job-ffmpeg-final"))
+                    .get()
+                    .extracting(LocalizationJobRecord::status)
+                    .isEqualTo(LocalizationJobStatus.COMPLETED);
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+        }
+    }
+
+    @Test
+    void failsJobWhenWorkerReceivesUnownedStartStage() {
+        Instant now = Instant.parse("2026-06-27T10:35:00Z");
+        createJob("execution-video-unowned", "execution-job-unowned", LocalizationJobStatus.PROCESSING, now);
+        properties.getWorker().setRole(WorkerRole.OPENAI);
+        LocalizationJobExecutionService service = service(
+                List.of(new RecordingStage(false, LocalizationJobStage.SUBTITLE_BURN_IN)),
+                new RecordingPublisher(),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message(
+                    "execution-job-unowned",
+                    "execution-video-unowned",
+                    now,
+                    LocalizationJobStage.SUBTITLE_BURN_IN
+            ));
+
+            assertThat(result.executed()).isTrue();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.FAILED);
+            assertThat(jobRepository.findById("execution-job-unowned"))
+                    .get()
+                    .satisfies(job -> {
+                        assertThat(job.status()).isEqualTo(LocalizationJobStatus.FAILED);
+                        assertThat(job.failureStage()).isEqualTo(LocalizationJobStage.SUBTITLE_BURN_IN);
+                        assertThat(job.failureReason()).contains("Worker role OPENAI cannot execute start stage SUBTITLE_BURN_IN.");
+                    });
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+        }
+    }
+
+    @Test
+    void skipsHandoffSegmentWhenJobIsNotProcessing() {
+        Instant now = Instant.parse("2026-06-27T10:40:00Z");
+        createJob("execution-video-handoff-stale", "execution-job-handoff-stale", LocalizationJobStatus.QUEUED, now);
+        properties.getWorker().setRole(WorkerRole.OPENAI);
+        RecordingStage transcriptStage = new RecordingStage(false, LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT);
+        LocalizationJobExecutionService service = service(
+                List.of(transcriptStage),
+                new RecordingPublisher(),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        try {
+            var result = service.execute(message(
+                    "execution-job-handoff-stale",
+                    "execution-video-handoff-stale",
+                    now,
+                    LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT
+            ));
+
+            assertThat(result.executed()).isFalse();
+            assertThat(result.status()).isEqualTo(LocalizationJobStatus.QUEUED);
+            assertThat(transcriptStage.context).isNull();
+            assertThat(timelineEventRepository.findByJobId("execution-job-handoff-stale"))
+                    .extracting(event -> event.stage() + ":" + event.status())
+                    .containsExactly(LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT + ":" + JobTimelineEventStatus.SKIPPED);
+        } finally {
+            properties.getWorker().setRole(WorkerRole.COMBINED);
+        }
     }
 
     @Test
@@ -1060,12 +1236,38 @@ class LocalizationJobExecutionServiceTests {
     }
 
     private QueuedLocalizationJobMessage message(String jobId, String videoId, Instant createdAt) {
+        return message(jobId, videoId, createdAt, LocalizationJobStage.WORKER_SMOKE);
+    }
+
+    private QueuedLocalizationJobMessage message(
+            String jobId,
+            String videoId,
+            Instant createdAt,
+            LocalizationJobStage startStage
+    ) {
         return new QueuedLocalizationJobMessage(
                 jobId,
                 videoId,
                 "source-videos/" + videoId + "/sample.mp4",
                 "zh-CN",
-                createdAt
+                createdAt,
+                startStage
+        );
+    }
+
+    private LocalizationJobExecutionService service(
+            List<LocalizationPipelineStage> stages,
+            JobQueuePublisher publisher,
+            Clock clock
+    ) {
+        return new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                stages,
+                properties,
+                new WorkerStageRouterImpl(),
+                publisher,
+                clock
         );
     }
 
@@ -1095,6 +1297,16 @@ class LocalizationJobExecutionServiceTests {
             if (fail) {
                 throw new IllegalStateException("stage exploded");
             }
+        }
+    }
+
+    private static class RecordingPublisher implements JobQueuePublisher {
+
+        private final List<QueuedLocalizationJobMessage> messages = new ArrayList<>();
+
+        @Override
+        public void publish(QueuedLocalizationJobMessage message) {
+            messages.add(message);
         }
     }
 

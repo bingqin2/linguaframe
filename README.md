@@ -252,12 +252,32 @@ The Docker profile enables a scheduled dispatcher by default:
 LINGUAFRAME_WORKER_DISPATCH_ENABLED=true
 LINGUAFRAME_WORKER_DISPATCH_BATCH_SIZE=10
 LINGUAFRAME_WORKER_DISPATCH_INTERVAL_MS=5000
+LINGUAFRAME_WORKER_ROLE=COMBINED
 RABBITMQ_JOB_EXCHANGE=linguaframe.jobs
 RABBITMQ_JOB_QUEUE=linguaframe.localization.jobs
 RABBITMQ_JOB_ROUTING_KEY=localization.queued
+RABBITMQ_FFMPEG_JOB_QUEUE=linguaframe.localization.jobs
+RABBITMQ_OPENAI_JOB_QUEUE=linguaframe.localization.openai.jobs
+RABBITMQ_FFMPEG_JOB_ROUTING_KEY=localization.queued
+RABBITMQ_OPENAI_JOB_ROUTING_KEY=localization.openai
+RABBITMQ_LISTENER_QUEUE=linguaframe.localization.jobs
 ```
 
-The dispatcher declares a durable direct exchange, queue, and binding, then publishes pending localization job messages asynchronously.
+The dispatcher declares a durable direct exchange with FFmpeg and OpenAI workload queues. Queued messages include a `startStage`; the publisher routes FFmpeg stages to `RABBITMQ_FFMPEG_JOB_ROUTING_KEY` and speech/translation/evaluation/TTS stages to `RABBITMQ_OPENAI_JOB_ROUTING_KEY`.
+
+By default, `linguaframe-backend` runs as a `COMBINED` worker: it dispatches queued jobs, listens to the FFmpeg/default queue, and executes the complete pipeline locally. This is the preferred mode for the normal Docker demo:
+
+```bash
+docker compose --env-file .env up -d
+```
+
+For a split-worker topology, keep the backend as the API and dispatcher, and start role-specific workers with the `split-workers` profile:
+
+```bash
+docker compose --env-file .env --profile split-workers up -d
+```
+
+`linguaframe-worker-ffmpeg` runs with `LINGUAFRAME_WORKER_ROLE=FFMPEG` and handles smoke, audio extraction, subtitle burn-in, and artifact summary stages. `linguaframe-worker-openai` runs with `LINGUAFRAME_WORKER_ROLE=OPENAI` and handles transcription, target subtitle export, quality evaluation, and TTS stages. Split workers require RabbitMQ to be reachable and dispatcher enabled on the backend process.
 
 ## Worker Execution Lifecycle
 

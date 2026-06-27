@@ -1,5 +1,6 @@
 package com.linguaframe.common.config;
 
+import com.linguaframe.job.domain.enums.WorkerRole;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
@@ -153,6 +154,8 @@ public class LinguaFrameProperties {
 
         private boolean smokeStageFailureEnabled = false;
 
+        private WorkerRole role = WorkerRole.COMBINED;
+
         public int getMaxRetries() {
             return maxRetries;
         }
@@ -215,6 +218,14 @@ public class LinguaFrameProperties {
 
         public void setSmokeStageFailureEnabled(boolean smokeStageFailureEnabled) {
             this.smokeStageFailureEnabled = smokeStageFailureEnabled;
+        }
+
+        public WorkerRole getRole() {
+            return role;
+        }
+
+        public void setRole(WorkerRole role) {
+            this.role = role;
         }
     }
 
@@ -792,6 +803,21 @@ public class LinguaFrameProperties {
         @NotBlank
         private String jobRoutingKey = "localization.queued";
 
+        @NotBlank
+        private String ffmpegJobQueue = "linguaframe.localization.jobs";
+
+        @NotBlank
+        private String openaiJobQueue = "linguaframe.localization.openai.jobs";
+
+        @NotBlank
+        private String ffmpegJobRoutingKey = "localization.queued";
+
+        @NotBlank
+        private String openaiJobRoutingKey = "localization.openai";
+
+        @NotBlank
+        private String listenerQueue = "linguaframe.localization.jobs";
+
         public String getHost() {
             return host;
         }
@@ -846,6 +872,46 @@ public class LinguaFrameProperties {
 
         public void setJobRoutingKey(String jobRoutingKey) {
             this.jobRoutingKey = jobRoutingKey;
+        }
+
+        public String getFfmpegJobQueue() {
+            return ffmpegJobQueue;
+        }
+
+        public void setFfmpegJobQueue(String ffmpegJobQueue) {
+            this.ffmpegJobQueue = ffmpegJobQueue;
+        }
+
+        public String getOpenaiJobQueue() {
+            return openaiJobQueue;
+        }
+
+        public void setOpenaiJobQueue(String openaiJobQueue) {
+            this.openaiJobQueue = openaiJobQueue;
+        }
+
+        public String getFfmpegJobRoutingKey() {
+            return ffmpegJobRoutingKey;
+        }
+
+        public void setFfmpegJobRoutingKey(String ffmpegJobRoutingKey) {
+            this.ffmpegJobRoutingKey = ffmpegJobRoutingKey;
+        }
+
+        public String getOpenaiJobRoutingKey() {
+            return openaiJobRoutingKey;
+        }
+
+        public void setOpenaiJobRoutingKey(String openaiJobRoutingKey) {
+            this.openaiJobRoutingKey = openaiJobRoutingKey;
+        }
+
+        public String getListenerQueue() {
+            return listenerQueue;
+        }
+
+        public void setListenerQueue(String listenerQueue) {
+            this.listenerQueue = listenerQueue;
         }
     }
 

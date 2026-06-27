@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
@@ -94,6 +95,9 @@ class JobDispatchServiceTests {
         assertThat(publisher.messages)
                 .extracting(QueuedLocalizationJobMessage::jobId)
                 .containsExactly("dispatch-service-job-1");
+        assertThat(publisher.messages)
+                .extracting(QueuedLocalizationJobMessage::startStage)
+                .containsExactly(LocalizationJobStage.WORKER_SMOKE);
         assertThat(eventRepository.findLatestByJobId("dispatch-service-job-1"))
                 .get()
                 .satisfies(event -> {
@@ -185,6 +189,48 @@ class JobDispatchServiceTests {
                     assertThat(event.attempts()).isEqualTo(1);
                     assertThat(event.lastError()).contains("Failed to read dispatch payload");
                 });
+    }
+
+    @Test
+    void normalizesLegacyPayloadWithoutStartStageToWorkerSmoke() throws Exception {
+        Instant now = Instant.parse("2026-06-26T07:30:00Z");
+        createJob("dispatch-service-video-legacy", "dispatch-service-job-legacy", now);
+        eventRepository.save(new JobDispatchEventRecord(
+                "dispatch-service-event-legacy",
+                "dispatch-service-job-legacy",
+                JobDispatchEventType.LOCALIZATION_JOB_QUEUED,
+                """
+                        {
+                          "jobId": "dispatch-service-job-legacy",
+                          "videoId": "dispatch-service-video-legacy",
+                          "sourceObjectKey": "source-videos/dispatch-service-video-legacy/sample.mp4",
+                          "targetLanguage": "zh-CN",
+                          "createdAt": "2026-06-26T07:30:00Z"
+                        }
+                        """,
+                JobDispatchEventStatus.PENDING,
+                0,
+                now.minusSeconds(1),
+                null,
+                null,
+                now,
+                now
+        ));
+        RecordingPublisher publisher = new RecordingPublisher(false);
+        JobDispatchService service = new JobDispatchServiceImpl(
+                eventRepository,
+                publisher,
+                objectMapper,
+                properties,
+                Clock.fixed(now, ZoneOffset.UTC)
+        );
+
+        var result = service.dispatchReadyEvents(10);
+
+        assertThat(result.dispatched()).isEqualTo(1);
+        assertThat(publisher.messages)
+                .extracting(QueuedLocalizationJobMessage::startStage)
+                .containsExactly(LocalizationJobStage.WORKER_SMOKE);
     }
 
     @Test

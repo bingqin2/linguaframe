@@ -1091,3 +1091,28 @@ Post-merge verification:
 - Merged `model-call-safe-summaries-mvp` back to `main` with merge commit `dfe08c6`.
 - `mvn -pl LinguaFrame -Dtest=ModelCallAuditServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 27, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 17`.
+
+## 2026-06-27
+
+Work:
+
+- Added `COMBINED`, `FFMPEG`, and `OPENAI` worker roles with stage ownership routing.
+- Added `startStage` to queued job messages while preserving legacy payload compatibility.
+- Added FFmpeg and OpenAI RabbitMQ queues/routing keys and stage-aware publisher routing.
+- Updated worker execution to run contiguous stage segments, publish handoff messages, keep jobs `PROCESSING` across split-worker handoffs, and mark completion only after the final segment.
+- Added optional Docker Compose `split-workers` services for role-specific workers while keeping the default backend in combined mode.
+- Documented combined versus split-worker operation in README, roadmap, spec, decisions, and this execution log.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,LinguaFramePropertiesTests test` first failed because worker role and router types did not exist, then passed with `Tests run: 18, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=RabbitJobQueueConfigurationTests,JobDispatchServiceTests,JobDispatchOutboxServiceTests,RabbitJobQueuePublisherTests test` first failed because messages and queue routing were not stage-aware, then passed with `Tests run: 10, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test` first failed because segmented execution and listener queue wiring did not exist, then passed with `Tests run: 25, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=WorkerStageRouterTests,RabbitJobQueueConfigurationTests,LocalizationJobExecutionServiceTests,LocalizationJobWorkerTests test` passed with `Tests run: 31, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 235, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 32`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.

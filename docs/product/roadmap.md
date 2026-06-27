@@ -415,11 +415,11 @@ Goal: prepare the pipeline for heavier workloads by separating CPU-bound and API
 
 Build:
 
-- Worker role configuration.
-- FFmpeg worker role for audio extraction and subtitle burn-in.
-- OpenAI worker role for speech, translation, evaluation, and TTS.
-- Queue names or routing keys per workload type.
-- Documentation for when to run one combined worker versus split workers.
+- [x] Worker role configuration.
+- [x] FFmpeg worker role for audio extraction and subtitle burn-in.
+- [x] OpenAI worker role for speech, translation, evaluation, and TTS.
+- [x] Queue names or routing keys per workload type.
+- [x] Documentation for when to run one combined worker versus split workers.
 
 Do not build yet:
 
@@ -429,10 +429,10 @@ Do not build yet:
 
 Exit criteria:
 
-- The same codebase can run a combined worker locally.
-- The same codebase can run separate FFmpeg and OpenAI worker roles when configured.
-- The roadmap and README explain why the split exists and when to use it.
+- [x] The same codebase can run a combined worker locally.
+- [x] The same codebase can run separate FFmpeg and OpenAI worker roles when configured.
+- [x] The roadmap and README explain why the split exists and when to use it.
 
 Suggested ExecPlan:
 
-- `docs/plans/013-worker-pool-split.md`
+- `docs/plans/035-worker-role-routing-mvp.md`

@@ -201,3 +201,11 @@ Decision: Add count-only safe input and output summaries to model-call audit rec
 Reason: Job detail should explain what each provider call processed without persisting raw transcript text, translated subtitle text, TTS text, OpenAI payloads, secrets, media bytes, or local media paths. Counts and short verdict metadata are enough for demo observability while preserving the existing privacy boundary.
 
 Impact: Transcription, translation, quality evaluation, and TTS model calls now expose `inputSummary` and `outputSummary` in backend job detail and the React model-call panel. Summaries are nullable for older records and capped at 512 characters before persistence.
+
+## 2026-06-27
+
+Decision: Split worker roles with stage-aware RabbitMQ handoff messages before adding Kubernetes or autoscaling.
+
+Reason: LinguaFrame needs to prove that CPU-bound FFmpeg work and API-bound OpenAI work can run in separate processes using the current codebase and local Docker stack. Stage handoff messages are enough to demonstrate the production boundary without introducing orchestration concerns too early.
+
+Impact: The default local backend remains a `COMBINED` worker for simple demos. Optional `FFMPEG` and `OPENAI` worker roles can process contiguous stage segments through separate queues, and jobs remain `PROCESSING` across handoffs until the final segment completes.

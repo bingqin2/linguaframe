@@ -1,6 +1,7 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.service.JobQueuePublisher;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -21,8 +22,18 @@ public class RabbitJobQueuePublisher implements JobQueuePublisher {
     public void publish(QueuedLocalizationJobMessage message) {
         rabbitTemplate.convertAndSend(
                 properties.getRabbitmq().getJobExchange(),
-                properties.getRabbitmq().getJobRoutingKey(),
+                routingKeyFor(message.startStage()),
                 message
         );
+    }
+
+    private String routingKeyFor(LocalizationJobStage startStage) {
+        return switch (startStage) {
+            case TRANSCRIPT_SUBTITLE_EXPORT,
+                 TARGET_SUBTITLE_EXPORT,
+                 TRANSLATION_QUALITY_EVALUATION,
+                 DUBBING_AUDIO_GENERATION -> properties.getRabbitmq().getOpenaiJobRoutingKey();
+            default -> properties.getRabbitmq().getFfmpegJobRoutingKey();
+        };
     }
 }

@@ -1,19 +1,24 @@
 package com.linguaframe.job.service.impl;
 
+import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.WorkerRole;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobExecutionResultVo;
 import com.linguaframe.job.domain.vo.ProviderCacheHitVo;
+import com.linguaframe.job.domain.vo.WorkerStagePlanVo;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.service.JobQueuePublisher;
 import com.linguaframe.job.service.LocalizationJobExecutionService;
 import com.linguaframe.job.service.LocalizationPipelineStage;
+import com.linguaframe.job.service.WorkerStageRouter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +37,9 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
     private final LocalizationJobRepository jobRepository;
     private final JobTimelineEventRepository timelineEventRepository;
     private final List<LocalizationPipelineStage> stages;
+    private final LinguaFrameProperties properties;
+    private final WorkerStageRouter stageRouter;
+    private final JobQueuePublisher publisher;
     private final Clock clock;
     private final AtomicLong timelineSequence = new AtomicLong();
 
@@ -39,9 +47,12 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
     public LocalizationJobExecutionServiceImpl(
             LocalizationJobRepository jobRepository,
             JobTimelineEventRepository timelineEventRepository,
-            List<LocalizationPipelineStage> stages
+            List<LocalizationPipelineStage> stages,
+            LinguaFrameProperties properties,
+            WorkerStageRouter stageRouter,
+            JobQueuePublisher publisher
     ) {
-        this(jobRepository, timelineEventRepository, stages, Clock.systemUTC());
+        this(jobRepository, timelineEventRepository, stages, properties, stageRouter, publisher, Clock.systemUTC());
     }
 
     public LocalizationJobExecutionServiceImpl(
@@ -50,11 +61,35 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             List<LocalizationPipelineStage> stages,
             Clock clock
     ) {
+        this(
+                jobRepository,
+                timelineEventRepository,
+                stages,
+                new LinguaFrameProperties(),
+                new WorkerStageRouterImpl(),
+                message -> {
+                },
+                clock
+        );
+    }
+
+    public LocalizationJobExecutionServiceImpl(
+            LocalizationJobRepository jobRepository,
+            JobTimelineEventRepository timelineEventRepository,
+            List<LocalizationPipelineStage> stages,
+            LinguaFrameProperties properties,
+            WorkerStageRouter stageRouter,
+            JobQueuePublisher publisher,
+            Clock clock
+    ) {
         this.jobRepository = jobRepository;
         this.timelineEventRepository = timelineEventRepository;
         this.stages = stages.stream()
                 .sorted(Comparator.comparing(stage -> stage.stage().ordinal()))
                 .toList();
+        this.properties = properties;
+        this.stageRouter = stageRouter;
+        this.publisher = publisher;
         this.clock = clock;
     }
 
@@ -63,14 +98,24 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
         LocalizationJobRecord job = jobRepository.findById(message.jobId())
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         Instant startedAt = Instant.now(clock);
-        if (!jobRepository.claimForExecution(job.id(), startedAt)) {
+        LocalizationJobStage startStage = message.startStage();
+        boolean firstSegment = startStage == LocalizationJobStage.WORKER_SMOKE;
+
+        if (firstSegment && !jobRepository.claimForExecution(job.id(), startedAt)) {
             saveTimeline(job.id(), LocalizationJobStage.WORKER_RECEIVED, JobTimelineEventStatus.SKIPPED,
                     "Worker skipped stale localization job message.", null, null, startedAt);
             return new LocalizationJobExecutionResultVo(job.id(), false, job.status());
         }
+        if (!firstSegment && job.status() != LocalizationJobStatus.PROCESSING) {
+            saveTimeline(job.id(), startStage, JobTimelineEventStatus.SKIPPED,
+                    "Worker skipped stale localization job handoff message.", null, null, startedAt);
+            return new LocalizationJobExecutionResultVo(job.id(), false, job.status());
+        }
 
-        saveTimeline(job.id(), LocalizationJobStage.WORKER_RECEIVED, JobTimelineEventStatus.STARTED,
-                "Worker received localization job.", null, null, startedAt);
+        if (firstSegment) {
+            saveTimeline(job.id(), LocalizationJobStage.WORKER_RECEIVED, JobTimelineEventStatus.STARTED,
+                    "Worker received localization job.", null, null, startedAt);
+        }
 
         LocalizationJobRecord claimedJob = jobRepository.findById(job.id())
                 .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
@@ -79,8 +124,16 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             return fail(claimedJob.id(), LocalizationJobStage.WORKER_RECEIVED, error, startedAt);
         }
 
+        WorkerStagePlanVo plan;
+        WorkerRole role = properties.getWorker().getRole();
+        try {
+            plan = stageRouter.plan(role, startStage, stages);
+        } catch (RuntimeException ex) {
+            return fail(claimedJob.id(), startStage, safeError(ex), startedAt);
+        }
+
         LocalizationJobExecutionContextBo context = new LocalizationJobExecutionContextBo(claimedJob, message, startedAt);
-        for (LocalizationPipelineStage stage : stages) {
+        for (LocalizationPipelineStage stage : plan.executableStages()) {
             Instant stageStartedAt = Instant.now(clock);
             if (isCancelled(job.id())) {
                 return cancelled(job.id(), stage.stage(), stageStartedAt);
@@ -115,11 +168,31 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             }
         }
 
-        Instant completedAt = Instant.now(clock);
-        jobRepository.markCompleted(job.id(), completedAt);
-        saveTimeline(job.id(), LocalizationJobStage.COMPLETED, JobTimelineEventStatus.SUCCEEDED,
-                "Localization job completed.", durationMs(startedAt, completedAt), null, completedAt);
-        return new LocalizationJobExecutionResultVo(job.id(), true, LocalizationJobStatus.COMPLETED);
+        if (!plan.finalSegment()) {
+            handoff(message, plan.nextStage(), startedAt);
+            return new LocalizationJobExecutionResultVo(job.id(), true, LocalizationJobStatus.PROCESSING);
+        } else {
+            Instant completedAt = Instant.now(clock);
+            jobRepository.markCompleted(job.id(), completedAt);
+            saveTimeline(job.id(), LocalizationJobStage.COMPLETED, JobTimelineEventStatus.SUCCEEDED,
+                    "Localization job completed.", durationMs(startedAt, completedAt), null, completedAt);
+            return new LocalizationJobExecutionResultVo(job.id(), true, LocalizationJobStatus.COMPLETED);
+        }
+    }
+
+    private void handoff(QueuedLocalizationJobMessage currentMessage, LocalizationJobStage nextStage, Instant startedAt) {
+        QueuedLocalizationJobMessage nextMessage = new QueuedLocalizationJobMessage(
+                currentMessage.jobId(),
+                currentMessage.videoId(),
+                currentMessage.sourceObjectKey(),
+                currentMessage.targetLanguage(),
+                currentMessage.createdAt(),
+                nextStage
+        );
+        publisher.publish(nextMessage);
+        saveTimeline(currentMessage.jobId(), nextStage, JobTimelineEventStatus.SKIPPED,
+                "Worker handed off localization job to " + nextStage.name() + ".",
+                durationMs(startedAt, Instant.now(clock)), null, Instant.now(clock));
     }
 
     private LocalizationJobExecutionResultVo fail(

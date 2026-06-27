@@ -41,6 +41,7 @@ linguaframe:
     execution-enabled: ${LINGUAFRAME_WORKER_EXECUTION_ENABLED:false}
     smoke-stage-duration-ms: ${LINGUAFRAME_WORKER_SMOKE_STAGE_DURATION_MS:0}
     smoke-stage-failure-enabled: ${LINGUAFRAME_WORKER_SMOKE_STAGE_FAILURE_ENABLED:false}
+    role: ${LINGUAFRAME_WORKER_ROLE:COMBINED}
   cost:
     enabled: ${LINGUAFRAME_COST_ENABLED:true}
     transcription-usd-per-minute: ${LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE:0}
@@ -106,6 +107,11 @@ linguaframe:
     job-exchange: ${RABBITMQ_JOB_EXCHANGE:linguaframe.jobs}
     job-queue: ${RABBITMQ_JOB_QUEUE:linguaframe.localization.jobs}
     job-routing-key: ${RABBITMQ_JOB_ROUTING_KEY:localization.queued}
+    ffmpeg-job-queue: ${RABBITMQ_FFMPEG_JOB_QUEUE:${RABBITMQ_JOB_QUEUE:linguaframe.localization.jobs}}
+    openai-job-queue: ${RABBITMQ_OPENAI_JOB_QUEUE:linguaframe.localization.openai.jobs}
+    ffmpeg-job-routing-key: ${RABBITMQ_FFMPEG_JOB_ROUTING_KEY:${RABBITMQ_JOB_ROUTING_KEY:localization.queued}}
+    openai-job-routing-key: ${RABBITMQ_OPENAI_JOB_ROUTING_KEY:localization.openai}
+    listener-queue: ${RABBITMQ_LISTENER_QUEUE:${RABBITMQ_JOB_QUEUE:linguaframe.localization.jobs}}
   storage:
     endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
     bucket: ${MINIO_BUCKET:linguaframe-artifacts}

@@ -1,5 +1,6 @@
 package com.linguaframe.common.config;
 
+import com.linguaframe.job.domain.enums.WorkerRole;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -33,6 +34,7 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().isExecutionEnabled()).isFalse();
         assertThat(properties.getWorker().getSmokeStageDurationMs()).isEqualTo(0L);
         assertThat(properties.getWorker().isSmokeStageFailureEnabled()).isFalse();
+        assertThat(properties.getWorker().getRole()).isEqualTo(WorkerRole.COMBINED);
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getCost().getTranscriptionUsdPerMinute()).isEqualByComparingTo("0");
         assertThat(properties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0");
@@ -54,6 +56,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getRabbitmq().getJobExchange()).isEqualTo("linguaframe.jobs");
         assertThat(properties.getRabbitmq().getJobQueue()).isEqualTo("linguaframe.localization.jobs");
         assertThat(properties.getRabbitmq().getJobRoutingKey()).isEqualTo("localization.queued");
+        assertThat(properties.getRabbitmq().getFfmpegJobQueue()).isEqualTo("linguaframe.localization.jobs");
+        assertThat(properties.getRabbitmq().getOpenaiJobQueue()).isEqualTo("linguaframe.localization.openai.jobs");
+        assertThat(properties.getRabbitmq().getFfmpegJobRoutingKey()).isEqualTo("localization.queued");
+        assertThat(properties.getRabbitmq().getOpenaiJobRoutingKey()).isEqualTo("localization.openai");
         assertThat(properties.getStorage().getEndpoint()).isEqualTo("http://localhost:9000");
         assertThat(properties.getStorage().getBucket()).isEqualTo("linguaframe-artifacts");
         assertThat(properties.getStorage().getAccessKey()).isEqualTo("linguaframe");
@@ -99,6 +105,27 @@ class LinguaFramePropertiesTests {
                     assertThat(context).hasNotFailed();
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getWorker().isSmokeStageFailureEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void bindsWorkerRole() {
+        contextRunner
+                .withPropertyValues("linguaframe.worker.role=OPENAI")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getWorker().getRole()).isEqualTo(WorkerRole.OPENAI);
+                });
+    }
+
+    @Test
+    void rejectsInvalidWorkerRole() {
+        contextRunner
+                .withPropertyValues("linguaframe.worker.role=GPU")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(rootCause(context.getStartupFailure())).hasMessageContaining("WorkerRole.GPU");
                 });
     }
 
@@ -321,6 +348,14 @@ class LinguaFramePropertiesTests {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasMessageContaining("linguaframe");
                 });
+    }
+
+    private static Throwable rootCause(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     @Configuration(proxyBeanMethods = false)

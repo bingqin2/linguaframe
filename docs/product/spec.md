@@ -297,7 +297,7 @@ Planned follow-up capabilities:
 - Model-call audit records with latency, token usage, cost, prompt version, safe summaries, and failure details.
 - LLM-based translation quality evaluation.
 - Content-hash caching for duplicate audio transcription and subtitle translation.
-- Worker-pool split between CPU-bound FFmpeg stages and API-bound OpenAI stages.
+- Worker-pool split between CPU-bound FFmpeg stages and API-bound OpenAI stages: implemented locally through `COMBINED`, `FFMPEG`, and `OPENAI` worker roles, stage-aware RabbitMQ messages, and separate FFmpeg/OpenAI routing keys.
 - Per-user AI cost budgets that can stop expensive stages before execution.
 
 ## Success Criteria
