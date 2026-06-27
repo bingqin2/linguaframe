@@ -6,6 +6,25 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `scripts/demo/private-demo-backup.sh` for private-demo MySQL, MinIO, Caddy state, and optional Redis/RabbitMQ backups.
+- Added `scripts/demo/private-demo-restore.sh` with dry-run validation and mandatory `--yes` for real restores.
+- Ignored repository-local backup output directories.
+- Updated private-demo deployment docs, README, Docker E2E guide, smoke checklist, roadmap, target-state, decisions, and this execution log.
+
+Validation:
+
+- `bash -n scripts/demo/private-demo-backup.sh scripts/demo/private-demo-restore.sh` passed.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-backup.sh --dry-run --output-dir /tmp/linguaframe-private-demo-backups` passed and printed only safe component names and target paths.
+- Created a synthetic restore smoke backup under `/tmp/linguaframe-private-demo-restore-smoke`.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-restore.sh --dry-run --backup-dir /tmp/linguaframe-private-demo-restore-smoke` passed without writing service data.
+- `docker compose --env-file .env.private-demo.example -f docker-compose.yml -f deploy/private-demo/docker-compose.private-demo.yml config --quiet` passed.
+- `git diff --check` passed.
+- Full non-dry-run backup/restore was not executed because it requires a running private-demo stack and writes service data.
+
+## 2026-06-28
+
+Work:
+
 - Added a private-demo Compose overlay with a Caddy reverse proxy.
 - Added `.env.private-demo.example` with placeholder-only deployment values.
 - Added `scripts/demo/private-demo-deploy-preflight.sh` to validate proxy shape, required env values, and safe deployment defaults before startup.

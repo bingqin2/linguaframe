@@ -67,6 +67,55 @@ When a token is configured, `/api/**` requires the demo token. Enter it in the b
 - OpenAI connectivity checks are disabled by default.
 - Deployment preflight validates shape and required env values without printing secrets.
 
+## Backup And Restore
+
+Create backups outside the repository by default:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh \
+  --output-dir /tmp/linguaframe-private-demo-backups
+```
+
+The backup includes:
+
+- MySQL job history and audit tables as `mysql.sql`.
+- MinIO artifact bucket contents under `minio/`.
+- Caddy certificate and config state as `caddy-data.tar` and `caddy-config.tar`.
+- A safe `manifest.json` with component names and Compose project metadata.
+
+Redis and RabbitMQ are treated as volatile runtime state. Include them only when you intentionally want a point-in-time service-volume snapshot:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-backup.sh \
+  --output-dir /tmp/linguaframe-private-demo-backups \
+  --include-volatile
+```
+
+Validate a restore without writing data:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-restore.sh \
+  --dry-run \
+  --backup-dir /tmp/linguaframe-private-demo-backups/<timestamp>.linguaframe-backup
+```
+
+Run a guarded restore only after the dry-run passes:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-restore.sh \
+  --backup-dir /tmp/linguaframe-private-demo-backups/<timestamp>.linguaframe-backup \
+  --yes
+```
+
+Restore stops the proxy, frontend, and backend before importing MySQL, MinIO, and Caddy state. After restore, run:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh
+scripts/demo/docker-e2e-cache-hit.sh
+```
+
+Backups do not include OpenAI secrets, demo token values, local source videos outside object storage, browser local storage, DNS records, or external provider state. Store backup directories securely because they contain job metadata and generated artifacts.
+
 ## Non-Goals
 
 No public registration, JWT users, per-user storage isolation, billing, autoscaling, managed operations beyond Caddy default behavior, or production SRE automation.

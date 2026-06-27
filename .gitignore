@@ -49,6 +49,8 @@ application-secret.yml
 # Temporary files
 tmp/
 temp/
+private-demo-backups/
+*.linguaframe-backup/
 *.tmp
 *.swp
 *~
