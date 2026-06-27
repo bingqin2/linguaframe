@@ -345,3 +345,11 @@ Decision: Generate backend demo evidence Markdown on demand from the sanitized d
 Reason: Demo reviewers need a readable, shareable report that can be downloaded from the API and reproduced by scripts, while browser-only evidence is tied to already-loaded frontend state and diagnostics JSON is optimized for machines.
 
 Impact: `GET /api/jobs/{jobId}/evidence/markdown/download` returns a text/markdown attachment with job status, timeline, usage, cache, quality, artifact hash, result bundle, and diagnostics links. The report is not persisted as an artifact and excludes raw transcript text, raw subtitle text, object keys, local paths, tokens, provider payloads, and media bytes.
+
+## 2026-06-28
+
+Decision: Generate demo evidence bundles on demand as metadata-only ZIP archives.
+
+Reason: A private demo needs a single shareable proof package, but the existing artifact archive is for generated media deliverables and should not mix in audit files. The evidence bundle should be reproducible from backend-safe state and script-verifiable without reading object storage bytes.
+
+Impact: `GET /api/jobs/{jobId}/evidence/bundle/download` returns a ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. It is not persisted as an artifact and excludes generated media bytes, uploaded media bytes, raw transcript text, raw subtitle text, object keys, local paths, tokens, credentials, and provider payloads.

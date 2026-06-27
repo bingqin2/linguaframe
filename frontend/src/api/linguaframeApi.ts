@@ -162,6 +162,10 @@ export function jobEvidenceMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/evidence/markdown/download`;
 }
 
+export function jobEvidenceBundleDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/evidence/bundle/download`;
+}
+
 export function jobEventsUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/events`;
 }
@@ -186,6 +190,7 @@ export const linguaFrameApi = {
   artifactArchiveDownloadUrl,
   jobDiagnosticsDownloadUrl,
   jobEvidenceMarkdownDownloadUrl,
+  jobEvidenceBundleDownloadUrl,
   jobEventsUrl,
   readDemoToken,
   writeDemoToken

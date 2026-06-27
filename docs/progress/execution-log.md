@@ -6,6 +6,29 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `GET /api/jobs/{jobId}/evidence/bundle/download` for metadata-only demo evidence ZIPs containing `manifest.json`, `evidence.md`, and `diagnostics.json`.
+- Added a React `Download evidence bundle` link and API helper.
+- Extended `scripts/demo/docker-e2e-success.sh` to download and validate `/tmp/linguaframe-demo/job-evidence.zip`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log with evidence bundle behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#downloadsJobEvidenceBundle test` first failed with HTTP 404 for the missing route, then passed after adding the evidence bundle service and controller endpoint.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#downloadsJobEvidenceBundle,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App -t "exports safe browser demo evidence"` first failed because the `Download evidence bundle` link was missing, then passed after adding the API helper and UI link.
+- `cd frontend && npm run test:run -- src/api/linguaframeApi.test.ts -t "evidence bundle"` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Test Files 2 passed` and `Tests 66 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 359, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-28
+
+Work:
+
 - Added `GET /api/jobs/{jobId}/evidence/markdown/download` for backend-generated, sanitized Markdown demo evidence.
 - Added a React `Download backend evidence` link to the `Demo evidence` panel and API client URL helper.
 - Extended `scripts/demo/docker-e2e-success.sh` to download and validate `/tmp/linguaframe-demo/job-evidence.md`.
