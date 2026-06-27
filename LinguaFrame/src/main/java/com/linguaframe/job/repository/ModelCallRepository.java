@@ -9,9 +9,11 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 @Repository
@@ -41,6 +43,7 @@ public class ModelCallRepository {
                             character_count,
                             input_summary,
                             output_summary,
+                            budget_identity,
                             estimated_cost_usd,
                             safe_error_summary,
                             created_at
@@ -61,6 +64,7 @@ public class ModelCallRepository {
                             :characterCount,
                             :inputSummary,
                             :outputSummary,
+                            :budgetIdentity,
                             :estimatedCostUsd,
                             :safeErrorSummary,
                             :createdAt
@@ -81,6 +85,7 @@ public class ModelCallRepository {
                 .param("characterCount", record.characterCount())
                 .param("inputSummary", record.inputSummary())
                 .param("outputSummary", record.outputSummary())
+                .param("budgetIdentity", record.budgetIdentity())
                 .param("estimatedCostUsd", record.estimatedCostUsd())
                 .param("safeErrorSummary", record.safeErrorSummary())
                 .param("createdAt", Timestamp.from(record.createdAt()))
@@ -105,6 +110,7 @@ public class ModelCallRepository {
                             character_count,
                             input_summary,
                             output_summary,
+                            budget_identity,
                             estimated_cost_usd,
                             safe_error_summary,
                             created_at
@@ -115,6 +121,20 @@ public class ModelCallRepository {
                 .param("jobId", jobId)
                 .query(this::mapRow)
                 .list();
+    }
+
+    public BigDecimal sumEstimatedCostByBudgetIdentitySince(String budgetIdentity, Instant since) {
+        BigDecimal value = jdbcClient.sql("""
+                        SELECT COALESCE(SUM(estimated_cost_usd), 0)
+                        FROM model_call_records
+                        WHERE budget_identity = :budgetIdentity
+                          AND created_at >= :since
+                        """)
+                .param("budgetIdentity", budgetIdentity)
+                .param("since", Timestamp.from(since))
+                .query(BigDecimal.class)
+                .single();
+        return value.setScale(8, RoundingMode.HALF_UP);
     }
 
     private ModelCallRecord mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -134,6 +154,7 @@ public class ModelCallRepository {
                 integerOrNull(rs, "character_count"),
                 rs.getString("input_summary"),
                 rs.getString("output_summary"),
+                rs.getString("budget_identity"),
                 rs.getBigDecimal("estimated_cost_usd"),
                 rs.getString("safe_error_summary"),
                 rs.getTimestamp("created_at").toInstant()

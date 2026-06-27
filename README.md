@@ -239,6 +239,9 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.cost.tts-usd-per-million-characters`
 - `linguaframe.cost.budget-guard-enabled`
 - `linguaframe.cost.max-job-cost-usd`
+- `linguaframe.cost.daily-budget-guard-enabled`
+- `linguaframe.cost.max-daily-cost-usd`
+- `linguaframe.cost.budget-identity`
 - `linguaframe.database.host`
 - `linguaframe.database.port`
 - `linguaframe.database.name`
@@ -465,7 +468,7 @@ LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
 
 When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
 
-The React `Demo readiness` panel shows whether budget guard is enabled and the configured per-job cost limit. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
+The React `Demo readiness` panel shows whether budget guard is enabled plus the configured per-job and daily demo budget limits. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
 
 ```bash
 LINGUAFRAME_COST_ENABLED=true \
@@ -476,6 +479,23 @@ docker compose --env-file .env up -d --force-recreate linguaframe-backend
 
 scripts/demo/docker-e2e-budget-guard.sh
 ```
+
+Daily demo budget protection is also opt-in. It uses the configured safe `LINGUAFRAME_COST_BUDGET_IDENTITY` value, not raw tokens, IP addresses, media paths, or provider payloads. This is a private-demo hook for controlling aggregate same-day estimated OpenAI spend; it is not real user billing.
+
+```bash
+LINGUAFRAME_COST_ENABLED=true \
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_JOB_COST_USD=1 \
+LINGUAFRAME_COST_DAILY_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_DAILY_COST_USD=0.000001 \
+LINGUAFRAME_COST_BUDGET_IDENTITY=demo-owner \
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=1 \
+docker compose --env-file .env up -d --force-recreate linguaframe-backend
+
+scripts/demo/docker-e2e-daily-budget-guard.sh
+```
+
+The daily script completes one job to create same-day estimated spend, uploads a second job, expects `FAILED` with `Daily cost budget exceeded`, and writes safe evidence to `/tmp/linguaframe-demo/daily-budget-guard/`.
 
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, and safe error summaries. Model-call summaries are count-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
 

@@ -395,7 +395,7 @@ Goal: reduce avoidable AI spend and show cost-control awareness.
 Build:
 
 - Per-job cost budget configuration. Status: implemented with sanitized readiness visibility and a repeatable Docker budget-guard evidence script.
-- Per-user daily cost budget hook.
+- Per-user daily cost budget hook. Status: implemented for the private-demo budget identity hook; real authenticated user budgets remain out of scope.
 - Budget checks before translation, evaluation, and TTS stages. Status: implemented for guarded AI stages using accumulated recorded estimated cost before provider execution.
 - Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
 - Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
@@ -410,7 +410,7 @@ Do not build yet:
 - Real billing.
 - Payments.
 - Provider price automation.
-- Per-user daily budgets.
+- Real authenticated per-user daily budgets.
 - Global distributed cache.
 - Generic prompt-response caching.
 

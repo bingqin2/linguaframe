@@ -222,11 +222,13 @@ PY
 }
 
 print_budget_guard_failure() {
+  local expected_reason="${1:-Job cost budget exceeded}"
   python3 -c '
 import json
 import sys
 from decimal import Decimal
 
+expected_reason = sys.argv[1]
 job = json.load(sys.stdin, parse_float=Decimal)
 print("jobId=" + job["jobId"])
 print("status=" + job["status"])
@@ -243,9 +245,9 @@ for event in job.get("timelineEvents", []):
 if job["status"] != "FAILED":
     raise SystemExit("Expected FAILED status")
 reason = job.get("failureReason") or ""
-if "Job cost budget exceeded" not in reason:
-    raise SystemExit("Expected budget guard failure reason")
-'
+if expected_reason not in reason:
+    raise SystemExit("Expected budget guard failure reason containing " + expected_reason)
+' "$expected_reason"
 }
 
 list_job_artifacts() {

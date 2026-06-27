@@ -255,7 +255,12 @@ export interface DemoReadiness {
   budget: BudgetReadiness;
   providers: Record<'transcription' | 'translation' | 'tts' | 'evaluation', ProviderReadiness>;
   features: Record<
-    'jobStatusCache' | 'uploadRateLimit' | 'retentionCleanup' | 'costTracking' | 'budgetGuard',
+    | 'jobStatusCache'
+    | 'uploadRateLimit'
+    | 'retentionCleanup'
+    | 'costTracking'
+    | 'budgetGuard'
+    | 'dailyBudgetGuard',
     RuntimeFeatureFlag
   >;
 }
@@ -286,6 +291,9 @@ export interface FfmpegReadiness {
 export interface BudgetReadiness {
   enabled: boolean;
   maxJobCostUsd: number;
+  dailyBudgetGuardEnabled: boolean;
+  maxDailyCostUsd: number;
+  budgetIdentity: string;
   estimatedCostTrackingEnabled: boolean;
 }
 

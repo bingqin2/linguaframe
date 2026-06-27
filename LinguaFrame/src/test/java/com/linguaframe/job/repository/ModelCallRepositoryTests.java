@@ -71,6 +71,7 @@ class ModelCallRepositoryTests {
                 null,
                 "target=zh-CN, segments=3, sourceChars=42",
                 "segments=3, targetChars=50",
+                "demo-owner",
                 new BigDecimal("0.00045000"),
                 null,
                 createdAt.plusSeconds(2)
@@ -91,6 +92,7 @@ class ModelCallRepositoryTests {
                 null,
                 "audioSeconds=120.000",
                 "segments=8, transcriptChars=320",
+                "demo-owner",
                 new BigDecimal("0.01200000"),
                 null,
                 createdAt.plusSeconds(1)
@@ -111,6 +113,7 @@ class ModelCallRepositoryTests {
                 2000,
                 "characters=2000",
                 null,
+                "demo-owner",
                 new BigDecimal("0.00000000"),
                 "Demo TTS failed safely.",
                 createdAt.plusSeconds(3)
@@ -133,6 +136,48 @@ class ModelCallRepositoryTests {
         assertThat(modelCallRepository.findByJobId("missing-job")).isEmpty();
     }
 
+    @Test
+    void sumsEstimatedCostByBudgetIdentitySinceInstant() {
+        Instant createdAt = Instant.parse("2026-06-26T10:00:00Z");
+        Instant since = Instant.parse("2026-06-26T00:00:00Z");
+        createJob("budget-video-1", "budget-job-1", createdAt);
+        createJob("budget-video-2", "budget-job-2", createdAt);
+        createJob("budget-video-3", "budget-job-3", createdAt);
+        modelCallRepository.save(modelCall(
+                "budget-call-current-1",
+                "budget-job-1",
+                "demo-owner",
+                new BigDecimal("0.00010000"),
+                since.plusSeconds(60)
+        ));
+        modelCallRepository.save(modelCall(
+                "budget-call-current-2",
+                "budget-job-2",
+                "demo-owner",
+                new BigDecimal("0.00020000"),
+                since.plusSeconds(120)
+        ));
+        modelCallRepository.save(modelCall(
+                "budget-call-old",
+                "budget-job-1",
+                "demo-owner",
+                new BigDecimal("0.99990000"),
+                since.minusSeconds(1)
+        ));
+        modelCallRepository.save(modelCall(
+                "budget-call-other-identity",
+                "budget-job-3",
+                "other-demo-owner",
+                new BigDecimal("0.55550000"),
+                since.plusSeconds(180)
+        ));
+
+        assertThat(modelCallRepository.sumEstimatedCostByBudgetIdentitySince("demo-owner", since))
+                .isEqualByComparingTo("0.00030000");
+        assertThat(modelCallRepository.sumEstimatedCostByBudgetIdentitySince("missing-owner", since))
+                .isEqualByComparingTo("0.00000000");
+    }
+
     private void createJob(String videoId, String jobId, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
@@ -150,5 +195,35 @@ class ModelCallRepositoryTests {
                 LocalizationJobStatus.QUEUED,
                 createdAt
         ));
+    }
+
+    private ModelCallRecord modelCall(
+            String id,
+            String jobId,
+            String budgetIdentity,
+            BigDecimal estimatedCostUsd,
+            Instant createdAt
+    ) {
+        return new ModelCallRecord(
+                id,
+                jobId,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                ModelCallStatus.SUCCEEDED,
+                125L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=3, sourceChars=42",
+                "segments=3, targetChars=50",
+                budgetIdentity,
+                estimatedCostUsd,
+                null,
+                createdAt
+        );
     }
 }

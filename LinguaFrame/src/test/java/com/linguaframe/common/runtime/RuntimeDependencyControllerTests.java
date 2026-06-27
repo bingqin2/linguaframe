@@ -44,7 +44,7 @@ class RuntimeDependencyControllerTests {
         assertThat(body.get("runtime")).isInstanceOf(Map.class);
         Map<?, ?> runtime = (Map<?, ?>) body.get("runtime");
         assertThat(runtime.get("appVersion")).isEqualTo("0.0.1-SNAPSHOT");
-        assertThat(runtime.get("latestMigrationVersion")).isEqualTo(17);
+        assertThat(runtime.get("latestMigrationVersion")).isEqualTo(18);
         assertThat((Iterable<String>) runtime.get("requiredRoutes"))
                 .contains(
                         "/api/runtime/dependencies",
@@ -85,6 +85,9 @@ class RuntimeDependencyControllerTests {
         Map<?, ?> budget = (Map<?, ?>) readiness.get("budget");
         assertThat(budget.get("enabled")).isEqualTo(false);
         assertThat(budget.get("maxJobCostUsd")).isEqualTo(0);
+        assertThat(budget.get("dailyBudgetGuardEnabled")).isEqualTo(false);
+        assertThat(budget.get("maxDailyCostUsd")).isEqualTo(0);
+        assertThat(budget.get("budgetIdentity")).isEqualTo("demo-owner");
         assertThat(budget.get("estimatedCostTrackingEnabled")).isEqualTo(true);
 
         assertThat(readiness.get("providers")).isInstanceOf(Map.class);
@@ -101,6 +104,7 @@ class RuntimeDependencyControllerTests {
         assertFeatureFlag(features.get("retentionCleanup"), false);
         assertFeatureFlag(features.get("costTracking"), true);
         assertFeatureFlag(features.get("budgetGuard"), false);
+        assertFeatureFlag(features.get("dailyBudgetGuard"), false);
     }
 
     @Test

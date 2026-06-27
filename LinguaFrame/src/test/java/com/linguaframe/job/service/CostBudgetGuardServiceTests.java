@@ -10,11 +10,19 @@ import com.linguaframe.job.service.impl.CostBudgetGuardServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CostBudgetGuardServiceTests {
+
+    private static final Clock FIXED_CLOCK = Clock.fixed(
+            Instant.parse("2026-06-27T12:34:56Z"),
+            ZoneOffset.UTC
+    );
 
     @Test
     void disabledGuardAllowsOverBudgetJob() {
@@ -85,6 +93,70 @@ class CostBudgetGuardServiceTests {
                 .hasMessageContaining("limit 0.01 USD");
     }
 
+    @Test
+    void disabledDailyGuardAllowsOverBudgetDailyCost() {
+        LinguaFrameProperties properties = properties(true, "1.00");
+        properties.getCost().setDailyBudgetGuardEnabled(false);
+        properties.getCost().setMaxDailyCostUsd(new BigDecimal("0.01"));
+        CostBudgetGuardService service = new CostBudgetGuardServiceImpl(
+                properties,
+                new FixedSummaryModelCallAuditService("0.01", "1.00"),
+                FIXED_CLOCK
+        );
+
+        service.assertWithinBudget("budget-job-daily-disabled", LocalizationJobStage.TARGET_SUBTITLE_EXPORT);
+    }
+
+    @Test
+    void zeroDailyLimitMeansNoDailyBudgetLimit() {
+        LinguaFrameProperties properties = properties(true, "1.00");
+        properties.getCost().setDailyBudgetGuardEnabled(true);
+        properties.getCost().setMaxDailyCostUsd(BigDecimal.ZERO);
+        CostBudgetGuardService service = new CostBudgetGuardServiceImpl(
+                properties,
+                new FixedSummaryModelCallAuditService("0.01", "1.00"),
+                FIXED_CLOCK
+        );
+
+        service.assertWithinBudget("budget-job-daily-zero", LocalizationJobStage.DUBBING_AUDIO_GENERATION);
+    }
+
+    @Test
+    void underDailyBudgetIsAllowed() {
+        LinguaFrameProperties properties = properties(true, "1.00");
+        properties.getCost().setDailyBudgetGuardEnabled(true);
+        properties.getCost().setMaxDailyCostUsd(new BigDecimal("0.02"));
+        CostBudgetGuardService service = new CostBudgetGuardServiceImpl(
+                properties,
+                new FixedSummaryModelCallAuditService("0.01", "0.01"),
+                FIXED_CLOCK
+        );
+
+        service.assertWithinBudget("budget-job-daily-under", LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT);
+    }
+
+    @Test
+    void exactlyAtDailyLimitThrowsBeforeProviderCall() {
+        LinguaFrameProperties properties = properties(true, "1.00");
+        properties.getCost().setDailyBudgetGuardEnabled(true);
+        properties.getCost().setMaxDailyCostUsd(new BigDecimal("0.01"));
+        CostBudgetGuardService service = new CostBudgetGuardServiceImpl(
+                properties,
+                new FixedSummaryModelCallAuditService("0.01", "0.01"),
+                FIXED_CLOCK
+        );
+
+        assertThatThrownBy(() -> service.assertWithinBudget(
+                "budget-job-daily-at-limit",
+                LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION
+        ))
+                .isInstanceOf(CostBudgetExceededException.class)
+                .hasMessageContaining("Daily cost budget exceeded before TRANSLATION_QUALITY_EVALUATION")
+                .hasMessageContaining("on 2026-06-27")
+                .hasMessageContaining("current estimated cost 0.01 USD")
+                .hasMessageContaining("limit 0.01 USD");
+    }
+
     private LinguaFrameProperties properties(boolean budgetGuardEnabled, String maxJobCostUsd) {
         LinguaFrameProperties properties = new LinguaFrameProperties();
         properties.getCost().setBudgetGuardEnabled(budgetGuardEnabled);
@@ -95,9 +167,15 @@ class CostBudgetGuardServiceTests {
     private static class FixedSummaryModelCallAuditService implements ModelCallAuditService {
 
         private final BigDecimal estimatedCostUsd;
+        private final BigDecimal dailyEstimatedCostUsd;
 
         private FixedSummaryModelCallAuditService(String estimatedCostUsd) {
+            this(estimatedCostUsd, "0");
+        }
+
+        private FixedSummaryModelCallAuditService(String estimatedCostUsd, String dailyEstimatedCostUsd) {
             this.estimatedCostUsd = new BigDecimal(estimatedCostUsd);
+            this.dailyEstimatedCostUsd = new BigDecimal(dailyEstimatedCostUsd);
         }
 
         @Override
@@ -127,6 +205,11 @@ class CostBudgetGuardServiceTests {
                     null,
                     null
             );
+        }
+
+        @Override
+        public BigDecimal summarizeDailyBudget(String budgetIdentity, Instant since) {
+            return dailyEstimatedCostUsd;
         }
     }
 }

@@ -131,6 +131,9 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                 new BudgetReadinessVo(
                         properties.getCost().isBudgetGuardEnabled(),
                         properties.getCost().getMaxJobCostUsd(),
+                        properties.getCost().isDailyBudgetGuardEnabled(),
+                        properties.getCost().getMaxDailyCostUsd(),
+                        properties.getCost().getBudgetIdentity(),
                         properties.getCost().isEnabled()
                 ),
                 Map.of(
@@ -164,7 +167,8 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         "uploadRateLimit", new RuntimeFeatureFlagVo(properties.getRateLimit().isEnabled()),
                         "retentionCleanup", new RuntimeFeatureFlagVo(properties.getRetention().isEnabled()),
                         "costTracking", new RuntimeFeatureFlagVo(properties.getCost().isEnabled()),
-                        "budgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isBudgetGuardEnabled())
+                        "budgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isBudgetGuardEnabled()),
+                        "dailyBudgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isDailyBudgetGuardEnabled())
                 )
         );
     }

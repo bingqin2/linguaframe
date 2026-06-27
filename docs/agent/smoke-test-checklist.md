@@ -155,7 +155,7 @@ Expected browser behavior:
 - The `Demo runbook` panel shows `scripts/demo/start-local-demo.sh`, `scripts/demo/docker-e2e-success.sh`, `scripts/demo/docker-e2e-cache-hit.sh`, `scripts/demo/docker-e2e-tears-of-steel-full.sh`, `http://localhost:5173`, and `http://localhost:8080/actuator/health`.
 - The `Demo runbook` panel explains that uploads are complete files up to the configured duration and file-size limits, and shows provider modes, budget guard state, subtitle burn-in state, and sample-media guidance without exposing secrets or raw local media paths.
 - If runtime readiness loading fails, the `Demo runbook` panel still shows static commands and reports the runtime guidance error.
-- The `Demo readiness` panel shows budget guard state and the configured cost limit without exposing provider credentials.
+- The `Demo readiness` panel shows budget guard state, the configured per-job cost limit, daily demo budget state, daily limit, and safe budget identity without exposing provider credentials.
 
 ### Docker E2E Demo
 
@@ -256,6 +256,30 @@ Expected:
 - Output includes diagnostics summary lines for the failed job.
 - Timeline includes the stage where the budget guard stopped execution.
 - No later guarded provider stage should run after the budget failure.
+
+Run the daily budget guard path only after recreating the backend with a high per-job budget, a tiny daily budget, a safe budget identity, and a non-zero local cost rate:
+
+```bash
+LINGUAFRAME_COST_ENABLED=true \
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_JOB_COST_USD=1 \
+LINGUAFRAME_COST_DAILY_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_DAILY_COST_USD=0.000001 \
+LINGUAFRAME_COST_BUDGET_IDENTITY=demo-owner \
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=1 \
+docker compose --env-file .env up -d --force-recreate linguaframe-backend
+
+scripts/demo/docker-e2e-daily-budget-guard.sh
+```
+
+Expected:
+
+- First job reaches `COMPLETED` and creates same-day estimated cost for `demo-owner`.
+- Second job reaches `FAILED`.
+- Output includes `failureReason=Daily cost budget exceeded`.
+- Output includes diagnostics summary lines for the failed second job.
+- Evidence files are written under `/tmp/linguaframe-demo/daily-budget-guard/`.
+- The budget identity is a safe configured label and must not be a raw token, IP address, media path, or provider payload.
 
 Inspect the downloaded artifacts:
 

@@ -39,6 +39,11 @@ public class RecordingModelCallAuditService implements ModelCallAuditService {
         return new JobUsageSummaryVo(0, 0, 0L, BigDecimal.ZERO, null, null, null, null);
     }
 
+    @Override
+    public BigDecimal summarizeDailyBudget(String budgetIdentity, Instant since) {
+        return BigDecimal.ZERO.setScale(8);
+    }
+
     private ModelCallVo toVo(
             CreateModelCallRecordCommand command,
             ModelCallStatus status,
@@ -60,6 +65,7 @@ public class RecordingModelCallAuditService implements ModelCallAuditService {
                 command.characterCount(),
                 command.inputSummary(),
                 command.outputSummary(),
+                "demo-owner",
                 BigDecimal.ZERO,
                 safeErrorSummary,
                 Instant.parse("2026-06-26T00:00:00Z")

@@ -167,6 +167,7 @@ class OperatorDashboardRepositoryTests {
                 null,
                 "input",
                 status == ModelCallStatus.SUCCEEDED ? "output" : null,
+                "demo-owner",
                 estimatedCostUsd,
                 status == ModelCallStatus.FAILED ? "provider failed" : null,
                 createdAt
