@@ -1321,3 +1321,9 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `tts-voice-selection-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='UploadIntakeSchemaTests,LocalizationJobRepositoryTests,MediaUploadControllerTests,MediaUploadServiceTests,JobDispatchOutboxServiceTests,LocalizationJobControllerTests,DubbingAudioGenerationPipelineStageTests,TtsCacheKeyServiceTests,OpenAiTtsProviderTests' test` passed on `main` with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi recentJobs App` passed on `main` with `Tests run: 39`.

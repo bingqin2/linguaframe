@@ -141,6 +141,6 @@
 - [x] Run frontend build: `cd frontend && npm run build`.
 - [x] Run Compose validation: `docker compose --env-file .env.example config --quiet` and `docker compose --env-file .env.example --profile split-workers config --quiet`.
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add TTS voice selection`.
-- [ ] Merge `tts-voice-selection-mvp` back to `main`.
-- [ ] Run post-merge focused validation: backend focused command and `cd frontend && npm run test:run -- linguaframeApi recentJobs App`.
+- [x] Commit as `Add TTS voice selection`.
+- [x] Merge `tts-voice-selection-mvp` back to `main`.
+- [x] Run post-merge focused validation: backend focused command and `cd frontend && npm run test:run -- linguaframeApi recentJobs App`.
