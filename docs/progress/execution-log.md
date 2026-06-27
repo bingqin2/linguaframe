@@ -946,3 +946,12 @@ Validation:
 Notes:
 
 - Cache reuse is artifact-level only. This slice does not add OpenAI prompt caching, provider response caching, semantic duplicate detection, or cross-video reuse.
+
+Post-merge verification:
+
+- Merged `artifact-cache-hit-mvp` back to `main` with merge commit `ddd1b3f`.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 199, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 29`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered the current demo stack configuration.
+- `git diff --check HEAD` passed on `main`.

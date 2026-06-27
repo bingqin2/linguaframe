@@ -249,12 +249,12 @@ git diff --check
 
 Expected: all commands pass.
 
-- [ ] **Step 3: Commit and merge**
+- [x] **Step 3: Commit and merge**
   - Work on branch `artifact-cache-hit-mvp`.
   - Commit as `Add artifact cache hit reuse`.
   - Merge back to `main`.
 
-- [ ] **Step 4: Verify on `main`**
+- [x] **Step 4: Verify on `main`**
 
 ```bash
 mvn -pl LinguaFrame test
@@ -266,7 +266,7 @@ git diff --check HEAD
 
 Expected: all commands pass on `main`.
 
-- [ ] **Step 5: Record post-merge verification and clean up**
+- [x] **Step 5: Record post-merge verification and clean up**
   - Add merge commit hash and validation results to `docs/progress/execution-log.md`.
   - Commit the execution-log update.
   - Delete local branch `artifact-cache-hit-mvp`.
@@ -285,4 +285,4 @@ Expected: all commands pass on `main`.
 - [x] Tests cover repository lookup, service reuse, stage skipping, API fields, and UI display.
 - [x] README/product docs explain artifact cache scope and defer provider prompt caching.
 - [x] Full validation passes.
-- [ ] Feature branch is merged back to `main`.
+- [x] Feature branch is merged back to `main`.
