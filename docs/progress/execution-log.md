@@ -1048,3 +1048,12 @@ Validation:
 Notes:
 
 - This slice caches subtitle translation provider results only. It does not cache transcription, TTS, quality evaluation, raw OpenAI payloads, or generic prompt-response records.
+
+Post-merge verification:
+
+- Merged `translation-provider-cache-mvp` back to `main` with merge commit `c962ad3`.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 215, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 32`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check HEAD` passed on `main`.
