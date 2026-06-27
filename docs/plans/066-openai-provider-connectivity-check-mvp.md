@@ -104,4 +104,4 @@
 - [x] When explicitly enabled, the backend can verify configured OpenAI access through a bounded metadata request.
 - [x] Browser live checks and preflight show whether OpenAI connectivity is `UP`, `DOWN`, or `SKIPPED`.
 - [x] No API output, logs, scripts, or docs expose API keys, bearer tokens, provider payloads, raw provider responses, or local paths.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.

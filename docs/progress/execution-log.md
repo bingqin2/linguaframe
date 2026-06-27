@@ -22,6 +22,13 @@ Validation:
 - `git diff --check` passed.
 - `mvn -pl LinguaFrame test` passed with `Tests run: 363, Failures: 0, Errors: 0, Skipped: 0`.
 
+Post-merge verification:
+
+- Merged `codex-openai-connectivity-check` back to `main` with a merge commit.
+- `mvn -pl LinguaFrame -Dtest=RuntimeLiveCheckServiceTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed on `main` with `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 41 passed`.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
