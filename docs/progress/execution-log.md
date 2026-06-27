@@ -1085,3 +1085,9 @@ Notes:
 
 - Summaries are nullable for older records and capped at 512 characters before persistence.
 - This slice does not add raw payload previews, provider prompt/response caching, new budget policy, or admin observability dashboards.
+
+Post-merge verification:
+
+- Merged `model-call-safe-summaries-mvp` back to `main` with merge commit `dfe08c6`.
+- `mvn -pl LinguaFrame -Dtest=ModelCallAuditServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 27, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 17`.

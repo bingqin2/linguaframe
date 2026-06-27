@@ -238,21 +238,21 @@ cd frontend && npm run test:run
 
 Expected: backend and frontend test suites pass.
 
-- [ ] **Step 3: Commit feature branch**
+- [x] **Step 3: Commit feature branch**
 
 ```bash
 git add README.md docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md docs/plans/034-model-call-safe-summaries-mvp.md LinguaFrame/src frontend/src
 git commit -m "Add model call safe summaries"
 ```
 
-- [ ] **Step 4: Merge back to main**
+- [x] **Step 4: Merge back to main**
 
 ```bash
 git switch main
 git merge --no-ff model-call-safe-summaries-mvp
 ```
 
-- [ ] **Step 5: Run post-merge smoke validation**
+- [x] **Step 5: Run post-merge smoke validation**
 
 ```bash
 mvn -pl LinguaFrame -Dtest=ModelCallAuditServiceTests,LocalizationJobControllerTests test
