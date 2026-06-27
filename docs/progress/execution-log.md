@@ -1362,6 +1362,12 @@ Validation:
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `retry-guard-and-evidence-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobRetryServiceTests,LocalizationJobControllerTests,LinguaFramePropertiesTests' test` passed on `main` with `Tests run: 42, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 22`.
+
 ## 2026-06-27
 
 Work:
