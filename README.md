@@ -160,6 +160,10 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
 - `linguaframe.demo.access-token` - empty by default; non-empty values require a matching browser token for `/api/**`.
 - `linguaframe.demo.access-header-name` - default `X-LinguaFrame-Demo-Token`.
+- `linguaframe.rate-limit.enabled` - default `false`; enables Redis-backed upload rate limiting.
+- `linguaframe.rate-limit.upload-max-requests` - default `20`, counted per client identity per window.
+- `linguaframe.rate-limit.upload-window-seconds` - default `60`.
+- `linguaframe.rate-limit.fail-open` - default `true`; allows uploads if Redis is temporarily unavailable.
 - `linguaframe.retention.enabled` - default `false`; enables operator-triggered retention cleanup.
 - `linguaframe.retention.dry-run` - default `true`; reports candidates without deleting objects or rows.
 - `linguaframe.retention.completed-job-ttl-days` - default `7`.
@@ -272,6 +276,17 @@ curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" http://localhost:8080/api/m
 The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
 
 Files with supported content types must also be inspectable by FFprobe. If LinguaFrame cannot inspect duration, the upload is rejected as `UNREADABLE_MEDIA` before storage or queue dispatch.
+
+Upload rate limiting is available for private or hosted demos. It is disabled by default. To enable it in Docker, set:
+
+```bash
+LINGUAFRAME_RATE_LIMIT_ENABLED=true
+LINGUAFRAME_RATE_LIMIT_UPLOAD_MAX_REQUESTS=20
+LINGUAFRAME_RATE_LIMIT_UPLOAD_WINDOW_SECONDS=60
+LINGUAFRAME_RATE_LIMIT_FAIL_OPEN=true
+```
+
+The limiter applies only to `POST /api/media/uploads` and `POST /api/media/uploads/validate`. It stores fixed-window counters in Redis using hashed client identities derived from the demo token, `X-Forwarded-For`, or the remote address. Raw tokens, IP addresses, media paths, and uploaded bytes are not written into Redis keys. Exceeded requests return `429` with `RATE_LIMIT_EXCEEDED`, `Retry-After`, and `X-RateLimit-*` headers.
 
 Successful uploads store the source video in object storage, create a durable `UPLOADED` video record with detected `durationSeconds`, and create a `QUEUED` localization job:
 

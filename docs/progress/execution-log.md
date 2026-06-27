@@ -1201,6 +1201,27 @@ Post-merge verification:
 
 Work:
 
+- Added Redis-backed fixed-window upload rate limiting for `POST /api/media/uploads` and `POST /api/media/uploads/validate`.
+- Added `spring-boot-starter-data-redis` plus Spring Redis host/port configuration.
+- Added `linguaframe.rate-limit.enabled`, `upload-max-requests`, `upload-window-seconds`, and `fail-open` runtime properties.
+- Added hashed client identity resolution using the demo token, `X-Forwarded-For`, or remote address without storing raw identifiers in Redis keys.
+- Added structured `429 RATE_LIMIT_EXCEEDED` responses with `Retry-After` and `X-RateLimit-*` headers.
+- Documented rate-limit variables and upload behavior in README, `.env.example`, Compose, roadmap, spec, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='MediaUploadControllerTests,LinguaFramePropertiesTests' test` passed before implementation with `Tests run: 24, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest='*RateLimit*Tests,LinguaFramePropertiesTests' test` first failed because rate-limit configuration and classes did not exist, then passed with `Tests run: 25, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest='*RateLimit*Tests,MediaUploadControllerTests,MediaUploadRateLimitControllerTests,LinguaFramePropertiesTests' test` passed with `Tests run: 36, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 281, Failures: 0, Errors: 0`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added retention runtime configuration with default-off, dry-run-first behavior.
 - Added retention candidate selection for terminal jobs with separate TTLs for completed, failed, and cancelled jobs.
 - Added object storage delete support and safe generic delete failures.

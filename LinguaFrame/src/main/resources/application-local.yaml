@@ -29,6 +29,11 @@ linguaframe:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
+  rate-limit:
+    enabled: ${LINGUAFRAME_RATE_LIMIT_ENABLED:false}
+    upload-max-requests: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_MAX_REQUESTS:20}
+    upload-window-seconds: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_WINDOW_SECONDS:60}
+    fail-open: ${LINGUAFRAME_RATE_LIMIT_FAIL_OPEN:true}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}

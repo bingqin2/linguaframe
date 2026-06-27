@@ -13,6 +13,10 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:linguaframe}
     password: ${RABBITMQ_PASSWORD:linguaframe_dev_password}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   servlet:
     multipart:
       max-file-size: ${SPRING_SERVLET_MULTIPART_MAX_FILE_SIZE:100MB}
@@ -111,6 +115,11 @@ linguaframe:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
+  rate-limit:
+    enabled: ${LINGUAFRAME_RATE_LIMIT_ENABLED:false}
+    upload-max-requests: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_MAX_REQUESTS:20}
+    upload-window-seconds: ${LINGUAFRAME_RATE_LIMIT_UPLOAD_WINDOW_SECONDS:60}
+    fail-open: ${LINGUAFRAME_RATE_LIMIT_FAIL_OPEN:true}
   rabbitmq:
     host: ${RABBITMQ_HOST:localhost}
     port: ${RABBITMQ_PORT:5672}

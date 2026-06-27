@@ -233,3 +233,11 @@ Decision: Add TTS provider caching after artifact and translation provider cachi
 Reason: TTS has a stable compatibility boundary of ordered target-subtitle text, language, provider, model, and voice. Caching at this boundary avoids repeat OpenAI TTS calls across compatible jobs without trying to solve transcription, quality evaluation, or generic prompt-response caching too early.
 
 Impact: Dubbing audio generation still checks same-video artifact reuse first. On a TTS provider cache hit, the worker skips budget/provider execution, writes a fresh `DUBBING_AUDIO` artifact for the current job, and exposes the hit through existing provider cache-hit timeline and job summary fields.
+
+## 2026-06-27
+
+Decision: Add Redis-backed upload rate limiting before broader authentication or public multi-user controls.
+
+Reason: LinguaFrame already runs Redis in the local and Docker stack, but Redis was not yet part of a real backend request path. Upload and upload-validation requests are the highest-risk unauthenticated demo entry points, so a small fixed-window limiter creates a concrete hosted-demo safety feature without introducing user accounts or billing.
+
+Impact: Operators can opt in with `LINGUAFRAME_RATE_LIMIT_ENABLED=true`. The limiter applies only to upload `POST` routes, hashes client identities before writing Redis keys, returns structured `429 RATE_LIMIT_EXCEEDED` responses, and fails open by default when Redis is unavailable.

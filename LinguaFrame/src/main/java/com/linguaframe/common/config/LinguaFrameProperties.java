@@ -37,6 +37,9 @@ public class LinguaFrameProperties {
     private final Redis redis = new Redis();
 
     @Valid
+    private final RateLimit rateLimit = new RateLimit();
+
+    @Valid
     private final Rabbitmq rabbitmq = new Rabbitmq();
 
     @Valid
@@ -83,6 +86,10 @@ public class LinguaFrameProperties {
 
     public Redis getRedis() {
         return redis;
+    }
+
+    public RateLimit getRateLimit() {
+        return rateLimit;
     }
 
     public Rabbitmq getRabbitmq() {
@@ -911,6 +918,53 @@ public class LinguaFrameProperties {
 
         public void setPort(int port) {
             this.port = port;
+        }
+    }
+
+    public static class RateLimit {
+
+        private boolean enabled = false;
+
+        @Min(1)
+        @Max(10000)
+        private int uploadMaxRequests = 20;
+
+        @Min(1)
+        @Max(3600)
+        private int uploadWindowSeconds = 60;
+
+        private boolean failOpen = true;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getUploadMaxRequests() {
+            return uploadMaxRequests;
+        }
+
+        public void setUploadMaxRequests(int uploadMaxRequests) {
+            this.uploadMaxRequests = uploadMaxRequests;
+        }
+
+        public int getUploadWindowSeconds() {
+            return uploadWindowSeconds;
+        }
+
+        public void setUploadWindowSeconds(int uploadWindowSeconds) {
+            this.uploadWindowSeconds = uploadWindowSeconds;
+        }
+
+        public boolean isFailOpen() {
+            return failOpen;
+        }
+
+        public void setFailOpen(boolean failOpen) {
+            this.failOpen = failOpen;
         }
     }
 
