@@ -1904,6 +1904,16 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `codex-demo-daily-cost-budget-hook-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=ModelCallRepositoryTests,CostBudgetGuardServiceTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 37 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/docker-e2e-budget-guard.sh scripts/demo/docker-e2e-daily-budget-guard.sh scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:
