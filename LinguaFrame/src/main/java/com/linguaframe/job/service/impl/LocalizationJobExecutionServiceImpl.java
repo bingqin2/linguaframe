@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobExecutionResultVo;
+import com.linguaframe.job.domain.vo.ProviderCacheHitVo;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.LocalizationJobExecutionService;
@@ -98,6 +99,12 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
             for (JobArtifactVo artifact : context.consumeCacheHits()) {
                 saveTimeline(job.id(), stage.stage(), JobTimelineEventStatus.CACHE_HIT,
                         "Reused cached %s artifact %s.".formatted(artifact.type().name(), artifact.artifactId()),
+                        null, null, Instant.now(clock));
+            }
+            for (ProviderCacheHitVo hit : context.consumeProviderCacheHits()) {
+                saveTimeline(job.id(), stage.stage(), JobTimelineEventStatus.CACHE_HIT,
+                        "Reused cached %s provider result from job %s."
+                                .formatted(hit.operation().name(), hit.sourceJobId()),
                         null, null, Instant.now(clock));
             }
             Instant stageFinishedAt = Instant.now(clock);

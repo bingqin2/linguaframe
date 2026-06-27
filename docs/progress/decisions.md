@@ -185,3 +185,11 @@ Decision: Add a read-only in-code prompt template registry before database-backe
 Reason: The current model-call audit path already records `promptVersion`, but the active prompt text lived inside OpenAI provider classes. A small registry makes translation and evaluation prompts inspectable in API/UI without introducing admin mutation, prompt experiments, or persistence concerns before they are needed.
 
 Impact: OpenAI translation and quality evaluation providers now consume active prompt templates from the registry, and the React demo can show which prompt versions are active. Prompt editing, A/B testing, and historical prompt storage remain future slices.
+
+## 2026-06-27
+
+Decision: Add translation provider caching before broader provider response caching.
+
+Reason: Subtitle translation has a stable text input, target language, provider, model, and prompt version boundary, so it can safely skip duplicate provider calls without handling binary audio, generated media bytes, or evaluation-specific semantics. This directly builds on the prompt-template registry and artifact cache while keeping the slice testable.
+
+Impact: Repeat compatible translation inputs now reuse stored translated subtitle segments, create fresh subtitle artifacts for the current job, and expose provider cache hits in job timeline, job cache summary, and the React demo. Transcription, TTS, quality evaluation, and generic prompt-response caches remain future work.

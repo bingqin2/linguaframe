@@ -100,6 +100,7 @@ export interface JobUsageSummary {
 export interface JobCacheSummary {
   cacheHitCount: number;
   generatedArtifactCount: number;
+  providerCacheHitCount: number;
 }
 
 export interface ModelCall {

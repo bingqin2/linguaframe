@@ -298,7 +298,7 @@ describe('App', () => {
     const usageSummary = screen.getByRole('region', { name: /usage summary/i });
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();
     expect(within(usageSummary).getByText('Cache hits')).toBeInTheDocument();
-    expect(within(usageSummary).getByText('1 reused')).toBeInTheDocument();
+    expect(within(usageSummary).getByText('1 artifacts / 1 provider')).toBeInTheDocument();
     expect(within(modelCalls).getByText('TRANSLATION')).toBeInTheDocument();
     const qualityEvaluation = screen.getByRole('region', { name: /quality evaluation/i });
     expect(within(qualityEvaluation).getByText('92 / 100')).toBeInTheDocument();
@@ -676,7 +676,8 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     modelCalls: [],
     cacheSummary: {
       cacheHitCount: 1,
-      generatedArtifactCount: 2
+      generatedArtifactCount: 2,
+      providerCacheHitCount: 1
     },
     qualityEvaluation: null,
     ...overrides

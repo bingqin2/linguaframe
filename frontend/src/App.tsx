@@ -577,7 +577,9 @@ function JobDetail({
         </div>
         <div>
           <span>Cache hits</span>
-          <strong>{job.cacheSummary.cacheHitCount} reused</strong>
+          <strong>
+            {job.cacheSummary.cacheHitCount} artifacts / {job.cacheSummary.providerCacheHitCount} provider
+          </strong>
         </div>
       </section>
 

@@ -14,6 +14,7 @@ import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
 import com.linguaframe.job.domain.exception.CostBudgetExceededException;
 import com.linguaframe.job.domain.message.QueuedLocalizationJobMessage;
@@ -152,6 +153,30 @@ class LocalizationJobExecutionServiceTests {
                         LocalizationJobStage.DUBBING_AUDIO_GENERATION
                                 + ":" + JobTimelineEventStatus.CACHE_HIT
                                 + ":Reused cached DUBBING_AUDIO artifact cached-dubbing-artifact."
+                );
+    }
+
+    @Test
+    void recordsProviderCacheHitTimelineEventsReportedByStageContext() {
+        Instant now = Instant.parse("2026-06-27T09:45:00Z");
+        createJob("execution-video-provider-cache-hit", "execution-job-provider-cache-hit", LocalizationJobStatus.QUEUED, now);
+        ProviderCacheHitStage stage = new ProviderCacheHitStage();
+        LocalizationJobExecutionService service = new LocalizationJobExecutionServiceImpl(
+                jobRepository,
+                timelineEventRepository,
+                List.of(stage),
+                Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
+        );
+
+        var result = service.execute(message("execution-job-provider-cache-hit", "execution-video-provider-cache-hit", now));
+
+        assertThat(result.status()).isEqualTo(LocalizationJobStatus.COMPLETED);
+        assertThat(timelineEventRepository.findByJobId("execution-job-provider-cache-hit"))
+                .extracting(event -> event.stage() + ":" + event.status() + ":" + event.message())
+                .contains(
+                        LocalizationJobStage.TARGET_SUBTITLE_EXPORT
+                                + ":" + JobTimelineEventStatus.CACHE_HIT
+                                + ":Reused cached TRANSLATION provider result from job source-provider-cache-job."
                 );
     }
 
@@ -1093,6 +1118,23 @@ class LocalizationJobExecutionServiceTests {
                     true,
                     "source-dubbing-artifact",
                     Instant.parse("2026-06-27T09:40:10Z")
+            ));
+        }
+    }
+
+    private static class ProviderCacheHitStage implements LocalizationPipelineStage {
+
+        @Override
+        public LocalizationJobStage stage() {
+            return LocalizationJobStage.TARGET_SUBTITLE_EXPORT;
+        }
+
+        @Override
+        public void execute(LocalizationJobExecutionContextBo context) {
+            context.recordProviderCacheHit(new com.linguaframe.job.domain.vo.ProviderCacheHitVo(
+                    ModelCallOperation.TRANSLATION,
+                    "provider-cache-key",
+                    "source-provider-cache-job"
             ));
         }
     }

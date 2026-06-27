@@ -80,7 +80,8 @@ describe('linguaframeApi', () => {
         },
         cacheSummary: {
           cacheHitCount: 1,
-          generatedArtifactCount: 2
+          generatedArtifactCount: 2,
+          providerCacheHitCount: 1
         },
         modelCalls: []
       })
@@ -90,6 +91,7 @@ describe('linguaframeApi', () => {
 
     expect(job.status).toBe('PROCESSING');
     expect(job.cacheSummary.cacheHitCount).toBe(1);
+    expect(job.cacheSummary.providerCacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
   });
 
@@ -140,7 +142,8 @@ describe('linguaframeApi', () => {
         usageSummary: null,
         cacheSummary: {
           cacheHitCount: 0,
-          generatedArtifactCount: 0
+          generatedArtifactCount: 0,
+          providerCacheHitCount: 0
         },
         modelCalls: []
       })
@@ -173,7 +176,8 @@ describe('linguaframeApi', () => {
         usageSummary: null,
         cacheSummary: {
           cacheHitCount: 0,
-          generatedArtifactCount: 0
+          generatedArtifactCount: 0,
+          providerCacheHitCount: 0
         },
         modelCalls: []
       })
