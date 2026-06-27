@@ -1657,3 +1657,13 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `docker compose --env-file .env.example config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `docker-runtime-freshness-guard-mvp` back to `main` with merge commit.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaframeApi` passed on `main` with `Tests run: 50`.
+- `cd frontend && npm run build` passed on `main`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
+- `git diff --check` passed on `main`.
