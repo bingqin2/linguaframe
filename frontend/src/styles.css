@@ -97,6 +97,46 @@ td {
   white-space: nowrap;
 }
 
+.header-tools {
+  display: grid;
+  justify-items: end;
+  gap: 10px;
+  min-width: 280px;
+}
+
+.demo-token-form {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) auto;
+  align-items: end;
+  gap: 8px;
+  justify-items: end;
+}
+
+.demo-token-form label {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  color: #4f6170;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.demo-token-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.demo-token-actions button {
+  white-space: nowrap;
+}
+
+.token-status {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #31586e;
+  font-size: 0.84rem;
+}
+
 .alert {
   margin-bottom: 16px;
   border: 1px solid #efb7a4;
@@ -399,5 +439,19 @@ video {
   .app-header,
   .job-header {
     display: grid;
+  }
+
+  .header-tools,
+  .demo-token-form {
+    justify-items: stretch;
+    width: 100%;
+  }
+
+  .demo-token-form {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-token-actions {
+    flex-wrap: wrap;
   }
 }

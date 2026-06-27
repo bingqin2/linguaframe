@@ -35,6 +35,9 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().getSmokeStageDurationMs()).isEqualTo(0L);
         assertThat(properties.getWorker().isSmokeStageFailureEnabled()).isFalse();
         assertThat(properties.getWorker().getRole()).isEqualTo(WorkerRole.COMBINED);
+        assertThat(properties.getDemo().getAccessToken()).isEmpty();
+        assertThat(properties.getDemo().getAccessHeaderName()).isEqualTo("X-LinguaFrame-Demo-Token");
+        assertThat(properties.getDemo().isAccessGateEnabled()).isFalse();
         assertThat(properties.getCost().isEnabled()).isTrue();
         assertThat(properties.getCost().getTranscriptionUsdPerMinute()).isEqualByComparingTo("0");
         assertThat(properties.getCost().getTranslationInputUsdPerMillionTokens()).isEqualByComparingTo("0");
@@ -116,6 +119,22 @@ class LinguaFramePropertiesTests {
                     assertThat(context).hasNotFailed();
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getWorker().getRole()).isEqualTo(WorkerRole.OPENAI);
+                });
+    }
+
+    @Test
+    void bindsDemoAccessGateProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.demo.access-token=test-token",
+                        "linguaframe.demo.access-header-name=X-Test-Demo-Token"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getDemo().getAccessToken()).isEqualTo("test-token");
+                    assertThat(boundProperties.getDemo().getAccessHeaderName()).isEqualTo("X-Test-Demo-Token");
+                    assertThat(boundProperties.getDemo().isAccessGateEnabled()).isTrue();
                 });
     }
 

@@ -7,14 +7,17 @@ import {
   listJobs,
   listArtifacts,
   listPromptTemplates,
+  readDemoToken,
   cancelJob,
   retryJob,
+  writeDemoToken,
   uploadMedia
 } from './linguaframeApi';
 
 describe('linguaframeApi', () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    window.localStorage.clear();
   });
 
   test('uploads media as multipart form data with target language', async () => {
@@ -48,6 +51,35 @@ describe('linguaframeApi', () => {
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('file')).toBe(file);
     expect((body as FormData).get('targetLanguage')).toBe('zh');
+  });
+
+  test('uploads media with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(new File(['demo'], 'sample.mp4', { type: 'video/mp4' }), 'zh');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads',
+      expect.objectContaining({
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      })
+    );
   });
 
   test('fetches job detail by id', async () => {
@@ -93,6 +125,65 @@ describe('linguaframeApi', () => {
     expect(job.cacheSummary.cacheHitCount).toBe(1);
     expect(job.cacheSummary.providerCacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', { method: 'GET' });
+  });
+
+  test('sends demo access token header for json api requests when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-1',
+        videoId: 'video-1',
+        targetLanguage: 'zh',
+        status: 'PROCESSING',
+        createdAt: '2026-06-26T10:00:00Z',
+        startedAt: null,
+        completedAt: null,
+        failedAt: null,
+        failureStage: null,
+        failureReason: null,
+        retryCount: 0,
+        dispatchStatus: 'DISPATCHED',
+        dispatchAttempts: 1,
+        dispatchedAt: '2026-06-26T10:00:02Z',
+        timelineEvents: [],
+        usageSummary: {
+          modelCallCount: 0,
+          failedModelCallCount: 0,
+          totalLatencyMs: 0,
+          estimatedCostUsd: 0,
+          inputTokens: null,
+          outputTokens: null,
+          audioSeconds: null,
+          characterCount: null
+        },
+        cacheSummary: {
+          cacheHitCount: 0,
+          generatedArtifactCount: 0,
+          providerCacheHitCount: 0
+        },
+        modelCalls: []
+      })
+    );
+
+    await getJob('job-1');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job-1', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('stores and clears demo access token', () => {
+    writeDemoToken(window.localStorage, ' private-demo-token ');
+
+    expect(readDemoToken(window.localStorage)).toBe('private-demo-token');
+
+    writeDemoToken(window.localStorage, '');
+
+    expect(readDemoToken(window.localStorage)).toBe('');
+    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBeNull();
   });
 
   test('builds same-origin job event stream urls', () => {

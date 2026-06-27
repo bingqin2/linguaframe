@@ -93,6 +93,33 @@ describe('App', () => {
     expect(screen.getByRole('complementary', { name: /job controls/i })).toBeInTheDocument();
   });
 
+  test('saves and clears the private demo access token', async () => {
+    render(<App />);
+
+    const tokenInput = screen.getByLabelText(/demo access token/i);
+    await userEvent.type(tokenInput, 'private-demo-token');
+    await userEvent.click(screen.getByRole('button', { name: /save token/i }));
+
+    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBe('private-demo-token');
+    expect(screen.getByText(/token saved/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /clear token/i }));
+
+    expect(window.localStorage.getItem('linguaframe.demoToken.v1')).toBeNull();
+    expect(tokenInput).toHaveValue('');
+  });
+
+  test('shows demo token required errors from protected APIs', async () => {
+    vi.spyOn(linguaFrameApi, 'listJobs').mockRejectedValue(
+      new Error('Demo access token is required.')
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText('Demo access token is required.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/demo access token/i)).toBeInTheDocument();
+  });
+
   test('filters server job history by status', async () => {
     const listJobs = vi
       .spyOn(linguaFrameApi, 'listJobs')

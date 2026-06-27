@@ -209,3 +209,11 @@ Decision: Split worker roles with stage-aware RabbitMQ handoff messages before a
 Reason: LinguaFrame needs to prove that CPU-bound FFmpeg work and API-bound OpenAI work can run in separate processes using the current codebase and local Docker stack. Stage handoff messages are enough to demonstrate the production boundary without introducing orchestration concerns too early.
 
 Impact: The default local backend remains a `COMBINED` worker for simple demos. Optional `FFMPEG` and `OPENAI` worker roles can process contiguous stage segments through separate queues, and jobs remain `PROCESSING` across handoffs until the final segment completes.
+
+## 2026-06-27
+
+Decision: Add an optional owner-only demo access token before building JWT users.
+
+Reason: LinguaFrame needs a private hosted demo gate now, but a real user model would require owner-scoped media, artifact authorization, account lifecycle, and token refresh semantics. A single configured demo token protects `/api/**` without pretending to be production authentication.
+
+Impact: Local development remains open when `LINGUAFRAME_DEMO_ACCESS_TOKEN` is empty. Private demos can set the token in `.env`; the React UI stores the entered token for fetch APIs and writes a same-site cookie so EventSource, artifact downloads, audio previews, and video previews continue to work.

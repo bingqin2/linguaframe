@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { linguaFrameApi } from './api/linguaframeApi';
+import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   JobArtifact,
   LocalizationJob,
@@ -40,6 +40,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [history, setHistory] = useState<LocalizationJobSummary[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [demoTokenInput, setDemoTokenInput] = useState(() => readDemoToken(window.localStorage));
+  const [demoTokenStatus, setDemoTokenStatus] = useState<string | null>(null);
   const [job, setJob] = useState<LocalizationJob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
@@ -57,6 +59,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
   const canCancel = job ? CANCELLABLE_STATUSES.has(job.status) : false;
+
+  useEffect(() => {
+    const storedToken = readDemoToken(window.localStorage);
+    if (storedToken) {
+      writeDemoToken(window.localStorage, storedToken);
+    }
+  }, []);
 
   const loadJob = useCallback(
     async (jobId: string, options: { silent?: boolean } = {}) => {
@@ -295,6 +304,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
   }
 
+  function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const storedToken = writeDemoToken(window.localStorage, demoTokenInput);
+    setDemoTokenInput(storedToken);
+    setDemoTokenStatus(storedToken ? 'Token saved.' : 'Token cleared.');
+  }
+
+  function handleClearDemoToken() {
+    writeDemoToken(window.localStorage, '');
+    setDemoTokenInput('');
+    setDemoTokenStatus('Token cleared.');
+  }
+
   return (
     <main className="app-shell">
       <header className="app-header">
@@ -302,7 +324,30 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           <h1>LinguaFrame Demo</h1>
           <p>Upload a video, follow the localization pipeline, and inspect generated outputs.</p>
         </div>
-        <span className="runtime-badge">Browser demo</span>
+        <div className="header-tools">
+          <span className="runtime-badge">Browser demo</span>
+          <form className="demo-token-form" onSubmit={handleSaveDemoToken}>
+            <label>
+              Demo access token
+              <input
+                type="password"
+                value={demoTokenInput}
+                onChange={(event) => {
+                  setDemoTokenInput(event.target.value);
+                  setDemoTokenStatus(null);
+                }}
+                autoComplete="off"
+              />
+            </label>
+            <div className="demo-token-actions">
+              <button type="submit">Save token</button>
+              <button type="button" className="secondary-button" onClick={handleClearDemoToken}>
+                Clear token
+              </button>
+            </div>
+            {demoTokenStatus ? <p className="token-status">{demoTokenStatus}</p> : null}
+          </form>
+        </div>
       </header>
 
       {error ? <div className="alert">{error}</div> : null}
