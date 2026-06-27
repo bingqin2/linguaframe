@@ -11,6 +11,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.TranscriptionProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -43,27 +44,31 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
+    private final ModelCallSummaryService summaryService;
 
     @Autowired
     public OpenAiTranscriptionProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            ModelCallSummaryService summaryService
     ) {
-        this(properties, buildRestClient(properties.getTranscription().getOpenai(), restClientBuilder), objectMapper, auditService);
+        this(properties, buildRestClient(properties.getTranscription().getOpenai(), restClientBuilder), objectMapper, auditService, summaryService);
     }
 
     OpenAiTranscriptionProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            ModelCallSummaryService summaryService
     ) {
         this.openai = properties.getTranscription().getOpenai();
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.auditService = auditService;
+        this.summaryService = summaryService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
     }
@@ -97,7 +102,7 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
         try {
             String responseBody = sendRequest(jobId, audioContent);
             TranscriptionResultBo result = parseResult(responseBody);
-            auditService.recordSuccess(command(jobId, elapsedMillis(started), audioSeconds(result)));
+            auditService.recordSuccess(command(jobId, elapsedMillis(started), result));
             return result;
         } catch (RuntimeException ex) {
             auditService.recordFailure(command(jobId, elapsedMillis(started), null), ex.getMessage());
@@ -169,7 +174,8 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
         return Math.round(value.asDouble() * 1000.0d);
     }
 
-    private CreateModelCallRecordCommand command(String jobId, long latencyMs, BigDecimal audioSeconds) {
+    private CreateModelCallRecordCommand command(String jobId, long latencyMs, TranscriptionResultBo result) {
+        BigDecimal audioSeconds = result == null ? null : audioSeconds(result);
         return new CreateModelCallRecordCommand(
                 jobId,
                 LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
@@ -181,8 +187,17 @@ public class OpenAiTranscriptionProvider implements TranscriptionProvider {
                 null,
                 null,
                 audioSeconds,
-                null
+                null,
+                audioSeconds == null ? null : summaryService.transcriptionInput(audioSeconds),
+                result == null ? null : summaryService.transcriptionOutput(result.segments().size(), transcriptCharacterCount(result))
         );
+    }
+
+    private int transcriptCharacterCount(TranscriptionResultBo result) {
+        return result.segments().stream()
+                .map(TranscriptionSegmentBo::text)
+                .mapToInt(value -> value == null ? 0 : value.length())
+                .sum();
     }
 
     private BigDecimal audioSeconds(TranscriptionResultBo result) {

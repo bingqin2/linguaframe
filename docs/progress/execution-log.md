@@ -1057,3 +1057,31 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check HEAD` passed on `main`.
+
+## 2026-06-27
+
+Work:
+
+- Added nullable `input_summary` and `output_summary` fields to durable model-call records.
+- Added `ModelCallSummaryService` for count-only summaries across transcription, translation, quality evaluation, and TTS.
+- Wired OpenAI and demo providers to record safe input/output summaries without raw transcript text, translated subtitle text, TTS text, request payloads, secrets, media bytes, or local media paths.
+- Exposed `modelCalls[].inputSummary` and `modelCalls[].outputSummary` in job detail.
+- Updated the React model-call panel to show Input and Output summary columns.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=ModelCallRepositoryTests,ModelCallAuditServiceTests test` first failed because summary fields did not exist, then passed with `Tests run: 8, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=ModelCallSummaryServiceTests test` first failed because the summary service did not exist, then passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=OpenAiTranscriptionProviderTests,OpenAiTranslationProviderTests,OpenAiTtsProviderTests,OpenAiQualityEvaluationProviderTests,DemoTranscriptionProviderTests,DemoTranslationProviderTests,DemoTtsProviderTests test` first failed because providers did not emit summaries, then passed with `Tests run: 26, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests test` first failed because job detail fixtures did not expose populated summaries, then passed with `Tests run: 20, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the model-call panel did not render summaries, then passed with `Tests run: 28`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 220, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 32`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+Notes:
+
+- Summaries are nullable for older records and capped at 512 characters before persistence.
+- This slice does not add raw payload previews, provider prompt/response caching, new budget policy, or admin observability dashboards.

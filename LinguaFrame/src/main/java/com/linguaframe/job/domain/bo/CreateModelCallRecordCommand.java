@@ -17,6 +17,8 @@ public record CreateModelCallRecordCommand(
         Integer inputTokens,
         Integer outputTokens,
         BigDecimal audioSeconds,
-        Integer characterCount
+        Integer characterCount,
+        String inputSummary,
+        String outputSummary
 ) {
 }

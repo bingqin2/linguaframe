@@ -117,6 +117,8 @@ export interface ModelCall {
   outputTokens: number | null;
   audioSeconds: number | null;
   characterCount: number | null;
+  inputSummary: string | null;
+  outputSummary: string | null;
   estimatedCostUsd: number;
   safeErrorSummary: string | null;
   createdAt: string;

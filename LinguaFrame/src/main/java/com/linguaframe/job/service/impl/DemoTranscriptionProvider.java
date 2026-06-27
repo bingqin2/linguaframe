@@ -7,6 +7,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.TranscriptionProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -23,9 +24,11 @@ public class DemoTranscriptionProvider implements TranscriptionProvider {
     private static final BigDecimal ONE_THOUSAND = BigDecimal.valueOf(1_000L);
 
     private final ModelCallAuditService auditService;
+    private final ModelCallSummaryService summaryService;
 
-    public DemoTranscriptionProvider(ModelCallAuditService auditService) {
+    public DemoTranscriptionProvider(ModelCallAuditService auditService, ModelCallSummaryService summaryService) {
         this.auditService = auditService;
+        this.summaryService = summaryService;
     }
 
     @Override
@@ -36,7 +39,7 @@ public class DemoTranscriptionProvider implements TranscriptionProvider {
                     new TranscriptionSegmentBo(0, 0L, 1_800L, "Hello from LinguaFrame."),
                     new TranscriptionSegmentBo(1, 1_800L, 3_600L, "This demo transcript is deterministic.")
             ));
-            auditService.recordSuccess(command(jobId, elapsedMillis(started), audioSeconds(result)));
+            auditService.recordSuccess(command(jobId, elapsedMillis(started), result));
             return result;
         } catch (RuntimeException ex) {
             auditService.recordFailure(command(jobId, elapsedMillis(started), null), ex.getMessage());
@@ -44,7 +47,8 @@ public class DemoTranscriptionProvider implements TranscriptionProvider {
         }
     }
 
-    private CreateModelCallRecordCommand command(String jobId, long latencyMs, BigDecimal audioSeconds) {
+    private CreateModelCallRecordCommand command(String jobId, long latencyMs, TranscriptionResultBo result) {
+        BigDecimal audioSeconds = result == null ? null : audioSeconds(result);
         return new CreateModelCallRecordCommand(
                 jobId,
                 LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
@@ -56,8 +60,17 @@ public class DemoTranscriptionProvider implements TranscriptionProvider {
                 null,
                 null,
                 audioSeconds,
-                null
+                null,
+                audioSeconds == null ? null : summaryService.transcriptionInput(audioSeconds),
+                result == null ? null : summaryService.transcriptionOutput(result.segments().size(), transcriptCharacterCount(result))
         );
+    }
+
+    private int transcriptCharacterCount(TranscriptionResultBo result) {
+        return result.segments().stream()
+                .map(TranscriptionSegmentBo::text)
+                .mapToInt(value -> value == null ? 0 : value.length())
+                .sum();
     }
 
     private BigDecimal audioSeconds(TranscriptionResultBo result) {

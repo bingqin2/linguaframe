@@ -613,6 +613,8 @@ function JobDetail({
                 <th>Operation</th>
                 <th>Provider</th>
                 <th>Status</th>
+                <th>Input</th>
+                <th>Output</th>
                 <th>Cost</th>
               </tr>
             </thead>
@@ -622,6 +624,8 @@ function JobDetail({
                   <td>{call.operation}</td>
                   <td>{call.provider}</td>
                   <td>{call.status}</td>
+                  <td>{call.inputSummary ?? '-'}</td>
+                  <td>{call.outputSummary ?? '-'}</td>
                   <td>{formatCost(call.estimatedCostUsd)}</td>
                 </tr>
               ))}

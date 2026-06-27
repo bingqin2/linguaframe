@@ -5,6 +5,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.service.impl.DemoTtsProvider;
+import com.linguaframe.job.service.impl.ModelCallSummaryServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -14,7 +15,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 class DemoTtsProviderTests {
 
     private final RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
-    private final DemoTtsProvider provider = new DemoTtsProvider(auditService);
+    private final DemoTtsProvider provider = new DemoTtsProvider(
+            auditService,
+            new ModelCallSummaryServiceImpl()
+    );
 
     @Test
     void recordsSuccessfulDemoTtsAudit() {
@@ -33,6 +37,9 @@ class DemoTtsProviderTests {
         assertThat(command.model()).isEqualTo("demo-tts");
         assertThat(command.promptVersion()).isEqualTo("demo-tts-v1");
         assertThat(command.characterCount()).isEqualTo("LinguaFrame 向你问好。".length());
+        assertThat(command.inputSummary()).isEqualTo("characters=17");
+        assertThat(command.outputSummary()).isEqualTo("audioBytes=" + result.audioContent().length);
+        assertThat(command.inputSummary()).doesNotContain("LinguaFrame 向你问好。");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
     }
 }

@@ -69,6 +69,8 @@ class ModelCallRepositoryTests {
                 500,
                 null,
                 null,
+                "target=zh-CN, segments=3, sourceChars=42",
+                "segments=3, targetChars=50",
                 new BigDecimal("0.00045000"),
                 null,
                 createdAt.plusSeconds(2)
@@ -87,6 +89,8 @@ class ModelCallRepositoryTests {
                 null,
                 new BigDecimal("120.000"),
                 null,
+                "audioSeconds=120.000",
+                "segments=8, transcriptChars=320",
                 new BigDecimal("0.01200000"),
                 null,
                 createdAt.plusSeconds(1)
@@ -105,6 +109,8 @@ class ModelCallRepositoryTests {
                 null,
                 null,
                 2000,
+                "characters=2000",
+                null,
                 new BigDecimal("0.00000000"),
                 "Demo TTS failed safely.",
                 createdAt.plusSeconds(3)
@@ -116,6 +122,14 @@ class ModelCallRepositoryTests {
 
         assertThat(modelCallRepository.findByJobId("model-call-job-1"))
                 .containsExactly(earlier, later);
+        assertThat(modelCallRepository.findByJobId("model-call-job-1").getFirst().inputSummary())
+                .isEqualTo("audioSeconds=120.000");
+        assertThat(modelCallRepository.findByJobId("model-call-job-1").getFirst().outputSummary())
+                .isEqualTo("segments=8, transcriptChars=320");
+        assertThat(modelCallRepository.findByJobId("model-call-job-1").get(1).inputSummary())
+                .isEqualTo("target=zh-CN, segments=3, sourceChars=42");
+        assertThat(modelCallRepository.findByJobId("model-call-job-1").get(1).outputSummary())
+                .isEqualTo("segments=3, targetChars=50");
         assertThat(modelCallRepository.findByJobId("missing-job")).isEmpty();
     }
 

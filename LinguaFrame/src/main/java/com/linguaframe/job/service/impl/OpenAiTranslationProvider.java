@@ -14,6 +14,7 @@ import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
 import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.TranslationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
     private final PromptTemplateRegistry promptTemplateRegistry;
+    private final ModelCallSummaryService summaryService;
 
     @Autowired
     public OpenAiTranslationProvider(
@@ -52,14 +54,16 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
             ModelCallAuditService auditService,
-            PromptTemplateRegistry promptTemplateRegistry
+            PromptTemplateRegistry promptTemplateRegistry,
+            ModelCallSummaryService summaryService
     ) {
         this(
                 properties,
                 buildRestClient(properties.getTranslation().getOpenai(), restClientBuilder),
                 objectMapper,
                 auditService,
-                promptTemplateRegistry
+                promptTemplateRegistry,
+                summaryService
         );
     }
 
@@ -68,12 +72,14 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             RestClient restClient,
             ObjectMapper objectMapper,
             ModelCallAuditService auditService,
-            PromptTemplateRegistry promptTemplateRegistry
+            PromptTemplateRegistry promptTemplateRegistry,
+            ModelCallSummaryService summaryService
     ) {
         this.openai = properties.getTranslation().getOpenai();
         this.objectMapper = objectMapper;
         this.auditService = auditService;
         this.promptTemplateRegistry = promptTemplateRegistry;
+        this.summaryService = summaryService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         this.restClient = restClient;
@@ -114,11 +120,20 @@ public class OpenAiTranslationProvider implements TranslationProvider {
                     jobId,
                     elapsedMillis(started),
                     response.inputTokens(),
-                    response.outputTokens()
+                    response.outputTokens(),
+                    inputSummary(targetLanguage, transcriptSegments),
+                    outputSummary(result)
             ));
             return result;
         } catch (RuntimeException ex) {
-            auditService.recordFailure(command(jobId, elapsedMillis(started), null, null), ex.getMessage());
+            auditService.recordFailure(command(
+                    jobId,
+                    elapsedMillis(started),
+                    null,
+                    null,
+                    inputSummary(targetLanguage, transcriptSegments),
+                    null
+            ), ex.getMessage());
             throw ex;
         }
     }
@@ -307,7 +322,9 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             String jobId,
             long latencyMs,
             Integer inputTokens,
-            Integer outputTokens
+            Integer outputTokens,
+            String inputSummary,
+            String outputSummary
     ) {
         return new CreateModelCallRecordCommand(
                 jobId,
@@ -320,8 +337,39 @@ public class OpenAiTranslationProvider implements TranslationProvider {
                 inputTokens,
                 outputTokens,
                 null,
-                null
+                null,
+                inputSummary,
+                outputSummary
         );
+    }
+
+    private String inputSummary(String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+        return summaryService.translationInput(
+                targetLanguage,
+                transcriptSegments.size(),
+                characterCount(transcriptSegments)
+        );
+    }
+
+    private String outputSummary(TranslationResultBo result) {
+        return summaryService.translationOutput(
+                result.segments().size(),
+                result.segments().stream()
+                        .map(TranslationSegmentBo::text)
+                        .mapToInt(this::length)
+                        .sum()
+        );
+    }
+
+    private int characterCount(List<TranscriptSegmentVo> segments) {
+        return segments.stream()
+                .map(TranscriptSegmentVo::text)
+                .mapToInt(this::length)
+                .sum();
+    }
+
+    private int length(String value) {
+        return value == null ? 0 : value.length();
     }
 
     private Integer integerOrNull(JsonNode node, String fieldName) {

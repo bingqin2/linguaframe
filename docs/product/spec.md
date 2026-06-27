@@ -193,7 +193,7 @@ Requirements:
 - OpenAI is the default implementation, but domain services should depend on narrow interfaces rather than raw SDK calls.
 - Active prompt templates are versioned and inspectable for translation and quality evaluation.
 - Prompt editing, prompt experiments, and database-backed prompt history are future enhancements.
-- Each model call records job id, stage, operation type, model, prompt version, latency, usage, estimated cost, status, and safe error summary.
+- Each model call records job id, stage, operation type, model, prompt version, latency, usage, estimated cost, status, safe input/output summaries, and safe error summary.
 - Translation quality evaluation can run as a separate LLM-backed stage after subtitle translation.
 - Evaluation records should capture score, detected issues, and suggested fixes without blocking the whole pipeline by default.
 - Per-job cost budgets can stop expensive stages before provider calls once recorded estimated spend reaches the configured limit.
@@ -219,7 +219,7 @@ These capabilities are follow-up engineering depth after the core upload-to-arti
 
 - Logs should include `jobId`, `videoId`, stage, duration, and provider call id when available.
 - Timeline events should make the job lifecycle understandable from the UI.
-- Model or provider call records should include safe summaries and usage metadata.
+- Model or provider call records include count-only safe summaries and usage metadata without raw user text, model payloads, secrets, media bytes, or local media paths.
 - Secrets and raw API keys must never be logged.
 
 ## Non-Goals
@@ -294,7 +294,7 @@ Planned follow-up capabilities:
 - Admin dashboard for queue, failures, and usage.
 - LLM gateway interfaces for speech, translation, quality evaluation, and TTS.
 - Prompt template versioning for reproducible AI outputs.
-- Model-call audit records with latency, token usage, cost, prompt version, and failure details.
+- Model-call audit records with latency, token usage, cost, prompt version, safe summaries, and failure details.
 - LLM-based translation quality evaluation.
 - Content-hash caching for duplicate audio transcription and subtitle translation.
 - Worker-pool split between CPU-bound FFmpeg stages and API-bound OpenAI stages.

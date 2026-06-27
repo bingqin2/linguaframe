@@ -39,6 +39,8 @@ public class ModelCallRepository {
                             output_tokens,
                             audio_seconds,
                             character_count,
+                            input_summary,
+                            output_summary,
                             estimated_cost_usd,
                             safe_error_summary,
                             created_at
@@ -57,6 +59,8 @@ public class ModelCallRepository {
                             :outputTokens,
                             :audioSeconds,
                             :characterCount,
+                            :inputSummary,
+                            :outputSummary,
                             :estimatedCostUsd,
                             :safeErrorSummary,
                             :createdAt
@@ -75,6 +79,8 @@ public class ModelCallRepository {
                 .param("outputTokens", record.outputTokens())
                 .param("audioSeconds", record.audioSeconds())
                 .param("characterCount", record.characterCount())
+                .param("inputSummary", record.inputSummary())
+                .param("outputSummary", record.outputSummary())
                 .param("estimatedCostUsd", record.estimatedCostUsd())
                 .param("safeErrorSummary", record.safeErrorSummary())
                 .param("createdAt", Timestamp.from(record.createdAt()))
@@ -97,6 +103,8 @@ public class ModelCallRepository {
                             output_tokens,
                             audio_seconds,
                             character_count,
+                            input_summary,
+                            output_summary,
                             estimated_cost_usd,
                             safe_error_summary,
                             created_at
@@ -124,6 +132,8 @@ public class ModelCallRepository {
                 integerOrNull(rs, "output_tokens"),
                 decimalOrNull(rs, "audio_seconds"),
                 integerOrNull(rs, "character_count"),
+                rs.getString("input_summary"),
+                rs.getString("output_summary"),
                 rs.getBigDecimal("estimated_cost_usd"),
                 rs.getString("safe_error_summary"),
                 rs.getTimestamp("created_at").toInstant()

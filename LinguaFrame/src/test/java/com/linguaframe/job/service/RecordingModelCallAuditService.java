@@ -58,6 +58,8 @@ public class RecordingModelCallAuditService implements ModelCallAuditService {
                 command.outputTokens(),
                 command.audioSeconds(),
                 command.characterCount(),
+                command.inputSummary(),
+                command.outputSummary(),
                 BigDecimal.ZERO,
                 safeErrorSummary,
                 Instant.parse("2026-06-26T00:00:00Z")

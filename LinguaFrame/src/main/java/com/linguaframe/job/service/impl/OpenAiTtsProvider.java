@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.ModelCallSummaryService;
 import com.linguaframe.job.service.TtsProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,27 +37,31 @@ public class OpenAiTtsProvider implements TtsProvider {
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
+    private final ModelCallSummaryService summaryService;
 
     @Autowired
     public OpenAiTtsProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            ModelCallSummaryService summaryService
     ) {
-        this(properties, buildRestClient(properties.getTts().getOpenai(), restClientBuilder), objectMapper, auditService);
+        this(properties, buildRestClient(properties.getTts().getOpenai(), restClientBuilder), objectMapper, auditService, summaryService);
     }
 
     OpenAiTtsProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            ModelCallSummaryService summaryService
     ) {
         this.openai = properties.getTts().getOpenai();
         this.restClient = restClient;
         this.objectMapper = objectMapper;
         this.auditService = auditService;
+        this.summaryService = summaryService;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         requireConfigured(openai.getVoice());
@@ -95,10 +100,10 @@ public class OpenAiTtsProvider implements TtsProvider {
                 throw new IllegalStateException("OpenAI TTS response was empty.");
             }
             TtsResultBo result = new TtsResultBo(audioContent, "dubbing-audio.mp3", "audio/mpeg");
-            auditService.recordSuccess(command(request, elapsedMillis(started)));
+            auditService.recordSuccess(command(request, elapsedMillis(started), audioContent.length));
             return result;
         } catch (RuntimeException ex) {
-            auditService.recordFailure(command(request, elapsedMillis(started)), ex.getMessage());
+            auditService.recordFailure(command(request, elapsedMillis(started), null), ex.getMessage());
             throw ex;
         }
     }
@@ -130,7 +135,7 @@ public class OpenAiTtsProvider implements TtsProvider {
         }
     }
 
-    private CreateModelCallRecordCommand command(TtsRequestBo request, long latencyMs) {
+    private CreateModelCallRecordCommand command(TtsRequestBo request, long latencyMs, Integer audioByteCount) {
         return new CreateModelCallRecordCommand(
                 request.jobId(),
                 LocalizationJobStage.DUBBING_AUDIO_GENERATION,
@@ -142,7 +147,9 @@ public class OpenAiTtsProvider implements TtsProvider {
                 null,
                 null,
                 null,
-                characterCount(request)
+                characterCount(request),
+                summaryService.ttsInput(characterCount(request)),
+                audioByteCount == null ? null : summaryService.ttsOutput(audioByteCount)
         );
     }
 

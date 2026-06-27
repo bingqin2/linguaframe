@@ -123,6 +123,8 @@ public class ModelCallAuditServiceImpl implements ModelCallAuditService {
                 command.outputTokens(),
                 command.audioSeconds(),
                 command.characterCount(),
+                truncate(command.inputSummary()),
+                truncate(command.outputSummary()),
                 estimateCost(command),
                 safeErrorSummary,
                 Instant.now(clock)
@@ -197,6 +199,8 @@ public class ModelCallAuditServiceImpl implements ModelCallAuditService {
                 record.outputTokens(),
                 record.audioSeconds(),
                 record.characterCount(),
+                record.inputSummary(),
+                record.outputSummary(),
                 record.estimatedCostUsd(),
                 record.safeErrorSummary(),
                 record.createdAt()
