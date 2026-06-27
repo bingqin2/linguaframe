@@ -58,6 +58,7 @@ Self-hosted usage requires:
 - `.env.example` documenting OpenAI API keys, database credentials, object storage credentials, and file limits.
 - Backend startup instructions.
 - Frontend startup instructions.
+- A private-demo preflight command that verifies local readiness before media upload or paid provider-backed runs.
 - FFmpeg availability inside the backend or worker container.
 - A small sample video for smoke testing.
 

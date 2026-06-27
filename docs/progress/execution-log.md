@@ -1043,6 +1043,25 @@ Validation so far:
 
 Work:
 
+- Added `scripts/demo/private-demo-preflight.sh` for local private demo readiness checks.
+- The preflight checks required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and configured sample media paths.
+- Kept preflight read-only with respect to media processing: it does not upload files and does not call OpenAI.
+- Updated README, Docker E2E docs, smoke checklist, roadmap, spec, and decisions with the preflight workflow.
+
+Validation so far:
+
+- `bash -n scripts/demo/private-demo-preflight.sh` first failed because the script did not exist, then passed after implementation.
+- `scripts/demo/private-demo-preflight.sh --help` first failed because the script did not exist, then passed after implementation.
+- `LINGUAFRAME_ENV_FILE=/tmp/linguaframe-missing-env bash scripts/demo/private-demo-preflight.sh` failed with the expected `cp .env.example /tmp/linguaframe-missing-env` bootstrap guidance.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `rg -n "private-demo-preflight|Private Demo Preflight|preflight" README.md docs/agent/docker-e2e-demo.md docs/agent/smoke-test-checklist.md docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md` passed and found the documented workflow.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added `linguaframe.job-status-cache.enabled` and `ttl-seconds` runtime configuration.
 - Added `LocalizationJobStatusCacheService` with a Redis `StringRedisTemplate` implementation.
 - Cached serialized `LocalizationJobVo` snapshots for `GET /api/jobs/{jobId}` with key namespace `linguaframe:job-status:<jobId>`.

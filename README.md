@@ -122,6 +122,17 @@ docker compose --env-file .env.example up
 
 The Compose stack includes MySQL, Redis, RabbitMQ, MinIO, the Spring Boot backend, and the Vite frontend. The backend image copies the locally packaged Spring Boot jar, so run the Maven package command before rebuilding the backend image. Use a local `.env` file for machine-specific overrides; `.env` is ignored by git.
 
+Private demo preflight:
+
+```bash
+cp .env.example .env
+docker compose --env-file .env up -d --build
+scripts/demo/private-demo-preflight.sh
+scripts/demo/docker-e2e-success.sh
+```
+
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+
 React demo frontend commands:
 
 ```bash

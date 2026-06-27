@@ -286,7 +286,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, and a default-off retention cleanup policy for terminal demo jobs and artifacts.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, and a local preflight runbook for private demo readiness.
 
 Build:
 
@@ -294,6 +294,7 @@ Build:
 - HTTPS reverse proxy.
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
+- Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, optional token-gate behavior, and configured sample paths.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
@@ -310,6 +311,7 @@ Exit criteria:
 - A private demo URL can process a short sample video.
 - Secrets stay server-side.
 - Job history and artifacts survive restarts.
+- A preflight command verifies demo readiness before media upload or paid provider-backed runs.
 
 Suggested ExecPlan:
 
