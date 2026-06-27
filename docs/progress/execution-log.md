@@ -907,3 +907,14 @@ Validation:
 Notes:
 
 - This slice does not implement cache result reuse, cache-hit audit events, or provider-call skipping.
+
+Post-merge verification:
+
+- Merged `artifact-content-hash-visibility-mvp` back to `main` with merge commit `0780dbe`.
+- `mvn -pl LinguaFrame -Dtest=JobArtifactRepositoryTests,JobArtifactServiceTests,LocalizationJobControllerTests test` passed on `main` with `Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 25`.
+- `cd frontend && npm run test:run` passed on `main` with `Tests run: 29`.
+- `cd frontend && npm run build` passed on `main`.
+- `mvn -pl LinguaFrame test` passed on `main` with `Tests run: 191, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config` passed on `main` and rendered the current demo stack configuration.
+- `git diff --check HEAD` passed on `main`.
