@@ -28,6 +28,19 @@ For a focused backend slice, run the relevant test class first:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests
 ```
 
+For OpenAPI contract changes, run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -Dtest=OpenApiDocumentationTests test
+```
+
+Expected:
+
+- `/v3/api-docs` exposes `LinguaFrame API` metadata.
+- `components.securitySchemes.DemoAccessToken` documents the `X-LinguaFrame-Demo-Token` header.
+- Tags include media uploads, localization jobs, runtime dependencies, prompt templates, operator dashboard, and retention cleanup.
+- Paths cover upload, job detail, event stream, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime, prompt-template, operator, and cleanup APIs.
+
 ### Docker Runtime Verification
 
 Run the one-command local demo startup:
@@ -95,8 +108,16 @@ With the Docker stack running, open:
 http://localhost:5173
 ```
 
+Open Swagger UI for API-contract inspection:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
 Expected browser behavior:
 
+- Swagger UI lists the primary demo API groups and the `DemoAccessToken` authorization option.
+- When private demo access is enabled, Swagger API calls to `/api/**` succeed only after authorizing with the configured demo token.
 - Choosing a file and clicking `Validate file` shows an `Upload validation` panel with backend validation code, message, filename, content type, file size versus max size, and duration versus max duration.
 - Clicking `Upload` validates the selected file before creating a job.
 - Invalid upload validation responses block `POST /api/media/uploads` and leave the upload controls usable.

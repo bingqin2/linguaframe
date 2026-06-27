@@ -5,6 +5,12 @@ import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/media/uploads")
+@Tag(name = "Media Uploads", description = "Validate, upload, and inspect source videos for localization jobs.")
 public class MediaUploadController {
 
     private final MediaUploadValidationService validationService;
@@ -33,7 +40,14 @@ public class MediaUploadController {
     }
 
     @PostMapping(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Validate a source video before upload")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The file is valid for upload."),
+            @ApiResponse(responseCode = "400", description = "The file is missing, unsupported, unreadable, too large, or too long."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
     public ResponseEntity<MediaUploadValidationVo> validateUpload(
+            @Parameter(description = "Source video file to validate.", required = true)
             @RequestPart(value = "file", required = false) MultipartFile file
     ) {
         MediaUploadValidationVo result = validationService.validate(file);
@@ -44,9 +58,18 @@ public class MediaUploadController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload media and create a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "The upload was stored and a localization job was created."),
+            @ApiResponse(responseCode = "400", description = "The file or requested localization options are invalid."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
     public ResponseEntity<MediaUploadVo> createUpload(
+            @Parameter(description = "Source video file to process.", required = true)
             @RequestPart(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "BCP 47 target language code such as zh-CN.")
             @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @Parameter(description = "Optional text-to-speech voice identifier.")
             @RequestParam(value = "ttsVoice", required = false) String ttsVoice
     ) {
         MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice);
@@ -54,7 +77,16 @@ public class MediaUploadController {
     }
 
     @GetMapping("/{videoId}")
-    public MediaUploadDetailVo getUpload(@PathVariable String videoId) {
+    @Operation(summary = "Get uploaded media metadata")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Upload metadata was found."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No uploaded media exists for the supplied video id.")
+    })
+    public MediaUploadDetailVo getUpload(
+            @Parameter(in = ParameterIn.PATH, description = "Uploaded video id.", required = true)
+            @PathVariable String videoId
+    ) {
         return uploadService.getUpload(videoId);
     }
 }

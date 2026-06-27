@@ -18,6 +18,12 @@ import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.TranscriptService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -35,6 +41,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/jobs")
+@Tag(name = "Localization Jobs", description = "Inspect, stream, retry, cancel, and download localization job outputs.")
 public class LocalizationJobController {
 
     private final LocalizationJobQueryService queryService;
@@ -67,41 +74,105 @@ public class LocalizationJobController {
     }
 
     @GetMapping
+    @Operation(summary = "List localization jobs")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Jobs were listed."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
     public LocalizationJobListVo listJobs(
+            @Parameter(description = "Optional job status filter.")
             @RequestParam(required = false) LocalizationJobStatus status,
+            @Parameter(description = "Maximum number of jobs to return.")
             @RequestParam(required = false) Integer limit,
+            @Parameter(description = "Number of jobs to skip.")
             @RequestParam(required = false) Integer offset
     ) {
         return queryService.listJobs(status, limit, offset);
     }
 
     @GetMapping("/{jobId}")
-    public LocalizationJobVo getJob(@PathVariable String jobId) {
+    @Operation(summary = "Get localization job detail")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Job detail was found."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public LocalizationJobVo getJob(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return queryService.getJob(jobId);
     }
 
     @GetMapping(value = "/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter streamJobEvents(@PathVariable String jobId) {
+    @Operation(summary = "Stream localization job progress events")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Server-sent event stream was opened."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public SseEmitter streamJobEvents(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return progressStreamService.streamJob(jobId);
     }
 
     @PostMapping("/{jobId}/retry")
-    public LocalizationJobVo retryJob(@PathVariable String jobId) {
+    @Operation(summary = "Retry a failed localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The failed job was accepted for retry."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id."),
+            @ApiResponse(responseCode = "409", description = "The job cannot be retried from its current state.")
+    })
+    public LocalizationJobVo retryJob(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return retryService.retryFailedJob(jobId);
     }
 
     @PostMapping("/{jobId}/cancel")
-    public LocalizationJobVo cancelJob(@PathVariable String jobId) {
+    @Operation(summary = "Cancel a queued or running localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The job was canceled or already terminal."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id."),
+            @ApiResponse(responseCode = "409", description = "The job cannot be canceled from its current state.")
+    })
+    public LocalizationJobVo cancelJob(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return cancellationService.cancelJob(jobId);
     }
 
     @GetMapping("/{jobId}/artifacts")
-    public List<JobArtifactVo> listArtifacts(@PathVariable String jobId) {
+    @Operation(summary = "List downloadable artifacts for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Artifacts were listed."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public List<JobArtifactVo> listArtifacts(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return artifactService.listArtifacts(jobId);
     }
 
     @GetMapping("/{jobId}/diagnostics/download")
-    public ResponseEntity<byte[]> downloadDiagnosticsReport(@PathVariable String jobId) throws JsonProcessingException {
+    @Operation(summary = "Download a safe diagnostics report for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Diagnostics JSON was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDiagnosticsReport(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) throws JsonProcessingException {
         JobDiagnosticsReportVo report = queryService.getDiagnosticsReport(jobId);
         byte[] body = objectMapper.writeValueAsBytes(report);
         return ResponseEntity.ok()
@@ -118,21 +189,46 @@ public class LocalizationJobController {
     }
 
     @GetMapping("/{jobId}/transcript")
-    public List<TranscriptSegmentVo> listTranscript(@PathVariable String jobId) {
+    @Operation(summary = "List transcript segments for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Transcript segments were listed."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public List<TranscriptSegmentVo> listTranscript(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         return transcriptService.listTranscript(jobId);
     }
 
     @GetMapping("/{jobId}/subtitles/{language}")
+    @Operation(summary = "List subtitle segments for a localization job and language")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle segments were listed."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job or subtitle language exists for the supplied ids.")
+    })
     public List<SubtitleSegmentVo> listSubtitles(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
             @PathVariable String jobId,
+            @Parameter(in = ParameterIn.PATH, description = "Subtitle language code such as zh-CN.", required = true)
             @PathVariable String language
     ) {
         return subtitleService.listSubtitles(jobId, language);
     }
 
     @GetMapping("/{jobId}/artifacts/{artifactId}/download")
+    @Operation(summary = "Download one localization job artifact")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Artifact bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No job or artifact exists for the supplied ids.")
+    })
     public ResponseEntity<InputStreamResource> downloadArtifact(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
             @PathVariable String jobId,
+            @Parameter(in = ParameterIn.PATH, description = "Artifact id.", required = true)
             @PathVariable String artifactId
     ) {
         StoredObjectResourceBo resource = artifactService.openArtifact(jobId, artifactId);
@@ -150,7 +246,16 @@ public class LocalizationJobController {
     }
 
     @GetMapping("/{jobId}/artifacts/archive/download")
-    public ResponseEntity<InputStreamResource> downloadArtifactArchive(@PathVariable String jobId) {
+    @Operation(summary = "Download a ZIP archive of localization job artifacts")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Artifact archive bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadArtifactArchive(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
         StoredArtifactArchiveBo archive = artifactService.openArtifactArchive(jobId);
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(archive.contentType()))

@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -27,7 +28,7 @@ class OpenApiDocumentationTests {
     private TestRestTemplate restTemplate;
 
     @Test
-    void openApiDocsExposeBackendMetadata() {
+    void openApiDocsExposeBackendMetadataAndPrimaryDemoContract() {
         ResponseEntity<Map> response = restTemplate.getForEntity(url("/v3/api-docs"), Map.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -43,6 +44,33 @@ class OpenApiDocumentationTests {
         assertThat(info.get("version")).isEqualTo("0.0.1");
         assertThat((String) info.get("description")).contains("video localization");
 
+        assertThat(body.get("components")).isInstanceOf(Map.class);
+        Map<?, ?> components = (Map<?, ?>) body.get("components");
+        assertThat(components.get("securitySchemes")).isInstanceOf(Map.class);
+        Map<?, ?> securitySchemes = (Map<?, ?>) components.get("securitySchemes");
+        assertThat(securitySchemes.get("DemoAccessToken")).isInstanceOf(Map.class);
+        Map<?, ?> demoAccessToken = (Map<?, ?>) securitySchemes.get("DemoAccessToken");
+        assertThat(demoAccessToken.get("type")).isEqualTo("apiKey");
+        assertThat(demoAccessToken.get("in")).isEqualTo("header");
+        assertThat(demoAccessToken.get("name")).isEqualTo("X-LinguaFrame-Demo-Token");
+        assertThat((String) demoAccessToken.get("description")).contains("linguaframe.demo.access-token");
+
+        assertThat(body.get("tags")).isInstanceOf(Iterable.class);
+        Set<String> tagNames = StreamSupport.stream(((Iterable<?>) body.get("tags")).spliterator(), false)
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(tag -> String.valueOf(tag.get("name")))
+                .collect(Collectors.toSet());
+        assertThat(tagNames)
+                .contains(
+                        "Media Uploads",
+                        "Localization Jobs",
+                        "Runtime Dependencies",
+                        "Prompt Templates",
+                        "Operator Dashboard",
+                        "Retention Cleanup"
+                );
+
         assertThat(body.get("paths")).isInstanceOf(Map.class);
         Map<?, ?> paths = (Map<?, ?>) body.get("paths");
         Set<String> pathNames = paths.keySet().stream()
@@ -53,7 +81,22 @@ class OpenApiDocumentationTests {
                         "/api/media/uploads/validate",
                         "/api/media/uploads",
                         "/api/media/uploads/{videoId}",
-                        "/api/jobs/{jobId}"
+                        "/api/jobs",
+                        "/api/jobs/{jobId}",
+                        "/api/jobs/{jobId}/events",
+                        "/api/jobs/{jobId}/retry",
+                        "/api/jobs/{jobId}/cancel",
+                        "/api/jobs/{jobId}/artifacts",
+                        "/api/jobs/{jobId}/diagnostics/download",
+                        "/api/jobs/{jobId}/transcript",
+                        "/api/jobs/{jobId}/subtitles/{language}",
+                        "/api/jobs/{jobId}/artifacts/{artifactId}/download",
+                        "/api/jobs/{jobId}/artifacts/archive/download",
+                        "/api/runtime/dependencies",
+                        "/api/prompt-templates",
+                        "/api/operator/dashboard",
+                        "/api/retention/cleanup/preview",
+                        "/api/retention/cleanup/run"
                 );
     }
 

@@ -288,11 +288,15 @@ When the backend is running, OpenAPI documentation is available at:
 curl http://localhost:8080/v3/api-docs
 ```
 
+The generated contract includes the primary demo workflow APIs for upload validation, upload creation, job detail, SSE progress events, retry/cancel, artifact listing, artifact downloads, diagnostics, transcript/subtitle previews, runtime readiness, prompt templates, operator dashboard, and retention cleanup.
+
 Swagger UI is available in the browser:
 
 ```text
 http://localhost:8080/swagger-ui/index.html
 ```
+
+When private demo access is enabled with `LINGUAFRAME_DEMO_ACCESS_TOKEN`, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key scheme. Enter the same token value that the browser sends through the `X-LinguaFrame-Demo-Token` header. `/v3/api-docs` and Swagger UI remain public for deployment checks; only `/api/**` calls require the configured demo token.
 
 ## Runtime Dependency Summary
 

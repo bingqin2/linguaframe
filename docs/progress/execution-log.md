@@ -1853,3 +1853,22 @@ Post-merge verification:
 - `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Added OpenAPI demo-token security metadata for the `X-LinguaFrame-Demo-Token` header.
+- Added primary OpenAPI tags, operation summaries, parameter descriptions, and response descriptions for media upload, localization job, runtime dependency, prompt-template, operator dashboard, and retention cleanup controllers.
+- Expanded the OpenAPI contract test to verify API metadata, `DemoAccessToken`, primary tags, and the full demo workflow path set.
+- Documented Swagger/OpenAPI demo validation in README, the Docker E2E guide, the smoke-test checklist, and roadmap.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=OpenApiDocumentationTests test` first failed because `components.securitySchemes.DemoAccessToken` was missing, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 341, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 37 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh scripts/demo/docker-e2e-success.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
