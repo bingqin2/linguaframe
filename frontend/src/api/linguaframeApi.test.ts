@@ -5,6 +5,7 @@ import {
   artifactArchiveDownloadUrl,
   artifactDownloadUrl,
   getJob,
+  jobDiagnosticsDownloadUrl,
   jobEventsUrl,
   listJobs,
   listArtifacts,
@@ -161,6 +162,12 @@ describe('linguaframeApi', () => {
   test('builds artifact archive download URL with encoded job id', () => {
     expect(artifactArchiveDownloadUrl('job with/slash')).toBe(
       '/api/jobs/job%20with%2Fslash/artifacts/archive/download'
+    );
+  });
+
+  test('builds diagnostics download URL with encoded job id', () => {
+    expect(jobDiagnosticsDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/diagnostics/download'
     );
   });
 

@@ -1487,6 +1487,34 @@ Post-merge verification:
 
 Work:
 
+- Added metadata-only job diagnostics report VO and query service method.
+- Added `GET /api/jobs/{jobId}/diagnostics/download` as a JSON attachment.
+- Added `Download diagnostics` to the selected job header in the React demo.
+- Updated demo scripts to download diagnostics JSON and print safe summary counts.
+- Documented diagnostics export behavior in README, product docs, smoke checklist, roadmap, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobQueryServiceTests test` first failed because diagnostics VO and query method did not exist, then passed with `Tests run: 6`.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobControllerTests,DemoAccessInterceptorTests' test` first failed with `404` for the diagnostics route, then passed with `Tests run: 29`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the diagnostics URL helper and selected-job link did not exist, then passed with `Tests run: 50`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-retry.sh scripts/demo/docker-e2e-budget-guard.sh` passed.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobQueryServiceTests,LocalizationJobControllerTests,DemoAccessInterceptorTests' test` passed with `Tests run: 35, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 50`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 319, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 55`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-retry.sh scripts/demo/docker-e2e-budget-guard.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added budget guard readiness fields to the sanitized runtime dependency summary.
 - Added budget guard status and per-job cost limit display to the React `Demo readiness` panel.
 - Added `scripts/demo/docker-e2e-budget-guard.sh` plus a shared job-failure evidence printer.

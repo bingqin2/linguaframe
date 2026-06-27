@@ -246,6 +246,15 @@ download_artifact_archive() {
   curl -fsS "$base_url/api/jobs/$job_id/artifacts/archive/download" -o "$output_path"
 }
 
+download_job_diagnostics() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/diagnostics/download" -o "$output_path"
+}
+
 print_zip_entries() {
   local archive_path="$1"
 
@@ -271,4 +280,38 @@ print("artifactCount=" + str(len(artifacts)))
 for artifact in artifacts:
     print("- " + artifact["type"] + " " + artifact["filename"] + " " + str(artifact["sizeBytes"]) + " bytes")
 '
+}
+
+print_diagnostics_summary() {
+  local diagnostics_path="$1"
+
+  python3 - "$diagnostics_path" <<'PY'
+import json
+import sys
+
+diagnostics_path = sys.argv[1]
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+]
+text = open(diagnostics_path, encoding="utf-8").read()
+for value in forbidden:
+    if value in text:
+        raise SystemExit("Diagnostics report contains forbidden sensitive string: " + value)
+
+report = json.loads(text)
+job = report["job"]
+print("diagnosticsJobId=" + job["jobId"])
+print("diagnosticsStatus=" + job["status"])
+print("diagnosticsArtifactCount=" + str(report.get("artifactCount", len(report.get("artifacts", [])))))
+print("diagnosticsModelCallCount=" + str(len(job.get("modelCalls", []))))
+print("diagnosticsTimelineEventCount=" + str(len(job.get("timelineEvents", []))))
+PY
 }

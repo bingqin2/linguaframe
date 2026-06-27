@@ -658,6 +658,101 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsJobDiagnosticsReport() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T10:15:00Z");
+        createJob(
+                "job-controller-video-diagnostics",
+                "job-controller-job-diagnostics",
+                "diagnostics.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-diagnostics-artifact",
+                "job-controller-job-diagnostics",
+                JobArtifactType.WORKER_SUMMARY,
+                "/Users/wangbingqin/private/job-artifacts/job-controller-job-diagnostics/summary.json",
+                "worker-summary.json",
+                "application/json",
+                64L,
+                "diagnostics-summary-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        timelineEventRepository.save(new JobTimelineEventRecord(
+                "job-controller-diagnostics-timeline",
+                "job-controller-job-diagnostics",
+                LocalizationJobStage.ARTIFACT_SUMMARY,
+                JobTimelineEventStatus.SUCCEEDED,
+                "Created worker summary artifact",
+                40L,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-job-diagnostics",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                125L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=2, sourceChars=61",
+                "segments=2, targetChars=29"
+        ));
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "job-controller-diagnostics-quality",
+                "job-controller-job-diagnostics",
+                "zh-CN",
+                90,
+                "PASS",
+                92,
+                91,
+                88,
+                89,
+                List.of("Minor timing drift"),
+                List.of("Review final caption"),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+
+        String json = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/diagnostics/download",
+                        "job-controller-job-diagnostics"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-job-diagnostics-diagnostics.json\""
+                ))
+                .andExpect(content().contentType("application/json"))
+                .andExpect(jsonPath("$.job.jobId").value("job-controller-job-diagnostics"))
+                .andExpect(jsonPath("$.job.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.artifactCount").value(1))
+                .andExpect(jsonPath("$.artifacts[0].artifactId").value("job-controller-diagnostics-artifact"))
+                .andExpect(jsonPath("$.artifacts[0].contentSha256").value("diagnostics-summary-hash"))
+                .andExpect(jsonPath("$.job.timelineEvents[0].id").value("job-controller-diagnostics-timeline"))
+                .andExpect(jsonPath("$.job.modelCalls[0].modelCallId").exists())
+                .andExpect(jsonPath("$.job.qualityEvaluation.score").value(90))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        org.assertj.core.api.Assertions.assertThat(json)
+                .doesNotContain("/Users/wangbingqin")
+                .doesNotContain("private/job-artifacts")
+                .doesNotContain("demo-access-token")
+                .doesNotContain("sk-")
+                .doesNotContain("\"objectKey\"");
+    }
+
+    @Test
     void returnsTranscriptSegmentsForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T00:00:00Z");
         createJob("job-controller-video-transcript", "job-controller-job-transcript", createdAt);

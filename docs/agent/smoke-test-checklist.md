@@ -78,6 +78,7 @@ Expected browser behavior:
 - Transcript and subtitle preview panels render when backend preview data exists.
 - Artifact download links appear when artifacts exist.
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.
+- The `Download diagnostics` link appears in the selected job header and points to `/api/jobs/{jobId}/diagnostics/download`.
 - Audio and video previews appear for `DUBBING_AUDIO` and `BURNED_VIDEO` artifacts.
 - Failed jobs show a retry button.
 - The `Retention cleanup` panel appears in the sidebar.
@@ -144,6 +145,7 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.vtt`.
 - The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
 - The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
+- The script downloads `/tmp/linguaframe-demo/job-diagnostics.json`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Run the budget guard failure path only after recreating the backend with a tiny positive budget and a non-zero local cost rate:
@@ -163,6 +165,7 @@ Expected:
 - Job status reaches `FAILED`.
 - Output includes `failureReason=Job cost budget exceeded`.
 - Output includes `modelCallCount` and `estimatedCostUsd` evidence from the failed job detail.
+- Output includes diagnostics summary lines for the failed job.
 - Timeline includes the stage where the budget guard stopped execution.
 - No later guarded provider stage should run after the budget failure.
 
@@ -178,6 +181,7 @@ cat /tmp/linguaframe-demo/target-subtitles.srt
 cat /tmp/linguaframe-demo/target-subtitles.vtt
 file /tmp/linguaframe-demo/dubbing-audio.mp3
 file /tmp/linguaframe-demo/burned-video.mp4
+python3 -m json.tool /tmp/linguaframe-demo/job-diagnostics.json
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
@@ -209,6 +213,19 @@ Expected worker summary fields:
 - `generatedAt`
 
 The artifact must not contain local absolute paths, passwords, access keys, secret keys, or raw provider credentials.
+
+Expected diagnostics fields:
+
+- `generatedAt`
+- `job.jobId`
+- `job.status`
+- `job.timelineEvents`
+- `job.modelCalls`
+- `job.qualityEvaluation`
+- `artifacts`
+- `artifactCount`
+
+The diagnostics report must not contain object storage keys, local absolute paths, demo access tokens, API keys, raw transcript text, raw subtitle text, provider request payloads, or uploaded media bytes.
 
 Expected job detail fields from `GET /api/jobs/{jobId}`:
 

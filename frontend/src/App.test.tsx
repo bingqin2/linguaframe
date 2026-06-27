@@ -544,6 +544,11 @@ describe('App', () => {
     expect(
       within(qualityEvaluation).getByText('Review tone and terminology before publishing.')
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', { name: /selected job/i })).getByRole('link', {
+        name: /download diagnostics/i
+      })
+    ).toHaveAttribute('href', '/api/jobs/job-1/diagnostics/download');
 
     const retryButton = screen.getByRole('button', { name: /retry/i });
     await userEvent.click(retryButton);

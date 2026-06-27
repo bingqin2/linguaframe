@@ -21,6 +21,7 @@ TARGET_VTT_PATH="${LINGUAFRAME_DEMO_TARGET_VTT_PATH:-/tmp/linguaframe-demo/targe
 DUBBING_AUDIO_PATH="${LINGUAFRAME_DEMO_DUBBING_AUDIO_PATH:-/tmp/linguaframe-demo/dubbing-audio.mp3}"
 BURNED_VIDEO_PATH="${LINGUAFRAME_DEMO_BURNED_VIDEO_PATH:-/tmp/linguaframe-demo/burned-video.mp4}"
 ARCHIVE_PATH="${LINGUAFRAME_DEMO_ARCHIVE_PATH:-/tmp/linguaframe-demo/artifacts.zip}"
+DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/job-diagnostics.json}"
 
 wait_for_backend "$BASE_URL"
 ensure_demo_sample "$SAMPLE_PATH"
@@ -49,6 +50,8 @@ download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_VTT "$TARGET_VTT
 download_artifact_by_type "$BASE_URL" "$job_id" BURNED_VIDEO "$BURNED_VIDEO_PATH"
 download_artifact_archive "$BASE_URL" "$job_id" "$ARCHIVE_PATH"
 print_zip_entries "$ARCHIVE_PATH"
+download_job_diagnostics "$BASE_URL" "$job_id" "$DIAGNOSTICS_PATH"
+print_diagnostics_summary "$DIAGNOSTICS_PATH"
 if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$DUBBING_AUDIO_PATH"; then
   echo "Downloaded dubbing audio to $DUBBING_AUDIO_PATH"
 else
@@ -64,4 +67,5 @@ echo "Downloaded target SRT subtitles to $TARGET_SRT_PATH"
 echo "Downloaded target VTT subtitles to $TARGET_VTT_PATH"
 echo "Downloaded burned video to $BURNED_VIDEO_PATH"
 echo "Downloaded artifact archive to $ARCHIVE_PATH"
+echo "Downloaded diagnostics report to $DIAGNOSTICS_PATH"
 echo "Downloaded worker summary to $ARTIFACT_PATH"

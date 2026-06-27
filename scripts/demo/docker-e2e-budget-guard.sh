@@ -10,6 +10,7 @@ require_command python3
 
 BASE_URL="$(demo_base_url)"
 SAMPLE_PATH="${LINGUAFRAME_DEMO_SAMPLE_PATH:-/tmp/linguaframe-demo/budget-guard-sample.mp4}"
+DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/budget-guard-diagnostics.json}"
 
 echo "Budget guard demo expects the backend to be started with:"
 echo "- LINGUAFRAME_COST_ENABLED=true"
@@ -34,4 +35,7 @@ job_id="$(printf '%s' "$upload_response" | extract_json_field jobId)"
 echo "Uploaded demo video. Waiting for budget guard failure on job $job_id..."
 failed_response="$(wait_for_job_status "$BASE_URL" "$job_id" FAILED)"
 printf '%s' "$failed_response" | print_budget_guard_failure
+download_job_diagnostics "$BASE_URL" "$job_id" "$DIAGNOSTICS_PATH"
+print_diagnostics_summary "$DIAGNOSTICS_PATH"
+echo "Downloaded budget guard diagnostics report to $DIAGNOSTICS_PATH"
 echo "Budget guard blocked the job as expected."

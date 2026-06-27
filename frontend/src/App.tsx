@@ -993,6 +993,9 @@ function JobDetail({
         </div>
         <div className="job-actions">
           {isLoadingJob ? <span className="muted">Refreshing...</span> : null}
+          <a className="secondary-link" href={linguaFrameApi.jobDiagnosticsDownloadUrl(job.jobId)}>
+            Download diagnostics
+          </a>
           {canCancel ? (
             <button
               type="button"
