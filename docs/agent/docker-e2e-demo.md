@@ -40,6 +40,14 @@ scripts/demo/private-demo-preflight.sh
 
 The preflight does not upload media and does not call OpenAI. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
 
+If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, start the frontend locally while keeping the backend stack in Docker:
+
+```bash
+scripts/demo/frontend-local-dev.sh
+```
+
+The script starts Vite on `http://localhost:5173`. Leave it running in its terminal while running preflight or browser demos from another terminal.
+
 If the backend container was built from older code, preflight fails before any upload with the package and recreate commands:
 
 ```bash
