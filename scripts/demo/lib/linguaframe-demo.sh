@@ -358,6 +358,15 @@ download_job_evidence_markdown() {
   curl -fsS "$base_url/api/jobs/$job_id/evidence/markdown/download" -o "$output_path"
 }
 
+download_job_evidence_bundle() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id/evidence/bundle/download" -o "$output_path"
+}
+
 print_zip_entries() {
   local archive_path="$1"
 
@@ -459,5 +468,50 @@ for value in required:
         raise SystemExit("Evidence report is missing required marker: " + value)
 print("evidenceMarkdownJobId=" + expected_job_id)
 print("evidenceMarkdownBytes=" + str(len(text.encode("utf-8"))))
+PY
+}
+
+print_evidence_bundle_summary() {
+  local bundle_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$bundle_path" "$expected_job_id" <<'PY'
+import sys
+import zipfile
+
+bundle_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+required_entries = {"manifest.json", "evidence.md", "diagnostics.json"}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+]
+
+with zipfile.ZipFile(bundle_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Evidence bundle is missing entries: " + ", ".join(missing))
+    combined = ""
+    for name in sorted(required_entries):
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for value in forbidden:
+    if value in combined:
+        raise SystemExit("Evidence bundle contains forbidden sensitive string: " + value)
+if "- Job: " + expected_job_id not in combined:
+    raise SystemExit("Evidence bundle markdown does not reference expected job id")
+if '"jobId":"' + expected_job_id + '"' not in combined:
+    raise SystemExit("Evidence bundle JSON does not reference expected job id")
+
+print("evidenceBundleJobId=" + expected_job_id)
+print("evidenceBundleEntryCount=" + str(len(required_entries)))
 PY
 }

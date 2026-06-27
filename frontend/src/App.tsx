@@ -104,6 +104,7 @@ interface DemoEvidence {
     resultBundle: string;
     diagnostics: string;
     evidenceMarkdown: string;
+    evidenceBundle: string;
   };
 }
 
@@ -1779,6 +1780,9 @@ function DemoEvidencePanel({
           <a className="secondary-link" href={evidence.links.evidenceMarkdown}>
             Download backend evidence
           </a>
+          <a className="secondary-link" href={evidence.links.evidenceBundle}>
+            Download evidence bundle
+          </a>
         </div>
       </div>
       {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
@@ -1991,7 +1995,8 @@ function buildDemoEvidence(
     links: {
       resultBundle: linguaFrameApi.artifactArchiveDownloadUrl(job.jobId),
       diagnostics: linguaFrameApi.jobDiagnosticsDownloadUrl(job.jobId),
-      evidenceMarkdown: linguaFrameApi.jobEvidenceMarkdownDownloadUrl(job.jobId)
+      evidenceMarkdown: linguaFrameApi.jobEvidenceMarkdownDownloadUrl(job.jobId),
+      evidenceBundle: linguaFrameApi.jobEvidenceBundleDownloadUrl(job.jobId)
     }
   };
 }
@@ -2014,7 +2019,8 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
     `- Artifacts: ${evidence.artifacts.length}`,
     `- Result bundle: ${evidence.links.resultBundle}`,
     `- Diagnostics: ${evidence.links.diagnostics}`,
-    `- Backend evidence: ${evidence.links.evidenceMarkdown}`
+    `- Backend evidence: ${evidence.links.evidenceMarkdown}`,
+    `- Backend evidence bundle: ${evidence.links.evidenceBundle}`
   ];
 
   if (evidence.job.failureStage || evidence.job.failureReason) {

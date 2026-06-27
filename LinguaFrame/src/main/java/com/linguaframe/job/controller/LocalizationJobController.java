@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
+import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -12,6 +13,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
@@ -50,6 +52,7 @@ public class LocalizationJobController {
     private final LocalizationJobCancellationService cancellationService;
     private final LocalizationJobProgressStreamService progressStreamService;
     private final JobArtifactService artifactService;
+    private final JobEvidenceBundleService evidenceBundleService;
     private final JobEvidenceReportService evidenceReportService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
@@ -61,6 +64,7 @@ public class LocalizationJobController {
             LocalizationJobCancellationService cancellationService,
             LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
+            JobEvidenceBundleService evidenceBundleService,
             JobEvidenceReportService evidenceReportService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
@@ -71,6 +75,7 @@ public class LocalizationJobController {
         this.cancellationService = cancellationService;
         this.progressStreamService = progressStreamService;
         this.artifactService = artifactService;
+        this.evidenceBundleService = evidenceBundleService;
         this.evidenceReportService = evidenceReportService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
@@ -215,6 +220,31 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(body);
+    }
+
+    @GetMapping("/{jobId}/evidence/bundle/download")
+    @Operation(summary = "Download a safe ZIP evidence bundle for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Evidence bundle bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadEvidenceBundle(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredEvidenceBundleBo bundle = evidenceBundleService.openEvidenceBundle(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(bundle.contentType()))
+                .contentLength(bundle.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(bundle.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(bundle.inputStream()));
     }
 
     @GetMapping("/{jobId}/transcript")

@@ -267,6 +267,7 @@ Build:
 - One-click result bundle download. Status: implemented as an on-demand ZIP archive for generated job artifacts.
 - One-click diagnostics report download. Status: implemented as metadata-only JSON for safe job debugging evidence.
 - One-click backend evidence Markdown download. Status: implemented as an on-demand sanitized Markdown report for readable demo evidence.
+- One-click demo evidence bundle download. Status: implemented as an on-demand metadata-only ZIP with manifest, Markdown evidence, and diagnostics JSON.
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.

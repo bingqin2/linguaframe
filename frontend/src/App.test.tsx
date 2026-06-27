@@ -1148,6 +1148,10 @@ describe('App', () => {
       'href',
       '/api/jobs/evidence-job/evidence/markdown/download'
     );
+    expect(within(evidence).getByRole('link', { name: /download evidence bundle/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/evidence-job/evidence/bundle/download'
+    );
     expect(evidenceText).not.toContain('Sensitive source line');
     expect(evidenceText).not.toContain('敏感字幕');
     expect(evidenceText).not.toContain('source-vtt-artifact');
