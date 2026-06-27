@@ -1155,3 +1155,9 @@ Notes:
 
 - This slice is not JWT, multi-user authentication, OAuth, billing, or enterprise permissions.
 - Real demo tokens must stay in local `.env` or deployment secrets and must not be committed.
+
+Post-merge verification:
+
+- Merged `private-demo-access-gate-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=DemoAccessInterceptorTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 33`.
