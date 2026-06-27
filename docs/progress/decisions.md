@@ -348,6 +348,14 @@ Impact: `GET /api/jobs/{jobId}/evidence/markdown/download` returns a text/markdo
 
 ## 2026-06-28
 
+Decision: Add an explicit disabled-by-default OpenAI connectivity probe to runtime live checks.
+
+Reason: Private demos with real OpenAI credentials need a quick way to prove base URL, API key, and model access before uploading media or starting a paid provider-backed job. Running the check only when explicitly enabled keeps normal local startup deterministic and cost-free.
+
+Impact: `GET /api/runtime/live-checks`, the React `Live checks` panel, and private-demo preflight now include an `openai` probe. It reports `SKIPPED` by default and only calls the model metadata endpoint when enabled, without exposing API keys, bearer headers, raw provider responses, or request payloads.
+
+## 2026-06-28
+
 Decision: Generate demo evidence bundles on demand as metadata-only ZIP archives.
 
 Reason: A private demo needs a single shareable proof package, but the existing artifact archive is for generated media deliverables and should not mix in audit files. The evidence bundle should be reproducible from backend-safe state and script-verifiable without reading object storage bytes.

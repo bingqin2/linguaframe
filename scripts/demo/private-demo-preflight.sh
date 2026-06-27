@@ -250,7 +250,7 @@ check_runtime_live_checks() {
 import json
 import sys
 
-required_checks = ["database", "redis", "rabbitmq", "minio", "ffmpeg"]
+required_checks = ["database", "redis", "rabbitmq", "minio", "ffmpeg", "openai"]
 
 with open(sys.argv[1], encoding="utf-8") as file:
     body = json.load(file)
@@ -269,6 +269,8 @@ for name in required_checks:
     message = str(probe.get("message", ""))
     latency_ms = probe.get("latencyMs")
     print(f"{name}={status} latencyMs={latency_ms} message={message}")
+    if name == "openai" and status == "SKIPPED":
+        continue
     if status == "DOWN":
         failures.append(f"{name}: {message}")
     elif status not in {"UP", "SKIPPED"}:

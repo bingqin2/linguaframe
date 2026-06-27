@@ -159,6 +159,7 @@ class RuntimeDependencyControllerTests {
         assertProbe(checks.get("rabbitmq"), "UP", "RabbitMQ connection opened");
         assertProbe(checks.get("minio"), "UP", "MinIO bucket is reachable");
         assertProbe(checks.get("ffmpeg"), "UP", "FFmpeg binary responded");
+        assertProbe(checks.get("openai"), "SKIPPED", "OpenAI connectivity check is disabled");
     }
 
     private void assertProviderReadiness(Object value, boolean enabled, String provider, boolean credentialsConfigured) {
@@ -198,6 +199,7 @@ class RuntimeDependencyControllerTests {
         checks.put("rabbitmq", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "RabbitMQ connection opened"));
         checks.put("minio", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "MinIO bucket is reachable"));
         checks.put("ffmpeg", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "FFmpeg binary responded"));
+        checks.put("openai", new RuntimeProbeResultVo(RuntimeProbeStatus.SKIPPED, 1L, "OpenAI connectivity check is disabled"));
         return new RuntimeLiveCheckSummaryVo(true, Instant.parse("2026-06-28T00:00:00Z"), checks);
     }
 

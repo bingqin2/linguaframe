@@ -73,7 +73,7 @@ Run this before the short or full demo scripts:
 scripts/demo/private-demo-preflight.sh
 ```
 
-The preflight does not upload media and does not call OpenAI. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg checks, frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+The preflight does not upload media and does not call OpenAI unless `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg checks, OpenAI connectivity status (`SKIPPED` by default), frontend reachability, optional demo-token gate behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
 
 If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, start the frontend locally while keeping the backend stack in Docker:
 
@@ -290,7 +290,11 @@ OPENAI_TRANSCRIPTION_TIMEOUT_SECONDS=120
 LINGUAFRAME_TRANSCRIPTION_PROVIDER=openai
 LINGUAFRAME_TRANSCRIPTION_ENABLED=true
 LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=0
+LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true
+LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL=whisper-1
 ```
+
+After recreating the backend, `scripts/demo/private-demo-preflight.sh` should print `openai=UP` before you run the paid media path. If the probe is `DOWN`, fix the base URL, API key, or model before uploading a sample video.
 
 Then run:
 

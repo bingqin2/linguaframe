@@ -6,6 +6,26 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added a disabled-by-default OpenAI connectivity probe to runtime live checks.
+- Added safe OpenAI probe configuration for `.env.example` and Spring properties.
+- Updated private-demo preflight, React live checks, README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log with OpenAI connectivity behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeLiveCheckServiceTests test` first failed because the OpenAI connectivity service and properties did not exist, then passed after adding the service and runtime live-check integration.
+- `mvn -pl LinguaFrame -Dtest=RuntimeLiveCheckServiceTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App -t "shows live dependency checks"` first failed because the OpenAI probe had no UI label, then passed after adding the `openai` type and label.
+- `cd frontend && npm run test:run -- App` passed with `Tests 41 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 363, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-28
+
+Work:
+
 - Added `GET /api/jobs/{jobId}/evidence/bundle/download` for metadata-only demo evidence ZIPs containing `manifest.json`, `evidence.md`, and `diagnostics.json`.
 - Added a React `Download evidence bundle` link and API helper.
 - Extended `scripts/demo/docker-e2e-success.sh` to download and validate `/tmp/linguaframe-demo/job-evidence.zip`.
