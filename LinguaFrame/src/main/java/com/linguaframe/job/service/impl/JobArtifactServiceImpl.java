@@ -1,6 +1,7 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
+import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
@@ -8,28 +9,36 @@ import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.service.ObjectStorageService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class JobArtifactServiceImpl implements JobArtifactService {
 
     private final JobArtifactRepository artifactRepository;
     private final ObjectStorageService objectStorageService;
+    private final ObjectMapper objectMapper;
     private final Clock clock;
 
     @Autowired
     public JobArtifactServiceImpl(JobArtifactRepository artifactRepository, ObjectStorageService objectStorageService) {
-        this(artifactRepository, objectStorageService, Clock.systemUTC());
+        this(artifactRepository, objectStorageService, new ObjectMapper(), Clock.systemUTC());
     }
 
     public JobArtifactServiceImpl(
@@ -37,8 +46,18 @@ public class JobArtifactServiceImpl implements JobArtifactService {
             ObjectStorageService objectStorageService,
             Clock clock
     ) {
+        this(artifactRepository, objectStorageService, new ObjectMapper(), clock);
+    }
+
+    public JobArtifactServiceImpl(
+            JobArtifactRepository artifactRepository,
+            ObjectStorageService objectStorageService,
+            ObjectMapper objectMapper,
+            Clock clock
+    ) {
         this.artifactRepository = artifactRepository;
         this.objectStorageService = objectStorageService;
+        this.objectMapper = objectMapper;
         this.clock = clock;
     }
 
@@ -110,6 +129,32 @@ public class JobArtifactServiceImpl implements JobArtifactService {
         );
     }
 
+    @Override
+    public StoredArtifactArchiveBo openArtifactArchive(String jobId) {
+        List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
+        ByteArrayOutputStream archiveBytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(archiveBytes)) {
+            zipOutputStream.putNextEntry(new ZipEntry("manifest.json"));
+            zipOutputStream.write(manifestJson(jobId, artifacts));
+            zipOutputStream.closeEntry();
+
+            for (JobArtifactRecord artifact : artifacts) {
+                zipOutputStream.putNextEntry(new ZipEntry(archiveEntryName(artifact)));
+                objectStorageService.open(artifact.objectKey()).transferTo(zipOutputStream);
+                zipOutputStream.closeEntry();
+            }
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to create artifact archive.", ex);
+        }
+        byte[] content = archiveBytes.toByteArray();
+        return new StoredArtifactArchiveBo(
+                "linguaframe-job-%s-artifacts.zip".formatted(jobId),
+                "application/zip",
+                content.length,
+                new ByteArrayInputStream(content)
+        );
+    }
+
     private JobArtifactVo toVo(JobArtifactRecord record) {
         return new JobArtifactVo(
                 record.id(),
@@ -123,6 +168,50 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 record.sourceArtifactId(),
                 record.createdAt()
         );
+    }
+
+    private byte[] manifestJson(String jobId, List<JobArtifactRecord> artifacts) {
+        Map<String, Object> manifest = Map.of(
+                "jobId", jobId,
+                "artifactCount", artifacts.size(),
+                "artifacts", artifacts.stream()
+                        .map(artifact -> Map.of(
+                                "artifactId", artifact.id(),
+                                "type", artifact.type().name(),
+                                "filename", artifact.filename(),
+                                "contentType", artifact.contentType(),
+                                "sizeBytes", artifact.sizeBytes(),
+                                "contentSha256", artifact.contentSha256(),
+                                "cacheHit", artifact.cacheHit(),
+                                "sourceArtifactId", artifact.sourceArtifactId() == null ? "" : artifact.sourceArtifactId(),
+                                "archiveEntry", archiveEntryName(artifact)
+                        ))
+                        .toList()
+        );
+        try {
+            return objectMapper.writeValueAsBytes(manifest);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Failed to create artifact archive manifest.", ex);
+        }
+    }
+
+    private String archiveEntryName(JobArtifactRecord artifact) {
+        return "artifacts/%s/%s-%s".formatted(
+                artifact.type().name(),
+                artifact.id(),
+                sanitizeFilename(artifact.filename())
+        );
+    }
+
+    private String sanitizeFilename(String filename) {
+        String basename = filename == null ? "artifact" : filename.replace('\\', '/');
+        int slashIndex = basename.lastIndexOf('/');
+        if (slashIndex >= 0) {
+            basename = basename.substring(slashIndex + 1);
+        }
+        basename = basename.trim().replaceAll("[^A-Za-z0-9._-]+", "-");
+        basename = basename.replaceAll("^-+", "").replaceAll("-+$", "");
+        return basename.isBlank() || ".".equals(basename) || "..".equals(basename) ? "artifact" : basename;
     }
 
     private String sha256Hex(byte[] content) {

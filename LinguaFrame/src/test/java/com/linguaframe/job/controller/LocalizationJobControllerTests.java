@@ -46,7 +46,10 @@ import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipInputStream;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
@@ -594,6 +597,67 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsArtifactArchiveForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T09:45:00Z");
+        createJob("job-controller-video-archive", "job-controller-job-archive", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-archive-summary",
+                "job-controller-job-archive",
+                JobArtifactType.WORKER_SUMMARY,
+                "job-artifacts/job-controller-job-archive/job-controller-archive-summary/worker-summary.json",
+                "worker-summary.json",
+                "application/json",
+                11L,
+                "summary-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-archive-vtt",
+                "job-controller-job-archive",
+                JobArtifactType.TARGET_SUBTITLE_VTT,
+                "job-artifacts/job-controller-job-archive/job-controller-archive-vtt/target-subtitles.vtt",
+                "target-subtitles.vtt",
+                "text/vtt",
+                6L,
+                "vtt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        when(objectStorageService.open("job-artifacts/job-controller-job-archive/job-controller-archive-summary/worker-summary.json"))
+                .thenReturn(new ByteArrayInputStream("{\"ok\":true}".getBytes(StandardCharsets.UTF_8)));
+        when(objectStorageService.open("job-artifacts/job-controller-job-archive/job-controller-archive-vtt/target-subtitles.vtt"))
+                .thenReturn(new ByteArrayInputStream("WEBVTT".getBytes(StandardCharsets.UTF_8)));
+
+        byte[] zipBytes = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/artifacts/archive/download",
+                        "job-controller-job-archive"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-job-archive-artifacts.zip\""
+                ))
+                .andExpect(content().contentType("application/zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(zipBytes);
+        org.assertj.core.api.Assertions.assertThat(entries)
+                .containsKeys(
+                        "manifest.json",
+                        "artifacts/WORKER_SUMMARY/job-controller-archive-summary-worker-summary.json",
+                        "artifacts/TARGET_SUBTITLE_VTT/job-controller-archive-vtt-target-subtitles.vtt"
+                );
+        org.assertj.core.api.Assertions.assertThat(entries.get("manifest.json"))
+                .contains("\"jobId\":\"job-controller-job-archive\"")
+                .contains("\"artifactCount\":2");
+    }
+
+    @Test
     void returnsTranscriptSegmentsForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T00:00:00Z");
         createJob("job-controller-video-transcript", "job-controller-job-transcript", createdAt);
@@ -668,6 +732,17 @@ class LocalizationJobControllerTests {
         mockMvc.perform(post("/api/jobs/{jobId}/retry", "job-controller-job-not-failed"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    private static Map<String, String> readZipEntries(byte[] zipBytes) throws Exception {
+        Map<String, String> entries = new HashMap<>();
+        try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                entries.put(entry.getName(), new String(zipInputStream.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+        return entries;
     }
 
     @Test

@@ -251,7 +251,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, retry, cost/model-call visibility, a read-only operator dashboard for demo health, and a read-only demo readiness panel.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, one-click result bundle download, retry, cost/model-call visibility, a read-only operator dashboard for demo health, and a read-only demo readiness panel.
 
 Build:
 
@@ -264,6 +264,7 @@ Build:
 - Audio player.
 - Video preview.
 - Artifact downloads.
+- One-click result bundle download. Status: implemented as an on-demand ZIP archive for generated job artifacts.
 - Retry button.
 - Cost summary.
 - Read-only operator dashboard. Status: implemented for status counts, recent failures, model-call totals, and cache totals.

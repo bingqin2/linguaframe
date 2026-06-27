@@ -693,6 +693,10 @@ describe('App', () => {
       'href',
       '/api/jobs/artifact-job/artifacts/artifact-vtt/download'
     );
+    expect(within(artifacts).getByRole('link', { name: /download result bundle/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/archive/download'
+    );
 
     expect(screen.getByLabelText(/dubbing audio preview/i)).toHaveAttribute(
       'src',
@@ -717,7 +721,12 @@ describe('App', () => {
 
     expect(await screen.findByText('No transcript segments yet.')).toBeInTheDocument();
     expect(screen.getByText('No subtitle segments yet.')).toBeInTheDocument();
-    expect(screen.getByText('No artifacts yet.')).toBeInTheDocument();
+    const artifacts = screen.getByRole('region', { name: /artifacts/i });
+    expect(within(artifacts).getByText('No artifacts yet.')).toBeInTheDocument();
+    expect(within(artifacts).getByRole('link', { name: /download result bundle/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/empty-job/artifacts/archive/download'
+    );
   });
 
   test('keeps manual job opening available when server history fails', async () => {

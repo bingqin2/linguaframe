@@ -184,6 +184,24 @@ td {
   margin: 0;
 }
 
+.artifact-panel-heading {
+  align-items: center;
+}
+
+.secondary-link {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  border: 1px solid #bfd1db;
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: #31586e;
+  font-size: 0.88rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .panel label {
   display: grid;
   gap: 6px;

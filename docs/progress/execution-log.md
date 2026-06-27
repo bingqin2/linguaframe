@@ -1045,6 +1045,33 @@ Post-merge verification:
 - `mvn -pl LinguaFrame -Dtest='RuntimeDependencyControllerTests,LinguaFramePropertiesTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 41`.
 
+## 2026-06-27
+
+Work:
+
+- Added on-demand ZIP archive generation for generated job artifacts with a safe `manifest.json` and sanitized archive entry paths.
+- Added `GET /api/jobs/{jobId}/artifacts/archive/download` and a React `Download result bundle` link in the `Artifacts` panel.
+- Updated Docker demo scripts to download `artifacts.zip` and print ZIP entries for terminal demo verification.
+- Documented that result bundles exclude source videos and are not persisted to object storage.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=JobArtifactServiceTests test` first failed because `openArtifactArchive` did not exist, then passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest='LocalizationJobControllerTests,DemoAccessInterceptorTests' test` first failed because the archive endpoint was not routed, then passed with `Tests run: 28, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the archive URL helper and bundle link did not exist, then passed with `Tests run: 42`.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='JobArtifactServiceTests,LocalizationJobControllerTests,DemoAccessInterceptorTests' test` passed with `Tests run: 34, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 42`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 47`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
+
 Post-merge verification:
 
 - Merged `operator-dashboard-mvp` back to `main` with merge commit.

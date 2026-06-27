@@ -69,6 +69,8 @@ download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_JSON "$OUTPUT_DI
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_SRT "$OUTPUT_DIR/target-subtitles.srt"
 download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_VTT "$OUTPUT_DIR/target-subtitles.vtt"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
+download_artifact_archive "$BASE_URL" "$job_id" "$OUTPUT_DIR/artifacts.zip"
+print_zip_entries "$OUTPUT_DIR/artifacts.zip"
 
 if download_optional_artifact_by_type "$BASE_URL" "$job_id" BURNED_VIDEO "$OUTPUT_DIR/burned-video.mp4"; then
   echo "Downloaded burned video to $OUTPUT_DIR/burned-video.mp4"
@@ -82,4 +84,5 @@ else
   echo "No dubbing audio artifact found; TTS may be disabled."
 fi
 
+echo "Downloaded artifact archive to $OUTPUT_DIR/artifacts.zip"
 echo "Downloaded full-video demo artifacts to $OUTPUT_DIR"

@@ -119,6 +119,10 @@ export function artifactDownloadUrl(jobId: string, artifactId: string): string {
   )}/download`;
 }
 
+export function artifactArchiveDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/artifacts/archive/download`;
+}
+
 export function jobEventsUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/events`;
 }
@@ -136,6 +140,7 @@ export const linguaFrameApi = {
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,
+  artifactArchiveDownloadUrl,
   jobEventsUrl,
   readDemoToken,
   writeDemoToken

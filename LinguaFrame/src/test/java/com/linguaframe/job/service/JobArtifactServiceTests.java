@@ -17,11 +17,13 @@ import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -167,6 +169,89 @@ class JobArtifactServiceTests {
         assertThatThrownBy(() -> service.openArtifact("job-artifact-service-3", "missing-artifact"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("Job artifact not found.");
+    }
+
+    @Test
+    void opensArchiveWithManifestAndArtifactsForJob() throws IOException {
+        InMemoryJobArtifactRepository artifactRepository = new InMemoryJobArtifactRepository();
+        InMemoryObjectStorageService storageService = new InMemoryObjectStorageService();
+        JobArtifactService service = new JobArtifactServiceImpl(
+                artifactRepository,
+                storageService,
+                Clock.fixed(Instant.parse("2026-06-27T09:00:00Z"), ZoneOffset.UTC)
+        );
+        JobArtifactVo summary = service.createArtifact(new CreateJobArtifactCommand(
+                "job-artifact-archive",
+                JobArtifactType.WORKER_SUMMARY,
+                "worker-summary.json",
+                "application/json",
+                "{\"ok\":true}".getBytes(StandardCharsets.UTF_8)
+        ));
+        JobArtifactVo subtitles = service.createArtifact(new CreateJobArtifactCommand(
+                "job-artifact-archive",
+                JobArtifactType.TARGET_SUBTITLE_VTT,
+                "target-subtitles.vtt",
+                "text/vtt",
+                "WEBVTT\n\n00:00.000 --> 00:01.000\n你好\n".getBytes(StandardCharsets.UTF_8)
+        ));
+
+        var archive = service.openArtifactArchive("job-artifact-archive");
+
+        assertThat(archive.filename()).isEqualTo("linguaframe-job-job-artifact-archive-artifacts.zip");
+        assertThat(archive.contentType()).isEqualTo("application/zip");
+        assertThat(archive.sizeBytes()).isGreaterThan(0L);
+        Map<String, String> entries = readZipEntries(archive.inputStream());
+        assertThat(entries)
+                .containsKeys(
+                        "manifest.json",
+                        "artifacts/WORKER_SUMMARY/" + summary.artifactId() + "-worker-summary.json",
+                        "artifacts/TARGET_SUBTITLE_VTT/" + subtitles.artifactId() + "-target-subtitles.vtt"
+                );
+        assertThat(entries.get("manifest.json"))
+                .contains("\"jobId\":\"job-artifact-archive\"")
+                .contains("\"artifactCount\":2")
+                .contains("\"type\":\"WORKER_SUMMARY\"")
+                .contains("\"filename\":\"worker-summary.json\"")
+                .contains("\"sizeBytes\":11")
+                .contains("\"contentSha256\":\"")
+                .contains("\"cacheHit\":false");
+        assertThat(entries.get("artifacts/WORKER_SUMMARY/" + summary.artifactId() + "-worker-summary.json"))
+                .isEqualTo("{\"ok\":true}");
+    }
+
+    @Test
+    void sanitizesArchiveEntryFilenames() throws IOException {
+        InMemoryJobArtifactRepository artifactRepository = new InMemoryJobArtifactRepository();
+        InMemoryObjectStorageService storageService = new InMemoryObjectStorageService();
+        JobArtifactService service = new JobArtifactServiceImpl(
+                artifactRepository,
+                storageService,
+                Clock.fixed(Instant.parse("2026-06-27T09:30:00Z"), ZoneOffset.UTC)
+        );
+        JobArtifactVo dangerous = service.createArtifact(new CreateJobArtifactCommand(
+                "job-artifact-archive-sanitize",
+                JobArtifactType.BURNED_VIDEO,
+                "../nested/path evil.mp4",
+                "video/mp4",
+                "video-bytes".getBytes(StandardCharsets.UTF_8)
+        ));
+
+        var archive = service.openArtifactArchive("job-artifact-archive-sanitize");
+
+        assertThat(readZipEntries(archive.inputStream()))
+                .containsKey("artifacts/BURNED_VIDEO/" + dangerous.artifactId() + "-path-evil.mp4")
+                .doesNotContainKeys("../nested/path evil.mp4", "artifacts/BURNED_VIDEO/../nested/path evil.mp4");
+    }
+
+    private static Map<String, String> readZipEntries(InputStream inputStream) throws IOException {
+        Map<String, String> entries = new HashMap<>();
+        try (ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                entries.put(entry.getName(), new String(zipInputStream.readAllBytes(), StandardCharsets.UTF_8));
+            }
+        }
+        return entries;
     }
 
     private static class InMemoryJobArtifactRepository extends JobArtifactRepository {

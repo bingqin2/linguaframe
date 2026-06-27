@@ -289,3 +289,11 @@ Decision: Keep browser demo readiness read-only and configuration-derived.
 Reason: The private demo needs visible readiness evidence before upload, but live probes, FFmpeg execution, object writes, and provider calls would make opening the page slow, stateful, or potentially paid.
 
 Impact: `GET /api/runtime/dependencies` now returns safe readiness fields for the React panel, including demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, and feature flags. It still excludes secrets, tokens, raw local media paths, and workspace paths.
+
+## 2026-06-27
+
+Decision: Generate job artifact ZIP bundles on demand instead of storing archive artifacts.
+
+Reason: A result bundle is a demo export convenience over existing durable artifacts, not a new pipeline output. Persisting ZIPs would duplicate object storage, complicate retention, and create another artifact type to cache or invalidate.
+
+Impact: `GET /api/jobs/{jobId}/artifacts/archive/download` streams a ZIP containing generated artifacts plus a safe manifest. The archive excludes source videos, secrets, tokens, raw local paths, and storage credentials, and it does not create object storage or database rows.
