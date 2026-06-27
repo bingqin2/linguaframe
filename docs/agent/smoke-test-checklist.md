@@ -242,7 +242,13 @@ Expected job detail fields from `GET /api/jobs/{jobId}`:
 
 ### Provider Cache Verification
 
-Run two compatible jobs with the same extracted audio, provider, model, and prompt/version settings.
+Run the cache-hit demo after the Docker stack is healthy:
+
+```bash
+scripts/demo/docker-e2e-cache-hit.sh
+```
+
+The script runs two compatible jobs with the same extracted audio, provider, model, and prompt/version settings, downloads both job details and diagnostics reports, and fails if the second job does not expose a provider cache hit.
 
 Expected:
 
@@ -253,6 +259,7 @@ Expected:
 - With quality evaluation enabled, the second compatible quality evaluation job timeline includes `CACHE_HIT`.
 - The second compatible quality evaluation job writes a fresh current-job `qualityEvaluation` result in `GET /api/jobs/{jobId}`.
 - The second compatible quality evaluation job does not create another evaluation provider model call.
+- Evidence files are written under `/tmp/linguaframe-demo/cache-hit/`.
 
 ### Optional OpenAI Transcription Verification
 

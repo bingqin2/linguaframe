@@ -103,6 +103,15 @@ wait_for_job_status() {
   exit 1
 }
 
+download_job_detail() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
+}
+
 print_job_summary() {
   python3 -c '
 import json
@@ -127,6 +136,89 @@ for call in job.get("modelCalls", []):
 for event in job.get("timelineEvents", []):
     print("- " + event["stage"] + " " + event["status"] + ": " + event["message"])
 '
+}
+
+print_job_cache_summary_file() {
+  local job_detail_path="$1"
+
+  python3 - "$job_detail_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+summary = job.get("usageSummary") or {}
+cache = job.get("cacheSummary") or {}
+print("jobId=" + job["jobId"])
+print("status=" + job["status"])
+print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
+print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
+print("cacheHitCount=" + str(cache.get("cacheHitCount", 0)))
+print("generatedArtifactCount=" + str(cache.get("generatedArtifactCount", 0)))
+print("providerCacheHitCount=" + str(cache.get("providerCacheHitCount", 0)))
+PY
+}
+
+print_provider_cache_hit_events_file() {
+  local job_detail_path="$1"
+
+  python3 - "$job_detail_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+events = [
+    event
+    for event in job.get("timelineEvents", [])
+    if event.get("status") == "CACHE_HIT" and "provider result" in (event.get("message") or "")
+]
+if not events:
+    print("- PROVIDER_CACHE_HIT none")
+else:
+    for event in events:
+        print("- PROVIDER_CACHE_HIT " + event["stage"] + ": " + event["message"])
+PY
+}
+
+assert_provider_cache_hit_file() {
+  local job_detail_path="$1"
+
+  python3 - "$job_detail_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+count = (job.get("cacheSummary") or {}).get("providerCacheHitCount", 0)
+if count < 1:
+    raise SystemExit("Expected providerCacheHitCount >= 1, got " + str(count))
+PY
+}
+
+print_cache_hit_comparison() {
+  local first_job_detail_path="$1"
+  local second_job_detail_path="$2"
+
+  python3 - "$first_job_detail_path" "$second_job_detail_path" <<'PY'
+import json
+import sys
+
+first = json.load(open(sys.argv[1], encoding="utf-8"))
+second = json.load(open(sys.argv[2], encoding="utf-8"))
+
+def usage(job, field):
+    return (job.get("usageSummary") or {}).get(field, 0)
+
+def cache(job, field):
+    return (job.get("cacheSummary") or {}).get(field, 0)
+
+print("firstJobId=" + first["jobId"])
+print("secondJobId=" + second["jobId"])
+print("firstModelCallCount=" + str(usage(first, "modelCallCount")))
+print("secondModelCallCount=" + str(usage(second, "modelCallCount")))
+print("firstProviderCacheHitCount=" + str(cache(first, "providerCacheHitCount")))
+print("secondProviderCacheHitCount=" + str(cache(second, "providerCacheHitCount")))
+print("firstArtifactCacheHitCount=" + str(cache(first, "cacheHitCount")))
+print("secondArtifactCacheHitCount=" + str(cache(second, "cacheHitCount")))
+PY
 }
 
 print_budget_guard_failure() {

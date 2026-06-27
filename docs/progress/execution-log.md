@@ -1610,3 +1610,19 @@ Post-merge verification:
 - Merged `quality-evaluation-provider-cache-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest='QualityEvaluationCacheRepositoryTests,QualityEvaluationCacheKeyServiceTests,QualityEvaluationCacheServiceTests,QualityEvaluationServiceTests,QualityEvaluationPipelineStageTests,LocalizationJobExecutionServiceTests' test` passed on `main` with `Tests run: 37, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- App` passed on `main` with `Tests run: 29`.
+
+## 2026-06-27
+
+Work:
+
+- Added a Docker cache-hit evidence script that uploads the same sample twice, downloads both job details and diagnostics reports, and fails when the second compatible job has no provider cache hit.
+- Added shared demo helper functions for safe job detail download, cache summary printing, provider `CACHE_HIT` filtering, and first/second job comparison.
+- Documented the cache-hit demo command, expected evidence, and `/tmp/linguaframe-demo/cache-hit/` output files in README, the Docker E2E runbook, and the smoke-test checklist.
+
+Validation so far:
+
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-cache-hit.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 47, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+- `scripts/demo/docker-e2e-cache-hit.sh` first exposed a stale backend container missing `/api/jobs/{jobId}/diagnostics/download`; after packaging the current backend jar and recreating `linguaframe-backend`, it passed. Evidence: first job `modelCallCount=2`, `providerCacheHitCount=0`; second job `modelCallCount=0`, `providerCacheHitCount=2`; downloaded evidence to `/tmp/linguaframe-demo/cache-hit/`.

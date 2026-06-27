@@ -129,9 +129,12 @@ cp .env.example .env
 docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/docker-e2e-success.sh
+scripts/demo/docker-e2e-cache-hit.sh
 ```
 
 The preflight checks required commands, `.env`, Docker Compose rendering, backend health, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+
+The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
 The browser demo also shows a read-only `Demo readiness` panel backed by `GET /api/runtime/dependencies`. Use the panel for quick configuration visibility from the UI, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
 
@@ -451,6 +454,14 @@ TTS provider results are cached when the ordered target-subtitle text, language,
 
 `GET /api/jobs/{jobId}` includes `cacheSummary.cacheHitCount`, `cacheSummary.generatedArtifactCount`, and `cacheSummary.providerCacheHitCount`. The React demo shows artifact/provider cache-hit counts near usage/cost metadata and marks reused artifact rows as `Reused`.
 
+After the Docker stack is running, cache reuse can be verified from the terminal:
+
+```bash
+scripts/demo/docker-e2e-cache-hit.sh
+```
+
+The script warms the cache with a first completed job, runs a second compatible job, fails if the second job has `providerCacheHitCount < 1`, and downloads safe diagnostics evidence to `/tmp/linguaframe-demo/cache-hit/`.
+
 Active prompt templates are inspectable without reading provider code:
 
 ```bash
@@ -658,6 +669,14 @@ scripts/demo/docker-e2e-success.sh
 ```
 
 The script uploads a tiny local MP4 sample file, waits for dispatch and worker execution, prints the completed job timeline plus model-call usage summary, prints transcript and target subtitle preview JSON, and downloads `/tmp/linguaframe-demo/audio.wav`, `/tmp/linguaframe-demo/transcript.json`, `/tmp/linguaframe-demo/subtitles.srt`, `/tmp/linguaframe-demo/subtitles.vtt`, `/tmp/linguaframe-demo/target-subtitles.json`, `/tmp/linguaframe-demo/target-subtitles.srt`, `/tmp/linguaframe-demo/target-subtitles.vtt`, `/tmp/linguaframe-demo/burned-video.mp4`, `/tmp/linguaframe-demo/artifacts.zip`, `/tmp/linguaframe-demo/job-diagnostics.json`, optional `/tmp/linguaframe-demo/dubbing-audio.mp3`, and `/tmp/linguaframe-demo/worker-summary.json`. It also prints the ZIP entry list and diagnostics summary so terminal demos can inspect both artifact packaging and safe job evidence. With `.env.example`, expected model-call output includes `modelCallCount=2` and `estimatedCostUsd=0E-8`; enabling quality evaluation adds a non-blocking evaluation result and one model call, and enabling TTS adds another model call. See `docs/agent/docker-e2e-demo.md` for the forced failure and retry workflow.
+
+To prove provider-cache reuse, run:
+
+```bash
+scripts/demo/docker-e2e-cache-hit.sh
+```
+
+Expected output includes `secondProviderCacheHitCount` greater than zero, one or more `PROVIDER_CACHE_HIT` lines, and downloaded evidence files in `/tmp/linguaframe-demo/cache-hit/`.
 
 The React demo includes a read-only operator dashboard backed by `GET /api/operator/dashboard`. It summarizes job status counts, recent failed jobs, model-call cost, and cache effectiveness from existing durable tables. It is a demo observability surface, not a full admin dashboard.
 
