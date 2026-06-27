@@ -146,21 +146,21 @@ git diff --check
 
 Expected: all commands exit 0.
 
-- [ ] **Step 3: Commit feature branch**
+- [x] **Step 3: Commit feature branch**
 
 ```bash
 git add README.md docs/product/architecture.md docs/product/roadmap.md docs/product/spec.md docs/progress/decisions.md docs/progress/execution-log.md docs/plans/038-tts-provider-cache-mvp.md LinguaFrame/src
 git commit -m "Add TTS provider cache"
 ```
 
-- [ ] **Step 4: Merge back to main**
+- [x] **Step 4: Merge back to main**
 
 ```bash
 git switch main
 git merge --no-ff tts-provider-cache-mvp
 ```
 
-- [ ] **Step 5: Run post-merge smoke validation**
+- [x] **Step 5: Run post-merge smoke validation**
 
 ```bash
 mvn -pl LinguaFrame -Dtest=TtsCacheServiceTests,DubbingAudioGenerationPipelineStageTests test

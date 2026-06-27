@@ -1038,6 +1038,12 @@ Validation so far:
 - `docker compose --env-file .env.example config --quiet` passed.
 - `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `tts-provider-cache-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=TtsCacheServiceTests,DubbingAudioGenerationPipelineStageTests test` passed on `main` with `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`.
+- `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check HEAD` passed on `main`.
 
 ## 2026-06-27
