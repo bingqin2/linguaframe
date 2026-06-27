@@ -1041,6 +1041,12 @@ Validation so far:
 
 Post-merge verification:
 
+- Merged `demo-readiness-panel-mvp` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest='RuntimeDependencyControllerTests,LinguaFramePropertiesTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 41`.
+
+Post-merge verification:
+
 - Merged `operator-dashboard-mvp` back to `main` with merge commit.
 - `mvn -pl LinguaFrame -Dtest='OperatorDashboardRepositoryTests,OperatorDashboardControllerTests,DemoAccessInterceptorTests' test` passed on `main` with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 37`.
