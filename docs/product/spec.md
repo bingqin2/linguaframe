@@ -223,6 +223,7 @@ These capabilities are follow-up engineering depth after the core upload-to-arti
 - Any pipeline step can fail and move the job to `FAILED`.
 - Failure records must include the failed stage, safe error summary, retry count, and timestamp.
 - The user or operator can retry a failed job.
+- Retry is bounded by `linguaframe.worker.max-retries`; jobs at the configured limit must return a structured conflict instead of creating another dispatch event.
 - Retry should resume from the appropriate durable stage when possible, or restart the pipeline safely when simpler.
 - The user or operator can cancel queued, retrying, or processing jobs; cancellation is soft and stops the worker before the next durable pipeline stage.
 - The system must not duplicate artifacts silently after retries.
@@ -328,6 +329,7 @@ LinguaFrame MVP is successful when:
 - FFmpeg creates a subtitle-burned video artifact.
 - The frontend shows job status, artifacts, retry actions, and cost summary.
 - A failed pipeline stage records a clear failure reason and can be retried.
+- Retry attempts are visible through retry count, timeline events, and structured conflict responses when the configured retry limit is reached.
 
 ## Resume Target
 

@@ -59,7 +59,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "linguaframe.cost.translation-input-usd-per-million-tokens=0.15",
-        "linguaframe.cost.translation-output-usd-per-million-tokens=0.60"
+        "linguaframe.cost.translation-output-usd-per-million-tokens=0.60",
+        "linguaframe.worker.max-retries=1"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -667,6 +668,31 @@ class LocalizationJobControllerTests {
         mockMvc.perform(post("/api/jobs/{jobId}/retry", "job-controller-job-not-failed"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("CONFLICT"));
+    }
+
+    @Test
+    void rejectsRetryWhenConfiguredRetryLimitIsReached() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-26T21:15:00Z");
+        createJob("job-controller-video-retry-limit", "job-controller-job-retry-limit", createdAt);
+        jobRepository.claimForExecution("job-controller-job-retry-limit", createdAt.plusSeconds(1));
+        jobRepository.markFailed(
+                "job-controller-job-retry-limit",
+                LocalizationJobStage.WORKER_SMOKE,
+                "second execution failed",
+                createdAt.plusSeconds(2)
+        );
+        jdbcClient.sql("""
+                        UPDATE localization_jobs
+                        SET retry_count = 1
+                        WHERE id = :jobId
+                        """)
+                .param("jobId", "job-controller-job-retry-limit")
+                .update();
+
+        mockMvc.perform(post("/api/jobs/{jobId}/retry", "job-controller-job-retry-limit"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("CONFLICT"))
+                .andExpect(jsonPath("$.message").value("Retry limit reached for this localization job."));
     }
 
     @Test

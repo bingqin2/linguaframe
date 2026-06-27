@@ -268,6 +268,14 @@ Impact: Jobs without a selected voice still use the configured provider default.
 
 ## 2026-06-27
 
+Decision: Enforce failed-job retry limits in the backend service, not the browser.
+
+Reason: Retry creates durable state transitions and dispatch events, so the backend must be the source of truth for whether another attempt is allowed. The frontend should display retry count and structured errors, but it must not predict the limit from potentially stale job detail.
+
+Impact: `POST /api/jobs/{jobId}/retry` rejects jobs whose `retryCount` has reached `linguaframe.worker.max-retries` before mutating job state or enqueueing dispatch. The selected job remains visible in the React UI when the backend returns the conflict.
+
+## 2026-06-27
+
 Decision: Compute operator dashboard metrics read-only from existing durable tables.
 
 Reason: The current demo needs browser-visible health, failures, cost, and cache signals, but a new reporting schema or mutable admin surface would add operational semantics the product does not have yet.

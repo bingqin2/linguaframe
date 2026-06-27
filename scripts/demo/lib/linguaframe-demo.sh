@@ -114,6 +114,10 @@ print("jobId=" + job["jobId"])
 print("videoId=" + job["videoId"])
 print("status=" + job["status"])
 print("retryCount=" + str(job.get("retryCount", 0)))
+if job.get("failureStage"):
+    print("failureStage=" + job["failureStage"])
+if job.get("failureReason"):
+    print("failureReason=" + job["failureReason"])
 summary = job.get("usageSummary") or {}
 print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
 print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))

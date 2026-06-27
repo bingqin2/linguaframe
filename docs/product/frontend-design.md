@@ -47,6 +47,7 @@ Responsibilities:
 - Show current status and failure reason.
 - Prefer live SSE progress updates and keep polling fallback.
 - Show retry for failed jobs and cancel for queued, retrying, or processing jobs.
+- Show retry count next to stage/status evidence and preserve the selected job when the backend rejects a retry.
 - Show generated artifacts.
 
 ### Subtitle Preview

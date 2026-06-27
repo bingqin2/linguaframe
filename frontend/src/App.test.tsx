@@ -416,6 +416,35 @@ describe('App', () => {
     await waitFor(() => expect(retryJob).toHaveBeenCalledWith('job-1'));
   });
 
+  test('keeps selected failed job visible when retry is rejected by the backend', async () => {
+    vi.spyOn(linguaFrameApi, 'retryJob').mockRejectedValue(
+      new Error('Retry limit reached for this localization job.')
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        status: 'FAILED',
+        failureStage: 'WORKER_SMOKE',
+        failureReason: 'stage failed safely',
+        retryCount: 1
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    await userEvent.click(await screen.findByRole('button', { name: /retry/i }));
+
+    expect(await screen.findByText('Retry limit reached for this localization job.')).toBeInTheDocument();
+    const selectedJob = screen.getByRole('region', { name: /selected job/i });
+    expect(within(selectedJob).getByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
+    expect(within(selectedJob).getByText('FAILED')).toBeInTheDocument();
+    expect(within(selectedJob).getByText('1')).toBeInTheDocument();
+  });
+
   test('cancels active jobs and refreshes server history', async () => {
     const cancelJob = vi
       .spyOn(linguaFrameApi, 'cancelJob')
