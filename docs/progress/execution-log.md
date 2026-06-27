@@ -1482,3 +1482,29 @@ Post-merge verification:
 
 - Merged `retention-cleanup-panel-mvp` back to `main` with merge commit.
 - `cd frontend && npm run test:run -- linguaframeApi App` passed on `main` with `Tests run: 49`.
+
+## 2026-06-27
+
+Work:
+
+- Added budget guard readiness fields to the sanitized runtime dependency summary.
+- Added budget guard status and per-job cost limit display to the React `Demo readiness` panel.
+- Added `scripts/demo/docker-e2e-budget-guard.sh` plus a shared job-failure evidence printer.
+- Documented the budget guard Docker evidence path in README and the smoke-test checklist.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` first failed because `Budget guard` appears in both readiness and feature flags, then passed with `Tests run: 29`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-budget-guard.sh` passed.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests run: 29`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 316, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 54`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-budget-guard.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

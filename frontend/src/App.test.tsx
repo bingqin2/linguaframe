@@ -53,6 +53,11 @@ describe('App', () => {
         readiness: {
           ...runtimeDependenciesFixture().readiness,
           demoAccessGate: true,
+          budget: {
+            enabled: true,
+            maxJobCostUsd: 0.000001,
+            estimatedCostTrackingEnabled: true
+          },
           providers: {
             ...runtimeDependenciesFixture().readiness.providers,
             translation: {
@@ -74,6 +79,9 @@ describe('App', () => {
     expect(within(readiness).getByText('COMBINED')).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg audio')).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg burn-in')).toBeInTheDocument();
+    expect(within(readiness).getAllByText('Budget guard')).toHaveLength(2);
+    expect(within(readiness).getByText('Enabled / estimates Enabled')).toBeInTheDocument();
+    expect(within(readiness).getByText('$0.00000100')).toBeInTheDocument();
     expect(within(readiness).getByText('translation: openai / gpt-4.1-mini / credentials set'))
       .toBeInTheDocument();
     expect(within(readiness).getByText('Job cache')).toBeInTheDocument();
@@ -893,6 +901,11 @@ function runtimeDependenciesFixture(
         workspaceConfigured: true,
         audioTimeoutSeconds: 120,
         burnInTimeoutSeconds: 180
+      },
+      budget: {
+        enabled: false,
+        maxJobCostUsd: 0,
+        estimatedCostTrackingEnabled: true
       },
       providers: {
         transcription: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },

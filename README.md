@@ -417,6 +417,18 @@ LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001
 
 When the guard blocks, the job fails at the guarded stage, no later provider call is recorded, and `GET /api/jobs/{jobId}` shows the failure in `failureReason`, `timelineEvents`, `usageSummary`, and `modelCalls`.
 
+The React `Demo readiness` panel shows whether budget guard is enabled and the configured per-job cost limit. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
+
+```bash
+LINGUAFRAME_COST_ENABLED=true \
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001 \
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=1 \
+docker compose --env-file .env up -d --force-recreate linguaframe-backend
+
+scripts/demo/docker-e2e-budget-guard.sh
+```
+
 `GET /api/jobs/{jobId}` includes dispatch fields plus execution metadata: `startedAt`, `completedAt`, `failedAt`, `failureStage`, `failureReason`, `retryCount`, and `timelineEvents`. It also includes `usageSummary`, `modelCalls`, and optional `qualityEvaluation` for provider/model/status/latency, usage units, estimated cost, quality score, issues, suggested fixes, safe input/output summaries, and safe error summaries. Model-call summaries are count-based, capped before persistence, and avoid raw transcript text, translated subtitle text, TTS text, request payloads, secrets, uploaded media bytes, and local media paths.
 
 Job detail reads use an optional Redis cache-aside layer. MySQL remains the source of truth; Redis stores short-lived serialized `LocalizationJobVo` snapshots under `linguaframe:job-status:<jobId>`, evicts on retry, cancel, and worker status transitions, and fails open to database reads if Redis or JSON serialization is unavailable. The same cached detail path is reused by the SSE progress stream.

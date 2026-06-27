@@ -305,3 +305,11 @@ Decision: Expose retention cleanup in the browser as a manual, confirmation-gate
 Reason: The private demo needs a visible way to manage terminal jobs and stored artifacts without terminal-only curl commands, but cleanup can delete durable data when retention is enabled and dry-run is disabled.
 
 Impact: The React demo can preview cleanup counts and manually run cleanup through the existing backend endpoints. The browser does not schedule cleanup, does not bypass backend retention flags, and requires a confirmation prompt before calling the run endpoint.
+
+## 2026-06-27
+
+Decision: Expose budget guard readiness as safe configuration and add a repeatable demo failure script.
+
+Reason: The cost budget guard is only useful in a private OpenAI demo if an operator can see the active limit before upload and produce terminal evidence that the guard blocks later AI stages. The runtime endpoint should expose only booleans and local estimate limits, not provider prices, raw usage payloads, API keys, or billing data.
+
+Impact: `GET /api/runtime/dependencies` now includes budget guard state, max per-job estimated cost, and estimated-cost tracking status. The React readiness panel shows those fields, and `scripts/demo/docker-e2e-budget-guard.sh` verifies the guard by expecting a controlled `FAILED` job with a budget-exceeded reason.
