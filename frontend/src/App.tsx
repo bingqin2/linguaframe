@@ -9,6 +9,8 @@ import type {
   MediaUpload,
   OperatorDashboard,
   PromptTemplate,
+  ProviderReadiness,
+  RuntimeDependencySummary,
   SubtitleSegment,
   TranscriptSegment
 } from './domain/jobTypes';
@@ -67,6 +69,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
   const [operatorDashboardError, setOperatorDashboardError] = useState<string | null>(null);
   const [isLoadingOperatorDashboard, setIsLoadingOperatorDashboard] = useState(false);
+  const [runtimeDependencies, setRuntimeDependencies] = useState<RuntimeDependencySummary | null>(
+    null
+  );
+  const [runtimeDependenciesError, setRuntimeDependenciesError] = useState<string | null>(null);
+  const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
@@ -135,6 +142,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadRuntimeDependencies = useCallback(async () => {
+    setIsLoadingRuntimeDependencies(true);
+    try {
+      const dependencies = await linguaFrameApi.getRuntimeDependencies();
+      setRuntimeDependencies(dependencies);
+      setRuntimeDependenciesError(null);
+    } catch (dependenciesLoadError) {
+      setRuntimeDependencies(null);
+      setRuntimeDependenciesError(toErrorMessage(dependenciesLoadError));
+    } finally {
+      setIsLoadingRuntimeDependencies(false);
+    }
+  }, []);
+
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
     const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
@@ -174,6 +195,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadOperatorDashboard();
   }, [loadOperatorDashboard]);
+
+  useEffect(() => {
+    void loadRuntimeDependencies();
+  }, [loadRuntimeDependencies]);
 
   useEffect(() => {
     let ignore = false;
@@ -352,12 +377,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const storedToken = writeDemoToken(window.localStorage, demoTokenInput);
     setDemoTokenInput(storedToken);
     setDemoTokenStatus(storedToken ? 'Token saved.' : 'Token cleared.');
+    void loadRuntimeDependencies();
   }
 
   function handleClearDemoToken() {
     writeDemoToken(window.localStorage, '');
     setDemoTokenInput('');
     setDemoTokenStatus('Token cleared.');
+    void loadRuntimeDependencies();
   }
 
   return (
@@ -397,6 +424,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
       <section className="workspace-grid" aria-label="Demo workspace">
         <aside className="sidebar" aria-label="Job controls">
+          <DemoReadinessPanel
+            dependencies={runtimeDependencies}
+            error={runtimeDependenciesError}
+            isLoading={isLoadingRuntimeDependencies}
+            onRefresh={loadRuntimeDependencies}
+          />
+
           <form className="panel" onSubmit={handleUpload}>
             <h2>Upload</h2>
             <label>
@@ -586,6 +620,89 @@ function PromptTemplatesPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoReadinessPanel({
+  dependencies,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  dependencies: RuntimeDependencySummary | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const readiness = dependencies?.readiness ?? null;
+  const providerEntries = readiness
+    ? (['transcription', 'translation', 'tts', 'evaluation'] as const).map((name) => [
+        name,
+        readiness.providers[name]
+      ] as const)
+    : [];
+  const featureEntries = readiness ? Object.entries(readiness.features) : [];
+
+  return (
+    <section className="panel" aria-label="Demo readiness">
+      <div className="panel-heading">
+        <h2>Demo readiness</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !readiness ? <p className="muted">Loading readiness...</p> : null}
+      {readiness ? (
+        <>
+          <dl className="status-grid readiness-grid">
+            <div>
+              <dt>Access</dt>
+              <dd>{readiness.demoAccessGate ? 'Protected' : 'Open'}</dd>
+            </div>
+            <div>
+              <dt>Video limit</dt>
+              <dd>{readiness.media.maxDurationSeconds} seconds</dd>
+            </div>
+            <div>
+              <dt>Worker</dt>
+              <dd>{readiness.worker.role}</dd>
+            </div>
+            <div>
+              <dt>Dispatch</dt>
+              <dd>{formatEnabled(readiness.worker.dispatchEnabled)}</dd>
+            </div>
+            <div>
+              <dt>FFmpeg audio</dt>
+              <dd>
+                {formatEnabled(readiness.ffmpeg.audioEnabled)} /{' '}
+                {formatConfigured(readiness.ffmpeg.binaryConfigured)}
+              </dd>
+            </div>
+            <div>
+              <dt>FFmpeg burn-in</dt>
+              <dd>
+                {formatEnabled(readiness.ffmpeg.burnInEnabled)} /{' '}
+                {formatConfigured(readiness.ffmpeg.workspaceConfigured)}
+              </dd>
+            </div>
+          </dl>
+          <ul className="readiness-list" aria-label="Provider readiness">
+            {providerEntries.map(([name, provider]) => (
+              <li key={name}>{formatProviderReadiness(name, provider)}</li>
+            ))}
+          </ul>
+          <ul className="feature-list" aria-label="Runtime feature flags">
+            {featureEntries.map(([name, feature]) => (
+              <li key={name}>
+                <span>{formatFeatureName(name)}</span>
+                <span>{formatEnabled(feature.enabled)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
       ) : null}
     </section>
   );
@@ -1070,6 +1187,31 @@ function formatCost(value: number): string {
 
 function formatVoice(value: string | null | undefined): string {
   return value?.trim() || 'Default voice';
+}
+
+function formatEnabled(value: boolean): string {
+  return value ? 'Enabled' : 'Disabled';
+}
+
+function formatConfigured(value: boolean): string {
+  return value ? 'Configured' : 'Missing';
+}
+
+function formatProviderReadiness(name: string, provider: ProviderReadiness): string {
+  const model = provider.model?.trim() || 'default';
+  const credentials = provider.credentialsConfigured ? 'credentials set' : 'credentials missing';
+  return `${name}: ${provider.provider} / ${model} / ${credentials}`;
+}
+
+function formatFeatureName(name: string): string {
+  const labels: Record<string, string> = {
+    jobStatusCache: 'Job cache',
+    uploadRateLimit: 'Upload rate limit',
+    retentionCleanup: 'Retention cleanup',
+    costTracking: 'Cost tracking',
+    budgetGuard: 'Budget guard'
+  };
+  return labels[name] ?? name;
 }
 
 function formatTimeRange(startMs: number, endMs: number): string {

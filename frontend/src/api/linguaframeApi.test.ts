@@ -8,6 +8,7 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getRuntimeDependencies,
   readDemoToken,
   cancelJob,
   retryJob,
@@ -256,6 +257,24 @@ describe('linguaframeApi', () => {
     });
   });
 
+  test('fetches runtime dependencies with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(runtimeDependenciesFixture())
+    );
+
+    const dependencies = await getRuntimeDependencies();
+
+    expect(dependencies.readiness.worker.role).toBe('COMBINED');
+    expect(dependencies.readiness.providers.translation.provider).toBe('demo');
+    expect(fetchMock).toHaveBeenCalledWith('/api/runtime/dependencies', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
   test('retries a failed job', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -475,6 +494,48 @@ function operatorDashboardFixture() {
       artifactCacheHitCount: 1,
       generatedArtifactCount: 3,
       providerCacheHitCount: 1
+    }
+  };
+}
+
+function runtimeDependenciesFixture() {
+  return {
+    database: { type: 'mysql', host: 'localhost', port: 3306 },
+    redis: { type: 'redis', host: 'localhost', port: 6379 },
+    rabbitmq: { type: 'rabbitmq', host: 'localhost', port: 5672 },
+    storage: { type: 'minio', endpoint: 'http://localhost:9000', bucket: 'linguaframe-artifacts' },
+    readiness: {
+      demoAccessGate: false,
+      worker: {
+        dispatchEnabled: true,
+        executionEnabled: true,
+        role: 'COMBINED',
+        maxRetries: 2,
+        dispatchBatchSize: 10,
+        dispatchIntervalMs: 5000
+      },
+      media: { maxFileSizeMb: 100, maxDurationSeconds: 300 },
+      ffmpeg: {
+        audioEnabled: true,
+        burnInEnabled: true,
+        binaryConfigured: true,
+        workspaceConfigured: true,
+        audioTimeoutSeconds: 120,
+        burnInTimeoutSeconds: 180
+      },
+      providers: {
+        transcription: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
+        translation: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
+        tts: { enabled: false, provider: 'demo', model: '', credentialsConfigured: false },
+        evaluation: { enabled: false, provider: 'demo', model: '', credentialsConfigured: false }
+      },
+      features: {
+        jobStatusCache: { enabled: true },
+        uploadRateLimit: { enabled: false },
+        retentionCleanup: { enabled: false },
+        costTracking: { enabled: true },
+        budgetGuard: { enabled: false }
+      }
     }
   };
 }

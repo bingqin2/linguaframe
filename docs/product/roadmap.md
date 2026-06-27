@@ -251,7 +251,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, retry, cost/model-call visibility, and a read-only operator dashboard for demo health.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, retry, cost/model-call visibility, a read-only operator dashboard for demo health, and a read-only demo readiness panel.
 
 Build:
 
@@ -267,6 +267,7 @@ Build:
 - Retry button.
 - Cost summary.
 - Read-only operator dashboard. Status: implemented for status counts, recent failures, model-call totals, and cache totals.
+- Read-only demo readiness panel. Status: implemented for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, and feature flags.
 
 Do not build yet:
 
@@ -288,7 +289,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, and a local preflight runbook for private demo readiness.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a local preflight runbook for private demo readiness, and browser-visible configuration readiness through the React demo.
 
 Build:
 
@@ -297,6 +298,7 @@ Build:
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
 - Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, optional token-gate behavior, and configured sample paths.
+- Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.

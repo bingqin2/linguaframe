@@ -281,3 +281,11 @@ Decision: Compute operator dashboard metrics read-only from existing durable tab
 Reason: The current demo needs browser-visible health, failures, cost, and cache signals, but a new reporting schema or mutable admin surface would add operational semantics the product does not have yet.
 
 Impact: `GET /api/operator/dashboard` aggregates jobs, model calls, artifacts, and cache-hit timeline events on demand. It is protected by the existing demo access gate when configured and deliberately does not add queue purge, retention execution, billing, or user administration.
+
+## 2026-06-27
+
+Decision: Keep browser demo readiness read-only and configuration-derived.
+
+Reason: The private demo needs visible readiness evidence before upload, but live probes, FFmpeg execution, object writes, and provider calls would make opening the page slow, stateful, or potentially paid.
+
+Impact: `GET /api/runtime/dependencies` now returns safe readiness fields for the React panel, including demo gate state, worker mode, media limits, FFmpeg toggles, provider modes, and feature flags. It still excludes secrets, tokens, raw local media paths, and workspace paths.

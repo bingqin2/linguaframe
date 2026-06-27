@@ -9,7 +9,8 @@ import type {
   LocalizationJobList,
   MediaUpload,
   OperatorDashboard,
-  PromptTemplate
+  PromptTemplate,
+  RuntimeDependencySummary
 } from './domain/jobTypes';
 
 class FakeEventSource {
@@ -38,7 +39,52 @@ describe('App', () => {
     vi.restoreAllMocks();
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
+    vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
+  });
+
+  test('shows demo readiness configuration in the sidebar', async () => {
+    vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(
+      runtimeDependenciesFixture({
+        readiness: {
+          ...runtimeDependenciesFixture().readiness,
+          demoAccessGate: true,
+          providers: {
+            ...runtimeDependenciesFixture().readiness.providers,
+            translation: {
+              enabled: true,
+              provider: 'openai',
+              model: 'gpt-4.1-mini',
+              credentialsConfigured: true
+            }
+          }
+        }
+      })
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /demo readiness/i });
+    expect(within(readiness).getByText('Protected')).toBeInTheDocument();
+    expect(within(readiness).getByText('300 seconds')).toBeInTheDocument();
+    expect(within(readiness).getByText('COMBINED')).toBeInTheDocument();
+    expect(within(readiness).getByText('FFmpeg audio')).toBeInTheDocument();
+    expect(within(readiness).getByText('FFmpeg burn-in')).toBeInTheDocument();
+    expect(within(readiness).getByText('translation: openai / gpt-4.1-mini / credentials set'))
+      .toBeInTheDocument();
+    expect(within(readiness).getByText('Job cache')).toBeInTheDocument();
+  });
+
+  test('keeps upload controls usable when demo readiness fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockRejectedValue(
+      new Error('Readiness unavailable')
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /demo readiness/i });
+    expect(within(readiness).getByText('Readiness unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
   test('shows operator dashboard metrics and opens a recent failed job', async () => {
@@ -726,6 +772,51 @@ function operatorDashboardFixture(overrides: Partial<OperatorDashboard> = {}): O
       artifactCacheHitCount: 1,
       generatedArtifactCount: 3,
       providerCacheHitCount: 1
+    },
+    ...overrides
+  };
+}
+
+function runtimeDependenciesFixture(
+  overrides: Partial<RuntimeDependencySummary> = {}
+): RuntimeDependencySummary {
+  return {
+    database: { type: 'mysql', host: 'localhost', port: 3306 },
+    redis: { type: 'redis', host: 'localhost', port: 6379 },
+    rabbitmq: { type: 'rabbitmq', host: 'localhost', port: 5672 },
+    storage: { type: 'minio', endpoint: 'http://localhost:9000', bucket: 'linguaframe-artifacts' },
+    readiness: {
+      demoAccessGate: false,
+      worker: {
+        dispatchEnabled: true,
+        executionEnabled: true,
+        role: 'COMBINED',
+        maxRetries: 2,
+        dispatchBatchSize: 10,
+        dispatchIntervalMs: 5000
+      },
+      media: { maxFileSizeMb: 100, maxDurationSeconds: 300 },
+      ffmpeg: {
+        audioEnabled: true,
+        burnInEnabled: true,
+        binaryConfigured: true,
+        workspaceConfigured: true,
+        audioTimeoutSeconds: 120,
+        burnInTimeoutSeconds: 180
+      },
+      providers: {
+        transcription: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
+        translation: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
+        tts: { enabled: false, provider: 'demo', model: '', credentialsConfigured: false },
+        evaluation: { enabled: false, provider: 'demo', model: '', credentialsConfigured: false }
+      },
+      features: {
+        jobStatusCache: { enabled: true },
+        uploadRateLimit: { enabled: false },
+        retentionCleanup: { enabled: false },
+        costTracking: { enabled: true },
+        budgetGuard: { enabled: false }
+      }
     },
     ...overrides
   };

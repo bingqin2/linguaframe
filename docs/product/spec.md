@@ -59,6 +59,7 @@ Self-hosted usage requires:
 - Backend startup instructions.
 - Frontend startup instructions.
 - A private-demo preflight command that verifies local readiness before media upload or paid provider-backed runs.
+- A browser-visible, read-only readiness panel that summarizes safe runtime configuration before upload.
 - FFmpeg availability inside the backend or worker container.
 - A small sample video for smoke testing.
 
@@ -287,6 +288,7 @@ MVP frontend scope:
 - Failed-job retry button.
 - Server-Sent Events for live selected-job progress with polling fallback.
 - Read-only operator dashboard for job status counts, recent failures, model-call totals, and cache totals.
+- Read-only demo readiness panel for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, and runtime feature flags.
 
 The frontend should not start as a marketing landing page. The first screen should be the working video localization experience.
 

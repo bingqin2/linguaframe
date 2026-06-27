@@ -1372,6 +1372,30 @@ Post-merge verification:
 
 Work:
 
+- Extended the sanitized runtime dependency summary with read-only demo readiness fields for demo gate state, worker configuration, media limits, FFmpeg settings, provider modes, and runtime feature flags.
+- Added a React `Demo readiness` sidebar panel backed by `GET /api/runtime/dependencies`, including refresh, local error handling, and upload controls that remain usable when readiness loading fails.
+- Documented that browser readiness is configuration-derived only and complements the local private-demo preflight script.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest='RuntimeDependencyControllerTests,LinguaFramePropertiesTests,DemoAccessInterceptorTests' test` first failed because `readiness` was absent, then passed with `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` first failed because the `Demo readiness` region was absent, then passed with `Tests run: 41`.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest='RuntimeDependencyControllerTests,LinguaFramePropertiesTests,DemoAccessInterceptorTests' test` passed with `Tests run: 26, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi App` passed with `Tests run: 41`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 313, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run` passed with `Tests run: 46`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `docker compose --env-file .env.example --profile split-workers config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-27
+
+Work:
+
 - Added read-only operator dashboard API at `GET /api/operator/dashboard`.
 - Added dashboard aggregates for job status counts, recent failed jobs, model-call totals, and cache totals from existing durable tables.
 - Added React operator dashboard panel with refresh, safe local error handling, and click-to-open for recent failed jobs.

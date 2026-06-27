@@ -6,6 +6,7 @@ import type {
   MediaUpload,
   OperatorDashboard,
   PromptTemplate,
+  RuntimeDependencySummary,
   SubtitleSegment,
   TranscriptSegment
 } from '../domain/jobTypes';
@@ -88,6 +89,12 @@ export async function getOperatorDashboard(): Promise<OperatorDashboard> {
   });
 }
 
+export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary> {
+  return requestJson<RuntimeDependencySummary>('/api/runtime/dependencies', {
+    method: 'GET'
+  });
+}
+
 export async function listTranscript(jobId: string): Promise<TranscriptSegment[]> {
   return requestJson<TranscriptSegment[]>(`/api/jobs/${encodeURIComponent(jobId)}/transcript`, {
     method: 'GET'
@@ -125,6 +132,7 @@ export const linguaFrameApi = {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getRuntimeDependencies,
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,
