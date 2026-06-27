@@ -20,6 +20,15 @@ Validation:
 - `git diff --check` passed.
 - Maven tests were not required because this slice reused existing backend read APIs and changed only React frontend, CSS, docs, and the plan file.
 
+Post-merge verification:
+
+- Merged `codex-browser-cache-replay-evidence` back to `main` with a merge commit.
+- `cd frontend && npm run test:run -- App -t "cache replay"` passed on `main` with `Tests 3 passed`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 44 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash -n scripts/demo/docker-e2e-cache-hit.sh scripts/demo/lib/linguaframe-demo.sh` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:

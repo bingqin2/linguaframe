@@ -121,4 +121,4 @@
 - [x] Exported replay evidence is safe and excludes raw content, object keys, local paths, tokens, credentials, and provider payloads.
 - [x] Frontend tests cover the main comparison flow, export flow, and failure state.
 - [x] README, Docker E2E guide, smoke checklist, roadmap, decisions, execution log, and this plan are updated.
-- [ ] The feature branch is committed, verified, and merged back to `main`.
+- [x] The feature branch is committed, verified, and merged back to `main`.
