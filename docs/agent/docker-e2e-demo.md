@@ -4,6 +4,16 @@ This guide verifies the current LinguaFrame backend demo path: upload a small MP
 
 ## Start The Stack
 
+For the default local browser demo, use the one-command startup from the repository root:
+
+```bash
+scripts/demo/start-local-demo.sh
+```
+
+It packages the backend jar, recreates `linguaframe-backend`, starts the local Vite frontend fallback when `http://localhost:5173` is unavailable, runs private-demo preflight, and prints the browser URL plus next E2E commands. If the script starts the local frontend itself, that frontend process is stopped when the script exits.
+
+Use the lower-level commands below when you need to debug a specific Docker or frontend step.
+
 Package the backend jar from the repository root:
 
 ```bash
