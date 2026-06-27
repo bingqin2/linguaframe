@@ -154,6 +154,40 @@ export interface PromptTemplate {
   active: boolean;
 }
 
+export interface OperatorDashboard {
+  statusCounts: OperatorJobStatusCount[];
+  recentFailures: OperatorRecentFailure[];
+  modelCalls: OperatorModelCallSummary;
+  cache: OperatorCacheSummary;
+}
+
+export interface OperatorJobStatusCount {
+  status: LocalizationJobStatus;
+  count: number;
+}
+
+export interface OperatorRecentFailure {
+  jobId: string;
+  videoId: string;
+  filename: string;
+  failureStage: LocalizationJobStage | null;
+  failureReason: string | null;
+  failedAt: string;
+}
+
+export interface OperatorModelCallSummary {
+  modelCallCount: number;
+  failedModelCallCount: number;
+  totalLatencyMs: number;
+  estimatedCostUsd: number;
+}
+
+export interface OperatorCacheSummary {
+  artifactCacheHitCount: number;
+  generatedArtifactCount: number;
+  providerCacheHitCount: number;
+}
+
 export interface JobArtifact {
   artifactId: string;
   jobId: string;

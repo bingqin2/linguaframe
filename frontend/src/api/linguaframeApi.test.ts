@@ -7,6 +7,7 @@ import {
   listJobs,
   listArtifacts,
   listPromptTemplates,
+  getOperatorDashboard,
   readDemoToken,
   cancelJob,
   retryJob,
@@ -237,6 +238,24 @@ describe('linguaframeApi', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/prompt-templates', { method: 'GET' });
   });
 
+  test('fetches operator dashboard with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(operatorDashboardFixture())
+    );
+
+    const dashboard = await getOperatorDashboard();
+
+    expect(dashboard.modelCalls.modelCallCount).toBe(2);
+    expect(dashboard.cache.providerCacheHitCount).toBe(1);
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/dashboard', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
   test('retries a failed job', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -424,4 +443,38 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
       'Content-Type': 'application/json'
     }
   });
+}
+
+function operatorDashboardFixture() {
+  return {
+    statusCounts: [
+      { status: 'QUEUED', count: 1 },
+      { status: 'RETRYING', count: 0 },
+      { status: 'PROCESSING', count: 1 },
+      { status: 'COMPLETED', count: 2 },
+      { status: 'FAILED', count: 1 },
+      { status: 'CANCELLED', count: 0 }
+    ],
+    recentFailures: [
+      {
+        jobId: 'failed-dashboard-job',
+        videoId: 'failed-dashboard-video',
+        filename: 'failed.mp4',
+        failureStage: 'DUBBING_AUDIO_GENERATION',
+        failureReason: 'OpenAI TTS request failed with status 401',
+        failedAt: '2026-06-27T06:00:00Z'
+      }
+    ],
+    modelCalls: {
+      modelCallCount: 2,
+      failedModelCallCount: 1,
+      totalLatencyMs: 200,
+      estimatedCostUsd: 0.00015
+    },
+    cache: {
+      artifactCacheHitCount: 1,
+      generatedArtifactCount: 3,
+      providerCacheHitCount: 1
+    }
+  };
 }

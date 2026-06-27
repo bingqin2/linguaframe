@@ -4,6 +4,7 @@ import type {
   LocalizationJobList,
   LocalizationJobStatus,
   MediaUpload,
+  OperatorDashboard,
   PromptTemplate,
   SubtitleSegment,
   TranscriptSegment
@@ -81,6 +82,12 @@ export async function listPromptTemplates(): Promise<PromptTemplate[]> {
   });
 }
 
+export async function getOperatorDashboard(): Promise<OperatorDashboard> {
+  return requestJson<OperatorDashboard>('/api/operator/dashboard', {
+    method: 'GET'
+  });
+}
+
 export async function listTranscript(jobId: string): Promise<TranscriptSegment[]> {
   return requestJson<TranscriptSegment[]>(`/api/jobs/${encodeURIComponent(jobId)}/transcript`, {
     method: 'GET'
@@ -117,6 +124,7 @@ export const linguaFrameApi = {
   cancelJob,
   listArtifacts,
   listPromptTemplates,
+  getOperatorDashboard,
   listTranscript,
   listSubtitles,
   artifactDownloadUrl,

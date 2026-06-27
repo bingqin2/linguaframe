@@ -7,6 +7,7 @@ import type {
   LocalizationJobStatus,
   LocalizationJobSummary,
   MediaUpload,
+  OperatorDashboard,
   PromptTemplate,
   SubtitleSegment,
   TranscriptSegment
@@ -63,6 +64,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
+  const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
+  const [operatorDashboardError, setOperatorDashboardError] = useState<string | null>(null);
+  const [isLoadingOperatorDashboard, setIsLoadingOperatorDashboard] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
@@ -117,6 +121,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadOperatorDashboard = useCallback(async () => {
+    setIsLoadingOperatorDashboard(true);
+    try {
+      const dashboard = await linguaFrameApi.getOperatorDashboard();
+      setOperatorDashboard(dashboard);
+      setOperatorDashboardError(null);
+    } catch (dashboardLoadError) {
+      setOperatorDashboard(null);
+      setOperatorDashboardError(toErrorMessage(dashboardLoadError));
+    } finally {
+      setIsLoadingOperatorDashboard(false);
+    }
+  }, []);
+
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
     const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
@@ -152,6 +170,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadHistory(historyStatusFilter);
   }, [historyStatusFilter, loadHistory]);
+
+  useEffect(() => {
+    void loadOperatorDashboard();
+  }, [loadOperatorDashboard]);
 
   useEffect(() => {
     let ignore = false;
@@ -315,6 +337,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
   }
 
+  async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
+    setSelectedRecentJob(null);
+    setManualJobId(failure.jobId);
+    const nextJob = await loadJob(failure.jobId);
+    const language = nextJob.targetLanguage ?? targetLanguage;
+    setTargetLanguage(language);
+    setTtsVoice(nextJob.ttsVoice ?? '');
+    await loadPreviewData(failure.jobId, language);
+  }
+
   function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const storedToken = writeDemoToken(window.localStorage, demoTokenInput);
@@ -463,6 +495,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             ) : null}
           </section>
 
+          <OperatorDashboardPanel
+            dashboard={operatorDashboard}
+            error={operatorDashboardError}
+            isLoading={isLoadingOperatorDashboard}
+            onRefresh={loadOperatorDashboard}
+            onOpenFailure={openDashboardFailure}
+          />
+
           <section className="panel">
             <h2>Recent jobs</h2>
             {recentJobs.length === 0 ? (
@@ -546,6 +586,95 @@ function PromptTemplatesPanel({
             </li>
           ))}
         </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function OperatorDashboardPanel({
+  dashboard,
+  error,
+  isLoading,
+  onRefresh,
+  onOpenFailure
+}: {
+  dashboard: OperatorDashboard | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+  onOpenFailure: (failure: OperatorDashboard['recentFailures'][number]) => void;
+}) {
+  const totalJobs = dashboard?.statusCounts.reduce((total, item) => total + item.count, 0) ?? 0;
+  const failedJobs = dashboard?.statusCounts.find((item) => item.status === 'FAILED')?.count ?? 0;
+  const processingJobs =
+    dashboard?.statusCounts.find((item) => item.status === 'PROCESSING')?.count ?? 0;
+
+  return (
+    <section className="panel" aria-label="Operator dashboard">
+      <div className="panel-heading">
+        <h2>Operator dashboard</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !dashboard ? <p className="muted">Loading dashboard...</p> : null}
+      {dashboard ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Total</dt>
+              <dd>{totalJobs} jobs</dd>
+            </div>
+            <div>
+              <dt>Processing</dt>
+              <dd>{processingJobs} active</dd>
+            </div>
+            <div>
+              <dt>Failed</dt>
+              <dd>{failedJobs} failed</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatCost(dashboard.modelCalls.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Model calls</dt>
+              <dd>
+                {dashboard.modelCalls.modelCallCount} calls /{' '}
+                {dashboard.modelCalls.failedModelCallCount} failed
+              </dd>
+            </div>
+            <div>
+              <dt>Cache</dt>
+              <dd>
+                {dashboard.cache.artifactCacheHitCount} /{' '}
+                {dashboard.cache.generatedArtifactCount} artifacts
+              </dd>
+            </div>
+            <div>
+              <dt>Provider cache</dt>
+              <dd>{dashboard.cache.providerCacheHitCount} hits</dd>
+            </div>
+          </dl>
+          {dashboard.recentFailures.length > 0 ? (
+            <ul className="recent-list" aria-label="Recent failed jobs">
+              {dashboard.recentFailures.map((failure) => (
+                <li key={failure.jobId}>
+                  <button type="button" onClick={() => onOpenFailure(failure)}>
+                    <span>{failure.filename}</span>
+                    <span className="history-meta">
+                      {failure.failureStage ?? 'FAILED'} · {failure.failureReason ?? 'No reason'}
+                    </span>
+                    <small>{failure.jobId}</small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No recent failed jobs.</p>
+          )}
+        </>
       ) : null}
     </section>
   );

@@ -8,6 +8,7 @@ import type {
   LocalizationJob,
   LocalizationJobList,
   MediaUpload,
+  OperatorDashboard,
   PromptTemplate
 } from './domain/jobTypes';
 
@@ -36,7 +37,64 @@ describe('App', () => {
     window.localStorage.clear();
     vi.restoreAllMocks();
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+    vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
+  });
+
+  test('shows operator dashboard metrics and opens a recent failed job', async () => {
+    vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(
+      operatorDashboardFixture({
+        recentFailures: [
+          {
+            jobId: 'failed-dashboard-job',
+            videoId: 'failed-dashboard-video',
+            filename: 'failed-dashboard.mp4',
+            failureStage: 'DUBBING_AUDIO_GENERATION',
+            failureReason: 'OpenAI TTS request failed with status 401',
+            failedAt: '2026-06-27T06:00:00Z'
+          }
+        ]
+      })
+    );
+    const getJob = vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'failed-dashboard-job',
+        videoId: 'failed-dashboard-video',
+        status: 'FAILED',
+        failureStage: 'DUBBING_AUDIO_GENERATION',
+        failureReason: 'OpenAI TTS request failed with status 401'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    const dashboard = await screen.findByRole('region', { name: /operator dashboard/i });
+    expect(within(dashboard).getByText('5 jobs')).toBeInTheDocument();
+    expect(within(dashboard).getByText('1 failed')).toBeInTheDocument();
+    expect(within(dashboard).getByText('$0.00015000')).toBeInTheDocument();
+    expect(within(dashboard).getByText('1 / 3 artifacts')).toBeInTheDocument();
+    expect(within(dashboard).getByRole('button', { name: /failed-dashboard\.mp4/i }))
+      .toHaveTextContent('DUBBING_AUDIO_GENERATION');
+
+    await userEvent.click(within(dashboard).getByRole('button', { name: /failed-dashboard\.mp4/i }));
+
+    expect(await screen.findByRole('heading', { name: /job failed-dashboard-job/i })).toBeInTheDocument();
+    expect(getJob).toHaveBeenCalledWith('failed-dashboard-job');
+  });
+
+  test('keeps upload controls usable when operator dashboard fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockRejectedValue(
+      new Error('Dashboard unavailable')
+    );
+
+    render(<App />);
+
+    const dashboard = await screen.findByRole('region', { name: /operator dashboard/i });
+    expect(within(dashboard).getByText('Dashboard unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
   test('loads server job history on startup', async () => {
@@ -614,6 +672,32 @@ function jobListFixture(overrides: Partial<LocalizationJobList> = {}): Localizat
     limit: 20,
     offset: 0,
     total: 0,
+    ...overrides
+  };
+}
+
+function operatorDashboardFixture(overrides: Partial<OperatorDashboard> = {}): OperatorDashboard {
+  return {
+    statusCounts: [
+      { status: 'QUEUED', count: 1 },
+      { status: 'RETRYING', count: 0 },
+      { status: 'PROCESSING', count: 1 },
+      { status: 'COMPLETED', count: 2 },
+      { status: 'FAILED', count: 1 },
+      { status: 'CANCELLED', count: 0 }
+    ],
+    recentFailures: [],
+    modelCalls: {
+      modelCallCount: 2,
+      failedModelCallCount: 1,
+      totalLatencyMs: 200,
+      estimatedCostUsd: 0.00015
+    },
+    cache: {
+      artifactCacheHitCount: 1,
+      generatedArtifactCount: 3,
+      providerCacheHitCount: 1
+    },
     ...overrides
   };
 }

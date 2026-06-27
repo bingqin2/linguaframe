@@ -87,6 +87,16 @@ Responsibilities:
 - Show translation quality score and detected issues when evaluation is enabled.
 - Show selected TTS voice and whether a result came from cache when duplicate-work avoidance is implemented.
 
+### Operator Dashboard
+
+Responsibilities:
+
+- Show read-only job status counts for the local demo.
+- Show recent failed jobs with stage and safe failure reason.
+- Show aggregate model-call count, failed calls, latency, estimated cost, and cache counts.
+- Let the viewer open a failed job from the dashboard without terminal access.
+- Keep dashboard failures local so upload, history, and job detail remain usable.
+
 ## First Demo UX
 
 The first demo should be simple:
@@ -143,4 +153,5 @@ The frontend is successful when a viewer can answer these questions without term
 - What did the job cost approximately?
 - Which model calls ran and which prompt versions were used?
 - Did translation quality evaluation pass?
+- What is the overall demo job, cost, and cache state?
 - If it failed, which stage failed and can it be retried?
