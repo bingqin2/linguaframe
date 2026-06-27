@@ -224,7 +224,7 @@ Build:
 - Job timeline events.
 - Failed-stage retry behavior.
 - Redis status cache.
-- Rate-limit hooks.
+- Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
 - Structured logs with job id.
 - OpenAPI docs.
 
@@ -286,7 +286,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, and a default-off retention cleanup policy for terminal demo jobs and artifacts.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, and a default-off retention cleanup policy for terminal demo jobs and artifacts.
 
 Build:
 
@@ -296,6 +296,7 @@ Build:
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
+- Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
 - Owner-only private URL access gate. Status: implemented with optional demo token.
 
 Do not build yet:

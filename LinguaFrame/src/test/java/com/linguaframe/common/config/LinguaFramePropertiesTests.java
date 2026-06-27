@@ -60,6 +60,10 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getDatabase().getPassword()).isEqualTo("linguaframe_dev_password");
         assertThat(properties.getRedis().getHost()).isEqualTo("localhost");
         assertThat(properties.getRedis().getPort()).isEqualTo(6379);
+        assertThat(properties.getRateLimit().isEnabled()).isFalse();
+        assertThat(properties.getRateLimit().getUploadMaxRequests()).isEqualTo(20);
+        assertThat(properties.getRateLimit().getUploadWindowSeconds()).isEqualTo(60);
+        assertThat(properties.getRateLimit().isFailOpen()).isTrue();
         assertThat(properties.getRabbitmq().getHost()).isEqualTo("localhost");
         assertThat(properties.getRabbitmq().getPort()).isEqualTo(5672);
         assertThat(properties.getRabbitmq().getUsername()).isEqualTo("linguaframe");
@@ -143,6 +147,25 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getDemo().getAccessToken()).isEqualTo("test-token");
                     assertThat(boundProperties.getDemo().getAccessHeaderName()).isEqualTo("X-Test-Demo-Token");
                     assertThat(boundProperties.getDemo().isAccessGateEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void bindsRateLimitRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.rate-limit.enabled=true",
+                        "linguaframe.rate-limit.upload-max-requests=7",
+                        "linguaframe.rate-limit.upload-window-seconds=30",
+                        "linguaframe.rate-limit.fail-open=false"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getRateLimit().isEnabled()).isTrue();
+                    assertThat(boundProperties.getRateLimit().getUploadMaxRequests()).isEqualTo(7);
+                    assertThat(boundProperties.getRateLimit().getUploadWindowSeconds()).isEqualTo(30);
+                    assertThat(boundProperties.getRateLimit().isFailOpen()).isFalse();
                 });
     }
 
@@ -363,6 +386,8 @@ class LinguaFramePropertiesTests {
                         "linguaframe.worker.dispatch-batch-size=0",
                         "linguaframe.worker.dispatch-interval-ms=0",
                         "linguaframe.worker.smoke-stage-duration-ms=-1",
+                        "linguaframe.rate-limit.upload-max-requests=0",
+                        "linguaframe.rate-limit.upload-window-seconds=0",
                         "linguaframe.ffmpeg.audio-timeout-seconds=0",
                         "linguaframe.ffmpeg.burn-in-timeout-seconds=0",
                         "linguaframe.cost.tts-usd-per-million-characters=-1"
