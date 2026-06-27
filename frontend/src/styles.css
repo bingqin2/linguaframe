@@ -195,6 +195,14 @@ td {
   white-space: nowrap;
 }
 
+.upload-actions {
+  justify-content: stretch;
+}
+
+.upload-actions button {
+  flex: 1 1 120px;
+}
+
 .artifact-panel-heading {
   align-items: center;
 }
@@ -424,6 +432,24 @@ td {
   color: #16384a;
   font-size: 0.82rem;
   overflow-wrap: anywhere;
+}
+
+.upload-validation-panel {
+  margin-top: 14px;
+  border-top: 1px solid #d7e0e6;
+  padding-top: 14px;
+}
+
+.upload-validation-panel h3 {
+  margin: 0;
+}
+
+.validation-message {
+  margin: 0 0 12px;
+}
+
+.upload-validation-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .timeline {

@@ -4,6 +4,7 @@ import type {
   LocalizationJobList,
   LocalizationJobStatus,
   MediaUpload,
+  MediaUploadValidation,
   OperatorDashboard,
   PromptTemplate,
   RetentionCleanupResult,
@@ -20,6 +21,16 @@ export interface ListJobsParams {
   status?: LocalizationJobStatus | 'ALL';
   limit?: number;
   offset?: number;
+}
+
+export async function validateUpload(file: File): Promise<MediaUploadValidation> {
+  const body = new FormData();
+  body.set('file', file);
+
+  return requestJson<MediaUploadValidation>('/api/media/uploads/validate', {
+    method: 'POST',
+    body
+  });
 }
 
 export async function uploadMedia(
@@ -145,6 +156,7 @@ export function jobEventsUrl(jobId: string): string {
 }
 
 export const linguaFrameApi = {
+  validateUpload,
   uploadMedia,
   listJobs,
   getJob,

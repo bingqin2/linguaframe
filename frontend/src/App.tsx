@@ -7,6 +7,7 @@ import type {
   LocalizationJobStatus,
   LocalizationJobSummary,
   MediaUpload,
+  MediaUploadValidation,
   OperatorDashboard,
   PromptTemplate,
   ProviderReadiness,
@@ -57,6 +58,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoTokenStatus, setDemoTokenStatus] = useState<string | null>(null);
   const [job, setJob] = useState<LocalizationJob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isValidatingUpload, setIsValidatingUpload] = useState(false);
+  const [uploadValidation, setUploadValidation] = useState<MediaUploadValidation | null>(null);
+  const [uploadValidationError, setUploadValidationError] = useState<string | null>(null);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -293,13 +297,52 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     return () => eventSource.close();
   }, [historyStatusFilter, isSseUnavailable, job, loadHistory, loadPreviewData]);
 
+  function getSelectedUploadFile(form: HTMLFormElement): File | null {
+    const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
+    return input?.files?.[0] ?? null;
+  }
+
+  async function runUploadValidation(file: File): Promise<MediaUploadValidation | null> {
+    setIsValidatingUpload(true);
+    try {
+      const validation = await linguaFrameApi.validateUpload(file);
+      setUploadValidation(validation);
+      setUploadValidationError(null);
+      return validation;
+    } catch (validationError) {
+      setUploadValidation(null);
+      setUploadValidationError(toErrorMessage(validationError));
+      return null;
+    } finally {
+      setIsValidatingUpload(false);
+    }
+  }
+
+  async function handleValidateUpload(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadValidation(null);
+      setUploadValidationError('Choose an MP4 file before validation.');
+      return;
+    }
+    await runUploadValidation(file);
+  }
+
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
-    const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
-    const file = input?.files?.[0];
+    const file = getSelectedUploadFile(form);
     if (!file) {
       setError('Choose an MP4 file before uploading.');
+      return;
+    }
+
+    const validation = await runUploadValidation(file);
+    if (!validation) {
+      return;
+    }
+    if (!validation.valid) {
+      setError(validation.message);
       return;
     }
 
@@ -486,7 +529,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             <h2>Upload</h2>
             <label>
               Video file
-              <input name="videoFile" type="file" accept="video/mp4,video/*" />
+              <input
+                name="videoFile"
+                type="file"
+                accept="video/mp4,video/*"
+                onChange={() => {
+                  setUploadValidation(null);
+                  setUploadValidationError(null);
+                }}
+              />
             </label>
             <label>
               Target language
@@ -506,9 +557,23 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 ))}
               </select>
             </label>
-            <button type="submit" disabled={isUploading}>
-              {isUploading ? 'Uploading...' : 'Upload'}
-            </button>
+            <div className="panel-actions upload-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={isUploading || isValidatingUpload}
+                onClick={(event) => void handleValidateUpload(event.currentTarget.form)}
+              >
+                {isValidatingUpload ? 'Validating...' : 'Validate file'}
+              </button>
+              <button type="submit" disabled={isUploading || isValidatingUpload}>
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </div>
+            <UploadValidationPanel
+              validation={uploadValidation}
+              error={uploadValidationError}
+            />
           </form>
 
           <form className="panel" onSubmit={handleOpenJob}>
@@ -874,6 +939,64 @@ function DemoRunbookPanel({
           Full sample: set LINGUAFRAME_TEARS_SAMPLE_PATH before running the Tears of Steel script.
         </li>
       </ul>
+    </section>
+  );
+}
+
+function UploadValidationPanel({
+  validation,
+  error
+}: {
+  validation: MediaUploadValidation | null;
+  error: string | null;
+}) {
+  if (!validation && !error) {
+    return null;
+  }
+
+  return (
+    <section className="upload-validation-panel" aria-label="Upload validation">
+      <div className="panel-heading">
+        <h3>Upload validation</h3>
+        {validation ? (
+          <span className={validation.valid ? 'status-pill' : 'status-pill danger'}>
+            {validation.code}
+          </span>
+        ) : null}
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {validation ? (
+        <>
+          <p className={validation.valid ? 'muted validation-message' : 'error-text'}>
+            {validation.message}
+          </p>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Filename</dt>
+              <dd>{validation.filename ?? 'Unknown'}</dd>
+            </div>
+            <div>
+              <dt>Content type</dt>
+              <dd>{validation.contentType ?? 'Unknown'}</dd>
+            </div>
+            <div>
+              <dt>File size</dt>
+              <dd>
+                {formatBytes(validation.fileSizeBytes)} / {formatBytes(validation.maxFileSizeBytes)}
+              </dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>
+                {validation.durationSeconds === null
+                  ? 'Unknown'
+                  : `${validation.durationSeconds} seconds`}{' '}
+                / {validation.maxDurationSeconds} seconds
+              </dd>
+            </div>
+          </dl>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -1496,9 +1619,9 @@ function formatBytes(sizeBytes: number): string {
     return `${sizeBytes} B`;
   }
   if (sizeBytes < 1024 * 1024) {
-    return `${(sizeBytes / 1024).toFixed(1)} KB`;
+    return `${(sizeBytes / 1024).toFixed(2)} KB`;
   }
-  return `${(sizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 function formatArtifactHash(contentSha256: string): string {

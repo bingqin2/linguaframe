@@ -313,6 +313,8 @@ The default upload duration limit is 300 seconds, or 5 minutes. Videos above the
 
 Files with supported content types must also be inspectable by FFprobe. If LinguaFrame cannot inspect duration, the upload is rejected as `UNREADABLE_MEDIA` before storage or queue dispatch.
 
+The React demo exposes the same validation as browser upload preflight. Choose a file and use `Validate file` to inspect filename, content type, size, duration, limits, validation code, and message before upload. The `Upload` button also runs validation first and only creates a job after a `READY` response.
+
 Upload rate limiting is available for private or hosted demos. It is disabled by default. To enable it in Docker, set:
 
 ```bash

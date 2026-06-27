@@ -17,6 +17,7 @@ import {
   cancelJob,
   retryJob,
   runRetentionCleanup,
+  validateUpload,
   writeDemoToken,
   uploadMedia
 } from './linguaframeApi';
@@ -106,6 +107,68 @@ describe('linguaframeApi', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/media/uploads',
+      expect.objectContaining({
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      })
+    );
+  });
+
+  test('validates media upload as multipart form data', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        valid: true,
+        code: 'READY',
+        message: 'File is ready for upload.',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        maxFileSizeBytes: 104857600,
+        durationSeconds: 42,
+        maxDurationSeconds: 300,
+        supportedContentTypes: ['video/mp4', 'video/quicktime']
+      })
+    );
+
+    const file = new File(['demo'], 'sample.mp4', { type: 'video/mp4' });
+    const result = await validateUpload(file);
+
+    expect(result.code).toBe('READY');
+    expect(result.durationSeconds).toBe(42);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads/validate',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData)
+      })
+    );
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('file')).toBe(file);
+  });
+
+  test('validates media upload with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        valid: false,
+        code: 'DURATION_TOO_LONG',
+        message: 'The uploaded video exceeds the 300 second duration limit.',
+        filename: 'long.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        maxFileSizeBytes: 104857600,
+        durationSeconds: 301,
+        maxDurationSeconds: 300,
+        supportedContentTypes: ['video/mp4', 'video/quicktime']
+      })
+    );
+
+    await validateUpload(new File(['demo'], 'long.mp4', { type: 'video/mp4' }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads/validate',
       expect.objectContaining({
         headers: {
           'X-LinguaFrame-Demo-Token': 'private-demo-token'

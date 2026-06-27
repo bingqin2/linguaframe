@@ -97,6 +97,9 @@ http://localhost:5173
 
 Expected browser behavior:
 
+- Choosing a file and clicking `Validate file` shows an `Upload validation` panel with backend validation code, message, filename, content type, file size versus max size, and duration versus max duration.
+- Clicking `Upload` validates the selected file before creating a job.
+- Invalid upload validation responses block `POST /api/media/uploads` and leave the upload controls usable.
 - Upload a short MP4 with a target language.
 - A recent job appears in the browser-local recent jobs list.
 - The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
