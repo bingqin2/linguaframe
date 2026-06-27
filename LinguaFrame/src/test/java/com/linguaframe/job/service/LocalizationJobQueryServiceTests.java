@@ -203,6 +203,7 @@ class LocalizationJobQueryServiceTests {
                 320,
                 "Translated 320 characters",
                 "Produced target-language subtitles",
+                "demo-owner",
                 new BigDecimal("0.01230000"),
                 null,
                 Instant.parse("2026-06-27T05:33:00Z")

@@ -125,6 +125,7 @@ public class ModelCallAuditServiceImpl implements ModelCallAuditService {
                 command.characterCount(),
                 truncate(command.inputSummary()),
                 truncate(command.outputSummary()),
+                properties.getCost().getBudgetIdentity(),
                 estimateCost(command),
                 safeErrorSummary,
                 Instant.now(clock)
@@ -201,10 +202,16 @@ public class ModelCallAuditServiceImpl implements ModelCallAuditService {
                 record.characterCount(),
                 record.inputSummary(),
                 record.outputSummary(),
+                record.budgetIdentity(),
                 record.estimatedCostUsd(),
                 record.safeErrorSummary(),
                 record.createdAt()
         );
+    }
+
+    @Override
+    public BigDecimal summarizeDailyBudget(String budgetIdentity, Instant since) {
+        return repository.sumEstimatedCostByBudgetIdentitySince(budgetIdentity, since);
     }
 
     private Integer sumNullableIntegers(List<Integer> values) {

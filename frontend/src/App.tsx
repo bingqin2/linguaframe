@@ -911,8 +911,19 @@ function DemoReadinessPanel({
               </dd>
             </div>
             <div>
-              <dt>Cost limit</dt>
+              <dt>Job cost limit</dt>
               <dd>{formatCost(readiness.budget.maxJobCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Daily budget</dt>
+              <dd>
+                {formatEnabled(readiness.budget.dailyBudgetGuardEnabled)} /{' '}
+                {formatCost(readiness.budget.maxDailyCostUsd)}
+              </dd>
+            </div>
+            <div>
+              <dt>Budget identity</dt>
+              <dd>{readiness.budget.budgetIdentity}</dd>
             </div>
           </dl>
           <ul className="readiness-list" aria-label="Provider readiness">
@@ -1003,6 +1014,11 @@ function DemoRunbookPanel({
             {readiness.budget.enabled
               ? `Budget guard is enabled at ${formatCost(readiness.budget.maxJobCostUsd)} per job.`
               : 'Budget guard is disabled.'}
+          </li>
+          <li>
+            {readiness.budget.dailyBudgetGuardEnabled
+              ? `Daily budget guard is enabled at ${formatCost(readiness.budget.maxDailyCostUsd)} for ${readiness.budget.budgetIdentity}.`
+              : 'Daily budget guard is disabled.'}
           </li>
           <li>
             Subtitle burn-in is {readiness.ffmpeg.burnInEnabled ? 'enabled' : 'disabled'}.

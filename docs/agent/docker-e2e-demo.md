@@ -177,6 +177,35 @@ This demo verifies FFmpeg audio extraction, deterministic transcript/source subt
 
 ## Provider Cache-Hit Demo
 
+## Daily Budget Guard Demo
+
+Run this when you need terminal evidence that same-day demo budget protection blocks a second paid path before the next guarded provider call:
+
+```bash
+LINGUAFRAME_COST_ENABLED=true \
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_JOB_COST_USD=1 \
+LINGUAFRAME_COST_DAILY_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_DAILY_COST_USD=0.000001 \
+LINGUAFRAME_COST_BUDGET_IDENTITY=demo-owner \
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=1 \
+docker compose --env-file .env up -d --force-recreate linguaframe-backend
+
+scripts/demo/docker-e2e-daily-budget-guard.sh
+```
+
+The script uploads one sample job to create same-day estimated spend, uploads a second compatible job, waits for `FAILED`, checks that `failureReason` contains `Daily cost budget exceeded`, and downloads safe evidence to:
+
+```text
+/tmp/linguaframe-demo/daily-budget-guard/first-job.json
+/tmp/linguaframe-demo/daily-budget-guard/second-job.json
+/tmp/linguaframe-demo/daily-budget-guard/second-diagnostics.json
+```
+
+The budget identity is the configured safe label, such as `demo-owner`. Do not use raw demo tokens, IP addresses, local media paths, or provider payloads as budget identities.
+
+## Provider Cache-Hit Demo
+
 Run this after the successful job path when you need terminal evidence that repeat compatible jobs reuse provider results:
 
 ```bash

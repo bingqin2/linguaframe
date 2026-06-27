@@ -24,6 +24,7 @@ public record ModelCallRecord(
         Integer characterCount,
         String inputSummary,
         String outputSummary,
+        String budgetIdentity,
         BigDecimal estimatedCostUsd,
         String safeErrorSummary,
         Instant createdAt

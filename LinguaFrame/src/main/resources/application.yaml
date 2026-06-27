@@ -70,6 +70,9 @@ linguaframe:
     tts-usd-per-million-characters: ${LINGUAFRAME_COST_TTS_USD_PER_1M_CHARS:0}
     budget-guard-enabled: ${LINGUAFRAME_COST_BUDGET_GUARD_ENABLED:false}
     max-job-cost-usd: ${LINGUAFRAME_COST_MAX_JOB_COST_USD:0}
+    daily-budget-guard-enabled: ${LINGUAFRAME_COST_DAILY_BUDGET_GUARD_ENABLED:false}
+    max-daily-cost-usd: ${LINGUAFRAME_COST_MAX_DAILY_COST_USD:0}
+    budget-identity: ${LINGUAFRAME_COST_BUDGET_IDENTITY:demo-owner}
   ffmpeg:
     binary-path: ${LINGUAFRAME_FFMPEG_BINARY_PATH:ffmpeg}
     audio-enabled: ${LINGUAFRAME_FFMPEG_AUDIO_ENABLED:false}

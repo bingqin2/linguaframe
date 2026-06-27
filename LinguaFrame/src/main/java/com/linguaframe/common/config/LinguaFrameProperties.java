@@ -399,6 +399,14 @@ public class LinguaFrameProperties {
         @DecimalMin("0.0")
         private BigDecimal maxJobCostUsd = BigDecimal.ZERO;
 
+        private boolean dailyBudgetGuardEnabled = false;
+
+        @DecimalMin("0.0")
+        private BigDecimal maxDailyCostUsd = BigDecimal.ZERO;
+
+        @NotBlank
+        private String budgetIdentity = "demo-owner";
+
         public boolean isEnabled() {
             return enabled;
         }
@@ -453,6 +461,30 @@ public class LinguaFrameProperties {
 
         public void setMaxJobCostUsd(BigDecimal maxJobCostUsd) {
             this.maxJobCostUsd = maxJobCostUsd;
+        }
+
+        public boolean isDailyBudgetGuardEnabled() {
+            return dailyBudgetGuardEnabled;
+        }
+
+        public void setDailyBudgetGuardEnabled(boolean dailyBudgetGuardEnabled) {
+            this.dailyBudgetGuardEnabled = dailyBudgetGuardEnabled;
+        }
+
+        public BigDecimal getMaxDailyCostUsd() {
+            return maxDailyCostUsd;
+        }
+
+        public void setMaxDailyCostUsd(BigDecimal maxDailyCostUsd) {
+            this.maxDailyCostUsd = maxDailyCostUsd;
+        }
+
+        public String getBudgetIdentity() {
+            return budgetIdentity;
+        }
+
+        public void setBudgetIdentity(String budgetIdentity) {
+            this.budgetIdentity = budgetIdentity;
         }
     }
 

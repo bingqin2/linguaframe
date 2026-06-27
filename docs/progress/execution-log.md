@@ -1886,6 +1886,28 @@ Post-merge verification:
 
 Work:
 
+- Planned the demo daily cost budget hook MVP in `docs/plans/062-demo-daily-cost-budget-hook-mvp.md`.
+- Added an opt-in daily budget guard for private demos using a safe configured budget identity and same-day estimated model-call costs.
+- Added `budget_identity` persistence to model-call records and repository daily cost aggregation by identity.
+- Extended the existing budget guard so guarded AI stages still check per-job budget first, then the configured UTC daily budget before provider execution.
+- Exposed daily budget guard state, daily limit, and safe budget identity in runtime readiness and the React demo readiness panel.
+- Added `.env.example`, Compose, and YAML mappings for daily budget configuration.
+- Added `scripts/demo/docker-e2e-daily-budget-guard.sh` and documented the repeatable daily budget evidence path.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=ModelCallRepositoryTests,CostBudgetGuardServiceTests,RuntimeDependencyControllerTests test` first failed because Spring could not select a constructor for `CostBudgetGuardServiceImpl`, then passed with `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0` after adding explicit constructor injection.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 352, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` first failed because the fixture still expected migration `V17`, then passed with `Tests 37 passed` after updating it to `V18`.
+- `cd frontend && npm run build` first failed because `dailyBudgetGuard` was missing from the frontend feature-flag type union, then passed after adding the new feature flag key.
+- `bash -n scripts/demo/docker-e2e-budget-guard.sh scripts/demo/docker-e2e-daily-budget-guard.sh scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Added job-scoped backend log context with safe MDC keys for `jobId`, `videoId`, `stage`, and `workerRole`.
 - Wrapped worker execution and pipeline stages with scoped MDC so stage logs can be searched by job and stage without leaking source object keys or local paths.
 - Added worker execution logs for message receipt, stale-message skips, stage planning, stage start/success/failure, handoff, cancellation, and completion.
