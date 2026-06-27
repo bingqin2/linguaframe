@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added a private-demo Compose overlay with a Caddy reverse proxy.
+- Added `.env.private-demo.example` with placeholder-only deployment values.
+- Added `scripts/demo/private-demo-deploy-preflight.sh` to validate proxy shape, required env values, and safe deployment defaults before startup.
+- Added `docs/deployment/private-demo.md` and updated README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log with the private server demo path.
+
+Validation:
+
+- `bash -n scripts/demo/private-demo-deploy-preflight.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed, proving the default local Compose stack still renders.
+- `docker compose --env-file .env.private-demo.example -f docker-compose.yml -f deploy/private-demo/docker-compose.private-demo.yml config --quiet` passed.
+- `LINGUAFRAME_ENV_FILE=.env.private-demo.example scripts/demo/private-demo-deploy-preflight.sh` passed and printed proxy services, public ports, and backend/frontend host-port status without secret values.
+- `git diff --check` passed.
+- Maven and frontend tests were not required because this slice changed deployment configuration, shell preflight, and documentation only; no Java or React runtime code changed.
+
+## 2026-06-28
+
+Work:
+
 - Added a disabled-by-default OpenAI connectivity probe to runtime live checks.
 - Added safe OpenAI probe configuration for `.env.example` and Spring properties.
 - Updated private-demo preflight, React live checks, README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log with OpenAI connectivity behavior.

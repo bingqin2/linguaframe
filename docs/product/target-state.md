@@ -66,6 +66,7 @@ Internet
 Stage 2 goals:
 
 - Use a real HTTPS URL.
+- Use a private-demo reverse proxy that exposes only the public web entry point while keeping app and dependency ports internal.
 - Support controlled uploads from the project owner.
 - Persist job history and artifacts across restarts.
 - Keep file size and duration limits conservative.

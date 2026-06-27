@@ -66,6 +66,7 @@ Planned AI infrastructure capabilities:
 - `docs/product/basic-version-profile.md` - first runnable foundation scope.
 - `docs/product/backend-code-standard.md` - backend package and coding rules.
 - `docs/product/demo-references.md` - public demo media sources, attribution, and license notes.
+- `docs/deployment/private-demo.md` - private demo reverse-proxy deployment runbook.
 - `docs/agent/vibe-coding.md` - AI-assisted development guardrails.
 - `docs/agent/smoke-test-checklist.md` - repeatable demo validation checklist.
 - `docs/agent/docker-e2e-demo.md` - Docker backend E2E demo workflow.
@@ -141,6 +142,19 @@ scripts/demo/docker-e2e-cache-hit.sh
 ```
 
 The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, optional demo-token gate behavior, and configured sample video paths before any media upload or paid provider call.
+
+Private server demo preparation uses a separate Compose overlay so local Docker behavior stays unchanged:
+
+```bash
+cp .env.private-demo.example .env.private-demo
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-deploy-preflight.sh
+docker compose --env-file .env.private-demo \
+  -f docker-compose.yml \
+  -f deploy/private-demo/docker-compose.private-demo.yml \
+  up -d --build
+```
+
+The overlay adds a Caddy reverse proxy on ports 80/443, keeps backend/frontend host ports internal, and routes `/api`, Swagger, actuator, downloads, previews, and SSE through the same public domain. See `docs/deployment/private-demo.md`.
 
 The cache-hit demo uploads the same sample twice and proves provider-cache reuse on the second job. It prints first/second model-call counts, cache summary counts, provider `CACHE_HIT` timeline events, diagnostics summaries, and writes evidence JSON to `/tmp/linguaframe-demo/cache-hit/`.
 
