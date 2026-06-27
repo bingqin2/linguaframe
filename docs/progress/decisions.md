@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Compose cache replay comparison in the React demo from existing safe job APIs instead of adding a backend aggregate endpoint.
+
+Reason: The backend already exposes job detail, timeline, cache summary, model-call summary, and artifact cache state. A frontend-composed comparison is enough for the private demo and avoids adding a redundant read API before public multi-user needs exist.
+
+Impact: The browser can explain cache-hit replay using two selected jobs and export safe evidence, while backend cache semantics remain centralized in existing job detail and artifact responses.
+
+## 2026-06-28
+
 Decision: Handle private-demo durability with operator-run backups before adding managed cloud storage or public account isolation.
 
 Reason: The current product goal is a credible single-owner demo, not a public hosted service. A scripted backup/restore path protects job history, MinIO artifacts, and proxy state while keeping deployment simple and local-first.

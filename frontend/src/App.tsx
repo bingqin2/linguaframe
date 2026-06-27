@@ -108,6 +108,48 @@ interface DemoEvidence {
   };
 }
 
+interface CacheReplayCandidate {
+  jobId: string;
+  filename: string;
+  status: LocalizationJobStatus;
+  targetLanguage: string;
+  ttsVoice: string | null;
+}
+
+interface CacheReplayBaseline {
+  job: LocalizationJob;
+  artifacts: JobArtifact[];
+}
+
+interface CacheReplayEvidenceJob {
+  jobId: string;
+  status: LocalizationJobStatus;
+  targetLanguage: string;
+  ttsVoice: string;
+  modelCallCount: number;
+  estimatedCostUsd: number;
+  artifactCacheHitCount: number;
+  generatedArtifactCount: number;
+  providerCacheHitCount: number;
+}
+
+interface CacheReplayEvidence {
+  generatedAt: string;
+  baseline: CacheReplayEvidenceJob;
+  comparison: CacheReplayEvidenceJob;
+  delta: {
+    modelCalls: number;
+    estimatedCostUsd: number;
+  };
+  providerCacheHitStages: string[];
+  links: {
+    baselineResultBundle: string;
+    comparisonResultBundle: string;
+    baselineDiagnostics: string;
+    comparisonDiagnostics: string;
+  };
+}
+
 const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
   { key: 'transcript-json', label: 'Transcript JSON', artifactType: 'TRANSCRIPT_JSON', preview: 'transcript' },
   { key: 'source-srt', label: 'Source SRT', artifactType: 'SUBTITLE_SRT', preview: 'transcript' },
@@ -171,10 +213,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [runtimeLiveChecksError, setRuntimeLiveChecksError] = useState<string | null>(null);
   const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
+  const [cacheReplayBaseline, setCacheReplayBaseline] = useState<CacheReplayBaseline | null>(null);
+  const [cacheReplayComparisonJobId, setCacheReplayComparisonJobId] = useState('');
+  const [cacheReplayComparisonJob, setCacheReplayComparisonJob] = useState<LocalizationJob | null>(null);
+  const [cacheReplayComparisonArtifacts, setCacheReplayComparisonArtifacts] = useState<JobArtifact[]>([]);
+  const [cacheReplayError, setCacheReplayError] = useState<string | null>(null);
+  const [isLoadingCacheReplayComparison, setIsLoadingCacheReplayComparison] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
   const canCancel = job ? CANCELLABLE_STATUSES.has(job.status) : false;
+  const cacheReplayCandidates = useMemo(
+    () => buildCacheReplayCandidates(history, recentJobs, cacheReplayBaseline?.job.jobId ?? null),
+    [cacheReplayBaseline?.job.jobId, history, recentJobs]
+  );
 
   useEffect(() => {
     const storedToken = readDemoToken(window.localStorage);
@@ -537,6 +589,41 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(failure.jobId, language);
   }
 
+  function handlePinCacheReplayBaseline() {
+    if (!job) {
+      return;
+    }
+    setCacheReplayBaseline({ job, artifacts });
+    setCacheReplayComparisonJobId('');
+    setCacheReplayComparisonJob(null);
+    setCacheReplayComparisonArtifacts([]);
+    setCacheReplayError(null);
+  }
+
+  async function handleSelectCacheReplayComparison(jobId: string) {
+    setCacheReplayComparisonJobId(jobId);
+    setCacheReplayComparisonJob(null);
+    setCacheReplayComparisonArtifacts([]);
+    setCacheReplayError(null);
+    if (!jobId) {
+      return;
+    }
+
+    setIsLoadingCacheReplayComparison(true);
+    try {
+      const [comparisonJob, comparisonArtifacts] = await Promise.all([
+        linguaFrameApi.getJob(jobId),
+        linguaFrameApi.listArtifacts(jobId)
+      ]);
+      setCacheReplayComparisonJob(comparisonJob);
+      setCacheReplayComparisonArtifacts(comparisonArtifacts);
+    } catch (comparisonLoadError) {
+      setCacheReplayError(toErrorMessage(comparisonLoadError));
+    } finally {
+      setIsLoadingCacheReplayComparison(false);
+    }
+  }
+
   function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const storedToken = writeDemoToken(window.localStorage, demoTokenInput);
@@ -805,7 +892,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isRetrying={isRetrying}
               artifacts={artifacts}
               job={job}
+              cacheReplayBaseline={cacheReplayBaseline}
+              cacheReplayCandidates={cacheReplayCandidates}
+              cacheReplayComparisonArtifacts={cacheReplayComparisonArtifacts}
+              cacheReplayComparisonJob={cacheReplayComparisonJob}
+              cacheReplayComparisonJobId={cacheReplayComparisonJobId}
+              cacheReplayError={cacheReplayError}
+              isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               onCancel={handleCancel}
+              onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
+              onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onRetry={handleRetry}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
@@ -1351,7 +1447,16 @@ function JobDetail({
   isRetrying,
   artifacts,
   job,
+  cacheReplayBaseline,
+  cacheReplayCandidates,
+  cacheReplayComparisonArtifacts,
+  cacheReplayComparisonJob,
+  cacheReplayComparisonJobId,
+  cacheReplayError,
+  isLoadingCacheReplayComparison,
   onCancel,
+  onPinCacheReplayBaseline,
+  onSelectCacheReplayComparison,
   onRetry,
   previewErrors,
   selectedLanguage,
@@ -1365,7 +1470,16 @@ function JobDetail({
   isRetrying: boolean;
   artifacts: JobArtifact[];
   job: LocalizationJob;
+  cacheReplayBaseline: CacheReplayBaseline | null;
+  cacheReplayCandidates: CacheReplayCandidate[];
+  cacheReplayComparisonArtifacts: JobArtifact[];
+  cacheReplayComparisonJob: LocalizationJob | null;
+  cacheReplayComparisonJobId: string;
+  cacheReplayError: string | null;
+  isLoadingCacheReplayComparison: boolean;
   onCancel: () => void;
+  onPinCacheReplayBaseline: () => void;
+  onSelectCacheReplayComparison: (jobId: string) => void;
   onRetry: () => void;
   previewErrors: string[];
   selectedLanguage: string;
@@ -1469,6 +1583,18 @@ function JobDetail({
       />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
+
+      <CacheReplayPanel
+        baseline={cacheReplayBaseline}
+        candidates={cacheReplayCandidates}
+        comparisonArtifacts={cacheReplayComparisonArtifacts}
+        comparisonJob={cacheReplayComparisonJob}
+        comparisonJobId={cacheReplayComparisonJobId}
+        error={cacheReplayError}
+        isLoadingComparison={isLoadingCacheReplayComparison}
+        onPinBaseline={onPinCacheReplayBaseline}
+        onSelectComparison={onSelectCacheReplayComparison}
+      />
 
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
 
@@ -1792,6 +1918,189 @@ function DemoEvidencePanel({
   );
 }
 
+function CacheReplayPanel({
+  baseline,
+  candidates,
+  comparisonArtifacts,
+  comparisonJob,
+  comparisonJobId,
+  error,
+  isLoadingComparison,
+  onPinBaseline,
+  onSelectComparison
+}: {
+  baseline: CacheReplayBaseline | null;
+  candidates: CacheReplayCandidate[];
+  comparisonArtifacts: JobArtifact[];
+  comparisonJob: LocalizationJob | null;
+  comparisonJobId: string;
+  error: string | null;
+  isLoadingComparison: boolean;
+  onPinBaseline: () => void;
+  onSelectComparison: (jobId: string) => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+  const evidence = useMemo(
+    () =>
+      baseline && comparisonJob
+        ? buildCacheReplayEvidence(baseline.job, baseline.artifacts, comparisonJob, comparisonArtifacts)
+        : null,
+    [baseline, comparisonArtifacts, comparisonJob]
+  );
+  const markdown = useMemo(
+    () => (evidence ? formatCacheReplayEvidenceMarkdown(evidence) : ''),
+    [evidence]
+  );
+
+  const handleCopy = useCallback(async () => {
+    if (!canCopy || !markdown) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Replay evidence copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownload = useCallback(() => {
+    if (!evidence) {
+      return;
+    }
+    const blob = new Blob([JSON.stringify(evidence, null, 2)], {
+      type: 'application/json'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-cache-replay-${sanitizeFilename(evidence.baseline.jobId)}-${sanitizeFilename(
+      evidence.comparison.jobId
+    )}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Replay evidence JSON downloaded.');
+  }, [evidence]);
+
+  return (
+    <section className="panel cache-replay-panel" aria-label="Cache replay">
+      <div className="panel-heading">
+        <h3>Cache replay</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onPinBaseline}>
+            Pin as baseline
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleCopy}
+            disabled={!evidence || !canCopy}
+          >
+            Copy replay evidence
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleDownload}
+            disabled={!evidence}
+          >
+            Download replay evidence JSON
+          </button>
+        </div>
+      </div>
+
+      {!baseline ? <p className="muted">Pin the selected job as a baseline before comparing runs.</p> : null}
+      {baseline ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Baseline</dt>
+              <dd>{baseline.job.jobId}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{baseline.job.status}</dd>
+            </div>
+            <div>
+              <dt>Model calls</dt>
+              <dd>{modelCallCount(baseline.job)} calls</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatCost(jobEstimatedCost(baseline.job))}</dd>
+            </div>
+          </dl>
+
+          <label>
+            Comparison job
+            <select
+              value={comparisonJobId}
+              onChange={(event) => void onSelectComparison(event.target.value)}
+            >
+              <option value="">Choose a completed replay job</option>
+              {candidates.map((candidate) => (
+                <option key={candidate.jobId} value={candidate.jobId}>
+                  {candidate.filename} · {candidate.jobId} · {candidate.status}
+                </option>
+              ))}
+            </select>
+          </label>
+          {candidates.length === 0 ? <p className="muted">No comparison candidates loaded yet.</p> : null}
+        </>
+      ) : null}
+
+      {isLoadingComparison ? <p className="muted">Loading comparison...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+
+      {baseline && comparisonJob && evidence ? (
+        <>
+          {baseline.job.status !== 'COMPLETED' || comparisonJob.status !== 'COMPLETED' ? (
+            <p className="muted">Cache replay evidence is strongest when both jobs are completed.</p>
+          ) : null}
+          <dl className="metrics-grid cache-replay-grid">
+            <div>
+              <dt>Comparison</dt>
+              <dd>{comparisonJob.jobId}</dd>
+            </div>
+            <div>
+              <dt>Provider cache</dt>
+              <dd>{evidence.comparison.providerCacheHitCount} provider hits</dd>
+            </div>
+            <div>
+              <dt>Artifacts</dt>
+              <dd>
+                {evidence.comparison.artifactCacheHitCount} reused /{' '}
+                {evidence.comparison.generatedArtifactCount} generated
+              </dd>
+            </div>
+            <div>
+              <dt>Model calls</dt>
+              <dd>{formatSignedInteger(evidence.delta.modelCalls)} calls</dd>
+            </div>
+            <div>
+              <dt>Estimated cost</dt>
+              <dd>{formatSignedCost(evidence.delta.estimatedCostUsd)}</dd>
+            </div>
+          </dl>
+          <div className="cache-stage-list">
+            <h4>Cache-hit stages</h4>
+            {evidence.providerCacheHitStages.length === 0 ? (
+              <p className="muted">No provider cache-hit stages recorded.</p>
+            ) : (
+              <ul>
+                {evidence.providerCacheHitStages.map((stage) => (
+                  <li key={stage}>{stage}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function QualityEvaluationPanel({
   evaluation
 }: {
@@ -2048,12 +2357,138 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
   return lines.join('\n');
 }
 
+function buildCacheReplayCandidates(
+  history: LocalizationJobSummary[],
+  recentJobs: RecentJob[],
+  baselineJobId: string | null
+): CacheReplayCandidate[] {
+  const candidates = new Map<string, CacheReplayCandidate>();
+  history.forEach((job) => {
+    if (job.jobId !== baselineJobId) {
+      candidates.set(job.jobId, {
+        jobId: job.jobId,
+        filename: job.filename,
+        status: job.status,
+        targetLanguage: job.targetLanguage,
+        ttsVoice: job.ttsVoice
+      });
+    }
+  });
+  recentJobs.forEach((job) => {
+    if (job.jobId !== baselineJobId && !candidates.has(job.jobId)) {
+      candidates.set(job.jobId, {
+        jobId: job.jobId,
+        filename: job.filename,
+        status: 'COMPLETED',
+        targetLanguage: job.targetLanguage,
+        ttsVoice: job.ttsVoice
+      });
+    }
+  });
+  return Array.from(candidates.values());
+}
+
+function buildCacheReplayEvidence(
+  baselineJob: LocalizationJob,
+  baselineArtifacts: JobArtifact[],
+  comparisonJob: LocalizationJob,
+  comparisonArtifacts: JobArtifact[]
+): CacheReplayEvidence {
+  return {
+    generatedAt: new Date().toISOString(),
+    baseline: cacheReplayEvidenceJob(baselineJob, baselineArtifacts),
+    comparison: cacheReplayEvidenceJob(comparisonJob, comparisonArtifacts),
+    delta: {
+      modelCalls: modelCallCount(comparisonJob) - modelCallCount(baselineJob),
+      estimatedCostUsd: jobEstimatedCost(comparisonJob) - jobEstimatedCost(baselineJob)
+    },
+    providerCacheHitStages: comparisonJob.timelineEvents
+      .filter((event) => event.status === 'CACHE_HIT')
+      .map((event) => event.stage),
+    links: {
+      baselineResultBundle: linguaFrameApi.artifactArchiveDownloadUrl(baselineJob.jobId),
+      comparisonResultBundle: linguaFrameApi.artifactArchiveDownloadUrl(comparisonJob.jobId),
+      baselineDiagnostics: linguaFrameApi.jobDiagnosticsDownloadUrl(baselineJob.jobId),
+      comparisonDiagnostics: linguaFrameApi.jobDiagnosticsDownloadUrl(comparisonJob.jobId)
+    }
+  };
+}
+
+function cacheReplayEvidenceJob(
+  job: LocalizationJob,
+  artifacts: JobArtifact[]
+): CacheReplayEvidenceJob {
+  const artifactCacheHitCount = artifacts.filter((artifact) => artifact.cacheHit).length;
+  return {
+    jobId: job.jobId,
+    status: job.status,
+    targetLanguage: job.targetLanguage,
+    ttsVoice: formatVoice(job.ttsVoice),
+    modelCallCount: modelCallCount(job),
+    estimatedCostUsd: jobEstimatedCost(job),
+    artifactCacheHitCount,
+    generatedArtifactCount: artifacts.length - artifactCacheHitCount,
+    providerCacheHitCount: job.cacheSummary.providerCacheHitCount
+  };
+}
+
+function formatCacheReplayEvidenceMarkdown(evidence: CacheReplayEvidence): string {
+  const lines = [
+    '# LinguaFrame Cache Replay Evidence',
+    '',
+    `- Baseline job: ${evidence.baseline.jobId}`,
+    `- Comparison job: ${evidence.comparison.jobId}`,
+    `- Baseline status: ${evidence.baseline.status}`,
+    `- Comparison status: ${evidence.comparison.status}`,
+    `- Baseline model calls: ${evidence.baseline.modelCallCount}`,
+    `- Comparison model calls: ${evidence.comparison.modelCallCount}`,
+    `- Model call delta: ${formatSignedInteger(evidence.delta.modelCalls)}`,
+    `- Baseline estimated cost: ${formatCost(evidence.baseline.estimatedCostUsd)}`,
+    `- Comparison estimated cost: ${formatCost(evidence.comparison.estimatedCostUsd)}`,
+    `- Estimated cost delta: ${formatSignedCost(evidence.delta.estimatedCostUsd)}`,
+    `- Comparison artifact cache: ${evidence.comparison.artifactCacheHitCount} reused / ${evidence.comparison.generatedArtifactCount} generated`,
+    `- Comparison provider cache hits: ${evidence.comparison.providerCacheHitCount}`,
+    `- Baseline result bundle: ${evidence.links.baselineResultBundle}`,
+    `- Comparison result bundle: ${evidence.links.comparisonResultBundle}`,
+    `- Baseline diagnostics: ${evidence.links.baselineDiagnostics}`,
+    `- Comparison diagnostics: ${evidence.links.comparisonDiagnostics}`
+  ];
+
+  if (evidence.providerCacheHitStages.length > 0) {
+    lines.push('', 'Cache-hit stages:');
+    evidence.providerCacheHitStages.forEach((stage) => {
+      lines.push(`- ${stage}`);
+    });
+  }
+  return lines.join('\n');
+}
+
+function modelCallCount(job: LocalizationJob): number {
+  return job.usageSummary?.modelCallCount ?? job.modelCalls.length;
+}
+
+function jobEstimatedCost(job: LocalizationJob): number {
+  return job.usageSummary?.estimatedCostUsd ?? 0;
+}
+
 function sanitizeFilename(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'job';
 }
 
 function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
+}
+
+function formatSignedCost(value: number): string {
+  const sign = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${sign}${formatCost(Math.abs(value))}`;
+}
+
+function formatSignedInteger(value: number): string {
+  if (value > 0) {
+    return `+${value}`;
+  }
+  return String(value);
 }
 
 function formatVoice(value: string | null | undefined): string {

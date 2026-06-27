@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added a browser `Cache replay` panel to compare a pinned baseline job with another loaded job.
+- Added safe replay evidence copy/download actions for provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe job routes.
+- Added focused React tests for cache replay comparison, safe exports, and comparison-load failure handling.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, decisions, and this execution log.
+
+Validation:
+
+- `cd frontend && npm run test:run -- App -t "cache replay"` first failed because the `Cache replay` region did not exist, then passed with `Tests 3 passed`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 44 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `bash -n scripts/demo/docker-e2e-cache-hit.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+- Maven tests were not required because this slice reused existing backend read APIs and changed only React frontend, CSS, docs, and the plan file.
+
+## 2026-06-28
+
+Work:
+
 - Added `scripts/demo/private-demo-backup.sh` for private-demo MySQL, MinIO, Caddy state, and optional Redis/RabbitMQ backups.
 - Added `scripts/demo/private-demo-restore.sh` with dry-run validation and mandatory `--yes` for real restores.
 - Ignored repository-local backup output directories.

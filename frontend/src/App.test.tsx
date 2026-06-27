@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type {
+  JobArtifact,
   LocalizationJob,
   LocalizationJobList,
   MediaUpload,
@@ -1218,6 +1219,276 @@ describe('App', () => {
     expect(within(evidence).getByRole('button', { name: /copy evidence/i })).toBeDisabled();
   });
 
+  test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
+    const baselineJob = jobFixture({
+      jobId: 'cache-baseline-job',
+      videoId: 'cache-video',
+      status: 'COMPLETED',
+      targetLanguage: 'zh-CN',
+      usageSummary: {
+        ...jobFixture().usageSummary!,
+        modelCallCount: 3,
+        estimatedCostUsd: 0.0009
+      },
+      cacheSummary: {
+        cacheHitCount: 0,
+        generatedArtifactCount: 3,
+        providerCacheHitCount: 0
+      }
+    });
+    const replayJob = jobFixture({
+      jobId: 'cache-replay-job',
+      videoId: 'cache-video',
+      status: 'COMPLETED',
+      targetLanguage: 'zh-CN',
+      usageSummary: {
+        ...jobFixture().usageSummary!,
+        modelCallCount: 1,
+        estimatedCostUsd: 0.0001
+      },
+      cacheSummary: {
+        cacheHitCount: 2,
+        generatedArtifactCount: 1,
+        providerCacheHitCount: 2
+      },
+      timelineEvents: [
+        {
+          id: 'cache-hit-translation',
+          stage: 'TARGET_SUBTITLE_EXPORT',
+          status: 'CACHE_HIT',
+          message: 'Reused cached TRANSLATION provider result.',
+          durationMs: 0,
+          errorSummary: null,
+          occurredAt: '2026-06-26T10:00:02Z'
+        },
+        {
+          id: 'cache-hit-tts',
+          stage: 'DUBBING_AUDIO_GENERATION',
+          status: 'CACHE_HIT',
+          message: 'Reused cached TTS provider result.',
+          durationMs: 0,
+          errorSummary: null,
+          occurredAt: '2026-06-26T10:00:03Z'
+        }
+      ]
+    });
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'cache-baseline-job',
+            videoId: 'cache-video',
+            filename: 'cache-demo.mp4',
+            status: 'COMPLETED',
+            estimatedCostUsd: 0.0009
+          }),
+          jobSummaryFixture({
+            jobId: 'cache-replay-job',
+            videoId: 'cache-video',
+            filename: 'cache-demo.mp4',
+            status: 'COMPLETED',
+            estimatedCostUsd: 0.0001
+          })
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockImplementation(async (jobId: string) => {
+      if (jobId === 'cache-baseline-job') {
+        return baselineJob;
+      }
+      if (jobId === 'cache-replay-job') {
+        return replayJob;
+      }
+      throw new Error('job not found');
+    });
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockImplementation(async (jobId: string) => {
+      if (jobId === 'cache-baseline-job') {
+        return [
+          artifactFixture({ artifactId: 'baseline-transcript', jobId, cacheHit: false }),
+          artifactFixture({
+            artifactId: 'baseline-subtitle',
+            jobId,
+            type: 'TARGET_SUBTITLE_VTT',
+            filename: 'target-subtitles.vtt',
+            cacheHit: false
+          }),
+          artifactFixture({
+            artifactId: 'baseline-video',
+            jobId,
+            type: 'BURNED_VIDEO',
+            filename: 'burned-video.mp4',
+            cacheHit: false
+          })
+        ];
+      }
+      if (jobId === 'cache-replay-job') {
+        return [
+          artifactFixture({ artifactId: 'replay-transcript', jobId, cacheHit: true }),
+          artifactFixture({
+            artifactId: 'replay-subtitle',
+            jobId,
+            type: 'TARGET_SUBTITLE_VTT',
+            filename: 'target-subtitles.vtt',
+            cacheHit: true
+          }),
+          artifactFixture({
+            artifactId: 'replay-video',
+            jobId,
+            type: 'BURNED_VIDEO',
+            filename: 'burned-video.mp4',
+            cacheHit: false
+          })
+        ];
+      }
+      return [];
+    });
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'cache-baseline-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    const replay = await screen.findByRole('region', { name: /cache replay/i });
+    await userEvent.click(within(replay).getByRole('button', { name: /pin as baseline/i }));
+    await userEvent.selectOptions(
+      within(replay).getByLabelText(/comparison job/i),
+      'cache-replay-job'
+    );
+
+    expect(await within(replay).findByText('cache-baseline-job')).toBeInTheDocument();
+    expect(within(replay).getByText('cache-replay-job')).toBeInTheDocument();
+    expect(within(replay).getByText('2 provider hits')).toBeInTheDocument();
+    expect(within(replay).getByText('2 reused / 1 generated')).toBeInTheDocument();
+    expect(within(replay).getByText('-2 calls')).toBeInTheDocument();
+    expect(within(replay).getByText('-$0.00080000')).toBeInTheDocument();
+    expect(within(replay).getByText('TARGET_SUBTITLE_EXPORT')).toBeInTheDocument();
+    expect(within(replay).getByText('DUBBING_AUDIO_GENERATION')).toBeInTheDocument();
+  });
+
+  test('exports safe cache replay evidence', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    const createObjectUrl = vi.fn().mockReturnValue('blob:cache-replay-evidence');
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: createObjectUrl,
+      configurable: true
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: revokeObjectUrl,
+      configurable: true
+    });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({ jobId: 'safe-baseline-job', status: 'COMPLETED' }),
+          jobSummaryFixture({ jobId: 'safe-replay-job', status: 'COMPLETED' })
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockImplementation(async (jobId: string) =>
+      jobFixture({
+        jobId,
+        status: 'COMPLETED',
+        timelineEvents:
+          jobId === 'safe-replay-job'
+            ? [
+                {
+                  id: 'safe-cache-hit',
+                  stage: 'TARGET_SUBTITLE_EXPORT',
+                  status: 'CACHE_HIT',
+                  message: 'Reused cached provider result with source-videos/private-object-key.mp4',
+                  durationMs: 0,
+                  errorSummary: null,
+                  occurredAt: '2026-06-26T10:00:02Z'
+                }
+              ]
+            : []
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: 'Sensitive transcript line'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([
+      {
+        language: 'zh-CN',
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: '敏感字幕'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'safe-artifact',
+        sourceArtifactId: 'source-videos/private-object-key.mp4',
+        cacheHit: true
+      })
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'safe-baseline-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    const replay = await screen.findByRole('region', { name: /cache replay/i });
+    await userEvent.click(within(replay).getByRole('button', { name: /pin as baseline/i }));
+    await userEvent.selectOptions(within(replay).getByLabelText(/comparison job/i), 'safe-replay-job');
+
+    await userEvent.click(await within(replay).findByRole('button', { name: /copy replay evidence/i }));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('# LinguaFrame Cache Replay Evidence'));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('safe-baseline-job'));
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('safe-replay-job'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive transcript line'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('敏感字幕'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('private-object-key'));
+
+    await userEvent.click(within(replay).getByRole('button', { name: /download replay evidence json/i }));
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(anchorClick).toHaveBeenCalled();
+    expect(await within(replay).findByText('Replay evidence JSON downloaded.')).toBeInTheDocument();
+  });
+
+  test('shows cache replay comparison load errors without clearing the selected job', async () => {
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({ jobId: 'baseline-ok', status: 'COMPLETED' }),
+          jobSummaryFixture({ jobId: 'comparison-fails', status: 'COMPLETED' })
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockImplementation(async (jobId: string) => {
+      if (jobId === 'baseline-ok') {
+        return jobFixture({ jobId, status: 'COMPLETED' });
+      }
+      throw new Error('Comparison unavailable');
+    });
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'baseline-ok');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    const replay = await screen.findByRole('region', { name: /cache replay/i });
+    await userEvent.click(within(replay).getByRole('button', { name: /pin as baseline/i }));
+    await userEvent.selectOptions(within(replay).getByLabelText(/comparison job/i), 'comparison-fails');
+
+    expect(await within(replay).findByText('Comparison unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /job baseline-ok/i })).toBeInTheDocument();
+  });
+
   test('shows preview-only and missing result delivery states', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'preview-only-job', videoId: 'preview-only-video', targetLanguage: 'zh-CN' })
@@ -1485,6 +1756,22 @@ function mediaUploadValidationFixture(
     durationSeconds: 42,
     maxDurationSeconds: 300,
     supportedContentTypes: ['video/mp4', 'video/quicktime'],
+    ...overrides
+  };
+}
+
+function artifactFixture(overrides: Partial<JobArtifact> = {}): JobArtifact {
+  return {
+    artifactId: 'artifact-1',
+    jobId: 'job-1',
+    type: 'TRANSCRIPT_JSON',
+    filename: 'transcript.json',
+    contentType: 'application/json',
+    sizeBytes: 84,
+    contentSha256: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    cacheHit: false,
+    sourceArtifactId: null,
+    createdAt: '2026-06-26T10:00:05Z',
     ...overrides
   };
 }

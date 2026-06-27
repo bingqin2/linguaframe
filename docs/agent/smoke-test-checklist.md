@@ -197,6 +197,8 @@ Expected browser behavior:
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
 - `Download evidence bundle` points to `/api/jobs/{jobId}/evidence/bundle/download` and returns a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`.
+- The `Cache replay` panel can pin the selected job as a baseline, compare it with another loaded job, show provider cache-hit stages, artifact reused/generated counts, model-call delta, estimated-cost delta, and export safe replay evidence.
+- `Copy replay evidence` and `Download replay evidence JSON` must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, credentials, or provider payloads.
 - Transcript and subtitle preview panels render when backend preview data exists.
 - Artifact download links appear when artifacts exist.
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.
@@ -429,6 +431,8 @@ Expected:
 - The second compatible quality evaluation job writes a fresh current-job `qualityEvaluation` result in `GET /api/jobs/{jobId}`.
 - The second compatible quality evaluation job does not create another evaluation provider model call.
 - Evidence files are written under `/tmp/linguaframe-demo/cache-hit/`.
+- In the browser, the first completed job can be pinned as the `Cache replay` baseline and the second completed job can be selected as the comparison.
+- Browser replay evidence shows provider cache-hit stages, artifact reused/generated counts, model-call delta, and estimated-cost delta without exposing raw content or storage keys.
 
 ### Optional OpenAI Transcription Verification
 
