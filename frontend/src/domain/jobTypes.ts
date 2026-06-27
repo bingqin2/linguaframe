@@ -138,6 +138,16 @@ export interface QualityEvaluation {
   createdAt: string;
 }
 
+export interface PromptTemplate {
+  version: string;
+  purpose: 'SUBTITLE_TRANSLATION' | 'TRANSLATION_QUALITY_EVALUATION';
+  provider: string;
+  modelFamily: string;
+  systemPrompt: string;
+  outputContract: string;
+  active: boolean;
+}
+
 export interface JobArtifact {
   artifactId: string;
   jobId: string;

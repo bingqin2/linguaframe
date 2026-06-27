@@ -10,9 +10,11 @@ import com.linguaframe.job.domain.bo.QualityEvaluationResultBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.ModelCallAuditService;
+import com.linguaframe.job.service.PromptTemplateRegistry;
 import com.linguaframe.job.service.QualityEvaluationProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,26 +42,36 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final ModelCallAuditService auditService;
+    private final PromptTemplateRegistry promptTemplateRegistry;
 
     @Autowired
     public OpenAiQualityEvaluationProvider(
             LinguaFrameProperties properties,
             RestClient.Builder restClientBuilder,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            PromptTemplateRegistry promptTemplateRegistry
     ) {
-        this(properties, buildRestClient(properties.getEvaluation().getOpenai(), restClientBuilder), objectMapper, auditService);
+        this(
+                properties,
+                buildRestClient(properties.getEvaluation().getOpenai(), restClientBuilder),
+                objectMapper,
+                auditService,
+                promptTemplateRegistry
+        );
     }
 
     OpenAiQualityEvaluationProvider(
             LinguaFrameProperties properties,
             RestClient restClient,
             ObjectMapper objectMapper,
-            ModelCallAuditService auditService
+            ModelCallAuditService auditService,
+            PromptTemplateRegistry promptTemplateRegistry
     ) {
         this.openai = properties.getEvaluation().getOpenai();
         this.objectMapper = objectMapper;
         this.auditService = auditService;
+        this.promptTemplateRegistry = promptTemplateRegistry;
         requireConfigured(openai.getApiKey());
         requireConfigured(openai.getModel());
         this.restClient = restClient;
@@ -121,9 +133,11 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("model", openai.getModel());
         request.put("input", List.of(
-                inputMessage("system", """
-                        You evaluate translated subtitle quality for video localization. Return JSON only with numeric scores from 0 to 100.
-                        """),
+                inputMessage(
+                        "system",
+                        promptTemplateRegistry.activeTemplate(PromptTemplatePurpose.TRANSLATION_QUALITY_EVALUATION)
+                                .systemPrompt()
+                ),
                 inputMessage("user", userPayload(requestBo))
         ));
         request.put("text", Map.of(
@@ -278,7 +292,7 @@ public class OpenAiQualityEvaluationProvider implements QualityEvaluationProvide
                 ModelCallOperation.EVALUATION,
                 ModelCallProvider.OPENAI,
                 openai.getModel(),
-                "openai-translation-quality-evaluation-v1",
+                promptTemplateRegistry.activeTemplate(PromptTemplatePurpose.TRANSLATION_QUALITY_EVALUATION).version(),
                 latencyMs,
                 inputTokens,
                 outputTokens,
