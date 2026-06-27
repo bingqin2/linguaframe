@@ -257,6 +257,27 @@ td {
   font-size: 0.9rem;
 }
 
+.demo-evidence-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-preview {
+  max-height: 280px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fbfc;
+  color: #263742;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .secondary-link {
   display: inline-flex;
   min-height: 34px;
