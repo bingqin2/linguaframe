@@ -43,6 +43,7 @@ class LocalizationJobRetryServiceTests {
                 "retry-cache-job",
                 "retry-cache-video",
                 "zh-CN",
+                null,
                 LocalizationJobStatus.RETRYING,
                 now
         );
@@ -59,6 +60,7 @@ class LocalizationJobRetryServiceTests {
                 "retry-cache-job",
                 "retry-cache-video",
                 "zh-CN",
+                null,
                 LocalizationJobStatus.RETRYING,
                 now,
                 null,

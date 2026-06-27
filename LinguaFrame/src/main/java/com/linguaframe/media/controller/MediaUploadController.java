@@ -46,9 +46,10 @@ public class MediaUploadController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<MediaUploadVo> createUpload(
             @RequestPart(value = "file", required = false) MultipartFile file,
-            @RequestParam(value = "targetLanguage", required = false) String targetLanguage
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice
     ) {
-        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage);
+        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice);
         return ResponseEntity.status(HttpStatus.CREATED).body(upload);
     }
 

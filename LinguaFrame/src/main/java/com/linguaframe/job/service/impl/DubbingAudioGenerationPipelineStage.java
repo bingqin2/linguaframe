@@ -114,6 +114,7 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
 
         String jobId = context.job().id();
         String targetLanguage = context.job().targetLanguage();
+        String effectiveVoice = effectiveVoice(context.job().ttsVoice());
         List<SubtitleSegmentVo> subtitles = subtitleService.listSubtitles(jobId, targetLanguage);
         if (subtitles.isEmpty()) {
             throw new IllegalStateException("Target subtitles not found for dubbing audio generation.");
@@ -123,7 +124,7 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
                 .map(SubtitleSegmentVo::text)
                 .map(String::trim)
                 .collect(Collectors.joining("\n"));
-        Optional<com.linguaframe.job.domain.vo.TtsCacheHitVo> providerCacheHit = findCachedTts(targetLanguage, text);
+        Optional<com.linguaframe.job.domain.vo.TtsCacheHitVo> providerCacheHit = findCachedTts(targetLanguage, effectiveVoice, text);
         if (providerCacheHit.isPresent()) {
             com.linguaframe.job.domain.vo.TtsCacheHitVo hit = providerCacheHit.get();
             createDubbingArtifact(jobId, hit.result());
@@ -136,12 +137,12 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
         }
 
         costBudgetGuardService.assertWithinBudget(jobId, stage());
-        TtsResultBo result = ttsProvider.synthesize(new TtsRequestBo(jobId, targetLanguage, text));
-        storeCachedTts(jobId, targetLanguage, text, result);
+        TtsResultBo result = ttsProvider.synthesize(new TtsRequestBo(jobId, targetLanguage, effectiveVoice, text));
+        storeCachedTts(jobId, targetLanguage, effectiveVoice, text, result);
         createDubbingArtifact(jobId, result);
     }
 
-    private Optional<com.linguaframe.job.domain.vo.TtsCacheHitVo> findCachedTts(String targetLanguage, String text) {
+    private Optional<com.linguaframe.job.domain.vo.TtsCacheHitVo> findCachedTts(String targetLanguage, String voice, String text) {
         if (ttsCacheKeyService == null || ttsCacheService == null) {
             return Optional.empty();
         }
@@ -149,17 +150,17 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
                 targetLanguage,
                 cacheProvider(),
                 cacheModel(),
-                cacheVoice(),
+                voice,
                 text
         ));
     }
 
-    private void storeCachedTts(String jobId, String targetLanguage, String text, TtsResultBo result) {
+    private void storeCachedTts(String jobId, String targetLanguage, String voice, String text, TtsResultBo result) {
         if (ttsCacheKeyService == null || ttsCacheService == null) {
             return;
         }
         ttsCacheService.storeTts(
-                ttsCacheKeyService.build(targetLanguage, cacheProvider(), cacheModel(), cacheVoice(), text),
+                ttsCacheKeyService.build(targetLanguage, cacheProvider(), cacheModel(), voice, text),
                 jobId,
                 result
         );
@@ -194,6 +195,13 @@ public class DubbingAudioGenerationPipelineStage implements LocalizationPipeline
             return properties.getTts().getOpenai().getVoice();
         }
         return "demo-voice";
+    }
+
+    private String effectiveVoice(String jobTtsVoice) {
+        if (jobTtsVoice != null && !jobTtsVoice.isBlank()) {
+            return jobTtsVoice.trim();
+        }
+        return cacheVoice();
     }
 
     private boolean reuseCachedArtifact(LocalizationJobExecutionContextBo context, JobArtifactType type) {

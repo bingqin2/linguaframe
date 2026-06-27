@@ -6,7 +6,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface MediaUploadService {
 
-    MediaUploadVo createUpload(MultipartFile file, String targetLanguage);
+    default MediaUploadVo createUpload(MultipartFile file, String targetLanguage) {
+        return createUpload(file, targetLanguage, null);
+    }
+
+    MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice);
 
     MediaUploadDetailVo getUpload(String videoId);
 }

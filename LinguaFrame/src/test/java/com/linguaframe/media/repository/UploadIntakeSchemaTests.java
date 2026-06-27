@@ -69,6 +69,14 @@ class UploadIntakeSchemaTests {
                         """)
                 .query(Integer.class)
                 .single();
+        Integer jobTtsVoiceColumnCount = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM information_schema.columns
+                        WHERE table_name = 'localization_jobs'
+                          AND column_name = 'tts_voice'
+                        """)
+                .query(Integer.class)
+                .single();
 
         assertThat(videoTableCount).isEqualTo(1);
         assertThat(jobTableCount).isEqualTo(1);
@@ -76,5 +84,6 @@ class UploadIntakeSchemaTests {
         assertThat(timelineEventTableCount).isEqualTo(1);
         assertThat(executionColumnCount).isEqualTo(7);
         assertThat(videoDurationColumnCount).isEqualTo(1);
+        assertThat(jobTtsVoiceColumnCount).isEqualTo(1);
     }
 }

@@ -126,6 +126,31 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void createsUploadWithTtsVoice() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
+        MockMultipartFile file = new MockMultipartFile("file", "voice.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        String response = mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("ttsVoice", " verse "))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.ttsVoice").value("verse"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String jobId = response.replaceAll(".*\"jobId\":\"([^\"]+)\".*", "$1");
+        mockMvc.perform(get("/api/jobs/{jobId}", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ttsVoice").value("verse"));
+    }
+
+    @Test
     void returnsBadRequestForInvalidUploadFile() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "notes.txt", "text/plain", new byte[] {1});
 

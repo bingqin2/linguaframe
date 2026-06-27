@@ -163,6 +163,7 @@ Goal: generate a playable dubbing audio artifact.
 Build:
 
 - OpenAI TTS client.
+- Job-level TTS voice selection. Status: implemented through upload API, React form, job/list/detail responses, dispatch payloads, provider requests, and TTS cache identity.
 - Dubbing text preparation.
 - TTS artifact storage.
 - Audio preview and download API.

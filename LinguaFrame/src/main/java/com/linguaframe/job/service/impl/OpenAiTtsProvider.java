@@ -125,7 +125,7 @@ public class OpenAiTtsProvider implements TtsProvider {
     private String buildRequestBody(TtsRequestBo request) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", openai.getModel());
-        body.put("voice", openai.getVoice());
+        body.put("voice", effectiveVoice(request));
         body.put("input", request.text());
         body.put("response_format", "mp3");
         try {
@@ -155,6 +155,13 @@ public class OpenAiTtsProvider implements TtsProvider {
 
     private Integer characterCount(TtsRequestBo request) {
         return request.text() == null ? 0 : request.text().length();
+    }
+
+    private String effectiveVoice(TtsRequestBo request) {
+        if (request.voice() != null && !request.voice().isBlank()) {
+            return request.voice().trim();
+        }
+        return openai.getVoice();
     }
 
     private long elapsedMillis(long started) {

@@ -43,6 +43,7 @@ class JobDispatchOutboxServiceTests {
                 "outbox-job-1",
                 "outbox-video-1",
                 "zh-CN",
+                "verse",
                 LocalizationJobStatus.QUEUED,
                 now
         );
@@ -61,5 +62,6 @@ class JobDispatchOutboxServiceTests {
                 QueuedLocalizationJobMessage.class
         );
         assertThat(payload.startStage()).isEqualTo(LocalizationJobStage.WORKER_SMOKE);
+        assertThat(payload.ttsVoice()).isEqualTo("verse");
     }
 }
