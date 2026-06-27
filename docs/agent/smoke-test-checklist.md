@@ -104,6 +104,9 @@ Expected browser behavior:
 - A recent job appears in the browser-local recent jobs list.
 - The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
 - Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
+- The `Result delivery` panel renders expected deliverables with `Ready`, `Preview only`, and `Missing` states.
+- The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
+- The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.
 - Transcript and subtitle preview panels render when backend preview data exists.
 - Artifact download links appear when artifacts exist.
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.

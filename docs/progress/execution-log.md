@@ -1788,3 +1788,22 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main` after rerunning with the correct repository path.
+
+## 2026-06-27
+
+Work:
+
+- Added a browser `Result delivery` panel to the selected job view.
+- Summarized expected deliverables as `Ready`, `Preview only`, or `Missing` from existing job detail, artifact, transcript, and subtitle APIs.
+- Added generated/reused/missing counts, model-call count, estimated cost, direct ready-artifact downloads, result bundle and diagnostics links, short SHA-256 hashes, and generated/reused cache evidence.
+- Preserved the existing artifact table and media previews below the new delivery summary.
+- Documented the browser result-delivery checks in README, the Docker E2E guide, and the smoke-test checklist.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "result delivery|artifact downloads"` first failed because the `Result delivery` region did not exist, then passed with `Tests 2 passed | 33 skipped`.
+- `cd frontend && npm run test:run -- App` first exposed duplicate `2 calls` and diagnostics-link assertions after the new panel intentionally repeated those actions, then passed with `Tests 35 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash -n scripts/demo/start-local-demo.sh scripts/demo/frontend-local-dev.sh scripts/demo/private-demo-preflight.sh` passed.
+- `docker compose --env-file .env.example config --quiet` passed.
+- `git diff --check` passed.

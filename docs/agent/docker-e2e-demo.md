@@ -38,9 +38,11 @@ Open the browser demo:
 http://localhost:5173
 ```
 
-The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
+The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
 Before uploading, check the browser `Demo runbook` panel and the upload form's `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
+
+After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
 
 ## Private Demo Preflight
 

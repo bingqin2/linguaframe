@@ -698,8 +698,8 @@ describe('App', () => {
     expect(within(timeline).getByText('WORKER_RECEIVED')).toBeInTheDocument();
     const modelCalls = screen.getByRole('region', { name: /model calls/i });
     expect(within(modelCalls).getByRole('heading', { name: /model calls/i })).toBeInTheDocument();
-    expect(screen.getByText('2 calls')).toBeInTheDocument();
     const usageSummary = screen.getByRole('region', { name: /usage summary/i });
+    expect(within(usageSummary).getByText('2 calls')).toBeInTheDocument();
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();
     expect(within(usageSummary).getByText('Cache hits')).toBeInTheDocument();
     expect(within(usageSummary).getByText('1 artifacts / 1 provider')).toBeInTheDocument();
@@ -715,11 +715,12 @@ describe('App', () => {
     expect(
       within(qualityEvaluation).getByText('Review tone and terminology before publishing.')
     ).toBeInTheDocument();
+    const selectedJob = screen.getByRole('region', { name: /selected job/i });
     expect(
-      within(screen.getByRole('region', { name: /selected job/i })).getByRole('link', {
-        name: /download diagnostics/i
-      })
-    ).toHaveAttribute('href', '/api/jobs/job-1/diagnostics/download');
+      within(selectedJob)
+        .getAllByRole('link', { name: /download diagnostics/i })
+        .every((link) => link.getAttribute('href') === '/api/jobs/job-1/diagnostics/download')
+    ).toBe(true);
 
     const retryButton = screen.getByRole('button', { name: /retry/i });
     await userEvent.click(retryButton);
@@ -899,6 +900,18 @@ describe('App', () => {
     ]);
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
       {
+        artifactId: 'artifact-transcript',
+        jobId: 'artifact-job',
+        type: 'TRANSCRIPT_JSON',
+        filename: 'transcript.json',
+        contentType: 'application/json',
+        sizeBytes: 84,
+        contentSha256: '1111111111111111111111111111111111111111111111111111111111111111',
+        cacheHit: false,
+        sourceArtifactId: null,
+        createdAt: '2026-06-26T10:00:04Z'
+      },
+      {
         artifactId: 'artifact-vtt',
         jobId: 'artifact-job',
         type: 'SUBTITLE_VTT',
@@ -949,6 +962,31 @@ describe('App', () => {
     expect(within(subtitles).getByText('第一行字幕')).toBeInTheDocument();
     expect(within(subtitles).getByText('zh-CN')).toBeInTheDocument();
 
+    const delivery = screen.getByRole('region', { name: /result delivery/i });
+    expect(within(delivery).getByText('3 generated')).toBeInTheDocument();
+    expect(within(delivery).getByText('1 reused')).toBeInTheDocument();
+    expect(within(delivery).getByText('1 missing')).toBeInTheDocument();
+    expect(within(delivery).getByText('2 calls')).toBeInTheDocument();
+    expect(within(delivery).getByText('$0.00045000')).toBeInTheDocument();
+    expect(within(delivery).getByText('Transcript JSON')).toBeInTheDocument();
+    expect(within(delivery).getByText('transcript.json')).toBeInTheDocument();
+    expect(within(delivery).getByText('Source VTT')).toBeInTheDocument();
+    expect(within(delivery).getByText('subtitles.vtt')).toBeInTheDocument();
+    expect(within(delivery).getByText('0123456789ab')).toBeInTheDocument();
+    expect(within(delivery).getAllByText('Reused').length).toBeGreaterThan(0);
+    expect(within(delivery).getByRole('link', { name: /download result bundle/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/archive/download'
+    );
+    expect(within(delivery).getByRole('link', { name: /download diagnostics/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/diagnostics/download'
+    );
+    expect(within(delivery).getByRole('link', { name: /download transcript json/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/artifact-transcript/download'
+    );
+
     const artifacts = screen.getByRole('region', { name: /artifacts/i });
     expect(within(artifacts).getByText('subtitles.vtt')).toBeInTheDocument();
     expect(within(artifacts).getByText('42 B')).toBeInTheDocument();
@@ -971,6 +1009,44 @@ describe('App', () => {
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-video/download'
     );
+  });
+
+  test('shows preview-only and missing result delivery states', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'preview-only-job', videoId: 'preview-only-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: 'Preview transcript line'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([
+      {
+        language: 'zh-CN',
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        text: '预览字幕'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'preview-only-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const delivery = await screen.findByRole('region', { name: /result delivery/i });
+    expect(within(delivery).getByText('0 generated')).toBeInTheDocument();
+    expect(within(delivery).getByText('0 reused')).toBeInTheDocument();
+    expect(within(delivery).getByText('3 missing')).toBeInTheDocument();
+    expect(within(delivery).getByText('Transcript JSON')).toBeInTheDocument();
+    expect(within(delivery).getAllByText('Preview only')).toHaveLength(6);
+    expect(within(delivery).getByText('Dubbing audio')).toBeInTheDocument();
+    expect(within(delivery).getAllByText('Missing').length).toBeGreaterThan(0);
   });
 
   test('shows concise empty states before previews and artifacts exist', async () => {

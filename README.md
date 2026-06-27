@@ -146,6 +146,8 @@ The cache-hit demo uploads the same sample twice and proves provider-cache reuse
 
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, frontend, token-gate, and sample-path reachability checks.
 
+For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.
+
 React demo frontend commands:
 
 ```bash
