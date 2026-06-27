@@ -1,6 +1,7 @@
 package com.linguaframe.common.runtime.service.impl;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.common.runtime.domain.vo.BudgetReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.DemoReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.FfmpegReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.MediaReadinessVo;
@@ -73,6 +74,11 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         hasText(properties.getFfmpeg().getWorkDir()),
                         properties.getFfmpeg().getAudioTimeoutSeconds(),
                         properties.getFfmpeg().getBurnInTimeoutSeconds()
+                ),
+                new BudgetReadinessVo(
+                        properties.getCost().isBudgetGuardEnabled(),
+                        properties.getCost().getMaxJobCostUsd(),
+                        properties.getCost().isEnabled()
                 ),
                 Map.of(
                         "transcription", new ProviderReadinessVo(

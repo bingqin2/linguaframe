@@ -251,7 +251,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, one-click result bundle download, retry, cost/model-call visibility, an operator dashboard for demo health and manual retention cleanup, and a read-only demo readiness panel.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, one-click result bundle download, retry, cost/model-call visibility, an operator dashboard for demo health and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 
@@ -268,7 +268,7 @@ Build:
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
-- Read-only demo readiness panel. Status: implemented for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, and feature flags.
+- Read-only demo readiness panel. Status: implemented for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, budget guard settings, and feature flags.
 
 Do not build yet:
 
@@ -290,7 +290,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, a local preflight runbook for private demo readiness, and browser-visible configuration readiness through the React demo.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, and browser-visible configuration readiness through the React demo.
 
 Build:
 
@@ -299,7 +299,7 @@ Build:
 - Persistent object storage.
 - Environment configuration guide. Status: implemented for private demo access token, upload limits, and retention cleanup.
 - Private demo preflight runbook. Status: implemented with a local script that checks `.env`, Compose rendering, backend/frontend readiness, optional token-gate behavior, and configured sample paths.
-- Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure.
+- Browser-visible readiness summary. Status: implemented through the existing sanitized runtime dependency endpoint without live probes or secret exposure, including budget guard state and configured per-job estimate limit.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
@@ -393,9 +393,9 @@ Goal: reduce avoidable AI spend and show cost-control awareness.
 
 Build:
 
-- Per-job cost budget configuration.
+- Per-job cost budget configuration. Status: implemented with sanitized readiness visibility and a repeatable Docker budget-guard evidence script.
 - Per-user daily cost budget hook.
-- Budget checks before translation, evaluation, and TTS stages.
+- Budget checks before translation, evaluation, and TTS stages. Status: implemented for guarded AI stages using accumulated recorded estimated cost before provider execution.
 - Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
 - Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
 - Cache key for translation inputs based on source text hash, target language, provider, model, and prompt version. Status: implemented.
@@ -406,6 +406,8 @@ Do not build yet:
 
 - Real billing.
 - Payments.
+- Provider price automation.
+- Per-user daily budgets.
 - Global distributed cache.
 - Provider-level transcription, quality evaluation, or generic prompt-response caching.
 

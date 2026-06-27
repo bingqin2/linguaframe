@@ -223,6 +223,7 @@ export interface DemoReadiness {
   worker: WorkerReadiness;
   media: MediaReadiness;
   ffmpeg: FfmpegReadiness;
+  budget: BudgetReadiness;
   providers: Record<'transcription' | 'translation' | 'tts' | 'evaluation', ProviderReadiness>;
   features: Record<
     'jobStatusCache' | 'uploadRateLimit' | 'retentionCleanup' | 'costTracking' | 'budgetGuard',
@@ -251,6 +252,12 @@ export interface FfmpegReadiness {
   workspaceConfigured: boolean;
   audioTimeoutSeconds: number;
   burnInTimeoutSeconds: number;
+}
+
+export interface BudgetReadiness {
+  enabled: boolean;
+  maxJobCostUsd: number;
+  estimatedCostTrackingEnabled: boolean;
 }
 
 export interface ProviderReadiness {

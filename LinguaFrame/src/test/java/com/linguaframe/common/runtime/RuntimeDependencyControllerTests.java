@@ -68,6 +68,12 @@ class RuntimeDependencyControllerTests {
         assertThat(ffmpeg.get("audioTimeoutSeconds")).isEqualTo(120);
         assertThat(ffmpeg.get("burnInTimeoutSeconds")).isEqualTo(180);
 
+        assertThat(readiness.get("budget")).isInstanceOf(Map.class);
+        Map<?, ?> budget = (Map<?, ?>) readiness.get("budget");
+        assertThat(budget.get("enabled")).isEqualTo(false);
+        assertThat(budget.get("maxJobCostUsd")).isEqualTo(0);
+        assertThat(budget.get("estimatedCostTrackingEnabled")).isEqualTo(true);
+
         assertThat(readiness.get("providers")).isInstanceOf(Map.class);
         Map<?, ?> providers = (Map<?, ?>) readiness.get("providers");
         assertProviderReadiness(providers.get("transcription"), false, "demo", false);
@@ -99,6 +105,7 @@ class RuntimeDependencyControllerTests {
                 .doesNotContain("accessToken")
                 .doesNotContain("workDir")
                 .doesNotContain("/tmp/linguaframe-media")
+                .doesNotContain("OPENAI_API_KEY")
                 .doesNotContain("linguaframe_dev_password")
                 .doesNotContain("linguaframe_minio_password");
     }

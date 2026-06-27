@@ -83,6 +83,7 @@ Expected browser behavior:
 - The `Retention cleanup` panel appears in the sidebar.
 - Clicking `Preview cleanup` refreshes aggregate cleanup counts without deleting data.
 - With `.env.example`, the panel reports dry-run/default-off behavior and `Run cleanup` requires browser confirmation before calling the backend.
+- The `Demo readiness` panel shows budget guard state and the configured cost limit without exposing provider credentials.
 
 ### Docker E2E Demo
 
@@ -144,6 +145,26 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
 - The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
+
+Run the budget guard failure path only after recreating the backend with a tiny positive budget and a non-zero local cost rate:
+
+```bash
+LINGUAFRAME_COST_ENABLED=true \
+LINGUAFRAME_COST_BUDGET_GUARD_ENABLED=true \
+LINGUAFRAME_COST_MAX_JOB_COST_USD=0.000001 \
+LINGUAFRAME_COST_TRANSCRIPTION_USD_PER_MINUTE=1 \
+docker compose --env-file .env up -d --force-recreate linguaframe-backend
+
+scripts/demo/docker-e2e-budget-guard.sh
+```
+
+Expected:
+
+- Job status reaches `FAILED`.
+- Output includes `failureReason=Job cost budget exceeded`.
+- Output includes `modelCallCount` and `estimatedCostUsd` evidence from the failed job detail.
+- Timeline includes the stage where the budget guard stopped execution.
+- No later guarded provider stage should run after the budget failure.
 
 Inspect the downloaded artifacts:
 

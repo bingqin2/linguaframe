@@ -129,6 +129,33 @@ for event in job.get("timelineEvents", []):
 '
 }
 
+print_budget_guard_failure() {
+  python3 -c '
+import json
+import sys
+from decimal import Decimal
+
+job = json.load(sys.stdin, parse_float=Decimal)
+print("jobId=" + job["jobId"])
+print("status=" + job["status"])
+print("failureStage=" + str(job.get("failureStage")))
+print("failureReason=" + str(job.get("failureReason")))
+summary = job.get("usageSummary") or {}
+print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
+print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
+print("estimatedCostUsd=" + str(summary.get("estimatedCostUsd", "0")))
+for call in job.get("modelCalls", []):
+    print("- MODEL_CALL " + call["operation"] + " " + call["provider"] + " " + call["model"] + " " + call["status"])
+for event in job.get("timelineEvents", []):
+    print("- " + event["stage"] + " " + event["status"] + ": " + event["message"])
+if job["status"] != "FAILED":
+    raise SystemExit("Expected FAILED status")
+reason = job.get("failureReason") or ""
+if "Job cost budget exceeded" not in reason:
+    raise SystemExit("Expected budget guard failure reason")
+'
+}
+
 list_job_artifacts() {
   local base_url="$1"
   local job_id="$2"

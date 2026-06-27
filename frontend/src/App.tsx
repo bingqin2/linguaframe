@@ -743,6 +743,17 @@ function DemoReadinessPanel({
                 {formatConfigured(readiness.ffmpeg.workspaceConfigured)}
               </dd>
             </div>
+            <div>
+              <dt>Budget guard</dt>
+              <dd>
+                {formatEnabled(readiness.budget.enabled)} / estimates{' '}
+                {formatEnabled(readiness.budget.estimatedCostTrackingEnabled)}
+              </dd>
+            </div>
+            <div>
+              <dt>Cost limit</dt>
+              <dd>{formatCost(readiness.budget.maxJobCostUsd)}</dd>
+            </div>
           </dl>
           <ul className="readiness-list" aria-label="Provider readiness">
             {providerEntries.map(([name, provider]) => (
