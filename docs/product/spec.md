@@ -188,6 +188,7 @@ Upload Video
 - The generated video artifact is stored in object storage and can be previewed or downloaded.
 - Generated artifacts expose lowercase SHA-256 content fingerprints for reproducibility and future duplicate-work detection.
 - A job result bundle can be downloaded as an on-demand ZIP containing generated artifacts and a safe manifest, without including the uploaded source video.
+- A job diagnostics report can be downloaded as metadata-only JSON containing sanitized job detail, timeline, model-call summaries, quality evaluation, and artifact hashes/counts.
 
 ### Cost Tracking
 
@@ -290,6 +291,7 @@ MVP frontend scope:
 - Server-Sent Events for live selected-job progress with polling fallback.
 - Operator dashboard for job status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
 - Read-only demo readiness panel for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, budget guard settings, and runtime feature flags.
+- Selected-job diagnostics download link for sharing safe debugging evidence from successful or failed runs.
 
 The frontend should not start as a marketing landing page. The first screen should be the working video localization experience.
 

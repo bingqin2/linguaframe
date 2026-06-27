@@ -6,8 +6,10 @@ import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
-import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
+import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
+import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
+import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.repository.JobArtifactRepository;
@@ -20,6 +22,7 @@ import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -108,6 +111,20 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         return job;
     }
 
+    @Override
+    public JobDiagnosticsReportVo getDiagnosticsReport(String jobId) {
+        LocalizationJobVo job = getJob(jobId);
+        List<JobDiagnosticsArtifactVo> artifacts = artifactRepository.findByJobId(jobId).stream()
+                .map(this::toDiagnosticsArtifactVo)
+                .toList();
+        return new JobDiagnosticsReportVo(
+                Instant.now(),
+                job,
+                artifacts,
+                artifacts.size()
+        );
+    }
+
     private Optional<LocalizationJobVo> cachedJob(String jobId) {
         try {
             return jobStatusCacheService.get(jobId);
@@ -147,6 +164,20 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 record.durationMs(),
                 record.errorSummary(),
                 record.occurredAt()
+        );
+    }
+
+    private JobDiagnosticsArtifactVo toDiagnosticsArtifactVo(JobArtifactRecord record) {
+        return new JobDiagnosticsArtifactVo(
+                record.id(),
+                record.type(),
+                record.filename(),
+                record.contentType(),
+                record.sizeBytes(),
+                record.contentSha256(),
+                record.cacheHit(),
+                record.sourceArtifactId(),
+                record.createdAt()
         );
     }
 

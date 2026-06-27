@@ -313,3 +313,11 @@ Decision: Expose budget guard readiness as safe configuration and add a repeatab
 Reason: The cost budget guard is only useful in a private OpenAI demo if an operator can see the active limit before upload and produce terminal evidence that the guard blocks later AI stages. The runtime endpoint should expose only booleans and local estimate limits, not provider prices, raw usage payloads, API keys, or billing data.
 
 Impact: `GET /api/runtime/dependencies` now includes budget guard state, max per-job estimated cost, and estimated-cost tracking status. The React readiness panel shows those fields, and `scripts/demo/docker-e2e-budget-guard.sh` verifies the guard by expecting a controlled `FAILED` job with a budget-exceeded reason.
+
+## 2026-06-27
+
+Decision: Generate job diagnostics reports on demand as metadata-only JSON.
+
+Reason: Demo failures and successful runs need shareable debugging evidence, but copying multiple API responses risks exposing object storage keys, local paths, raw transcript or subtitle text, provider payloads, credentials, or uploaded media bytes.
+
+Impact: `GET /api/jobs/{jobId}/diagnostics/download` returns sanitized job detail plus artifact metadata and hashes without adding persistence. The React demo links to it from the selected job header, and demo scripts download and validate the JSON report for success, retry, and budget-guard paths.

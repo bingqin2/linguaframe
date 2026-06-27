@@ -1,9 +1,12 @@
 package com.linguaframe.job.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -41,6 +44,7 @@ public class LocalizationJobController {
     private final JobArtifactService artifactService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
+    private final ObjectMapper objectMapper;
 
     public LocalizationJobController(
             LocalizationJobQueryService queryService,
@@ -49,7 +53,8 @@ public class LocalizationJobController {
             LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
             TranscriptService transcriptService,
-            SubtitleService subtitleService
+            SubtitleService subtitleService,
+            ObjectMapper objectMapper
     ) {
         this.queryService = queryService;
         this.retryService = retryService;
@@ -58,6 +63,7 @@ public class LocalizationJobController {
         this.artifactService = artifactService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping
@@ -92,6 +98,23 @@ public class LocalizationJobController {
     @GetMapping("/{jobId}/artifacts")
     public List<JobArtifactVo> listArtifacts(@PathVariable String jobId) {
         return artifactService.listArtifacts(jobId);
+    }
+
+    @GetMapping("/{jobId}/diagnostics/download")
+    public ResponseEntity<byte[]> downloadDiagnosticsReport(@PathVariable String jobId) throws JsonProcessingException {
+        JobDiagnosticsReportVo report = queryService.getDiagnosticsReport(jobId);
+        byte[] body = objectMapper.writeValueAsBytes(report);
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-diagnostics.json")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping("/{jobId}/transcript")
