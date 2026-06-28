@@ -3347,3 +3347,24 @@ Post-merge verification:
 - `npm --prefix frontend test -- --run App.test.tsx` passed on `main` with `Test Files 1 passed` and `Tests 85 passed`.
 - `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo presentation cockpit workspace in `docs/plans/114-demo-presentation-cockpit-workspace.md`.
+- Added backend `GET /api/operator/demo-presentation-cockpit` with overall status, phase, selected/active/recommended runs, readiness checks, safe links, and safety notes.
+- Added a React `Demo presentation cockpit` panel that loads on startup and refreshes for selected jobs, polling, and SSE transitions.
+- Added `scripts/demo/demo-presentation-cockpit.sh` plus shared demo-client helpers for optional selected-job cockpit exports.
+- Updated README, Docker E2E guide, private-demo deployment guide, target state, decisions, and this execution log with cockpit usage and read-only behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoPresentationCockpitServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run App.test.tsx src/api/linguaframeApi.test.ts` first failed because the API aggregate object omitted `getDemoPresentationCockpit` and two assertions were over-broad, then passed with `Test Files 2 passed` and `Tests 146 passed`.
+- `bash -n scripts/demo/demo-presentation-cockpit.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 592, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 153 passed`.

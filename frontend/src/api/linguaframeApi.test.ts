@@ -19,6 +19,7 @@ import {
   getOperatorDashboard,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
+  getDemoPresentationCockpit,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
   getPrivateDemoLaunchRehearsal,
@@ -970,6 +971,69 @@ describe('linguaframeApi', () => {
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
+    });
+  });
+
+  test('fetches demo presentation cockpit with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-29T08:10:00Z',
+        overallStatus: 'READY',
+        phase: 'READY_TO_PRESENT',
+        recommendedNextAction: 'Open the presenter pack.',
+        selectedRun: null,
+        activeRun: null,
+        recommendedRun: null,
+        checks: [],
+        links: [],
+        safetyNotes: []
+      })
+    );
+
+    const cockpit = await getDemoPresentationCockpit();
+
+    expect(cockpit.phase).toBe('READY_TO_PRESENT');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-presentation-cockpit', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches demo presentation cockpit for selected job id', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-29T08:10:00Z',
+        overallStatus: 'ATTENTION',
+        phase: 'RUN_IN_PROGRESS',
+        recommendedNextAction: 'Wait for completion.',
+        selectedRun: {
+          jobId: 'job with spaces',
+          videoId: 'video-1',
+          profileId: 'tears-showcase',
+          status: 'PROCESSING',
+          readiness: 'ATTENTION',
+          acceptanceStatus: 'ATTENTION',
+          attentionLevel: 'INFO',
+          currentStage: 'TRANSLATION',
+          elapsedMs: 1200,
+          nextAction: 'Monitor the active run.'
+        },
+        activeRun: null,
+        recommendedRun: null,
+        checks: [],
+        links: [],
+        safetyNotes: []
+      })
+    );
+
+    const cockpit = await getDemoPresentationCockpit('job with spaces');
+
+    expect(cockpit.selectedRun?.jobId).toBe('job with spaces');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-presentation-cockpit?jobId=job+with+spaces', {
+      method: 'GET'
     });
   });
 

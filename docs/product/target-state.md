@@ -56,6 +56,7 @@ Stage 1 goals:
 - Validate OpenAI API calls with a short sample video.
 - Validate real OpenAI demo runs through an explicit no-secret env template, preflight, and smoke runner instead of enabling paid providers by default.
 - Validate the next full-demo command and expected evidence files through the browser `Demo run launcher` and `scripts/demo/demo-run-launcher.sh` before uploading full public sample media.
+- Validate run-day next action through the browser `Demo presentation cockpit`, backend cockpit JSON, and `scripts/demo/demo-presentation-cockpit.sh` before upload, during processing, and after completion.
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.

@@ -166,6 +166,47 @@ export interface DemoRunLauncherEvidence {
   description: string;
 }
 
+export interface DemoPresentationCockpit {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  phase: string;
+  recommendedNextAction: string;
+  selectedRun: DemoPresentationCockpitRun | null;
+  activeRun: DemoPresentationCockpitRun | null;
+  recommendedRun: DemoPresentationCockpitRun | null;
+  checks: DemoPresentationCockpitCheck[];
+  links: DemoPresentationCockpitLink[];
+  safetyNotes: string[];
+}
+
+export interface DemoPresentationCockpitRun {
+  jobId: string;
+  videoId: string;
+  profileId: string;
+  status: LocalizationJobStatus;
+  readiness: string;
+  acceptanceStatus: string;
+  attentionLevel: string;
+  currentStage: string;
+  elapsedMs: number | null;
+  nextAction: string;
+}
+
+export interface DemoPresentationCockpitCheck {
+  key: string;
+  label: string;
+  status: PrivateDemoOperationsStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoPresentationCockpitLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;

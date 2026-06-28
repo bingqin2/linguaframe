@@ -226,6 +226,29 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsDemoPresentationCockpit() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:00:00Z");
+            createJob("cockpit-controller-video", "cockpit-controller-job", "cockpit.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/demo-presentation-cockpit")
+                            .param("jobId", "cockpit-controller-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.phase").exists())
+                    .andExpect(jsonPath("$.recommendedNextAction").exists())
+                    .andExpect(jsonPath("$.selectedRun.jobId").value("cockpit-controller-job"))
+                    .andExpect(jsonPath("$.checks[?(@.key == 'DEMO_RUN_LAUNCHER')]").exists())
+                    .andExpect(jsonPath("$.checks[?(@.key == 'UPLOAD_READINESS')]").exists())
+                    .andExpect(jsonPath("$.checks[?(@.key == 'ACCEPTANCE_GATE')]").exists())
+                    .andExpect(jsonPath("$.links[?(@.url == '/api/operator/demo-run-launcher')]").exists())
+                    .andExpect(jsonPath("$.links[?(@.url == '/api/jobs/cockpit-controller-job/demo-acceptance-gate')]").exists())
+                    .andExpect(jsonPath("$.safetyNotes[0]").value(org.hamcrest.Matchers.containsString(
+                            "Metadata-only cockpit"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -303,6 +326,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-run-launcher")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-presentation-cockpit"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-presentation-cockpit")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

@@ -1,5 +1,6 @@
 package com.linguaframe.operator.controller;
 
+import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
@@ -7,6 +8,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.OperatorDashboardService;
@@ -35,6 +37,7 @@ public class OperatorDashboardController {
     private final PrivateDemoRunArchiveService runArchiveService;
     private final DemoSampleMediaCatalogService sampleMediaCatalogService;
     private final DemoRunLauncherService demoRunLauncherService;
+    private final DemoPresentationCockpitService demoPresentationCockpitService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -43,7 +46,8 @@ public class OperatorDashboardController {
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
             PrivateDemoRunArchiveService runArchiveService,
             DemoSampleMediaCatalogService sampleMediaCatalogService,
-            DemoRunLauncherService demoRunLauncherService
+            DemoRunLauncherService demoRunLauncherService,
+            DemoPresentationCockpitService demoPresentationCockpitService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -52,6 +56,7 @@ public class OperatorDashboardController {
         this.runArchiveService = runArchiveService;
         this.sampleMediaCatalogService = sampleMediaCatalogService;
         this.demoRunLauncherService = demoRunLauncherService;
+        this.demoPresentationCockpitService = demoPresentationCockpitService;
     }
 
     @GetMapping("/dashboard")
@@ -124,5 +129,17 @@ public class OperatorDashboardController {
     })
     public DemoRunLauncherVo demoRunLauncher() {
         return demoRunLauncherService.launcher();
+    }
+
+    @GetMapping("/demo-presentation-cockpit")
+    @Operation(summary = "Get demo presentation cockpit")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo presentation cockpit was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoPresentationCockpitVo demoPresentationCockpit(
+            @RequestParam(required = false) String jobId
+    ) {
+        return demoPresentationCockpitService.cockpit(jobId);
     }
 }

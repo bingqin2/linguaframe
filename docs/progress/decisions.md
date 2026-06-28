@@ -689,3 +689,11 @@ Decision: Generate demo acceptance gates on demand from existing safe evidence s
 Reason: The demo already has proof, replay, presenter, snapshot, matrix, delivery, and evidence surfaces. Before presenting, the owner still needs one concise go/no-go answer without storing another artifact or mutating the job.
 
 Impact: `/api/jobs/{jobId}/demo-acceptance-gate`, the browser `Demo acceptance gate` panel, `scripts/demo/demo-acceptance-gate.sh`, and the full Tears script aggregate required checks, warning checks, evidence metrics, safe links, and recommended next action into `READY`, `ATTENTION`, or `BLOCKED`. The gate is read-only, metadata-only, and does not create artifacts, call providers, expose raw text, reveal local paths, or embed media bytes.
+
+## 2026-06-29
+
+Decision: Add a read-only demo presentation cockpit instead of turning existing demo panels into stateful launch automation.
+
+Reason: A run-day operator needs one next-action surface before upload, during processing, and after completion, but starting Docker, uploading media, retrying jobs, creating packages, or calling OpenAI from a cockpit would hide cost and state changes.
+
+Impact: `GET /api/operator/demo-presentation-cockpit`, the browser `Demo presentation cockpit` panel, and `scripts/demo/demo-presentation-cockpit.sh` compose launcher, upload readiness, live checks, private-demo operations, active run monitor, recommended run archive, acceptance gate, and safe evidence links. The cockpit remains metadata-only and does not upload media, start Docker, call providers, mutate jobs, create artifacts, expose local paths, print secrets, or embed raw transcript/subtitle text.

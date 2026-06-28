@@ -782,6 +782,82 @@ SH
   [[ "$status" -eq 0 ]] || fail "launcher script failed in report-only mode"
 }
 
+test_demo_presentation_cockpit_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_presentation_cockpit_json "http://example.test" "job with spaces" "$TMPDIR/demo-presentation-cockpit-route.json" \
+    >"$TMPDIR/demo-presentation-cockpit-curl.out"
+
+  local curl_output
+  curl_output="$(cat "$TMPDIR/demo-presentation-cockpit-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/operator/demo-presentation-cockpit?jobId=job+with+spaces"* ]] || fail "cockpit helper used wrong selected-job route"
+
+  cat >"$TMPDIR/demo-presentation-cockpit.json" <<'JSON'
+{
+  "generatedAt": "2026-06-29T08:10:00Z",
+  "overallStatus": "READY",
+  "phase": "READY_TO_PRESENT",
+  "recommendedNextAction": "Open presenter pack.",
+  "selectedRun": {
+    "jobId": "job-selected",
+    "videoId": "video-selected",
+    "profileId": "tears-showcase",
+    "status": "COMPLETED",
+    "readiness": "READY",
+    "acceptanceStatus": "READY",
+    "attentionLevel": "NONE",
+    "currentStage": "COMPLETED",
+    "elapsedMs": 42000,
+    "nextAction": "Use demo evidence."
+  },
+  "activeRun": null,
+  "recommendedRun": null,
+  "checks": [
+    {
+      "key": "ACCEPTANCE_GATE",
+      "label": "Acceptance gate",
+      "status": "READY",
+      "detail": "Run is presentable.",
+      "nextAction": "Use the presenter pack.",
+      "blocking": false
+    }
+  ],
+  "links": [
+    {
+      "kind": "PRESENTER_PACK",
+      "label": "Presenter pack",
+      "url": "/api/jobs/job-selected/demo-presenter-pack"
+    }
+  ],
+  "safetyNotes": [
+    "Metadata-only cockpit: only IDs, statuses, counts, readiness labels, and safe routes are included."
+  ],
+  "localPath": "/Users/example/Downloads/tos_casting-720p.mp4",
+  "demoToken": "private-demo-token",
+  "providerPayload": "raw provider payload",
+  "transcript": "raw transcript text",
+  "subtitle": "raw subtitle text"
+}
+JSON
+
+  print_demo_presentation_cockpit_summary_file "$TMPDIR/demo-presentation-cockpit.json" \
+    >"$TMPDIR/demo-presentation-cockpit.out"
+  local output
+  output="$(cat "$TMPDIR/demo-presentation-cockpit.out")"
+  [[ "$output" == *"demoPresentationCockpitOverall=READY"* ]] || fail "cockpit summary missed overall"
+  [[ "$output" == *"demoPresentationCockpitPhase=READY_TO_PRESENT"* ]] || fail "cockpit summary missed phase"
+  [[ "$output" == *"demoPresentationCockpitSelectedRunJobId=job-selected"* ]] || fail "cockpit summary missed selected run"
+  [[ "$output" == *"demoPresentationCockpitCheck=READY:ACCEPTANCE_GATE:Acceptance gate:blocking=false"* ]] || fail "cockpit summary missed check"
+  [[ "$output" == *"demoPresentationCockpitLink=PRESENTER_PACK:Presenter pack:/api/jobs/job-selected/demo-presenter-pack"* ]] || fail "cockpit summary missed link"
+  [[ "$output" != *"/Users/example"* ]] || fail "cockpit summary exposed local path"
+  [[ "$output" != *"private-demo-token"* ]] || fail "cockpit summary exposed demo token"
+  [[ "$output" != *"provider payload"* ]] || fail "cockpit summary exposed provider payload"
+  [[ "$output" != *"raw transcript text"* ]] || fail "cockpit summary exposed transcript"
+  [[ "$output" != *"raw subtitle text"* ]] || fail "cockpit summary exposed subtitle"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -2824,6 +2900,7 @@ test_demo_sample_media_catalog_helpers_are_metadata_only
 test_demo_sample_media_catalog_script_exits_on_blocked_state
 test_demo_run_launcher_helpers_are_metadata_only
 test_demo_run_launcher_script_exits_on_blocked_state
+test_demo_presentation_cockpit_helpers_are_metadata_only
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile
