@@ -81,6 +81,7 @@ Stage 2 goals:
 - Support controlled uploads from the project owner.
 - Let the owner start and end a browser session with the configured private demo token, while keeping Swagger, curl, and scripts compatible with the demo access header.
 - Persist a configured demo owner id on uploaded videos and localization jobs, and scope owner-facing media/job APIs to that owner before public authentication exists.
+- Enforce a private-demo owner quota preflight for active jobs, queued jobs, and same-day estimated spend before new uploads create storage objects, job rows, dispatch events, FFmpeg work, or provider calls.
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
@@ -189,6 +190,7 @@ The backend should provide:
 - Structured logs with job and stage identifiers.
 - A private-demo operations readiness workspace that safely aggregates access gate, runtime contract, live dependency, provider, cost, storage/recovery, retention, and demo-evidence checks for browser and terminal handoff.
 - A private-demo evidence gallery that safely aggregates recent completed jobs, handoff readiness, recommended run selection, and package links for browser and terminal handoff.
+- A private-demo owner quota preflight workspace that safely reports configured owner pressure and blocks new uploads before expensive work.
 
 ## Pipeline Target
 
@@ -236,6 +238,7 @@ LinguaFrame must:
 - Explain failed jobs with safe advisory triage that maps known OpenAI, budget, media, storage, worker/queue, configuration, cancellation, and unknown failures to recommended next actions.
 - Track estimated cost per job.
 - Enforce per-job and per-user budget limits before expensive OpenAI stages.
+- Reject new private-demo uploads when configured owner active-job, queued-job, or owner daily-budget limits are exhausted.
 - Cache duplicate inputs by content hash when it avoids repeated model calls safely.
 - Record prompt template versions for reproducibility.
 - Allow expensive steps to be disabled for local testing.

@@ -1,6 +1,8 @@
 package com.linguaframe.media.controller;
 
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
+import com.linguaframe.common.quota.OwnerQuotaPreflightService;
+import com.linguaframe.common.quota.OwnerQuotaPreflightVo;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
@@ -34,13 +36,26 @@ public class MediaUploadController {
 
     private final MediaUploadValidationService validationService;
     private final MediaUploadService uploadService;
+    private final OwnerQuotaPreflightService ownerQuotaPreflightService;
 
     public MediaUploadController(
             MediaUploadValidationService validationService,
-            MediaUploadService uploadService
+            MediaUploadService uploadService,
+            OwnerQuotaPreflightService ownerQuotaPreflightService
     ) {
         this.validationService = validationService;
         this.uploadService = uploadService;
+        this.ownerQuotaPreflightService = ownerQuotaPreflightService;
+    }
+
+    @GetMapping("/preflight")
+    @Operation(summary = "Inspect owner upload quota preflight")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Owner upload quota preflight metadata was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public OwnerQuotaPreflightVo preflightUpload() {
+        return ownerQuotaPreflightService.getPreflight();
     }
 
     @PostMapping(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

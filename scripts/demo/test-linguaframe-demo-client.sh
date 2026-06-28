@@ -98,6 +98,110 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "demo session summary exposed local path"
 }
 
+test_owner_quota_preflight_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_owner_quota_preflight_json "http://example.test" "$TMPDIR/owner-quota.json" >"$TMPDIR/owner-quota-curl.out"
+
+  local curl_output
+  curl_output="$(cat "$TMPDIR/owner-quota-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/media/uploads/preflight"* ]] || fail "owner quota helper used wrong route"
+
+  cat >"$TMPDIR/owner-quota.json" <<'JSON'
+{
+  "ownerId": "demo-owner",
+  "enabled": true,
+  "allowed": false,
+  "activeJobs": 2,
+  "queuedJobs": 1,
+  "dailyEstimatedCostUsd": 0.25,
+  "dailyBudgetDate": "2026-06-28",
+  "limits": [
+    { "name": "activeJobs", "enabled": true, "current": 2, "limit": 2 },
+    { "name": "queuedJobs", "enabled": true, "current": 1, "limit": 1 },
+    { "name": "dailyCostUsd", "enabled": true, "current": 0.25, "limit": 0.25 }
+  ],
+  "blockingReasons": [
+    "Owner active job limit reached: 2 / 2"
+  ],
+  "demoToken": "private-demo-token",
+  "sourceObjectKey": "uploads/video-1/source.mp4",
+  "localPath": "/Users/example/private.mov",
+  "providerPayload": "raw provider payload"
+}
+JSON
+
+  print_owner_quota_preflight_summary_file "$TMPDIR/owner-quota.json" >"$TMPDIR/owner-quota.out"
+  local output
+  output="$(cat "$TMPDIR/owner-quota.out")"
+  [[ "$output" == *"ownerQuotaOwnerId=demo-owner"* ]] || fail "owner quota summary missed owner"
+  [[ "$output" == *"ownerQuotaEnabled=true"* ]] || fail "owner quota summary missed enabled state"
+  [[ "$output" == *"ownerQuotaAllowed=false"* ]] || fail "owner quota summary missed allowed state"
+  [[ "$output" == *"ownerQuotaActiveJobs=2"* ]] || fail "owner quota summary missed active jobs"
+  [[ "$output" == *"ownerQuotaQueuedJobs=1"* ]] || fail "owner quota summary missed queued jobs"
+  [[ "$output" == *"ownerQuotaDailyEstimatedCostUsd=0.25"* ]] || fail "owner quota summary missed daily cost"
+  [[ "$output" == *"ownerQuotaLimit=activeJobs:enabled=true:current=2:limit=2"* ]] || fail "owner quota summary missed active limit"
+  [[ "$output" == *"ownerQuotaBlockingReason=Owner active job limit reached: 2 / 2"* ]] || fail "owner quota summary missed blocking reason"
+  [[ "$output" != *"private-demo-token"* ]] || fail "owner quota summary exposed demo token"
+  [[ "$output" != *"uploads/video-1/source.mp4"* ]] || fail "owner quota summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "owner quota summary exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "owner quota summary exposed provider payload"
+}
+
+test_owner_quota_preflight_script_exits_on_blocked_state() {
+  local fake_curl="$TMPDIR/fake-owner-quota-curl"
+  cat >"$fake_curl" <<'SH'
+#!/usr/bin/env bash
+output_path=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o)
+      output_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+cat >"$output_path" <<'JSON'
+{
+  "ownerId": "demo-owner",
+  "enabled": true,
+  "allowed": false,
+  "activeJobs": 2,
+  "queuedJobs": 0,
+  "dailyEstimatedCostUsd": 0,
+  "dailyBudgetDate": "2026-06-28",
+  "limits": [
+    { "name": "activeJobs", "enabled": true, "current": 2, "limit": 2 }
+  ],
+  "blockingReasons": ["Owner active job limit reached: 2 / 2"]
+}
+JSON
+SH
+  chmod +x "$fake_curl"
+
+  local status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_OWNER_QUOTA_PREFLIGHT_JSON_PATH="$TMPDIR/script-owner-quota.json" \
+    "$SCRIPT_DIR/owner-quota-preflight.sh" >"$TMPDIR/script-owner-quota.out" || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "owner quota preflight script did not fail on blocked quota"
+
+  status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true \
+  LINGUAFRAME_OWNER_QUOTA_PREFLIGHT_JSON_PATH="$TMPDIR/script-owner-quota-report-only.json" \
+    "$SCRIPT_DIR/owner-quota-preflight.sh" >"$TMPDIR/script-owner-quota-report-only.out" || status=$?
+
+  [[ "$status" -eq 0 ]] || fail "owner quota preflight script failed in report-only mode"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1454,6 +1558,8 @@ test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_demo_session_owner_summary_is_metadata_only
+test_owner_quota_preflight_helpers_are_metadata_only
+test_owner_quota_preflight_script_exits_on_blocked_state
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

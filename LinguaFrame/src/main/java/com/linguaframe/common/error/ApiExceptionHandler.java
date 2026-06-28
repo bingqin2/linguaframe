@@ -1,5 +1,6 @@
 package com.linguaframe.common.error;
 
+import com.linguaframe.common.quota.OwnerQuotaExceededException;
 import com.linguaframe.job.domain.exception.JobStateConflictException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +28,12 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiErrorVo> handleJobConflict(JobStateConflictException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(new ApiErrorVo("CONFLICT", ex.getMessage()));
+    }
+
+    @ExceptionHandler(OwnerQuotaExceededException.class)
+    public ResponseEntity<ApiErrorVo> handleOwnerQuotaExceeded(OwnerQuotaExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new ApiErrorVo("OWNER_QUOTA_EXCEEDED", ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

@@ -18,6 +18,7 @@ import type {
   DemoRunProfile,
   DemoSessionStatus,
   OperatorDashboard,
+  OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
@@ -82,6 +83,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
+    vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(ownerQuotaPreflightFixture());
     vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockResolvedValue(
       retentionCleanupResultFixture()
     );
@@ -107,6 +109,13 @@ describe('App', () => {
             maxDailyCostUsd: 0.000003,
             budgetIdentity: 'demo-owner',
             estimatedCostTrackingEnabled: true
+          },
+          ownerQuota: {
+            enabled: true,
+            maxActiveJobs: 2,
+            maxQueuedJobs: 1,
+            dailyBudgetGuardEnabled: true,
+            maxDailyCostUsd: 0.25
           },
           providers: {
             ...runtimeDependenciesFixture().readiness.providers,
@@ -137,6 +146,10 @@ describe('App', () => {
     expect(within(readiness).getByText('Daily budget')).toBeInTheDocument();
     expect(within(readiness).getByText('Enabled / $0.00000300')).toBeInTheDocument();
     expect(within(readiness).getByText('demo-owner')).toBeInTheDocument();
+    expect(within(readiness).getAllByText('Owner quota').length).toBeGreaterThanOrEqual(1);
+    expect(within(readiness).getByText('Enabled / active 2 / queued 1')).toBeInTheDocument();
+    expect(within(readiness).getByText('Owner daily budget')).toBeInTheDocument();
+    expect(within(readiness).getByText('Enabled / $0.25000000')).toBeInTheDocument();
     expect(within(readiness).getByText('translation: openai / gpt-4.1-mini / credentials set'))
       .toBeInTheDocument();
     expect(within(readiness).getByText('Job cache')).toBeInTheDocument();
@@ -780,6 +793,9 @@ describe('App', () => {
 
   test('uploads a video, stores it as a recent job, and selects the created job', async () => {
     const listJobs = vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
+    const getOwnerQuotaPreflight = vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(
+      ownerQuotaPreflightFixture()
+    );
     const validateUpload = vi
       .spyOn(linguaFrameApi, 'validateUpload')
       .mockResolvedValue(mediaUploadValidationFixture());
@@ -837,6 +853,37 @@ describe('App', () => {
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
+    expect(getOwnerQuotaPreflight).toHaveBeenCalledTimes(3);
+  });
+
+  test('shows owner quota preflight and blocks upload when quota is exhausted', async () => {
+    vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(
+      ownerQuotaPreflightFixture({
+        enabled: true,
+        allowed: false,
+        activeJobs: 2,
+        queuedJobs: 1,
+        dailyEstimatedCostUsd: 0.25,
+        limits: [
+          { name: 'activeJobs', enabled: true, limit: 2, current: 2 },
+          { name: 'queuedJobs', enabled: true, limit: 1, current: 1 },
+          { name: 'dailyCostUsd', enabled: true, limit: 0.25, current: 0.25 }
+        ],
+        blockingReasons: ['Owner active job limit reached: 2 / 2']
+      })
+    );
+    const uploadMedia = vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
+
+    render(<App />);
+
+    const quota = await screen.findByRole('region', { name: /owner quota/i });
+    expect(within(quota).getByText('Blocked')).toBeInTheDocument();
+    expect(within(quota).getByText('demo-owner')).toBeInTheDocument();
+    expect(within(quota).getByText('2 / 2')).toBeInTheDocument();
+    expect(within(quota).getByText('$0.25000000 / $0.25000000')).toBeInTheDocument();
+    expect(within(quota).getByText('Owner active job limit reached: 2 / 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(uploadMedia).not.toHaveBeenCalled();
   });
 
   test('applies a demo run profile to upload fields', async () => {
@@ -3095,6 +3142,13 @@ function runtimeDependenciesFixture(
         budgetIdentity: 'demo-owner',
         estimatedCostTrackingEnabled: true
       },
+      ownerQuota: {
+        enabled: false,
+        maxActiveJobs: 0,
+        maxQueuedJobs: 0,
+        dailyBudgetGuardEnabled: false,
+        maxDailyCostUsd: 0
+      },
       providers: {
         transcription: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
         translation: { enabled: true, provider: 'demo', model: '', credentialsConfigured: false },
@@ -3107,9 +3161,31 @@ function runtimeDependenciesFixture(
         retentionCleanup: { enabled: false },
         costTracking: { enabled: true },
         budgetGuard: { enabled: false },
-        dailyBudgetGuard: { enabled: false }
+        dailyBudgetGuard: { enabled: false },
+        ownerQuota: { enabled: false }
       }
     },
+    ...overrides
+  };
+}
+
+function ownerQuotaPreflightFixture(
+  overrides: Partial<OwnerQuotaPreflight> = {}
+): OwnerQuotaPreflight {
+  return {
+    ownerId: 'demo-owner',
+    enabled: false,
+    allowed: true,
+    activeJobs: 0,
+    queuedJobs: 0,
+    dailyEstimatedCostUsd: 0,
+    dailyBudgetDate: '2026-06-28',
+    limits: [
+      { name: 'activeJobs', enabled: false, limit: 0, current: 0 },
+      { name: 'queuedJobs', enabled: false, limit: 0, current: 0 },
+      { name: 'dailyCostUsd', enabled: false, limit: 0, current: 0 }
+    ],
+    blockingReasons: [],
     ...overrides
   };
 }

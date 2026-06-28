@@ -1,12 +1,16 @@
 package com.linguaframe.media.controller;
 
+import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.service.MediaDurationProbeService;
+import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.io.ByteArrayInputStream;
 
@@ -39,6 +44,38 @@ class MediaUploadControllerTests {
 
     @MockitoBean
     private MediaDurationProbeService mediaDurationProbeService;
+
+    @Autowired
+    private LocalizationJobRepository jobRepository;
+
+    @Autowired
+    private LinguaFrameProperties properties;
+
+    @Autowired
+    private JdbcClient jdbcClient;
+
+    @BeforeEach
+    void cleanDatabaseAndResetQuota() {
+        jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM job_dispatch_events").update();
+        jdbcClient.sql("DELETE FROM localization_jobs").update();
+        jdbcClient.sql("DELETE FROM videos").update();
+        properties.getOwnerQuota().setEnabled(false);
+        properties.getOwnerQuota().setMaxActiveJobs(0);
+        properties.getOwnerQuota().setMaxQueuedJobs(0);
+        properties.getOwnerQuota().setDailyBudgetGuardEnabled(false);
+        properties.getOwnerQuota().setMaxDailyCostUsd(java.math.BigDecimal.ZERO);
+    }
+
+    @Test
+    void returnsOwnerQuotaPreflight() throws Exception {
+        mockMvc.perform(get("/api/media/uploads/preflight"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ownerId").value("demo-owner"))
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.allowed").value(true))
+                .andExpect(jsonPath("$.blockingReasons").isArray());
+    }
 
     @Test
     void validatesSupportedMultipartVideo() throws Exception {
@@ -126,6 +163,31 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.durationSeconds").value(42))
                 .andExpect(jsonPath("$.status").value("UPLOADED"))
                 .andExpect(jsonPath("$.sourceObjectKey").doesNotExist());
+    }
+
+    @Test
+    void rejectsUploadWhenOwnerQuotaIsExceeded() throws Exception {
+        properties.getOwnerQuota().setEnabled(true);
+        properties.getOwnerQuota().setMaxActiveJobs(1);
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
+        MockMultipartFile first = new MockMultipartFile("file", "first.mp4", "video/mp4", new byte[] {1, 2, 3});
+        MockMultipartFile second = new MockMultipartFile("file", "second.mp4", "video/mp4", new byte[] {4, 5, 6});
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
+
+        mockMvc.perform(multipart("/api/media/uploads").file(first))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(multipart("/api/media/uploads").file(second))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("OWNER_QUOTA_EXCEEDED"))
+                .andExpect(jsonPath("$.message").value("Active job limit reached for owner demo-owner: current 1, limit 1."))
+                .andExpect(jsonPath("$.message").value(not(isEmptyOrNullString())));
+
+        org.assertj.core.api.Assertions.assertThat(jobRepository.countSummariesByOwnerId("demo-owner", LocalizationJobStatus.QUEUED))
+                .isEqualTo(1);
     }
 
     @Test

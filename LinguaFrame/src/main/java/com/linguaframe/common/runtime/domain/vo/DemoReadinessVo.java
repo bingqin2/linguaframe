@@ -8,6 +8,7 @@ public record DemoReadinessVo(
         MediaReadinessVo media,
         FfmpegReadinessVo ffmpeg,
         BudgetReadinessVo budget,
+        OwnerQuotaReadinessVo ownerQuota,
         Map<String, ProviderReadinessVo> providers,
         Map<String, RuntimeFeatureFlagVo> features
 ) {

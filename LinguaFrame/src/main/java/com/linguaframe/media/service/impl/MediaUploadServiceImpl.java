@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.job.service.impl.TranslationGlossaryParser;
+import com.linguaframe.common.quota.OwnerQuotaPreflightService;
 import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.demo.service.DemoRunProfileService;
 import com.linguaframe.demo.service.impl.InMemoryDemoRunProfileService;
@@ -30,7 +31,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -48,6 +52,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final TranslationGlossaryParser translationGlossaryParser;
     private final DemoRunProfileService demoRunProfileService;
     private final DemoOwnerIdentityService ownerIdentityService;
+    private final OwnerQuotaPreflightService ownerQuotaPreflightService;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -56,7 +61,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner");
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService());
     }
 
     public MediaUploadServiceImpl(
@@ -67,7 +72,18 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             DemoOwnerIdentityService ownerIdentityService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService);
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService, noopQuotaPreflightService());
+    }
+
+    public MediaUploadServiceImpl(
+            MediaUploadValidationService validationService,
+            ObjectStorageService objectStorageService,
+            VideoRepository videoRepository,
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService,
+            OwnerQuotaPreflightService ownerQuotaPreflightService
+    ) {
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", ownerQuotaPreflightService);
     }
 
     @Autowired
@@ -79,7 +95,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             TranslationGlossaryParser translationGlossaryParser,
             DemoRunProfileService demoRunProfileService,
-            DemoOwnerIdentityService ownerIdentityService
+            DemoOwnerIdentityService ownerIdentityService,
+            OwnerQuotaPreflightService ownerQuotaPreflightService
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
@@ -89,6 +106,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         this.translationGlossaryParser = translationGlossaryParser;
         this.demoRunProfileService = demoRunProfileService;
         this.ownerIdentityService = ownerIdentityService;
+        this.ownerQuotaPreflightService = ownerQuotaPreflightService;
     }
 
     @Override
@@ -112,6 +130,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
         }
+        ownerQuotaPreflightService.requireUploadAllowed();
 
         String videoId = UUID.randomUUID().toString();
         String jobId = UUID.randomUUID().toString();
@@ -218,6 +237,29 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             return DEFAULT_TARGET_LANGUAGE;
         }
         return targetLanguage.trim();
+    }
+
+    private static OwnerQuotaPreflightService noopQuotaPreflightService() {
+        return new OwnerQuotaPreflightService() {
+            @Override
+            public com.linguaframe.common.quota.OwnerQuotaPreflightVo getPreflight() {
+                return new com.linguaframe.common.quota.OwnerQuotaPreflightVo(
+                        "demo-owner",
+                        false,
+                        true,
+                        0,
+                        0,
+                        BigDecimal.ZERO,
+                        LocalDate.now(),
+                        List.of(),
+                        List.of()
+                );
+            }
+
+            @Override
+            public void requireUploadAllowed() {
+            }
+        };
     }
 
     private String normalizeTtsVoice(String ttsVoice) {

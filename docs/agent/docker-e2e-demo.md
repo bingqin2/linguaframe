@@ -50,6 +50,8 @@ The React demo validates selected videos through `/api/media/uploads/validate` b
 
 Before uploading, check the browser `Demo runbook`, `Live checks`, `Private demo launch rehearsal`, and upload form `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The launch rehearsal panel should show the ordered manual go/no-go steps, recommended next step, expected evidence routes, and metadata-only notes without running Docker, OpenAI, backup, restore, upload, or cleanup work. After jobs complete, use `Private demo evidence gallery` to select the recommended completed run, verify handoff readiness, and open safe package links without opening every job manually. The live-check panel should show database, Redis, RabbitMQ, MinIO, and FFmpeg as `UP`, `DOWN`, or `SKIPPED`. The upload form can apply a `Demo profile` such as `quick-baseline`, `tears-showcase`, or `concise-review` before manual edits; the selected profile should appear in job detail, delivery handoff, evidence, demo session reports, and terminal Markdown summaries. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
 
+Also check the upload form `Owner quota` panel before paid or full-video runs. It calls `GET /api/media/uploads/preflight` and shows owner id, active jobs, queued jobs, same-day estimated spend, limits, and safe blocking reasons. When blocked, upload is disabled but file validation still works.
+
 After opening a job, check the `Source media` panel first. It should show filename, content type, size, duration, upload status, created time, video id, job id, target language, and a `Download source video` link to `/api/media/uploads/{videoId}/source/download` without exposing object keys or local paths. Terminal runs should print `sourceMedia*` summary lines and write `source-media.json` plus `source-video.mp4`.
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
@@ -100,6 +102,14 @@ scripts/demo/private-demo-preflight.sh
 ```
 
 The preflight does not upload media and does not call OpenAI unless `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`. It verifies required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live MySQL/Redis/RabbitMQ/MinIO/FFmpeg checks, OpenAI connectivity status (`SKIPPED` by default), frontend reachability, owner-session status/login/logout, optional demo-token header behavior, and any configured `LINGUAFRAME_DEMO_SAMPLE_PATH` or `LINGUAFRAME_TEARS_SAMPLE_PATH`.
+
+Run owner quota preflight when you need a shell-level stop before upload:
+
+```bash
+scripts/demo/owner-quota-preflight.sh
+```
+
+The script writes `/tmp/linguaframe-demo/owner-quota-preflight.json`, prints metadata-only `ownerQuota*` lines, and exits non-zero if the configured owner has exhausted active job, queued job, or owner daily budget limits. Use `LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true` for report-only checks.
 
 If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, start the frontend locally while keeping the backend stack in Docker:
 

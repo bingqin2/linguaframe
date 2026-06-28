@@ -305,6 +305,21 @@ class LocalizationJobRepositoryTests {
     }
 
     @Test
+    void countsActiveAndQueuedJobsByOwner() {
+        Instant base = Instant.parse("2026-06-28T09:00:00Z");
+        createJob("video-quota-alpha-queued", "job-quota-alpha-queued", "owner-alpha", LocalizationJobStatus.QUEUED, base);
+        createJob("video-quota-alpha-retrying", "job-quota-alpha-retrying", "owner-alpha", LocalizationJobStatus.RETRYING, base.plusSeconds(1));
+        createJob("video-quota-alpha-processing", "job-quota-alpha-processing", "owner-alpha", LocalizationJobStatus.PROCESSING, base.plusSeconds(2));
+        createJob("video-quota-alpha-completed", "job-quota-alpha-completed", "owner-alpha", LocalizationJobStatus.COMPLETED, base.plusSeconds(3));
+        createJob("video-quota-beta-queued", "job-quota-beta-queued", "owner-beta", LocalizationJobStatus.QUEUED, base.plusSeconds(4));
+
+        assertThat(jobRepository.countActiveJobsByOwnerId("owner-alpha")).isEqualTo(3);
+        assertThat(jobRepository.countQueuedJobsByOwnerId("owner-alpha")).isEqualTo(2);
+        assertThat(jobRepository.countActiveJobsByOwnerId("owner-beta")).isEqualTo(1);
+        assertThat(jobRepository.countQueuedJobsByOwnerId("owner-beta")).isEqualTo(1);
+    }
+
+    @Test
     void findsRetentionCandidatesForOnlyRequestedTerminalStatusesOlderThanCutoff() {
         Instant base = Instant.parse("2026-06-27T12:00:00Z");
         createJob("video-retention-completed-old", "job-retention-completed-old", LocalizationJobStatus.COMPLETED, base.minusSeconds(900));

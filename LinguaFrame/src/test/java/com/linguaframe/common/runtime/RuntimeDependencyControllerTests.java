@@ -61,6 +61,7 @@ class RuntimeDependencyControllerTests {
                         "/api/runtime/dependencies",
                         "/api/runtime/live-checks",
                         "/api/demo-run-profiles",
+                        "/api/media/uploads/preflight",
                         "/api/media/uploads",
                         "/api/media/uploads/{videoId}/source/download",
                         "/api/jobs/{jobId}",
@@ -118,6 +119,14 @@ class RuntimeDependencyControllerTests {
         assertThat(budget.get("budgetIdentity")).isEqualTo("demo-owner");
         assertThat(budget.get("estimatedCostTrackingEnabled")).isEqualTo(true);
 
+        assertThat(readiness.get("ownerQuota")).isInstanceOf(Map.class);
+        Map<?, ?> ownerQuota = (Map<?, ?>) readiness.get("ownerQuota");
+        assertThat(ownerQuota.get("enabled")).isEqualTo(false);
+        assertThat(ownerQuota.get("maxActiveJobs")).isEqualTo(0);
+        assertThat(ownerQuota.get("maxQueuedJobs")).isEqualTo(0);
+        assertThat(ownerQuota.get("dailyBudgetGuardEnabled")).isEqualTo(false);
+        assertThat(ownerQuota.get("maxDailyCostUsd")).isEqualTo(0);
+
         assertThat(readiness.get("providers")).isInstanceOf(Map.class);
         Map<?, ?> providers = (Map<?, ?>) readiness.get("providers");
         assertProviderReadiness(providers.get("transcription"), false, "demo", false);
@@ -133,6 +142,7 @@ class RuntimeDependencyControllerTests {
         assertFeatureFlag(features.get("costTracking"), true);
         assertFeatureFlag(features.get("budgetGuard"), false);
         assertFeatureFlag(features.get("dailyBudgetGuard"), false);
+        assertFeatureFlag(features.get("ownerQuota"), false);
     }
 
     @Test
