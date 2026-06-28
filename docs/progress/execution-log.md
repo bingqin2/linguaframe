@@ -26,6 +26,13 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `tts-dubbed-video-delivery-workspace` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests,WorkerStageRouterTests,DeliveryManifestServiceTests,DemoRunPackageServiceTests test` passed on `main` with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx` passed on `main` with `Tests 72 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
