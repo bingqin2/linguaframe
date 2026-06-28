@@ -25,6 +25,13 @@ Validation:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `local-account-jwt-auth-workspace` back to `main` with a merge commit.
+- `mvn -pl LinguaFrame -Dtest=HmacLocalAuthTokenServiceTests,LocalAuthControllerTests,LocalAuthInterceptorTests,DemoAccessInterceptorTests,OpenApiDocumentationTests test` passed on `main` with `Tests run: 27, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t auth` passed on `main` with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
