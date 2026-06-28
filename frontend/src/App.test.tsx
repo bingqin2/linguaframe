@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type {
+  AuthLoginResponse,
+  AuthSessionStatus,
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -88,6 +90,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
+    vi.spyOn(linguaFrameApi, 'getAuthSession').mockResolvedValue(authSessionStatusFixture());
     vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(ownerQuotaPreflightFixture());
     vi.spyOn(linguaFrameApi, 'getDemoUploadReadiness').mockResolvedValue(
       demoUploadReadinessFixture()
@@ -777,6 +780,79 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /start session/i }));
 
     expect(await screen.findByText('Owner token rejected')).toBeInTheDocument();
+  });
+
+  test('creates and clears a local account auth session', async () => {
+    const getAuthSession = vi.spyOn(linguaFrameApi, 'getAuthSession').mockResolvedValue(
+      authSessionStatusFixture({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        authMode: 'LOCAL_AUTH_REQUIRED'
+      })
+    );
+    const loginAuthSession = vi.spyOn(linguaFrameApi, 'loginAuthSession').mockResolvedValue(
+      authLoginResponseFixture({
+        session: authSessionStatusFixture({
+          enabled: true,
+          configured: true,
+          authenticated: true,
+          authMode: 'LOCAL_AUTH_ACTIVE'
+        })
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'logoutAuthSession').mockResolvedValue(
+      authSessionStatusFixture({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        authMode: 'LOCAL_AUTH_REQUIRED'
+      })
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText('Local account required')).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText(/account username/i));
+    await userEvent.type(screen.getByLabelText(/account username/i), 'owner');
+    await userEvent.type(screen.getByLabelText(/account password/i), 'owner-password');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(loginAuthSession).toHaveBeenCalledWith('owner', 'owner-password');
+    await waitFor(() => {
+      expect(screen.getAllByText('Local account active').length).toBeGreaterThan(0);
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
+
+    expect(await screen.findByText('Local account signed out.')).toBeInTheDocument();
+    expect(screen.getByLabelText(/account username/i)).toHaveValue('owner');
+    expect(screen.getByLabelText(/account password/i)).toHaveValue('');
+    expect(getAuthSession).toHaveBeenCalled();
+  });
+
+  test('shows local account login failures without blocking upload controls', async () => {
+    vi.spyOn(linguaFrameApi, 'getAuthSession').mockResolvedValue(
+      authSessionStatusFixture({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        authMode: 'LOCAL_AUTH_REQUIRED'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'loginAuthSession').mockRejectedValue(
+      new Error('Local account credentials rejected')
+    );
+
+    render(<App />);
+
+    await userEvent.clear(await screen.findByLabelText(/account username/i));
+    await userEvent.type(screen.getByLabelText(/account username/i), 'owner');
+    await userEvent.type(screen.getByLabelText(/account password/i), 'wrong-password');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByText('Local account credentials rejected')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
   test('shows demo token required errors from protected APIs', async () => {
@@ -3523,6 +3599,35 @@ function demoSessionStatusFixture(overrides: Partial<DemoSessionStatus> = {}): D
     mode: 'OPEN',
     ownerId: 'demo-owner',
     ownershipScope: 'CONFIGURED_DEMO_OWNER',
+    ...overrides
+  };
+}
+
+function authSessionStatusFixture(overrides: Partial<AuthSessionStatus> = {}): AuthSessionStatus {
+  return {
+    enabled: false,
+    configured: false,
+    authenticated: false,
+    ownerId: 'demo-owner',
+    username: 'owner',
+    authMode: 'LOCAL_AUTH_DISABLED',
+    ...overrides
+  };
+}
+
+function authLoginResponseFixture(overrides: Partial<AuthLoginResponse> = {}): AuthLoginResponse {
+  return {
+    token: 'jwt-token',
+    tokenType: 'Bearer',
+    expiresAt: '2026-06-28T13:00:00Z',
+    session: authSessionStatusFixture({
+      enabled: true,
+      configured: true,
+      authenticated: true,
+      ownerId: 'owner-alpha',
+      username: 'owner',
+      authMode: 'LOCAL_AUTH_ACTIVE'
+    }),
     ...overrides
   };
 }

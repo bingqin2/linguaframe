@@ -54,6 +54,13 @@ linguaframe:
     access-token: ${LINGUAFRAME_DEMO_ACCESS_TOKEN:}
     access-header-name: ${LINGUAFRAME_DEMO_ACCESS_HEADER_NAME:X-LinguaFrame-Demo-Token}
     owner-id: ${LINGUAFRAME_DEMO_OWNER_ID:demo-owner}
+  auth:
+    enabled: ${LINGUAFRAME_AUTH_ENABLED:false}
+    owner-username: ${LINGUAFRAME_AUTH_USERNAME:owner}
+    owner-password: ${LINGUAFRAME_AUTH_PASSWORD:}
+    jwt-secret: ${LINGUAFRAME_AUTH_JWT_SECRET:}
+    token-ttl-minutes: ${LINGUAFRAME_AUTH_TOKEN_TTL_MINUTES:60}
+    issuer: ${LINGUAFRAME_AUTH_ISSUER:linguaframe-local}
   retention:
     enabled: ${LINGUAFRAME_RETENTION_ENABLED:false}
     dry-run: ${LINGUAFRAME_RETENTION_DRY_RUN:true}

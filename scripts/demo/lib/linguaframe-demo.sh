@@ -56,6 +56,19 @@ demo_curl() {
   "$curl_bin" "$@"
 }
 
+auth_curl() {
+  local bearer_token="$1"
+  shift
+  local curl_bin="${LINGUAFRAME_DEMO_CURL_BIN:-curl}"
+
+  if [[ -n "$bearer_token" ]]; then
+    "$curl_bin" -H "Authorization: Bearer $bearer_token" "$@"
+    return 0
+  fi
+
+  "$curl_bin" "$@"
+}
+
 demo_base_url() {
   local backend_port
   backend_port="$(env_value LINGUAFRAME_BACKEND_PORT 8080)"
@@ -212,6 +225,29 @@ download_demo_session_json() {
   demo_curl -fsS "$base_url/api/demo-session" -o "$output_path"
 }
 
+download_local_auth_session_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/auth/session" -o "$output_path"
+}
+
+login_local_auth_json() {
+  local base_url="$1"
+  local username="$2"
+  local password="$3"
+  local output_path="$4"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"username\":\"$username\",\"password\":\"$password\"}" \
+    "$base_url/api/auth/login" \
+    -o "$output_path"
+}
+
 print_demo_session_owner_summary_file() {
   local session_json_path="$1"
 
@@ -226,6 +262,34 @@ print(f"demoSessionMode={session.get('mode', '')}")
 print(f"demoSessionAuthenticated={str(bool(session.get('authenticated'))).lower()}")
 print(f"demoOwnerId={session.get('ownerId', '')}")
 print(f"demoOwnershipScope={session.get('ownershipScope', '')}")
+PY
+}
+
+print_local_auth_summary_file() {
+  local auth_json_path="$1"
+
+  python3 - "$auth_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    body = json.load(handle)
+
+session = body.get("session") if isinstance(body.get("session"), dict) else body
+
+def text(value):
+    return "" if value is None else str(value)
+
+def bool_text(value):
+    return str(bool(value)).lower()
+
+print("localAuthEnabled=" + bool_text(session.get("enabled")))
+print("localAuthConfigured=" + bool_text(session.get("configured")))
+print("localAuthAuthenticated=" + bool_text(session.get("authenticated")))
+print("localAuthOwnerId=" + text(session.get("ownerId")))
+print("localAuthUsername=" + text(session.get("username")))
+print("localAuthMode=" + text(session.get("authMode")))
+print("localAuthTokenExpiresAt=" + text(body.get("expiresAt")))
 PY
 }
 

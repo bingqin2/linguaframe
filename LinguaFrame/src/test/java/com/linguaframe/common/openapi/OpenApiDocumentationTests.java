@@ -54,6 +54,11 @@ class OpenApiDocumentationTests {
         assertThat(demoAccessToken.get("in")).isEqualTo("header");
         assertThat(demoAccessToken.get("name")).isEqualTo("X-LinguaFrame-Demo-Token");
         assertThat((String) demoAccessToken.get("description")).contains("linguaframe.demo.access-token");
+        assertThat(securitySchemes.get("BearerAuth")).isInstanceOf(Map.class);
+        Map<?, ?> bearerAuth = (Map<?, ?>) securitySchemes.get("BearerAuth");
+        assertThat(bearerAuth.get("type")).isEqualTo("http");
+        assertThat(bearerAuth.get("scheme")).isEqualTo("bearer");
+        assertThat(bearerAuth.get("bearerFormat")).isEqualTo("JWT");
 
         assertThat(body.get("tags")).isInstanceOf(Iterable.class);
         Set<String> tagNames = StreamSupport.stream(((Iterable<?>) body.get("tags")).spliterator(), false)
@@ -112,6 +117,9 @@ class OpenApiDocumentationTests {
                         "/api/demo-session",
                         "/api/demo-session/login",
                         "/api/demo-session/logout",
+                        "/api/auth/session",
+                        "/api/auth/login",
+                        "/api/auth/logout",
                         "/api/runtime/dependencies",
                         "/api/runtime/live-checks",
                         "/api/prompt-templates",

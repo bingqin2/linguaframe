@@ -98,6 +98,66 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "demo session summary exposed local path"
 }
 
+test_local_auth_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_local_auth_session_json "http://example.test" "$TMPDIR/local-auth-session.json" >"$TMPDIR/local-auth-session-curl.out"
+
+  local session_curl_output
+  session_curl_output="$(cat "$TMPDIR/local-auth-session-curl.out")"
+  [[ "$session_curl_output" == *"http://example.test/api/auth/session"* ]] || fail "local auth session helper used wrong route"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    login_local_auth_json "http://example.test" "owner" "owner-password" "$TMPDIR/local-auth-login.json" >"$TMPDIR/local-auth-login-curl.out"
+
+  local login_curl_output
+  login_curl_output="$(cat "$TMPDIR/local-auth-login-curl.out")"
+  [[ "$login_curl_output" == *"http://example.test/api/auth/login"* ]] || fail "local auth login helper used wrong route"
+  [[ "$login_curl_output" == *"{\"username\":\"owner\",\"password\":\"owner-password\"}"* ]] || fail "local auth login helper missed credentials body"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    auth_curl "jwt-token" -fsS http://example.test/api/runtime/dependencies >"$TMPDIR/local-auth-bearer-curl.out"
+  local bearer_curl_output
+  bearer_curl_output="$(cat "$TMPDIR/local-auth-bearer-curl.out")"
+  [[ "$bearer_curl_output" == *"Authorization: Bearer jwt-token"* ]] || fail "auth_curl did not add bearer token"
+  [[ "$bearer_curl_output" == *"http://example.test/api/runtime/dependencies"* ]] || fail "auth_curl did not preserve URL"
+
+  cat >"$TMPDIR/local-auth-login.json" <<'JSON'
+{
+  "token": "jwt-token",
+  "tokenType": "Bearer",
+  "expiresAt": "2026-06-28T13:00:00Z",
+  "session": {
+    "enabled": true,
+    "configured": true,
+    "authenticated": true,
+    "ownerId": "owner-alpha",
+    "username": "owner",
+    "authMode": "LOCAL_AUTH_ACTIVE"
+  },
+  "password": "owner-password",
+  "jwtSecret": "0123456789abcdef0123456789abcdef",
+  "demoToken": "private-demo-token"
+}
+JSON
+
+  print_local_auth_summary_file "$TMPDIR/local-auth-login.json" >"$TMPDIR/local-auth-login.out"
+  local output
+  output="$(cat "$TMPDIR/local-auth-login.out")"
+  [[ "$output" == *"localAuthEnabled=true"* ]] || fail "local auth summary missed enabled state"
+  [[ "$output" == *"localAuthConfigured=true"* ]] || fail "local auth summary missed configured state"
+  [[ "$output" == *"localAuthAuthenticated=true"* ]] || fail "local auth summary missed authenticated state"
+  [[ "$output" == *"localAuthOwnerId=owner-alpha"* ]] || fail "local auth summary missed owner"
+  [[ "$output" == *"localAuthUsername=owner"* ]] || fail "local auth summary missed username"
+  [[ "$output" == *"localAuthTokenExpiresAt=2026-06-28T13:00:00Z"* ]] || fail "local auth summary missed expiry"
+  [[ "$output" != *"jwt-token"* ]] || fail "local auth summary exposed bearer token"
+  [[ "$output" != *"owner-password"* ]] || fail "local auth summary exposed password"
+  [[ "$output" != *"0123456789abcdef"* ]] || fail "local auth summary exposed signing secret"
+  [[ "$output" != *"private-demo-token"* ]] || fail "local auth summary exposed demo token"
+}
+
 test_owner_quota_preflight_helpers_are_metadata_only() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1812,6 +1872,7 @@ test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_demo_session_owner_summary_is_metadata_only
+test_local_auth_helpers_are_metadata_only
 test_owner_quota_preflight_helpers_are_metadata_only
 test_owner_quota_preflight_script_exits_on_blocked_state
 test_upload_readiness_helpers_are_metadata_only

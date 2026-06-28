@@ -1,7 +1,8 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
+import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemoToken } from './api/linguaframeApi';
 import type {
+  AuthSessionStatus,
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -317,6 +318,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoTokenStatus, setDemoTokenStatus] = useState<string | null>(null);
   const [demoSessionStatus, setDemoSessionStatus] = useState<DemoSessionStatus | null>(null);
   const [isChangingDemoSession, setIsChangingDemoSession] = useState(false);
+  const [authUsername, setAuthUsername] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authSessionStatus, setAuthSessionStatus] = useState<AuthSessionStatus | null>(null);
+  const [authStatusMessage, setAuthStatusMessage] = useState<string | null>(null);
+  const [isChangingAuthSession, setIsChangingAuthSession] = useState(false);
   const [job, setJob] = useState<LocalizationJob | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isValidatingUpload, setIsValidatingUpload] = useState(false);
@@ -414,6 +420,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     if (storedToken) {
       writeDemoToken(window.localStorage, storedToken);
     }
+    const storedAuthToken = readAuthToken(window.localStorage);
+    if (storedAuthToken) {
+      writeAuthToken(window.localStorage, storedAuthToken);
+    }
   }, []);
 
   const loadDemoSession = useCallback(async () => {
@@ -424,6 +434,18 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } catch (sessionError) {
       setDemoSessionStatus(null);
       setDemoTokenStatus(toErrorMessage(sessionError));
+    }
+  }, []);
+
+  const loadAuthSession = useCallback(async () => {
+    try {
+      const status = await linguaFrameApi.getAuthSession();
+      setAuthSessionStatus(status);
+      setAuthUsername((current) => current || status.username);
+      setAuthStatusMessage(null);
+    } catch (authError) {
+      setAuthSessionStatus(null);
+      setAuthStatusMessage(toErrorMessage(authError));
     }
   }, []);
 
@@ -722,6 +744,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadDemoSession();
   }, [loadDemoSession]);
+
+  useEffect(() => {
+    void loadAuthSession();
+  }, [loadAuthSession]);
 
   useEffect(() => {
     void loadHistory(historyStatusFilter);
@@ -1230,6 +1256,52 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleLocalAuthLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const username = authUsername.trim();
+    const password = authPassword.trim();
+    if (!username || !password) {
+      setAuthStatusMessage('Enter the account username and password.');
+      return;
+    }
+
+    setIsChangingAuthSession(true);
+    try {
+      const response = await linguaFrameApi.loginAuthSession(username, password);
+      setAuthSessionStatus(response.session);
+      setAuthPassword('');
+      setAuthStatusMessage(response.session.authenticated ? 'Local account active' : 'Local account required');
+      void loadRuntimeDependencies();
+      void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
+      void loadRetentionCleanupPreview();
+    } catch (authError) {
+      setAuthStatusMessage(toErrorMessage(authError));
+    } finally {
+      setIsChangingAuthSession(false);
+    }
+  }
+
+  async function handleLocalAuthLogout() {
+    setIsChangingAuthSession(true);
+    try {
+      const status = await linguaFrameApi.logoutAuthSession();
+      setAuthSessionStatus(status);
+      setAuthPassword('');
+      setAuthStatusMessage('Local account signed out.');
+      void loadRuntimeDependencies();
+      void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
+      void loadRetentionCleanupPreview();
+    } catch (authError) {
+      writeAuthToken(window.localStorage, '');
+      setAuthPassword('');
+      setAuthStatusMessage(toErrorMessage(authError));
+    } finally {
+      setIsChangingAuthSession(false);
+    }
+  }
+
   async function handleRunRetentionCleanup() {
     const confirmed = window.confirm(
       'Run retention cleanup now? The backend retention configuration decides whether this is a dry run or a deleting run.'
@@ -1261,13 +1333,60 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         <div className="header-tools">
           <div className="demo-session-summary" aria-label="Demo owner boundary">
             <span className="runtime-badge">{formatDemoSessionStatus(demoSessionStatus)}</span>
+            <span className="runtime-badge">{formatAuthSessionStatus(authSessionStatus)}</span>
             {demoSessionStatus ? (
               <span className="owner-boundary">
                 <span>Owner: {demoSessionStatus.ownerId}</span>
                 <span>Scope: {demoSessionStatus.ownershipScope}</span>
               </span>
             ) : null}
+            {authSessionStatus ? (
+              <span className="owner-boundary">
+                <span>Account: {authSessionStatus.username}</span>
+                <span>Auth owner: {authSessionStatus.ownerId}</span>
+              </span>
+            ) : null}
           </div>
+          <form className="demo-token-form auth-token-form" onSubmit={handleLocalAuthLogin}>
+            <label>
+              Account username
+              <input
+                type="text"
+                value={authUsername}
+                onChange={(event) => {
+                  setAuthUsername(event.target.value);
+                  setAuthStatusMessage(null);
+                }}
+                autoComplete="username"
+              />
+            </label>
+            <label>
+              Account password
+              <input
+                type="password"
+                value={authPassword}
+                onChange={(event) => {
+                  setAuthPassword(event.target.value);
+                  setAuthStatusMessage(null);
+                }}
+                autoComplete="current-password"
+              />
+            </label>
+            <div className="demo-token-actions">
+              <button type="submit" disabled={isChangingAuthSession}>
+                Sign in
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={handleLocalAuthLogout}
+                disabled={isChangingAuthSession}
+              >
+                Sign out
+              </button>
+            </div>
+            {authStatusMessage ? <p className="token-status">{authStatusMessage}</p> : null}
+          </form>
           <form className="demo-token-form" onSubmit={handleSaveDemoToken}>
             <label>
               Owner access token
@@ -6357,6 +6476,16 @@ function formatDemoSessionStatus(status: DemoSessionStatus | null): string {
     return 'Open demo';
   }
   return status.authenticated ? 'Owner session active' : 'Owner session required';
+}
+
+function formatAuthSessionStatus(status: AuthSessionStatus | null): string {
+  if (!status) {
+    return 'Checking local account';
+  }
+  if (!status.enabled || !status.configured) {
+    return 'Local account disabled';
+  }
+  return status.authenticated ? 'Local account active' : 'Local account required';
 }
 
 function formatRetentionOutcome(result: RetentionCleanupResult): string {

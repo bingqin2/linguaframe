@@ -44,10 +44,10 @@
 - `LocalAuthTokenService.issueOwnerToken()` returns a compact bearer token for the configured owner username and owner id.
 - `LocalAuthTokenService.parse(String token)` verifies signature, issuer, expiry, and subject, then returns `LocalAuthTokenClaims`.
 
-- [ ] Write failing token service tests for issuing/parsing a configured owner token, rejecting tampered tokens, rejecting expired tokens, and not leaking secret/password in exception messages.
-- [ ] Write failing property binding tests for default-disabled auth and configured auth.
-- [ ] Add properties and a token service using HMAC-SHA256 with Base64URL encoding and constant-time signature comparison.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=HmacLocalAuthTokenServiceTests,LinguaFramePropertiesTests test`.
+- [x] Write failing token service tests for issuing/parsing a configured owner token, rejecting tampered tokens, rejecting expired tokens, and not leaking secret/password in exception messages.
+- [x] Write failing property binding tests for default-disabled auth and configured auth.
+- [x] Add properties and a token service using HMAC-SHA256 with Base64URL encoding and constant-time signature comparison.
+- [x] Run `mvn -pl LinguaFrame -Dtest=HmacLocalAuthTokenServiceTests,LinguaFramePropertiesTests test`.
 
 ## Task 2: Backend Auth API, Request Gate, And Owner Identity
 
@@ -74,11 +74,11 @@
 - If both demo access gate and local auth are unconfigured, local development remains open as today.
 - If local auth is configured, `/api/auth/**`, `/api/demo-session/**`, `/actuator/health`, `/v3/api-docs`, and Swagger remain reachable without bearer token.
 
-- [ ] Write failing controller tests for status, successful login, wrong password, disabled/unconfigured auth, and response redaction.
-- [ ] Write failing interceptor tests proving bearer token access works, missing/invalid bearer token is rejected when local auth is configured, demo token compatibility still works, and auth/session endpoints are not blocked.
-- [ ] Add auth controller, request context, interceptor registration, and owner identity lookup from authenticated claims.
-- [ ] Extend OpenAPI with an `BearerAuth` HTTP security scheme and auth paths.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=LocalAuthControllerTests,LocalAuthInterceptorTests,DemoAccessInterceptorTests,DemoSessionControllerTests,OpenApiDocumentationTests test`.
+- [x] Write failing controller tests for status, successful login, wrong password, disabled/unconfigured auth, and response redaction.
+- [x] Write failing interceptor tests proving bearer token access works, missing/invalid bearer token is rejected when local auth is configured, demo token compatibility still works, and auth/session endpoints are not blocked.
+- [x] Add auth controller, request context, interceptor registration, and owner identity lookup from authenticated claims.
+- [x] Extend OpenAPI with an `BearerAuth` HTTP security scheme and auth paths.
+- [x] Run `mvn -pl LinguaFrame -Dtest=LocalAuthControllerTests,LocalAuthInterceptorTests,DemoAccessInterceptorTests,DemoSessionControllerTests,OpenApiDocumentationTests test`.
 
 ## Task 3: Frontend Account Login And Bearer Token Support
 
@@ -98,10 +98,10 @@
 - On successful login/logout, refresh protected readiness/dashboard data without exposing the token.
 - Keep upload controls usable when auth status calls fail; show a concise unavailable message.
 
-- [ ] Write failing API tests for login, logout, token storage, bearer header injection, and demo-token compatibility.
-- [ ] Write failing App tests for configured account sign-in, wrong password error, sign-out, and protected API retry after login.
-- [ ] Implement types, API helper functions, token storage/header injection, and browser account login panel.
-- [ ] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "auth"`.
+- [x] Write failing API tests for login, logout, token storage, bearer header injection, and demo-token compatibility.
+- [x] Write failing App tests for configured account sign-in, wrong password error, sign-out, and protected API retry after login.
+- [x] Implement types, API helper functions, token storage/header injection, and browser account login panel.
+- [x] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "auth"`.
 
 ## Task 4: Terminal Auth Smoke Script And Demo Compatibility
 
@@ -130,10 +130,10 @@
   - never prints the password, bearer token, signing secret, or demo token.
 - Add commented env template settings for local auth, disabled by default.
 
-- [ ] Write failing shell tests for auth summary redaction, bearer-token runtime dependency call shape, and disabled-auth behavior.
-- [ ] Implement shell helpers, `auth-smoke.sh`, and env template comments.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/auth-smoke.sh`.
+- [x] Write failing shell tests for auth summary redaction, bearer-token runtime dependency call shape, and disabled-auth behavior.
+- [x] Implement shell helpers, `auth-smoke.sh`, and env template comments.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/auth-smoke.sh`.
 
 ## Task 5: Documentation, Validation, Commit, And Merge
 
@@ -154,10 +154,10 @@
 - Document exact env variables, minimum secret length, browser sign-in flow, bearer-token curl usage, and demo-token compatibility.
 - Record that passwords/JWT secrets/tokens must remain local and uncommitted.
 
-- [ ] Update docs and execution log.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `cd frontend && npm test -- --run`.
-- [ ] Run `cd frontend && npm run build`.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `git diff --check`.
+- [x] Update docs and execution log.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `cd frontend && npm test -- --run`.
+- [x] Run `cd frontend && npm run build`.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.

@@ -6,6 +6,29 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the local account JWT auth workspace in `docs/plans/104-local-account-jwt-auth-workspace.md`.
+- Added configured local auth properties, HMAC-signed short-lived bearer tokens, sanitized `/api/auth/session`, `/api/auth/login`, and `/api/auth/logout` endpoints, and a request interceptor that accepts either bearer auth or existing demo-token access.
+- Added React local account sign-in/sign-out, bearer-token storage/header injection, Swagger `BearerAuth`, `scripts/demo/auth-smoke.sh`, local auth summary helpers, and env template settings.
+- Updated README, product docs, deployment docs, smoke checklist, decisions, and this execution log with the local account bridge boundary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=HmacLocalAuthTokenServiceTests,LinguaFramePropertiesTests test` first failed because auth properties and token service classes did not exist, then passed with `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalAuthControllerTests,LocalAuthInterceptorTests,DemoAccessInterceptorTests,DemoSessionControllerTests,OpenApiDocumentationTests test` first failed before auth API/interceptor/OpenAPI support existed, then passed with `Tests run: 28, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalAuthInterceptorTests test` first exposed that bearer tokens were blocked when the demo gate was also configured, then passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "auth"` first failed because frontend auth helpers were missing, then passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because local auth shell helpers did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/auth-smoke.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 531, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 135 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the private demo run archive workspace in `docs/plans/103-private-demo-run-archive-workspace.md`.
 - Added `GET /api/operator/private-demo/run-archive` to combine private-demo operations readiness, launch rehearsal, evidence gallery, recommended completed job, candidate rows, and safe package routes.
 - Added a React `Private demo run archive` panel with copy/download archive notes actions.

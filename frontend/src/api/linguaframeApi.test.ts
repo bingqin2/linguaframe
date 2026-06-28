@@ -25,6 +25,9 @@ import {
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getDemoSession,
+  getAuthSession,
+  loginAuthSession,
+  logoutAuthSession,
   getDeliveryManifest,
   getJobComparison,
   getDemoRunMatrix,
@@ -38,6 +41,7 @@ import {
   jobComparisonMarkdownDownloadUrl,
   publishReviewedSubtitles,
   readDemoToken,
+  readAuthToken,
   cancelJob,
   retryJob,
   runRetentionCleanup,
@@ -46,6 +50,7 @@ import {
   updateSubtitleDraft,
   validateUpload,
   writeDemoToken,
+  writeAuthToken,
   uploadMedia
 } from './linguaframeApi';
 
@@ -422,6 +427,110 @@ describe('linguaframeApi', () => {
       2,
       '/api/demo-session/logout',
       expect.objectContaining({ method: 'POST' })
+    );
+  });
+
+  test('reads local account auth session status', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        ownerId: 'owner-alpha',
+        username: 'owner',
+        authMode: 'LOCAL_AUTH_REQUIRED'
+      })
+    );
+
+    const status = await getAuthSession();
+
+    expect(status.configured).toBe(true);
+    expect(status.username).toBe('owner');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({ method: 'GET' })
+    );
+  });
+
+  test('logs in and logs out local account auth with bearer token storage', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          token: 'jwt-token',
+          tokenType: 'Bearer',
+          expiresAt: '2026-06-28T13:00:00Z',
+          session: {
+            enabled: true,
+            configured: true,
+            authenticated: true,
+            ownerId: 'owner-alpha',
+            username: 'owner',
+            authMode: 'LOCAL_AUTH_ACTIVE'
+          }
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          enabled: true,
+          configured: true,
+          authenticated: false,
+          ownerId: 'owner-alpha',
+          username: 'owner',
+          authMode: 'LOCAL_AUTH_REQUIRED'
+        })
+      );
+
+    const login = await loginAuthSession(' owner ', ' owner-password ');
+    const logout = await logoutAuthSession();
+
+    expect(login.token).toBe('jwt-token');
+    expect(login.session.authenticated).toBe(true);
+    expect(logout.authenticated).toBe(false);
+    expect(readAuthToken(window.localStorage)).toBe('');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'owner', password: 'owner-password' })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/auth/logout',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          Authorization: 'Bearer jwt-token'
+        }
+      })
+    );
+  });
+
+  test('adds bearer token and demo token headers to protected requests when both are stored', async () => {
+    writeAuthToken(window.localStorage, 'jwt-token');
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobs: [],
+        total: 0,
+        limit: 20,
+        offset: 0
+      })
+    );
+
+    await listJobs();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs?limit=20&offset=0',
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer jwt-token',
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      })
     );
   });
 

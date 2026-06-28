@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Add local owner-account JWT auth as a compatibility bridge instead of replacing the private-demo token or building public account management.
+
+Reason: LinguaFrame needs a concrete step toward Stage 3 authentication, but registration, password reset, roles, billing, and database-backed users would be too much scope for the current demo path. The existing demo token also remains useful for Swagger, curl, scripts, downloads, previews, and SSE.
+
+Impact: `/api/auth/session`, `/api/auth/login`, and `/api/auth/logout` expose sanitized local account auth; protected APIs accept either a valid bearer token or the existing demo token/cookie. Browser and terminal flows can verify bearer auth without exposing passwords, JWT secrets, bearer tokens, or demo tokens.
+
+## 2026-06-28
+
 Decision: Add the private demo run archive as a derived metadata index instead of persisting archive records or embedding package contents.
 
 Reason: After a private demo, the owner needs one table of contents for readiness state, launch status, recommended completed run, and package routes. Persisting another archive model or copying ZIP/media contents would duplicate existing job, gallery, presenter-pack, and package evidence.

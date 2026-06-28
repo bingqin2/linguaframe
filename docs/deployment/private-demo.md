@@ -25,6 +25,7 @@ Edit `.env.private-demo`:
 - Set `LINGUAFRAME_PUBLIC_DOMAIN` to the demo domain that points at the server.
 - Set `LINGUAFRAME_DEMO_ACCESS_TOKEN` to a long random value.
 - Set `LINGUAFRAME_DEMO_OWNER_ID` to a stable non-secret owner label such as `demo-owner`; uploads, jobs, and owner-facing media/job APIs are scoped to this value.
+- Optional: set `LINGUAFRAME_AUTH_ENABLED=true`, `LINGUAFRAME_AUTH_USERNAME`, `LINGUAFRAME_AUTH_PASSWORD`, and a `LINGUAFRAME_AUTH_JWT_SECRET` of at least 32 characters to test bearer-token access. Keep these values local and uncommitted.
 - Keep `LINGUAFRAME_OWNER_QUOTA_ENABLED=true` for hosted demos and set conservative `LINGUAFRAME_OWNER_QUOTA_MAX_ACTIVE_JOBS`, `LINGUAFRAME_OWNER_QUOTA_MAX_QUEUED_JOBS`, and `LINGUAFRAME_OWNER_QUOTA_MAX_DAILY_COST_USD` values.
 - Replace database, RabbitMQ, and MinIO placeholder passwords.
 - Keep upload limits conservative, for example `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS=300`.
@@ -62,6 +63,8 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh
 - Operations readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/operator/private-demo/operations`
 
 When a token is configured, `/api/**` requires the demo token. Enter it in the browser `Demo access token` field before uploads, downloads, previews, or SSE.
+
+When local account auth is configured, the browser `Local account` form can sign in and use `Authorization: Bearer ...` for protected APIs. Demo-token header and cookie compatibility remain available for scripts, Swagger, downloads, previews, and SSE.
 
 ## Operations Readiness Report
 
