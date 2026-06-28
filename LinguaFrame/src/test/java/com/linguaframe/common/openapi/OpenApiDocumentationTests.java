@@ -81,6 +81,7 @@ class OpenApiDocumentationTests {
                 .contains(
                         "/api/media/uploads/validate",
                         "/api/media/uploads/preflight",
+                        "/api/media/uploads/readiness",
                         "/api/media/uploads",
                         "/api/media/uploads/{videoId}",
                         "/api/media/uploads/{videoId}/source/download",

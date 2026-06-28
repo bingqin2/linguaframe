@@ -435,6 +435,7 @@ main() {
   check_demo_token_gate
   check_sample_paths
 
+  pass "Upload readiness can be checked with: scripts/demo/upload-readiness.sh"
   pass "Private demo preflight passed"
 }
 

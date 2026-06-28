@@ -17,6 +17,7 @@ import type {
   MediaUploadValidation,
   DemoRunProfile,
   DemoSessionStatus,
+  DemoUploadReadiness,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -84,6 +85,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
     vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(ownerQuotaPreflightFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoUploadReadiness').mockResolvedValue(
+      demoUploadReadinessFixture()
+    );
     vi.spyOn(linguaFrameApi, 'getRetentionCleanupPreview').mockResolvedValue(
       retentionCleanupResultFixture()
     );
@@ -884,6 +888,96 @@ describe('App', () => {
     expect(within(quota).getByText('Owner active job limit reached: 2 / 2')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
     expect(uploadMedia).not.toHaveBeenCalled();
+  });
+
+  test('shows demo upload readiness before file selection', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoUploadReadiness').mockResolvedValue(
+      demoUploadReadinessFixture({
+        overallStatus: 'READY',
+        checks: [
+          {
+            id: 'owner-session',
+            label: 'Owner session',
+            status: 'READY',
+            detail: 'Demo access gate is open.',
+            nextAction: 'No owner-session action required.',
+            blocking: false
+          }
+        ],
+        requiredActions: ['Upload can start after file validation passes.']
+      })
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /upload readiness/i });
+    expect(within(readiness).getAllByText('READY').length).toBeGreaterThanOrEqual(1);
+    expect(within(readiness).getByText('demo-owner')).toBeInTheDocument();
+    expect(within(readiness).getByText('Owner session')).toBeInTheDocument();
+    expect(within(readiness).getByText('Upload can start after file validation passes.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeEnabled();
+  });
+
+  test('keeps upload enabled when readiness needs attention but is not blocked', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoUploadReadiness').mockResolvedValue(
+      demoUploadReadinessFixture({
+        overallStatus: 'ATTENTION',
+        checks: [
+          {
+            id: 'paid-provider-check',
+            label: 'Paid provider check',
+            status: 'ATTENTION',
+            detail: 'OpenAI provider mode is enabled, but the live OpenAI connectivity check is skipped.',
+            nextAction: 'Run the OpenAI preflight before provider-backed uploads.',
+            blocking: false
+          }
+        ],
+        requiredActions: ['Review attention checks before paid or full-video upload.']
+      })
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /upload readiness/i });
+    expect(within(readiness).getAllByText('ATTENTION').length).toBeGreaterThanOrEqual(1);
+    expect(within(readiness).getByText('Paid provider check')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeEnabled();
+  });
+
+  test('blocks upload and refreshes readiness when demo profile changes', async () => {
+    const getDemoUploadReadiness = vi.spyOn(linguaFrameApi, 'getDemoUploadReadiness')
+      .mockResolvedValueOnce(demoUploadReadinessFixture())
+      .mockResolvedValueOnce(
+        demoUploadReadinessFixture({
+          overallStatus: 'BLOCKED',
+          demoProfileId: 'tears-showcase',
+          checks: [
+            {
+              id: 'demo-profile',
+              label: 'Demo profile',
+              status: 'BLOCKED',
+              detail: 'Unknown demo profile id: tears-showcase.',
+              nextAction: 'Choose one of the built-in demo profiles before upload.',
+              blocking: true
+            }
+          ],
+          requiredActions: ['Resolve blocking upload readiness checks before uploading media.']
+        })
+      );
+
+    render(<App />);
+
+    await screen.findByRole('region', { name: /upload readiness/i });
+    await userEvent.selectOptions(screen.getByLabelText(/demo profile/i), 'tears-showcase');
+
+    await waitFor(() => expect(getDemoUploadReadiness).toHaveBeenCalledWith('tears-showcase'));
+    await waitFor(() => {
+      const readiness = screen.getByRole('region', { name: /upload readiness/i });
+      expect(within(readiness).getAllByText('BLOCKED').length).toBeGreaterThanOrEqual(1);
+    });
+    const readiness = screen.getByRole('region', { name: /upload readiness/i });
+    expect(within(readiness).getByText('Unknown demo profile id: tears-showcase.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
   });
 
   test('applies a demo run profile to upload fields', async () => {
@@ -3186,6 +3280,38 @@ function ownerQuotaPreflightFixture(
       { name: 'dailyCostUsd', enabled: false, limit: 0, current: 0 }
     ],
     blockingReasons: [],
+    ...overrides
+  };
+}
+
+function demoUploadReadinessFixture(
+  overrides: Partial<DemoUploadReadiness> = {}
+): DemoUploadReadiness {
+  return {
+    overallStatus: 'READY',
+    ownerId: 'demo-owner',
+    demoProfileId: 'quick-baseline',
+    generatedAt: '2026-06-28T08:00:00Z',
+    checks: [
+      {
+        id: 'owner-session',
+        label: 'Owner session',
+        status: 'READY',
+        detail: 'Demo access gate is open.',
+        nextAction: 'No owner-session action required.',
+        blocking: false
+      },
+      {
+        id: 'owner-quota',
+        label: 'Owner quota',
+        status: 'READY',
+        detail: 'Owner quota allows upload.',
+        nextAction: 'No owner quota action required.',
+        blocking: false
+      }
+    ],
+    requiredActions: ['Upload can start after file validation passes.'],
+    evidenceRoutes: ['/api/media/uploads/readiness', '/api/media/uploads/preflight'],
     ...overrides
   };
 }

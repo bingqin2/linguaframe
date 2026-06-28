@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Add pre-upload readiness as a safe aggregate workspace instead of folding all checks into file validation or upload creation.
+
+Reason: The owner needs one go/no-go view before a real demo upload, but runtime health, owner quota, profile selection, and provider warnings have different sources of truth. Keeping readiness read-only avoids creating jobs, writing storage objects, or spending provider credits while still explaining whether upload should proceed.
+
+Impact: `GET /api/media/uploads/readiness`, the browser `Upload readiness` panel, and `scripts/demo/upload-readiness.sh` provide metadata-only readiness checks. File validation remains per selected file, and the upload endpoint remains the only path that persists media or creates jobs.
+
+## 2026-06-28
+
 Decision: Keep private demo launch rehearsal read-only and command-oriented instead of auto-running deployment, backup, restore, OpenAI, upload, or cleanup steps.
 
 Reason: A launch rehearsal should answer whether the owner can safely present the demo and what manual step comes next. Automatically starting services, spending provider credits, exporting backups, restoring data, or deleting retention candidates would mix evidence collection with operational mutation.

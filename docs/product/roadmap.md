@@ -439,6 +439,7 @@ Build:
 - TTS provider cache based on target subtitle text hash, language, provider, model, and voice. Status: implemented.
 - Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, quality evaluation provider cache hits, and TTS provider cache hits.
 - Browser-visible cache replay evidence. Status: implemented by composing existing safe job detail and artifact APIs in the React demo without adding a backend aggregate endpoint.
+- Pre-upload demo readiness workspace. Status: implemented with `GET /api/media/uploads/readiness`, a browser `Upload readiness` panel, and `scripts/demo/upload-readiness.sh` for metadata-only terminal go/no-go checks.
 
 Do not build yet:
 

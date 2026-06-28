@@ -6,6 +6,7 @@ import type {
   DemoPresenterPack,
   DemoRunMatrix,
   FailureTriage,
+  DemoUploadReadiness,
   JobArtifact,
   JobComparison,
   DemoRunProfile,
@@ -315,6 +316,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [ownerQuotaPreflight, setOwnerQuotaPreflight] = useState<OwnerQuotaPreflight | null>(null);
   const [ownerQuotaPreflightError, setOwnerQuotaPreflightError] = useState<string | null>(null);
   const [isLoadingOwnerQuotaPreflight, setIsLoadingOwnerQuotaPreflight] = useState(false);
+  const [demoUploadReadiness, setDemoUploadReadiness] = useState<DemoUploadReadiness | null>(null);
+  const [demoUploadReadinessError, setDemoUploadReadinessError] = useState<string | null>(null);
+  const [isLoadingDemoUploadReadiness, setIsLoadingDemoUploadReadiness] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -598,6 +602,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoUploadReadiness = useCallback(async (profileId: string = demoProfileId) => {
+    setIsLoadingDemoUploadReadiness(true);
+    try {
+      const readiness = await linguaFrameApi.getDemoUploadReadiness(profileId);
+      setDemoUploadReadiness(readiness);
+      setDemoUploadReadinessError(null);
+      return readiness;
+    } catch (readinessError) {
+      setDemoUploadReadiness(null);
+      setDemoUploadReadinessError(toErrorMessage(readinessError));
+      return null;
+    } finally {
+      setIsLoadingDemoUploadReadiness(false);
+    }
+  }, [demoProfileId]);
+
   const loadRetentionCleanupPreview = useCallback(async () => {
     setIsLoadingRetentionCleanup(true);
     try {
@@ -704,6 +724,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadOwnerQuotaPreflight();
   }, [loadOwnerQuotaPreflight]);
+
+  useEffect(() => {
+    void loadDemoUploadReadiness(demoProfileId);
+  }, [demoProfileId, loadDemoUploadReadiness]);
 
   useEffect(() => {
     void loadRetentionCleanupPreview();
@@ -826,6 +850,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } finally {
       setIsValidatingUpload(false);
       void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
     }
   }
 
@@ -865,6 +890,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setError(ownerQuotaPreflight.blockingReasons[0] ?? 'Owner quota preflight blocked upload.');
       return;
     }
+    if (demoUploadReadiness?.overallStatus === 'BLOCKED') {
+      setError(demoUploadReadiness.requiredActions[0] ?? 'Upload readiness blocked upload.');
+      return;
+    }
 
     const validation = await runUploadValidation(file);
     if (!validation) {
@@ -901,6 +930,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } finally {
       setIsUploading(false);
       void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
     }
   }
 
@@ -1362,11 +1392,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               </button>
               <button
                 type="submit"
-                disabled={isUploading || isValidatingUpload || ownerQuotaPreflight?.allowed === false}
+                disabled={
+                  isUploading ||
+                  isValidatingUpload ||
+                  ownerQuotaPreflight?.allowed === false ||
+                  demoUploadReadiness?.overallStatus === 'BLOCKED'
+                }
               >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </button>
             </div>
+            <DemoUploadReadinessPanel
+              readiness={demoUploadReadiness}
+              error={demoUploadReadinessError}
+              isLoading={isLoadingDemoUploadReadiness}
+              onRefresh={() => void loadDemoUploadReadiness()}
+            />
             <OwnerQuotaPreflightPanel
               preflight={ownerQuotaPreflight}
               error={ownerQuotaPreflightError}
@@ -2044,6 +2085,70 @@ function OwnerQuotaPreflightPanel({
             <ul className="error-list" aria-label="Owner quota blocking reasons">
               {preflight.blockingReasons.map((reason) => (
                 <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoUploadReadinessPanel({
+  readiness,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  readiness: DemoUploadReadiness | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="upload-validation-panel" aria-label="Upload readiness">
+      <div className="panel-heading">
+        <h3>Upload readiness</h3>
+        {readiness ? (
+          <span className={readinessStatusClassName(readiness.overallStatus)}>
+            {readiness.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !readiness ? <p className="muted">Loading upload readiness...</p> : null}
+      {readiness ? (
+        <>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Owner</dt>
+              <dd>{readiness.ownerId}</dd>
+            </div>
+            <div>
+              <dt>Demo profile</dt>
+              <dd>{formatDemoProfileId(readiness.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(readiness.generatedAt)}</dd>
+            </div>
+          </dl>
+          <ul className="readiness-list upload-readiness-list" aria-label="Upload readiness checks">
+            {readiness.checks.map((check) => (
+              <li key={check.id}>
+                <span>{check.label}</span>
+                <span className={readinessStatusClassName(check.status)}>{check.status}</span>
+                <span>{check.detail}</span>
+              </li>
+            ))}
+          </ul>
+          {readiness.requiredActions.length > 0 ? (
+            <ul className="readiness-list" aria-label="Upload readiness actions">
+              {readiness.requiredActions.map((action) => (
+                <li key={action}>{action}</li>
               ))}
             </ul>
           ) : null}
@@ -5959,6 +6064,16 @@ function runtimeProbeStatusClassName(status: string): string {
     return 'status-pill success';
   }
   if (status === 'DOWN') {
+    return 'status-pill danger';
+  }
+  return 'status-pill warning';
+}
+
+function readinessStatusClassName(status: string): string {
+  if (status === 'READY') {
+    return 'status-pill success';
+  }
+  if (status === 'BLOCKED') {
     return 'status-pill danger';
   }
   return 'status-pill warning';

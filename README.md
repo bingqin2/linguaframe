@@ -137,6 +137,7 @@ Lower-level private demo commands:
 ```bash
 docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
+scripts/demo/upload-readiness.sh
 scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
@@ -150,6 +151,14 @@ scripts/demo/owner-quota-preflight.sh
 ```
 
 It fetches `GET /api/media/uploads/preflight`, prints metadata-only owner quota state, and exits non-zero when the configured owner is blocked unless `LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true`. Configure it with `LINGUAFRAME_OWNER_QUOTA_ENABLED`, `LINGUAFRAME_OWNER_QUOTA_MAX_ACTIVE_JOBS`, `LINGUAFRAME_OWNER_QUOTA_MAX_QUEUED_JOBS`, `LINGUAFRAME_OWNER_QUOTA_DAILY_BUDGET_GUARD_ENABLED`, and `LINGUAFRAME_OWNER_QUOTA_MAX_DAILY_COST_USD`. This is a private-demo guard before storage, queue dispatch, FFmpeg, or OpenAI work; it is not public billing or real multi-user auth.
+
+Upload readiness combines the safe pre-upload checks for the selected demo profile:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/upload-readiness.sh
+```
+
+It fetches `GET /api/media/uploads/readiness`, writes `/tmp/linguaframe-demo/upload-readiness.json`, prints metadata-only `uploadReadiness*` lines, and exits non-zero when backend readiness is `BLOCKED` unless `LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true`. It checks the runtime contract, live dependencies, owner quota, demo profile, and paid-provider warning state without uploading media, persisting jobs, or calling OpenAI.
 
 Private server demo preparation uses a separate Compose overlay so local Docker behavior stays unchanged:
 
@@ -194,7 +203,7 @@ For presenter handoff, open the same selected job and inspect `Demo presenter pa
 
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary, and the `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
-The upload form also shows an `Owner quota` panel from `GET /api/media/uploads/preflight`. It displays the configured owner id, active/queued job counts, same-day estimated cost, limits, and safe blocking reasons. When quota is blocked, upload is disabled while `Validate file` remains available for media checks.
+The upload form also shows an `Upload readiness` panel from `GET /api/media/uploads/readiness`. It combines owner-session access, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warning checks before any media upload. `BLOCKED` disables upload while `Validate file` remains available; `ATTENTION` allows upload but asks the owner to review provider or readiness warnings. The adjacent `Owner quota` panel from `GET /api/media/uploads/preflight` still shows configured owner id, active/queued job counts, same-day estimated cost, limits, and safe blocking reasons.
 
 The browser also includes a `Private demo operations` panel backed by `GET /api/operator/private-demo/operations`. It combines the access gate, runtime contract, live dependency checks, provider readiness, cost safety, storage/recovery, retention cleanup, and demo evidence into one operator view with metadata-only copy/download report actions. The same report is available from the terminal:
 

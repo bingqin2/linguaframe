@@ -5,6 +5,7 @@ import type {
   DemoRunMatrix,
   DemoRunProfile,
   DemoSessionStatus,
+  DemoUploadReadiness,
   DeliveryManifest,
   LocalizationJob,
   LocalizationJobList,
@@ -74,6 +75,18 @@ export async function validateUpload(file: File): Promise<MediaUploadValidation>
 
 export async function getOwnerQuotaPreflight(): Promise<OwnerQuotaPreflight> {
   return requestJson<OwnerQuotaPreflight>('/api/media/uploads/preflight', {
+    method: 'GET'
+  });
+}
+
+export async function getDemoUploadReadiness(demoProfileId?: string): Promise<DemoUploadReadiness> {
+  const query = new URLSearchParams();
+  const normalizedDemoProfileId = demoProfileId?.trim();
+  if (normalizedDemoProfileId) {
+    query.set('demoProfileId', normalizedDemoProfileId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoUploadReadiness>(`/api/media/uploads/readiness${suffix}`, {
     method: 'GET'
   });
 }
@@ -427,6 +440,7 @@ export const linguaFrameApi = {
   logoutDemoSession,
   validateUpload,
   getOwnerQuotaPreflight,
+  getDemoUploadReadiness,
   uploadMedia,
   getMediaUpload,
   listJobs,

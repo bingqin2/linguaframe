@@ -48,9 +48,17 @@ The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the u
 
 The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders source media metadata, timeline events, usage summary, result delivery, media delivery, subtitle review, failure triage, model-call records, transcript/subtitle previews, artifacts, downloads, and failed-job retry.
 
-Before uploading, check the browser `Demo runbook`, `Live checks`, `Private demo launch rehearsal`, and upload form `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The launch rehearsal panel should show the ordered manual go/no-go steps, recommended next step, expected evidence routes, and metadata-only notes without running Docker, OpenAI, backup, restore, upload, or cleanup work. After jobs complete, use `Private demo evidence gallery` to select the recommended completed run, verify handoff readiness, and open safe package links without opening every job manually. The live-check panel should show database, Redis, RabbitMQ, MinIO, and FFmpeg as `UP`, `DOWN`, or `SKIPPED`. The upload form can apply a `Demo profile` such as `quick-baseline`, `tears-showcase`, or `concise-review` before manual edits; the selected profile should appear in job detail, delivery handoff, evidence, demo session reports, and terminal Markdown summaries. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
+Before uploading, check the browser `Demo runbook`, `Live checks`, `Private demo launch rehearsal`, upload form `Upload readiness`, and upload form `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The launch rehearsal panel should show the ordered manual go/no-go steps, recommended next step, expected evidence routes, and metadata-only notes without running Docker, OpenAI, backup, restore, upload, or cleanup work. After jobs complete, use `Private demo evidence gallery` to select the recommended completed run, verify handoff readiness, and open safe package links without opening every job manually. The live-check panel should show database, Redis, RabbitMQ, MinIO, and FFmpeg as `UP`, `DOWN`, or `SKIPPED`. The upload form can apply a `Demo profile` such as `quick-baseline`, `tears-showcase`, or `concise-review` before manual edits; the selected profile should appear in job detail, delivery handoff, evidence, demo session reports, and terminal Markdown summaries. The upload readiness panel should show `READY`, `ATTENTION`, or `BLOCKED` based on access-gated API reachability, runtime contract, live dependencies, owner quota, selected profile, and paid-provider checks. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
 
 Also check the upload form `Owner quota` panel before paid or full-video runs. It calls `GET /api/media/uploads/preflight` and shows owner id, active jobs, queued jobs, same-day estimated spend, limits, and safe blocking reasons. When blocked, upload is disabled but file validation still works.
+
+Run terminal upload readiness when you need a shell-level go/no-go summary for the selected profile:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/upload-readiness.sh
+```
+
+The script writes `/tmp/linguaframe-demo/upload-readiness.json`, prints metadata-only `uploadReadiness*` lines, and exits non-zero only for `BLOCKED` unless `LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true`. It does not upload media or call paid providers.
 
 After opening a job, check the `Source media` panel first. It should show filename, content type, size, duration, upload status, created time, video id, job id, target language, and a `Download source video` link to `/api/media/uploads/{videoId}/source/download` without exposing object keys or local paths. Terminal runs should print `sourceMedia*` summary lines and write `source-media.json` plus `source-video.mp4`.
 
@@ -110,6 +118,14 @@ scripts/demo/owner-quota-preflight.sh
 ```
 
 The script writes `/tmp/linguaframe-demo/owner-quota-preflight.json`, prints metadata-only `ownerQuota*` lines, and exits non-zero if the configured owner has exhausted active job, queued job, or owner daily budget limits. Use `LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true` for report-only checks.
+
+Run upload readiness when you need the combined browser-equivalent pre-upload state:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/upload-readiness.sh
+```
+
+Expected output includes `uploadReadinessOverall=READY`, `ATTENTION`, or `BLOCKED`, one `uploadReadinessCheck=<status>:<id>:<label>` line per check, and safe evidence route lines. The command does not print demo tokens, local paths, object keys, provider payloads, transcript text, subtitle text, or media bytes.
 
 If Docker cannot build the frontend image because the Node base image registry or mirror is unavailable, start the frontend locally while keeping the backend stack in Docker:
 

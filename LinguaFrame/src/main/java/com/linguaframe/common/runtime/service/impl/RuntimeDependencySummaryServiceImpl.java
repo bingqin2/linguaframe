@@ -35,6 +35,7 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
             "/api/runtime/live-checks",
             "/api/demo-run-profiles",
             "/api/media/uploads/preflight",
+            "/api/media/uploads/readiness",
             "/api/media/uploads",
             "/api/media/uploads/{videoId}/source/download",
             "/api/jobs/{jobId}",
