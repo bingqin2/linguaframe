@@ -131,6 +131,7 @@ class OpenApiDocumentationTests {
                         "/api/operator/private-demo/operations",
                         "/api/operator/private-demo/launch-rehearsal",
                         "/api/operator/private-demo/evidence-gallery",
+                        "/api/operator/demo-sample-media-catalog",
                         "/api/retention/cleanup/preview",
                         "/api/retention/cleanup/run"
                 );

@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   AuthSessionStatus,
+  DemoSampleMediaCatalog,
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -337,6 +338,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoUploadReadiness, setDemoUploadReadiness] = useState<DemoUploadReadiness | null>(null);
   const [demoUploadReadinessError, setDemoUploadReadinessError] = useState<string | null>(null);
   const [isLoadingDemoUploadReadiness, setIsLoadingDemoUploadReadiness] = useState(false);
+  const [demoSampleMediaCatalog, setDemoSampleMediaCatalog] = useState<DemoSampleMediaCatalog | null>(null);
+  const [demoSampleMediaCatalogError, setDemoSampleMediaCatalogError] = useState<string | null>(null);
+  const [isLoadingDemoSampleMediaCatalog, setIsLoadingDemoSampleMediaCatalog] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -666,6 +670,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoSampleMediaCatalog = useCallback(async () => {
+    setIsLoadingDemoSampleMediaCatalog(true);
+    try {
+      const catalog = await linguaFrameApi.getDemoSampleMediaCatalog();
+      setDemoSampleMediaCatalog(catalog);
+      setDemoSampleMediaCatalogError(null);
+      return catalog;
+    } catch (catalogLoadError) {
+      setDemoSampleMediaCatalog(null);
+      setDemoSampleMediaCatalogError(toErrorMessage(catalogLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoSampleMediaCatalog(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -830,6 +850,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadPrivateDemoRunArchive();
   }, [loadPrivateDemoRunArchive]);
+
+  useEffect(() => {
+    void loadDemoSampleMediaCatalog();
+  }, [loadDemoSampleMediaCatalog]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1642,6 +1666,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoading={isLoadingDemoUploadReadiness}
               onRefresh={() => void loadDemoUploadReadiness()}
             />
+            <DemoSampleMediaCatalogPanel
+              catalog={demoSampleMediaCatalog}
+              error={demoSampleMediaCatalogError}
+              isLoading={isLoadingDemoSampleMediaCatalog}
+              onRefresh={() => void loadDemoSampleMediaCatalog()}
+            />
             <OwnerQuotaPreflightPanel
               preflight={ownerQuotaPreflight}
               error={ownerQuotaPreflightError}
@@ -2445,6 +2475,102 @@ function DemoUploadReadinessPanel({
             <ul className="readiness-list" aria-label="Upload readiness actions">
               {readiness.requiredActions.map((action) => (
                 <li key={action}>{action}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoSampleMediaCatalogPanel({
+  catalog,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  catalog: DemoSampleMediaCatalog | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const recommended = catalog?.items.find((item) => item.id === catalog.recommendedSampleId) ?? catalog?.items[0];
+  return (
+    <section className="upload-validation-panel" aria-label="Demo sample media">
+      <div className="panel-heading">
+        <h3>Demo sample media</h3>
+        {catalog ? (
+          <span className={readinessStatusClassName(catalog.overallStatus)}>
+            {catalog.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !catalog ? <p className="muted">Loading sample media catalog...</p> : null}
+      {catalog ? (
+        <>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Recommended</dt>
+              <dd>{catalog.recommendedSampleId}</dd>
+            </div>
+            <div>
+              <dt>Duration limit</dt>
+              <dd>{catalog.uploadDurationLimitSeconds} seconds</dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(catalog.generatedAt)}</dd>
+            </div>
+          </dl>
+          {recommended ? (
+            <div className="evidence-preview">
+              <h4>{recommended.title}</h4>
+              <p>{recommended.recommendedUse}</p>
+              <p>
+                <a href={recommended.sourceUrl} target="_blank" rel="noreferrer">
+                  {recommended.source}
+                </a>
+                {' - '}
+                {recommended.attribution}
+              </p>
+              <p>{recommended.licenseGuidance}</p>
+              <p>{recommended.durationGuidance}</p>
+            </div>
+          ) : null}
+          <ul className="readiness-list upload-readiness-list" aria-label="Configured sample paths">
+            {catalog.configuredPaths.map((path) => (
+              <li key={path.envVar}>
+                <span>{path.envVar}</span>
+                <span className={readinessStatusClassName(path.status === 'CONFIGURED' ? 'READY' : 'ATTENTION')}>
+                  {path.status}
+                </span>
+                <span>{path.filename || 'Not configured'}</span>
+                <span>{path.sizeBytes === null ? path.message : `${formatBytes(path.sizeBytes)} - ${path.message}`}</span>
+              </li>
+            ))}
+          </ul>
+          <ul className="readiness-list" aria-label="Demo sample media commands">
+            {catalog.commands.map((command) => (
+              <li key={command.command}>
+                <span>{command.label}</span>
+                <code>{command.command}</code>
+                <span>{command.description}</span>
+              </li>
+            ))}
+          </ul>
+          {catalog.items.length > 1 ? (
+            <ul className="readiness-list" aria-label="Demo sample media sources">
+              {catalog.items.slice(1).map((item) => (
+                <li key={item.id}>
+                  <span>{item.title}</span>
+                  <span>{item.source}</span>
+                  <span>{item.recommendedUse}</span>
+                </li>
               ))}
             </ul>
           ) : null}

@@ -532,6 +532,125 @@ SH
   [[ "$status" -eq 0 ]] || fail "upload readiness script failed in report-only mode"
 }
 
+test_demo_sample_media_catalog_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_sample_media_catalog_json "http://example.test" "$TMPDIR/demo-sample-media-catalog.json" >"$TMPDIR/demo-sample-media-catalog-curl.out"
+
+  local curl_output
+  curl_output="$(cat "$TMPDIR/demo-sample-media-catalog-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/operator/demo-sample-media-catalog"* ]] || fail "sample media catalog helper used wrong route"
+
+  cat >"$TMPDIR/demo-sample-media-catalog.json" <<'JSON'
+{
+  "generatedAt": "2026-06-29T08:00:00Z",
+  "overallStatus": "READY",
+  "uploadDurationLimitSeconds": 300,
+  "recommendedSampleId": "tears-of-steel-casting",
+  "items": [
+    {
+      "id": "tears-of-steel-casting",
+      "title": "Tears of Steel casting clip",
+      "source": "Blender Studio",
+      "sourceUrl": "https://studio.blender.org/films/tears-of-steel/",
+      "attribution": "Credit Blender Studio.",
+      "licenseGuidance": "Check license.",
+      "recommendedUse": "Full local demo.",
+      "durationGuidance": "Under 300 seconds.",
+      "command": "scripts/demo/docker-e2e-tears-of-steel-full.sh",
+      "tags": ["recommended"]
+    }
+  ],
+  "configuredPaths": [
+    {
+      "envVar": "LINGUAFRAME_TEARS_SAMPLE_PATH",
+      "status": "CONFIGURED",
+      "filename": "tos_casting-720p.mp4",
+      "extension": "mp4",
+      "sizeBytes": 1024,
+      "message": "Configured sample exists.",
+      "fullPathExposed": false
+    }
+  ],
+  "commands": [
+    {
+      "label": "Run full Tears sample",
+      "command": "scripts/demo/docker-e2e-tears-of-steel-full.sh",
+      "description": "Run the full demo."
+    }
+  ],
+  "notesMarkdown": "# Catalog",
+  "documentationLinks": [],
+  "localPath": "/Users/example/Downloads/tos_casting-720p.mp4",
+  "demoToken": "private-demo-token",
+  "providerPayload": "raw provider payload"
+}
+JSON
+
+  print_demo_sample_media_catalog_summary_file "$TMPDIR/demo-sample-media-catalog.json" >"$TMPDIR/demo-sample-media-catalog.out"
+  local output
+  output="$(cat "$TMPDIR/demo-sample-media-catalog.out")"
+  [[ "$output" == *"sampleCatalogOverall=READY"* ]] || fail "sample catalog summary missed overall"
+  [[ "$output" == *"sampleCatalogRecommended=tears-of-steel-casting"* ]] || fail "sample catalog summary missed recommendation"
+  [[ "$output" == *"sampleCatalogDurationLimitSeconds=300"* ]] || fail "sample catalog summary missed duration limit"
+  [[ "$output" == *"sampleCatalogPath=LINGUAFRAME_TEARS_SAMPLE_PATH:CONFIGURED:tos_casting-720p.mp4:1024"* ]] || fail "sample catalog summary missed configured path"
+  [[ "$output" == *"sampleCatalogCommand=scripts/demo/docker-e2e-tears-of-steel-full.sh"* ]] || fail "sample catalog summary missed command"
+  [[ "$output" != *"/Users/example"* ]] || fail "sample catalog summary exposed local path"
+  [[ "$output" != *"private-demo-token"* ]] || fail "sample catalog summary exposed demo token"
+  [[ "$output" != *"provider payload"* ]] || fail "sample catalog summary exposed provider payload"
+}
+
+test_demo_sample_media_catalog_script_exits_on_blocked_state() {
+  local fake_curl="$TMPDIR/fake-sample-catalog-curl"
+  cat >"$fake_curl" <<'SH'
+#!/usr/bin/env bash
+output_path=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o)
+      output_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+cat >"$output_path" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "uploadDurationLimitSeconds": 300,
+  "recommendedSampleId": "tears-of-steel-casting",
+  "items": [],
+  "configuredPaths": [],
+  "commands": [],
+  "notesMarkdown": "# Catalog",
+  "documentationLinks": []
+}
+JSON
+SH
+  chmod +x "$fake_curl"
+
+  local status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_DEMO_SAMPLE_CATALOG_JSON_PATH="$TMPDIR/script-sample-catalog.json" \
+    "$SCRIPT_DIR/demo-sample-media-catalog.sh" >"$TMPDIR/script-sample-catalog.out" || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "sample catalog script did not fail on blocked state"
+
+  status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_DEMO_SAMPLE_CATALOG_REPORT_ONLY=true \
+  LINGUAFRAME_DEMO_SAMPLE_CATALOG_JSON_PATH="$TMPDIR/script-sample-catalog-report-only.json" \
+    "$SCRIPT_DIR/demo-sample-media-catalog.sh" >"$TMPDIR/script-sample-catalog-report-only.out" || status=$?
+
+  [[ "$status" -eq 0 ]] || fail "sample catalog script failed in report-only mode"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -2288,6 +2407,8 @@ test_owner_quota_preflight_script_exits_on_blocked_state
 test_upload_readiness_helpers_are_metadata_only
 test_worker_topology_summary_is_metadata_only
 test_upload_readiness_script_exits_on_blocked_state
+test_demo_sample_media_catalog_helpers_are_metadata_only
+test_demo_sample_media_catalog_script_exits_on_blocked_state
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

@@ -191,6 +191,24 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsDemoSampleMediaCatalog() throws Exception {
+            mockMvc.perform(get("/api/operator/demo-sample-media-catalog"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.uploadDurationLimitSeconds").isNumber())
+                    .andExpect(jsonPath("$.recommendedSampleId").value("tears-of-steel-casting"))
+                    .andExpect(jsonPath("$.items[?(@.id == 'tears-of-steel-casting')]").exists())
+                    .andExpect(jsonPath("$.items[?(@.id == 'big-buck-bunny-w3schools')]").exists())
+                    .andExpect(jsonPath("$.items[?(@.id == 'nasa-library')]").exists())
+                    .andExpect(jsonPath("$.configuredPaths[?(@.envVar == 'LINGUAFRAME_TEARS_SAMPLE_PATH')]").exists())
+                    .andExpect(jsonPath("$.configuredPaths[?(@.envVar == 'LINGUAFRAME_DEMO_SAMPLE_PATH')]").exists())
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/docker-e2e-tears-of-steel-full.sh')]").exists())
+                    .andExpect(jsonPath("$.notesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Demo Sample Media Catalog"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -254,6 +272,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/private-demo/run-archive")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-sample-media-catalog"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-sample-media-catalog")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

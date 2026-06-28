@@ -1,6 +1,7 @@
 import type {
   AuthLoginResponse,
   AuthSessionStatus,
+  DemoSampleMediaCatalog,
   JobArtifact,
   JobComparison,
   DemoRunMonitor,
@@ -311,6 +312,12 @@ export async function getPrivateDemoRunArchive(): Promise<PrivateDemoRunArchive>
   });
 }
 
+export async function getDemoSampleMediaCatalog(): Promise<DemoSampleMediaCatalog> {
+  return requestJson<DemoSampleMediaCatalog>('/api/operator/demo-sample-media-catalog', {
+    method: 'GET'
+  });
+}
+
 export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary> {
   return requestJson<RuntimeDependencySummary>('/api/runtime/dependencies', {
     method: 'GET'
@@ -536,6 +543,7 @@ export const linguaFrameApi = {
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
+  getDemoSampleMediaCatalog,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getRetentionCleanupPreview,

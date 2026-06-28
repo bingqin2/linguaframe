@@ -1,10 +1,12 @@
 package com.linguaframe.operator.controller;
 
+import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
@@ -29,19 +31,22 @@ public class OperatorDashboardController {
     private final PrivateDemoLaunchRehearsalService launchRehearsalService;
     private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
     private final PrivateDemoRunArchiveService runArchiveService;
+    private final DemoSampleMediaCatalogService sampleMediaCatalogService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
             PrivateDemoOperationsService operationsService,
             PrivateDemoLaunchRehearsalService launchRehearsalService,
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
-            PrivateDemoRunArchiveService runArchiveService
+            PrivateDemoRunArchiveService runArchiveService,
+            DemoSampleMediaCatalogService sampleMediaCatalogService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
         this.launchRehearsalService = launchRehearsalService;
         this.evidenceGalleryService = evidenceGalleryService;
         this.runArchiveService = runArchiveService;
+        this.sampleMediaCatalogService = sampleMediaCatalogService;
     }
 
     @GetMapping("/dashboard")
@@ -94,5 +99,15 @@ public class OperatorDashboardController {
     })
     public PrivateDemoRunArchiveVo privateDemoRunArchive() {
         return runArchiveService.runArchive();
+    }
+
+    @GetMapping("/demo-sample-media-catalog")
+    @Operation(summary = "Get demo sample media catalog")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo sample media catalog was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoSampleMediaCatalogVo demoSampleMediaCatalog() {
+        return sampleMediaCatalogService.catalog();
     }
 }

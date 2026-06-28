@@ -2,6 +2,8 @@
 
 LinguaFrame demo media should be public, attributable, and kept outside git unless a future fixture is intentionally small and license-reviewed.
 
+Use `GET /api/operator/demo-sample-media-catalog`, the browser `Demo sample media` panel, or `scripts/demo/demo-sample-media-catalog.sh` to inspect the structured sample list, configured local sample status, upload duration limit, and safe commands. The catalog intentionally does not download remote media, edit `.env`, upload files, start Docker, call OpenAI, or reveal full local paths.
+
 ## Tears of Steel
 
 - **Recommended use:** primary full-video localization demo.
@@ -12,3 +14,10 @@ LinguaFrame demo media should be public, attributable, and kept outside git unle
 - **Attribution text:** "Tears of Steel" / "Casting the Actors" by Blender Studio / Blender Foundation, licensed under Creative Commons Attribution 3.0.
 
 Do not commit the MP4 into this repository. Keep downloaded source media under `~/Downloads`, `/tmp/linguaframe-demo`, or another local path ignored by git.
+
+## Other Public Sources
+
+- **Big Buck Bunny / W3Schools sample:** use for lightweight upload and media-processing checks. The W3Schools MP4 is stable and credits Big Buck Bunny; confirm attribution before external demos.
+- **Sintel:** use for future longer-context translation tests. The full film is longer than the default 5-minute upload limit, so only use it when the configured duration limit supports the complete selected file.
+- **NASA Image and Video Library:** use for technology-themed demos such as space, rockets, missions, and public science explainers. Check each asset metadata page before downloading.
+- **Internet Archive Movies:** use for speech, documentary, lecture, or newsreel samples. License varies per item; verify public-domain or Creative Commons status before use.

@@ -219,6 +219,9 @@ Expected browser behavior:
 - The `Demo review guide` panel appears near the top of the selected job view.
 - The guide shows `Presentation ready` only when the pipeline is terminal, reviewed subtitles are ready, handoff delivery is ready, evidence links are available, and the session report is ready.
 - Failed or incomplete jobs show `Needs attention` and link to pipeline progress, demo evidence, and failure triage when triage exists.
+- The upload form `Demo sample media` panel appears before upload and shows overall status, recommended sample id, upload duration limit, source/attribution links, configured path status, and safe terminal commands.
+- `scripts/demo/demo-sample-media-catalog.sh` writes `/tmp/linguaframe-demo/demo-sample-media-catalog.json` and prints `sampleCatalog*` summary lines.
+- Demo sample media catalog output must not expose full local paths, object keys, demo tokens, provider payloads, OpenAI keys, transcript text, subtitle text, uploaded media bytes, or generated media bytes.
 - The `Demo share sheet` panel appears for the selected job and shows readiness, headline, summary, outcome bullets, recommended next action, and curated safe links.
 - `Copy share sheet`, `Download backend Markdown`, and `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-share-sheet.sh` export safe metadata only.
 - `Copy presenter notes` and `Download presenter notes` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.
