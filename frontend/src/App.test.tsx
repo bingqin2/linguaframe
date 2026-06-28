@@ -10,6 +10,7 @@ import type {
   DeliveryManifest,
   DemoAcceptanceGate,
   DemoCompletionCertificate,
+  DemoPresentationCockpit,
   DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoRunMonitor,
@@ -100,6 +101,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getDemoPresentationCockpit').mockResolvedValue(
+      demoPresentationCockpitFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -562,6 +566,45 @@ describe('App', () => {
       .toBeEnabled();
     expect(archive).not.toHaveTextContent('raw transcript text');
     expect(archive).not.toHaveTextContent('private-demo-token');
+  });
+
+  test('shows demo presentation cockpit with focus run and readiness checks', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoPresentationCockpit').mockResolvedValue(
+      demoPresentationCockpitFixture({
+        overallStatus: 'READY',
+        phase: 'READY_TO_PRESENT',
+        recommendedNextAction: 'Open the presenter pack.',
+        selectedRun: {
+          jobId: 'job-selected',
+          videoId: 'video-selected',
+          profileId: 'tears-showcase',
+          status: 'COMPLETED',
+          readiness: 'READY',
+          acceptanceStatus: 'READY',
+          attentionLevel: 'NONE',
+          currentStage: 'COMPLETED',
+          elapsedMs: 42000,
+          nextAction: 'Use the demo presenter pack.'
+        }
+      })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', {
+      name: /demo presentation cockpit/i
+    });
+    expect(within(panel).getByText('READY_TO_PRESENT')).toBeInTheDocument();
+    expect(within(panel).getByText('Open the presenter pack.')).toBeInTheDocument();
+    expect(within(panel).getAllByText(/job-selected/).length).toBeGreaterThan(0);
+    expect(within(panel).getByRole('link', { name: /Acceptance gate/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-selected/demo-acceptance-gate'
+    );
+    expect(within(panel).getByRole('link', { name: /Presenter pack/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-selected/demo-presenter-pack'
+    );
   });
 
   test('keeps upload controls usable when private demo run archive fails', async () => {
@@ -4099,6 +4142,65 @@ function demoRunLauncherFixture(
       }
     ],
     notesMarkdown: '# LinguaFrame Demo Run Launcher',
+    ...overrides
+  };
+}
+
+function demoPresentationCockpitFixture(
+  overrides: Partial<DemoPresentationCockpit> = {}
+): DemoPresentationCockpit {
+  return {
+    generatedAt: '2026-06-29T08:10:00Z',
+    overallStatus: 'ATTENTION',
+    phase: 'READY_FOR_UPLOAD',
+    recommendedNextAction: 'Run the full demo command after readiness checks.',
+    selectedRun: null,
+    activeRun: null,
+    recommendedRun: {
+      jobId: 'job-gallery-best',
+      videoId: 'video-gallery',
+      profileId: 'tears-showcase',
+      status: 'COMPLETED',
+      readiness: 'READY',
+      acceptanceStatus: 'READY',
+      attentionLevel: 'NONE',
+      currentStage: 'COMPLETED',
+      elapsedMs: 65000,
+      nextAction: 'Open presenter evidence.'
+    },
+    checks: [
+      {
+        key: 'DEMO_RUN_LAUNCHER',
+        label: 'Demo run launcher',
+        status: 'READY',
+        detail: 'Launcher has a recommended sample and profile.',
+        nextAction: 'Use the recommended full demo command.',
+        blocking: false
+      },
+      {
+        key: 'ACCEPTANCE_GATE',
+        label: 'Acceptance gate',
+        status: 'READY',
+        detail: 'Recommended run passes presentation checks.',
+        nextAction: 'Use the presenter pack.',
+        blocking: false
+      }
+    ],
+    links: [
+      {
+        kind: 'PRESENTER_PACK',
+        label: 'Presenter pack',
+        url: '/api/jobs/job-selected/demo-presenter-pack'
+      },
+      {
+        kind: 'ACCEPTANCE_GATE',
+        label: 'Acceptance gate',
+        url: '/api/jobs/job-selected/demo-acceptance-gate'
+      }
+    ],
+    safetyNotes: [
+      'Metadata-only cockpit: only IDs, statuses, counts, readiness labels, and safe routes are included.'
+    ],
     ...overrides
   };
 }

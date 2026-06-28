@@ -484,6 +484,20 @@ download_demo_run_launcher_json() {
   demo_curl -fsS "$base_url/api/operator/demo-run-launcher" -o "$output_path"
 }
 
+download_demo_presentation_cockpit_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local query=""
+
+  if [[ -n "${job_id//[[:space:]]/}" ]]; then
+    query="?jobId=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote_plus(sys.argv[1]))' "$job_id")"
+  fi
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-presentation-cockpit$query" -o "$output_path"
+}
+
 download_runtime_dependencies_json() {
   local base_url="$1"
   local output_path="$2"
@@ -671,6 +685,65 @@ for evidence in launcher.get("expectedEvidence", []):
     path = text(evidence.get("path"))
     if label or path:
         print("demoRunLauncherEvidence=" + label + ":" + path)
+PY
+}
+
+print_demo_presentation_cockpit_summary_file() {
+  local cockpit_path="$1"
+
+  python3 - "$cockpit_path" <<'PY'
+import json
+import sys
+
+cockpit = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+def print_run(prefix, run):
+    if not isinstance(run, dict):
+        print(prefix + "JobId=")
+        return
+    print(prefix + "JobId=" + text(run.get("jobId")))
+    print(prefix + "VideoId=" + text(run.get("videoId")))
+    print(prefix + "ProfileId=" + text(run.get("profileId")))
+    print(prefix + "Status=" + text(run.get("status")))
+    print(prefix + "Readiness=" + text(run.get("readiness")))
+    print(prefix + "AcceptanceStatus=" + text(run.get("acceptanceStatus")))
+    print(prefix + "CurrentStage=" + text(run.get("currentStage")))
+    print(prefix + "NextAction=" + text(run.get("nextAction")))
+
+print("demoPresentationCockpitOverall=" + text(cockpit.get("overallStatus", "UNKNOWN")))
+print("demoPresentationCockpitPhase=" + text(cockpit.get("phase")))
+print("demoPresentationCockpitNextAction=" + text(cockpit.get("recommendedNextAction")))
+print("demoPresentationCockpitGeneratedAt=" + text(cockpit.get("generatedAt")))
+print_run("demoPresentationCockpitSelectedRun", cockpit.get("selectedRun"))
+print_run("demoPresentationCockpitActiveRun", cockpit.get("activeRun"))
+print_run("demoPresentationCockpitRecommendedRun", cockpit.get("recommendedRun"))
+for check in cockpit.get("checks", []):
+    print(
+        "demoPresentationCockpitCheck="
+        + text(check.get("status"))
+        + ":"
+        + text(check.get("key"))
+        + ":"
+        + text(check.get("label"))
+        + ":blocking="
+        + ("true" if check.get("blocking") else "false")
+    )
+for link in cockpit.get("links", []):
+    print(
+        "demoPresentationCockpitLink="
+        + text(link.get("kind"))
+        + ":"
+        + text(link.get("label"))
+        + ":"
+        + text(link.get("url"))
+    )
+for note in cockpit.get("safetyNotes", []):
+    print("demoPresentationCockpitSafetyNote=" + text(note))
 PY
 }
 

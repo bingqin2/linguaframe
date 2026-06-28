@@ -5,6 +5,7 @@ import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
   DemoCompletionCertificate,
+  DemoPresentationCockpit,
   DemoRunLauncher,
   DemoReplayCard,
   DemoSampleMediaCatalog,
@@ -348,6 +349,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunLauncher, setDemoRunLauncher] = useState<DemoRunLauncher | null>(null);
   const [demoRunLauncherError, setDemoRunLauncherError] = useState<string | null>(null);
   const [isLoadingDemoRunLauncher, setIsLoadingDemoRunLauncher] = useState(false);
+  const [demoPresentationCockpit, setDemoPresentationCockpit] = useState<DemoPresentationCockpit | null>(null);
+  const [demoPresentationCockpitError, setDemoPresentationCockpitError] = useState<string | null>(null);
+  const [isLoadingDemoPresentationCockpit, setIsLoadingDemoPresentationCockpit] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -766,6 +770,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoPresentationCockpit = useCallback(async (jobId?: string) => {
+    setIsLoadingDemoPresentationCockpit(true);
+    try {
+      const cockpit = await linguaFrameApi.getDemoPresentationCockpit(jobId);
+      setDemoPresentationCockpit(cockpit);
+      setDemoPresentationCockpitError(null);
+      return cockpit;
+    } catch (cockpitLoadError) {
+      setDemoPresentationCockpit(null);
+      setDemoPresentationCockpitError(toErrorMessage(cockpitLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoPresentationCockpit(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -940,6 +960,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadDemoRunLauncher]);
 
   useEffect(() => {
+    void loadDemoPresentationCockpit();
+  }, [loadDemoPresentationCockpit]);
+
+  useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
 
@@ -1015,11 +1039,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
 
     const timer = window.setTimeout(() => {
-      void loadJob(job.jobId, { silent: true }).then((nextJob) => loadSourceMedia(nextJob.videoId));
+      void loadJob(job.jobId, { silent: true }).then((nextJob) => {
+        void loadSourceMedia(nextJob.videoId);
+        void loadDemoPresentationCockpit(nextJob.jobId);
+      });
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadJob, loadSourceMedia, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadJob, loadSourceMedia, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1034,6 +1061,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         setError(null);
         void loadSourceMedia(nextJob.videoId);
         void loadDemoRunMonitor(nextJob.jobId);
+        void loadDemoPresentationCockpit(nextJob.jobId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
@@ -1057,7 +1085,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1158,6 +1186,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoAcceptanceGate(upload.jobId);
       await loadDemoRunSnapshot(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
+      await loadDemoPresentationCockpit(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -1187,6 +1216,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoAcceptanceGate(jobId);
     await loadDemoRunSnapshot(jobId);
     await loadDemoShareSheet(jobId);
+    await loadDemoPresentationCockpit(jobId);
   }
 
   async function handleRetry() {
@@ -1207,6 +1237,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoAcceptanceGate(retriedJob.jobId);
       await loadDemoRunSnapshot(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
+      await loadDemoPresentationCockpit(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -1234,6 +1265,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoAcceptanceGate(cancelledJob.jobId);
       await loadDemoRunSnapshot(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
+      await loadDemoPresentationCockpit(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -1264,6 +1296,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoAcceptanceGate(recentJob.jobId);
     await loadDemoRunSnapshot(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
+    await loadDemoPresentationCockpit(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -1287,6 +1320,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoAcceptanceGate(historyJob.jobId);
     await loadDemoRunSnapshot(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
+    await loadDemoPresentationCockpit(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -1311,6 +1345,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoAcceptanceGate(failure.jobId);
     await loadDemoRunSnapshot(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
+    await loadDemoPresentationCockpit(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -1878,6 +1913,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             isLoading={isLoadingOperatorDashboard}
             onRefresh={loadOperatorDashboard}
             onOpenFailure={openDashboardFailure}
+          />
+
+          <DemoPresentationCockpitPanel
+            cockpit={demoPresentationCockpit}
+            error={demoPresentationCockpitError}
+            isLoading={isLoadingDemoPresentationCockpit}
+            onRefresh={() => void loadDemoPresentationCockpit(job?.jobId)}
           />
 
           <PrivateDemoOperationsPanel
@@ -2955,6 +2997,147 @@ function OperatorDashboardPanel({
   );
 }
 
+function DemoPresentationCockpitPanel({
+  cockpit,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  cockpit: DemoPresentationCockpit | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = cockpit ? formatDemoPresentationCockpitNotes(cockpit) : '';
+  const focusRun = cockpit?.selectedRun ?? cockpit?.activeRun ?? cockpit?.recommendedRun ?? null;
+
+  const handleCopy = async () => {
+    if (!cockpit || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Presentation cockpit notes copied.');
+  };
+
+  const handleDownload = () => {
+    if (!cockpit) {
+      return;
+    }
+    const blob = new Blob([notes], { type: 'text/markdown;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'linguaframe-demo-presentation-cockpit.md';
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Presentation cockpit notes downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Demo presentation cockpit">
+      <div className="panel-heading">
+        <h2>Demo presentation cockpit</h2>
+        {cockpit ? (
+          <span className={operationsStatusClassName(cockpit.overallStatus)}>
+            {cockpit.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Presentation cockpit unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !cockpit ? <p className="muted">Loading presentation cockpit...</p> : null}
+      {cockpit ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Phase</dt>
+              <dd>{cockpit.phase}</dd>
+            </div>
+            <div>
+              <dt>Next action</dt>
+              <dd>{cockpit.recommendedNextAction}</dd>
+            </div>
+            <div>
+              <dt>Focus run</dt>
+              <dd>{focusRun?.jobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(cockpit.generatedAt)}</dd>
+            </div>
+          </dl>
+          {focusRun ? (
+            <div className="evidence-gallery-recommended">
+              <h3>Run focus</h3>
+              <p>
+                <strong>{focusRun.jobId}</strong> · {focusRun.status} · {focusRun.profileId}
+              </p>
+              <ul className="inline-evidence-list">
+                <li>{focusRun.acceptanceStatus}</li>
+                <li>{focusRun.readiness}</li>
+                <li>{focusRun.attentionLevel}</li>
+                <li>{focusRun.currentStage}</li>
+                <li>{focusRun.elapsedMs === null ? 'No elapsed time' : formatDurationMs(focusRun.elapsedMs)}</li>
+              </ul>
+              <small>{focusRun.nextAction}</small>
+            </div>
+          ) : (
+            <p className="muted">No selected, active, or completed demo run is available yet.</p>
+          )}
+          <ul className="operations-section-list" aria-label="Demo presentation cockpit checks">
+            {cockpit.checks.map((check) => (
+              <li key={check.key}>
+                <div className="operations-section-heading">
+                  <strong>{check.label}</strong>
+                  <span className={operationsStatusClassName(check.status)}>{check.status}</span>
+                </div>
+                <p>{check.detail}</p>
+                <small>{check.nextAction}</small>
+                {check.blocking ? <small className="error-text">Blocking presentation readiness.</small> : null}
+              </li>
+            ))}
+          </ul>
+          <h3>Links</h3>
+          <ul className="link-list">
+            {cockpit.links.map((link) => (
+              <li key={`${link.kind}-${link.url}`}>
+                <a href={link.url}>{link.label}</a>
+                <small>{link.kind}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Safety</h3>
+          <ul className="compact-list">
+            {cockpit.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy cockpit notes
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownload}>
+              Download cockpit notes
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function PrivateDemoOperationsPanel({
   operations,
   error,
@@ -3561,6 +3744,45 @@ function formatPrivateDemoLaunchRehearsalNotes(rehearsal: PrivateDemoLaunchRehea
   lines.push('', '## Evidence Routes');
   rehearsal.evidenceDownloads.forEach((download) => {
     lines.push(`- ${download}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
+function formatDemoPresentationCockpitNotes(cockpit: DemoPresentationCockpit): string {
+  const focusRun = cockpit.selectedRun ?? cockpit.activeRun ?? cockpit.recommendedRun ?? null;
+  const lines = [
+    '# LinguaFrame Demo Presentation Cockpit',
+    '',
+    `- Overall: ${safeMarkdownLine(cockpit.overallStatus)}`,
+    `- Phase: ${safeMarkdownLine(cockpit.phase)}`,
+    `- Generated at: ${safeMarkdownLine(cockpit.generatedAt)}`,
+    `- Next action: ${safeMarkdownLine(cockpit.recommendedNextAction)}`,
+    `- Focus job: ${focusRun ? safeMarkdownLine(focusRun.jobId) : 'none'}`,
+    '',
+    '## Focus Run'
+  ];
+  if (focusRun) {
+    lines.push(`- Job: ${safeMarkdownLine(focusRun.jobId)}`);
+    lines.push(`- Video: ${safeMarkdownLine(focusRun.videoId)}`);
+    lines.push(`- Status: ${safeMarkdownLine(focusRun.status)}`);
+    lines.push(`- Acceptance: ${safeMarkdownLine(focusRun.acceptanceStatus)}`);
+    lines.push(`- Stage: ${safeMarkdownLine(focusRun.currentStage)}`);
+    lines.push(`- Next: ${safeMarkdownLine(focusRun.nextAction)}`);
+  } else {
+    lines.push('- No selected, active, or completed run is available.');
+  }
+  lines.push('', '## Checks');
+  cockpit.checks.forEach((check) => {
+    lines.push(`- ${safeMarkdownLine(check.status)} ${safeMarkdownLine(check.key)}: ${safeMarkdownLine(check.detail)}`);
+    lines.push(`  Next: ${safeMarkdownLine(check.nextAction)}`);
+  });
+  lines.push('', '## Links');
+  cockpit.links.forEach((link) => {
+    lines.push(`- ${safeMarkdownLine(link.label)}: ${safeMarkdownLine(link.url)}`);
+  });
+  lines.push('', '## Safety');
+  cockpit.safetyNotes.forEach((note) => {
+    lines.push(`- ${safeMarkdownLine(note)}`);
   });
   return `${lines.join('\n')}\n`;
 }
@@ -6523,6 +6745,13 @@ function toRecentJob(upload: MediaUpload): RecentJob {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unexpected frontend error.';
+}
+
+function safeMarkdownLine(value: unknown): string {
+  return String(value ?? '')
+    .replace(/\r?\n/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function supportsEventSource(): boolean {

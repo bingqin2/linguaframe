@@ -124,6 +124,19 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-launch-rehearsa
 
 The script writes `launch-rehearsal.json` and `launch-rehearsal.md` under `/tmp/linguaframe-demo/private-demo-launch-rehearsal/` by default. It is read-only: it does not start Docker, upload media, call OpenAI, create backups, restore data, or run cleanup. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero.
 
+## Presentation Cockpit
+
+Use the browser `Demo presentation cockpit` panel as the first run-day command center. It calls `GET /api/operator/demo-presentation-cockpit` and combines launcher readiness, upload readiness, live checks, private-demo operations, active run status, recommended completed run, acceptance gate, package links, and safety notes into one next-action view.
+
+Generate the same cockpit from the terminal:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/demo-presentation-cockpit.sh
+LINGUAFRAME_ENV_FILE=.env.private-demo LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-presentation-cockpit.sh
+```
+
+The script writes `demo-presentation-cockpit.json` under `/tmp/linguaframe-demo/demo-presentation-cockpit/` by default. It is read-only and metadata-only: it does not upload media, start Docker, call OpenAI, retry or cancel jobs, create artifacts, run cleanup, copy media bytes, or print secrets, local paths, provider payloads, transcript text, or subtitle text.
+
 ## Evidence Gallery
 
 Use the browser `Private demo evidence gallery` panel after demo jobs complete. It is the post-run selection workspace: operations readiness explains current health, launch rehearsal orders the go/no-go path, and evidence gallery picks completed outputs for presentation or handoff.

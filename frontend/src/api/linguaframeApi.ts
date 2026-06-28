@@ -2,6 +2,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DemoAcceptanceGate,
+  DemoPresentationCockpit,
   DemoSampleMediaCatalog,
   DemoCompletionCertificate,
   DemoRunLauncher,
@@ -349,6 +350,18 @@ export async function getDemoRunLauncher(): Promise<DemoRunLauncher> {
   });
 }
 
+export async function getDemoPresentationCockpit(jobId?: string): Promise<DemoPresentationCockpit> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoPresentationCockpit>(`/api/operator/demo-presentation-cockpit${suffix}`, {
+    method: 'GET'
+  });
+}
+
 export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary> {
   return requestJson<RuntimeDependencySummary>('/api/runtime/dependencies', {
     method: 'GET'
@@ -579,6 +592,7 @@ export const linguaFrameApi = {
   getPrivateDemoRunArchive,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
+  getDemoPresentationCockpit,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getRetentionCleanupPreview,

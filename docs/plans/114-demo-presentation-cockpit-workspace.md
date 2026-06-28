@@ -101,3 +101,12 @@
 - A run-day operator has one browser/backend/terminal cockpit to decide the next action before, during, and after a demo.
 - The cockpit advances the demo goal by reducing panel-hopping and making readiness blockers explicit.
 - The feature branch is verified, committed, merged back to `main`, and post-merge validation is recorded.
+
+## Execution Status
+
+- Backend cockpit aggregate, controller route, service tests, controller tests, and OpenAPI/runtime focused validation are implemented.
+- Frontend types, API client, startup/selected-job refresh behavior, cockpit panel, and focused Vitest coverage are implemented.
+- Terminal cockpit script and shared metadata-only helper tests are implemented.
+- README, Docker E2E, private-demo deployment, target-state, decisions, and execution log have been updated.
+- Full-suite validation passed: focused backend, focused frontend, script syntax/client tests, frontend build, `git diff --check`, full Maven tests, and full Vitest.
+- Commit, merge to `main`, and post-merge validation remain before completion.
