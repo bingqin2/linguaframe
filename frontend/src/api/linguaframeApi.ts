@@ -2,6 +2,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DemoSampleMediaCatalog,
+  DemoCompletionCertificate,
   DemoRunLauncher,
   JobArtifact,
   JobComparison,
@@ -234,6 +235,15 @@ export async function getDemoReplayCard(jobId: string): Promise<DemoReplayCard> 
   return requestJson<DemoReplayCard>(`/api/jobs/${encodeURIComponent(jobId)}/demo-replay-card`, {
     method: 'GET'
   });
+}
+
+export async function getDemoCompletionCertificate(jobId: string): Promise<DemoCompletionCertificate> {
+  return requestJson<DemoCompletionCertificate>(
+    `/api/jobs/${encodeURIComponent(jobId)}/demo-completion-certificate`,
+    {
+      method: 'GET'
+    }
+  );
 }
 
 export async function getDemoRunSnapshot(jobId: string): Promise<DemoRunSnapshot> {
@@ -545,6 +555,7 @@ export const linguaFrameApi = {
   getDemoRunMatrix,
   getDemoRunMonitor,
   getDemoReplayCard,
+  getDemoCompletionCertificate,
   getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,

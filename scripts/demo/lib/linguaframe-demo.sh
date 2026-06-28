@@ -380,6 +380,17 @@ download_demo_replay_card_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-replay-card" -o "$output_path"
 }
 
+download_demo_completion_certificate_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-completion-certificate" -o "$output_path"
+}
+
 download_demo_share_sheet_json() {
   local base_url="$1"
   local job_id="$2"
@@ -909,6 +920,51 @@ for link in card.get("links", []):
     print("demoReplayCardLink=" + text(link.get("kind")) + ":" + safe(link.get("url")))
 for note in card.get("safetyNotes", []):
     print("demoReplayCardSafetyNote=" + safe(note))
+PY
+}
+
+print_demo_completion_certificate_summary_file() {
+  local certificate_path="$1"
+
+  python3 - "$certificate_path" <<'PY'
+import json
+import sys
+
+certificate = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "/Users/", "sk-", "provider payload", "OPENAI_API_KEY")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("demoCompletionCertificateJobId=" + text(certificate.get("jobId")))
+print("demoCompletionCertificateVideoId=" + text(certificate.get("videoId")))
+print("demoCompletionCertificateStatus=" + text(certificate.get("certificateStatus")))
+print("demoCompletionCertificateJobStatus=" + text(certificate.get("jobStatus")))
+print("demoCompletionCertificateProfile=" + text(certificate.get("demoProfileId") or "manual"))
+print("demoCompletionCertificateRecommendedBaselineJobId=" + text(certificate.get("recommendedBaselineJobId")))
+print("demoCompletionCertificateBestQualityJobId=" + text(certificate.get("bestQualityJobId")))
+print("demoCompletionCertificateLowestCostJobId=" + text(certificate.get("lowestCostJobId")))
+print("demoCompletionCertificateNextAction=" + safe(certificate.get("recommendedNextAction")))
+for check in certificate.get("checks", []):
+    print("demoCompletionCertificateCheck=" + ":".join([
+        text(check.get("key")),
+        text(check.get("status")),
+        "blocking=" + str(bool(check.get("blocking"))).lower(),
+    ]))
+for section in certificate.get("sections", []):
+    print("demoCompletionCertificateSection=" + text(section.get("key")) + ":" + text(section.get("status")))
+for link in certificate.get("links", []):
+    print("demoCompletionCertificateLink=" + text(link.get("kind")) + ":" + safe(link.get("url")))
+for note in certificate.get("safetyNotes", []):
+    print("demoCompletionCertificateSafetyNote=" + safe(note))
 PY
 }
 

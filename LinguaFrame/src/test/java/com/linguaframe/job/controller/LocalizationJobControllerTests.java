@@ -2029,6 +2029,54 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoCompletionCertificateForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T11:45:00Z");
+        createJob("job-controller-video-certificate", "job-controller-certificate-baseline", "certificate.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-certificate-showcase",
+                "job-controller-video-certificate",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings("job-controller-certificate-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-certificate-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-certificate-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-certificate-showcase", "job-controller-certificate-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("certificate-showcase-json", "job-controller-certificate-showcase", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("certificate-showcase-srt", "job-controller-certificate-showcase", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("certificate-showcase-vtt", "job-controller-certificate-showcase", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-completion-certificate",
+                        "job-controller-certificate-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-certificate-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-certificate"))
+                .andExpect(jsonPath("$.certificateStatus").value("READY"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.recommendedBaselineJobId").value("job-controller-certificate-baseline"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'JOB_COMPLETED')].status").value("PASS"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'HANDOFF_READY')].status").value("PASS"))
+                .andExpect(jsonPath("$.sections[?(@.key == 'REPRODUCIBILITY')].facts").value(
+                        org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.containsString("demo-replay-card.sh")))
+                ))
+                .andExpect(jsonPath("$.links[?(@.kind == 'CERTIFICATE_JSON')].url")
+                        .value("/api/jobs/job-controller-certificate-showcase/demo-completion-certificate"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-certificate-showcase/demo-run-package/download"))
+                .andExpect(jsonPath("$.safetyNotes").value(org.hamcrest.Matchers.hasItem(
+                        "The certificate is generated on demand from existing safe evidence routes and does not create new artifacts."
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))));
+    }
+
+    @Test
     void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
         createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",

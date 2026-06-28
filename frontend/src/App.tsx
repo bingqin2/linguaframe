@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   AuthSessionStatus,
+  DemoCompletionCertificate,
   DemoRunLauncher,
   DemoReplayCard,
   DemoSampleMediaCatalog,
@@ -424,6 +425,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoReplayCard, setDemoReplayCard] = useState<DemoReplayCard | null>(null);
   const [demoReplayCardError, setDemoReplayCardError] = useState<string | null>(null);
   const [isLoadingDemoReplayCard, setIsLoadingDemoReplayCard] = useState(false);
+  const [demoCompletionCertificate, setDemoCompletionCertificate] = useState<DemoCompletionCertificate | null>(null);
+  const [demoCompletionCertificateError, setDemoCompletionCertificateError] = useState<string | null>(null);
+  const [isLoadingDemoCompletionCertificate, setIsLoadingDemoCompletionCertificate] = useState(false);
   const [demoRunSnapshot, setDemoRunSnapshot] = useState<DemoRunSnapshot | null>(null);
   const [demoRunSnapshotError, setDemoRunSnapshotError] = useState<string | null>(null);
   const [isLoadingDemoRunSnapshot, setIsLoadingDemoRunSnapshot] = useState(false);
@@ -493,6 +497,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoRunMonitorError(null);
           setDemoReplayCard(null);
           setDemoReplayCardError(null);
+          setDemoCompletionCertificate(null);
+          setDemoCompletionCertificateError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
         }
@@ -575,6 +581,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoReplayCardError(toErrorMessage(cardLoadError));
     } finally {
       setIsLoadingDemoReplayCard(false);
+    }
+  }, []);
+
+  const loadDemoCompletionCertificate = useCallback(async (jobId: string) => {
+    setIsLoadingDemoCompletionCertificate(true);
+    try {
+      const certificate = await linguaFrameApi.getDemoCompletionCertificate(jobId);
+      setDemoCompletionCertificate(certificate);
+      setDemoCompletionCertificateError(null);
+    } catch (certificateLoadError) {
+      setDemoCompletionCertificate(null);
+      setDemoCompletionCertificateError(toErrorMessage(certificateLoadError));
+    } finally {
+      setIsLoadingDemoCompletionCertificate(false);
     }
   }, []);
 
@@ -999,6 +1019,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           void loadDemoRunMatrix(nextJob.jobId);
           void loadDemoPresenterPack(nextJob.jobId);
           void loadDemoReplayCard(nextJob.jobId);
+          void loadDemoCompletionCertificate(nextJob.jobId);
           void loadDemoRunSnapshot(nextJob.jobId);
           void loadDemoShareSheet(nextJob.jobId);
           void loadHistory(historyStatusFilter);
@@ -1015,7 +1036,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoCompletionCertificate, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1112,6 +1133,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMonitor(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
       await loadDemoReplayCard(upload.jobId);
+      await loadDemoCompletionCertificate(upload.jobId);
       await loadDemoRunSnapshot(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
       await loadHistory(historyStatusFilter);
@@ -1139,6 +1161,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMonitor(jobId);
     await loadDemoPresenterPack(jobId);
     await loadDemoReplayCard(jobId);
+    await loadDemoCompletionCertificate(jobId);
     await loadDemoRunSnapshot(jobId);
     await loadDemoShareSheet(jobId);
   }
@@ -1157,6 +1180,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMonitor(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
       await loadDemoReplayCard(retriedJob.jobId);
+      await loadDemoCompletionCertificate(retriedJob.jobId);
       await loadDemoRunSnapshot(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
       setError(null);
@@ -1182,6 +1206,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMonitor(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
       await loadDemoReplayCard(cancelledJob.jobId);
+      await loadDemoCompletionCertificate(cancelledJob.jobId);
       await loadDemoRunSnapshot(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
       setError(null);
@@ -1210,6 +1235,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMonitor(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
     await loadDemoReplayCard(recentJob.jobId);
+    await loadDemoCompletionCertificate(recentJob.jobId);
     await loadDemoRunSnapshot(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
   }
@@ -1231,6 +1257,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMonitor(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
     await loadDemoReplayCard(historyJob.jobId);
+    await loadDemoCompletionCertificate(historyJob.jobId);
     await loadDemoRunSnapshot(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
   }
@@ -1253,6 +1280,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMonitor(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
     await loadDemoReplayCard(failure.jobId);
+    await loadDemoCompletionCertificate(failure.jobId);
     await loadDemoRunSnapshot(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
   }
@@ -1923,6 +1951,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoRunMonitorError={demoRunMonitorError}
               demoReplayCard={demoReplayCard}
               demoReplayCardError={demoReplayCardError}
+              demoCompletionCertificate={demoCompletionCertificate}
+              demoCompletionCertificateError={demoCompletionCertificateError}
               demoRunSnapshot={demoRunSnapshot}
               demoRunSnapshotError={demoRunSnapshotError}
               demoPresenterPack={demoPresenterPack}
@@ -1934,6 +1964,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               isLoadingDemoRunMonitor={isLoadingDemoRunMonitor}
               isLoadingDemoReplayCard={isLoadingDemoReplayCard}
+              isLoadingDemoCompletionCertificate={isLoadingDemoCompletionCertificate}
               isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
@@ -1943,6 +1974,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
               onRefreshDemoReplayCard={() => void loadDemoReplayCard(job.jobId)}
+              onRefreshDemoCompletionCertificate={() => void loadDemoCompletionCertificate(job.jobId)}
               onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
@@ -3671,6 +3703,8 @@ function JobDetail({
   demoRunMonitorError,
   demoReplayCard,
   demoReplayCardError,
+  demoCompletionCertificate,
+  demoCompletionCertificateError,
   demoRunSnapshot,
   demoRunSnapshotError,
   demoPresenterPack,
@@ -3682,6 +3716,7 @@ function JobDetail({
   isLoadingDemoRunMatrix,
   isLoadingDemoRunMonitor,
   isLoadingDemoReplayCard,
+  isLoadingDemoCompletionCertificate,
   isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
@@ -3691,6 +3726,7 @@ function JobDetail({
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
   onRefreshDemoReplayCard,
+  onRefreshDemoCompletionCertificate,
   onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
@@ -3737,6 +3773,8 @@ function JobDetail({
   demoRunMonitorError: string | null;
   demoReplayCard: DemoReplayCard | null;
   demoReplayCardError: string | null;
+  demoCompletionCertificate: DemoCompletionCertificate | null;
+  demoCompletionCertificateError: string | null;
   demoRunSnapshot: DemoRunSnapshot | null;
   demoRunSnapshotError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
@@ -3748,6 +3786,7 @@ function JobDetail({
   isLoadingDemoRunMatrix: boolean;
   isLoadingDemoRunMonitor: boolean;
   isLoadingDemoReplayCard: boolean;
+  isLoadingDemoCompletionCertificate: boolean;
   isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
@@ -3757,6 +3796,7 @@ function JobDetail({
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
   onRefreshDemoReplayCard: () => void;
+  onRefreshDemoCompletionCertificate: () => void;
   onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
@@ -3941,6 +3981,13 @@ function JobDetail({
         isLoading={isLoadingDemoPresenterPack}
         pack={demoPresenterPack}
         onRefresh={onRefreshDemoPresenterPack}
+      />
+
+      <DemoCompletionCertificatePanel
+        certificate={demoCompletionCertificate}
+        error={demoCompletionCertificateError}
+        isLoading={isLoadingDemoCompletionCertificate}
+        onRefresh={onRefreshDemoCompletionCertificate}
       />
 
       <DemoReplayCardPanel
@@ -5574,6 +5621,100 @@ function DemoReplayCardPanel({
           </ul>
           <div className="link-list">
             {card.links.slice(0, 8).map((link) => (
+              <a key={`${link.kind}-${link.url}`} href={link.url}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoCompletionCertificatePanel({
+  certificate,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  certificate: DemoCompletionCertificate | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const attentionChecks = certificate?.checks.filter((check) => check.blocking || check.status !== 'PASS') ?? [];
+
+  return (
+    <section className="panel demo-completion-certificate-panel" aria-label="Demo completion certificate">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo completion certificate</h3>
+          <p className="muted">Final metadata-only proof that this run is complete and handoff-ready.</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+      {isLoading && !certificate ? <p className="muted">Loading demo completion certificate...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {certificate ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Certificate</dt>
+              <dd>{certificate.certificateStatus}</dd>
+            </div>
+            <div>
+              <dt>Job status</dt>
+              <dd>{certificate.jobStatus}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(certificate.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Baseline</dt>
+              <dd>{certificate.recommendedBaselineJobId ?? 'N/A'}</dd>
+            </div>
+          </dl>
+          <h4>{certificate.headline}</h4>
+          <p>{certificate.summary}</p>
+          <p className={certificate.certificateStatus === 'READY' ? 'success-text' : 'warning-text'}>
+            {certificate.recommendedNextAction}
+          </p>
+          {attentionChecks.length > 0 ? (
+            <ul className="checklist compact-list">
+              {attentionChecks.map((check) => (
+                <li key={check.key}>
+                  <strong>{check.label}: {check.status}</strong>
+                  <span>{check.detail}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="snapshot-section-grid">
+            {certificate.sections.map((section) => (
+              <div key={section.key}>
+                <h4>{section.title}</h4>
+                <p className="muted">{section.status}</p>
+                <ul className="compact-list">
+                  {section.facts.slice(0, 8).map((fact) => (
+                    <li key={fact}>{fact}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <ul className="checklist compact-list">
+            {certificate.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="link-list">
+            {certificate.links.slice(0, 10).map((link) => (
               <a key={`${link.kind}-${link.url}`} href={link.url}>
                 {link.label}
               </a>
