@@ -121,7 +121,7 @@
 - [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
 - [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh`.
 - [x] Run `git diff --check`.
-- [ ] Post-merge: rerun backend focused tests, frontend focused tests, and demo client tests on `main`.
+- [x] Post-merge: rerun backend focused tests, frontend focused tests, and demo client tests on `main`.
 
 ## Done Criteria
 
@@ -129,4 +129,4 @@
 - [x] Draft edits persist separately from generated subtitle segments.
 - [x] Corrected JSON/SRT/VTT exports use draft text with original timing.
 - [x] Browser, backend, and terminal evidence expose draft metadata only.
-- [ ] Tests, docs, validation, commit, and merge back to `main` are completed as part of this feature slice.
+- [x] Tests, docs, validation, commit, and merge back to `main` are completed as part of this feature slice.
