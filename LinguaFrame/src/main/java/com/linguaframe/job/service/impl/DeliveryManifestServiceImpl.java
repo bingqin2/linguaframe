@@ -84,6 +84,7 @@ public class DeliveryManifestServiceImpl implements DeliveryManifestService {
                 job.translationGlossaryEntryCount(),
                 job.translationGlossaryHash(),
                 job.subtitlePolishingMode(),
+                job.demoProfileId(),
                 job.status(),
                 Instant.now(clock),
                 handoffReady,
@@ -104,6 +105,7 @@ public class DeliveryManifestServiceImpl implements DeliveryManifestService {
         builder.append("- Job: ").append(manifest.jobId()).append('\n');
         builder.append("- Video: ").append(manifest.videoId()).append('\n');
         builder.append("- Target language: ").append(manifest.targetLanguage()).append('\n');
+        builder.append("- Demo profile: ").append(valueOrDefault(manifest.demoProfileId(), "manual")).append('\n');
         builder.append("- Subtitle style: ").append(manifest.subtitleStylePreset()).append('\n');
         builder.append("- Subtitle polishing: ").append(manifest.subtitlePolishingMode()).append('\n');
         builder.append("- Translation glossary: ").append(manifest.translationGlossaryEntryCount())
@@ -176,5 +178,9 @@ public class DeliveryManifestServiceImpl implements DeliveryManifestService {
             return "";
         }
         return hash.length() <= 12 ? hash : hash.substring(0, 12);
+    }
+
+    private String valueOrDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

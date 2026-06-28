@@ -102,6 +102,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 record.translationGlossaryEntryCount(),
                 record.translationGlossaryHash(),
                 record.subtitlePolishingMode(),
+                record.demoProfileId(),
                 record.status(),
                 record.createdAt(),
                 record.startedAt(),

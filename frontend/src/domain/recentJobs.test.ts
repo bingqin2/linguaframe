@@ -32,6 +32,7 @@ describe('recentJobs', () => {
         translationGlossaryEntryCount: 0,
         translationGlossaryHash: '',
         subtitlePolishingMode: 'OFF',
+        demoProfileId: null,
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -91,6 +92,7 @@ describe('recentJobs', () => {
         translationGlossaryEntryCount: 0,
         translationGlossaryHash: '',
         subtitlePolishingMode: 'OFF',
+        demoProfileId: null,
         filename: 'legacy.mp4',
         createdAt: '2026-06-26T10:00:00Z'
       }

@@ -120,10 +120,38 @@ print(value)
 upload_demo_video() {
   local base_url="$1"
   local sample_path="$2"
-  local translation_style="${LINGUAFRAME_DEMO_TRANSLATION_STYLE:-NATURAL}"
-  local subtitle_style_preset="${LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET:-STANDARD}"
-  local subtitle_polishing_mode="${LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE:-OFF}"
-  local translation_glossary="${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY:-}"
+  local demo_profile_id="${LINGUAFRAME_DEMO_PROFILE_ID:-quick-baseline}"
+  local profile_translation_style="NATURAL"
+  local profile_subtitle_style_preset="STANDARD"
+  local profile_subtitle_polishing_mode="OFF"
+  local profile_translation_glossary=""
+  case "$demo_profile_id" in
+    quick-baseline)
+      ;;
+    tears-showcase)
+      profile_translation_style="FORMAL"
+      profile_subtitle_style_preset="HIGH_CONTRAST"
+      profile_subtitle_polishing_mode="BALANCED"
+      profile_translation_glossary=$'Maya => 玛雅\nTears of Steel => 钢铁之泪\nThom => 汤姆'
+      ;;
+    concise-review)
+      profile_translation_style="CONCISE"
+      profile_subtitle_style_preset="LARGE"
+      profile_subtitle_polishing_mode="STRICT"
+      ;;
+    "")
+      demo_profile_id="quick-baseline"
+      ;;
+    *)
+      echo "Unknown LINGUAFRAME_DEMO_PROFILE_ID: $demo_profile_id" >&2
+      return 2
+      ;;
+  esac
+
+  local translation_style="${LINGUAFRAME_DEMO_TRANSLATION_STYLE:-$profile_translation_style}"
+  local subtitle_style_preset="${LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET:-$profile_subtitle_style_preset}"
+  local subtitle_polishing_mode="${LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE:-$profile_subtitle_polishing_mode}"
+  local translation_glossary="${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY:-$profile_translation_glossary}"
   if [[ -z "$translation_glossary" && -n "${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE:-}" ]]; then
     translation_glossary="$(<"$LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE")"
   fi
@@ -131,6 +159,7 @@ upload_demo_video() {
   local form_args=(
     -F "file=@${sample_path};type=video/mp4"
     -F "targetLanguage=zh-CN"
+    -F "demoProfileId=${demo_profile_id}"
     -F "translationStyle=${translation_style}"
     -F "subtitleStylePreset=${subtitle_style_preset}"
     -F "subtitlePolishingMode=${subtitle_polishing_mode}"
@@ -310,6 +339,7 @@ output_path = sys.argv[2]
 evaluation = job.get("qualityEvaluation")
 job_id = job["jobId"]
 target_language = job.get("targetLanguage") or "N/A"
+demo_profile_id = job.get("demoProfileId") or "manual"
 translation_style = job.get("translationStyle") or "NATURAL"
 subtitle_style_preset = job.get("subtitleStylePreset") or "STANDARD"
 subtitle_polishing_mode = job.get("subtitlePolishingMode") or "OFF"
@@ -322,6 +352,7 @@ lines = [
     "- Job: " + job_id,
     "- Video: " + str(job.get("videoId") or "N/A"),
     "- Target language: " + target_language,
+    "- Demo profile: " + demo_profile_id,
     "- Translation style: " + translation_style,
     "- Subtitle style: " + subtitle_style_preset,
     "- Subtitle polishing: " + subtitle_polishing_mode,
@@ -691,6 +722,7 @@ media_count = sum(1 for artifact_type in artifact_types if artifact_type in medi
 job_id = job.get("jobId", "unknown")
 video_id = job.get("videoId", "unknown")
 target_language = job.get("targetLanguage", "unknown")
+demo_profile_id = job.get("demoProfileId") or "manual"
 translation_style = job.get("translationStyle", "NATURAL")
 subtitle_style_preset = job.get("subtitleStylePreset", "STANDARD")
 subtitle_polishing_mode = job.get("subtitlePolishingMode", "OFF")
@@ -713,6 +745,7 @@ lines = [
     "## Input and job",
     f"- Video: {video_id}",
     f"- Target language: {target_language}",
+    f"- Demo profile: {demo_profile_id}",
     f"- Translation style: {translation_style}",
     f"- Subtitle style: {subtitle_style_preset}",
     f"- Subtitle polishing: {subtitle_polishing_mode}",

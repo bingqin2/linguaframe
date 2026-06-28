@@ -1,5 +1,6 @@
 import type {
   JobArtifact,
+  DemoRunProfile,
   DemoSessionStatus,
   DeliveryManifest,
   LocalizationJob,
@@ -72,7 +73,8 @@ export async function uploadMedia(
   translationStyle?: string,
   subtitleStylePreset?: string,
   translationGlossary?: string,
-  subtitlePolishingMode?: string
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
 ): Promise<MediaUpload> {
   const body = new FormData();
   body.set('file', file);
@@ -97,10 +99,20 @@ export async function uploadMedia(
   if (normalizedSubtitlePolishingMode) {
     body.set('subtitlePolishingMode', normalizedSubtitlePolishingMode);
   }
+  const normalizedDemoProfileId = demoProfileId?.trim();
+  if (normalizedDemoProfileId) {
+    body.set('demoProfileId', normalizedDemoProfileId);
+  }
 
   return requestJson<MediaUpload>('/api/media/uploads', {
     method: 'POST',
     body
+  });
+}
+
+export async function listDemoRunProfiles(): Promise<DemoRunProfile[]> {
+  return requestJson<DemoRunProfile[]>('/api/demo-run-profiles', {
+    method: 'GET'
   });
 }
 
@@ -349,6 +361,7 @@ export function jobEventsUrl(jobId: string): string {
 
 export const linguaFrameApi = {
   getDemoSession,
+  listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
   validateUpload,

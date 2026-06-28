@@ -82,9 +82,11 @@ public class MediaUploadController {
             @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
             @RequestParam(value = "translationGlossary", required = false) String translationGlossary,
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
-            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode
+            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
     ) {
-        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, subtitlePolishingMode);
+        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, subtitlePolishingMode, demoProfileId);
         return ResponseEntity.status(HttpStatus.CREATED).body(upload);
     }
 

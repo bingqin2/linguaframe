@@ -14,7 +14,20 @@ export interface MediaUpload {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
   createdAt: string;
+}
+
+export interface DemoRunProfile {
+  id: string;
+  label: string;
+  description: string;
+  targetLanguage: string;
+  ttsVoice: string;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  subtitlePolishingMode: string;
+  translationGlossary: string;
 }
 
 export type MediaUploadValidationCode =
@@ -76,6 +89,7 @@ export interface LocalizationJob {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -150,6 +164,7 @@ export interface LocalizationJobSummary {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -578,6 +593,7 @@ export interface DeliveryManifest {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
   status: LocalizationJobStatus;
   generatedAt: string;
   handoffReady: boolean;

@@ -145,6 +145,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         manifest.put("jobId", job.jobId());
         manifest.put("videoId", job.videoId());
         manifest.put("targetLanguage", job.targetLanguage());
+        manifest.put("demoProfileId", job.demoProfileId());
         manifest.put("subtitleStylePreset", job.subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", job.translationGlossaryHash());
@@ -170,6 +171,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         value.put("jobId", job.jobId());
         value.put("videoId", job.videoId());
         value.put("targetLanguage", job.targetLanguage());
+        value.put("demoProfileId", job.demoProfileId());
         value.put("subtitleStylePreset", job.subtitleStylePreset());
         value.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
         value.put("translationGlossaryHash", job.translationGlossaryHash());
@@ -211,6 +213,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                 "- Job: " + job.jobId(),
                 "- Video: " + job.videoId(),
                 "- Target language: " + job.targetLanguage(),
+                "- Demo profile: " + valueOrDefault(job.demoProfileId(), "manual"),
                 "- Subtitle style: " + job.subtitleStylePreset(),
                 "- Subtitle polishing: " + job.subtitlePolishingMode(),
                 "- Status: " + job.status(),
@@ -278,6 +281,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         lines.add("- Overall: " + (ready ? "READY" : "ATTENTION"));
         lines.add("- Video: " + job.videoId());
         lines.add("- Target language: " + job.targetLanguage());
+        lines.add("- Demo profile: " + valueOrDefault(job.demoProfileId(), "manual"));
         lines.add("- Subtitle style: " + job.subtitleStylePreset());
         lines.add("- Subtitle polishing: " + job.subtitlePolishingMode());
         lines.add("- Status: " + job.status());
@@ -357,5 +361,9 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
             return "unknown";
         }
         return value.replaceAll("[^A-Za-z0-9._-]", "-");
+    }
+
+    private String valueOrDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

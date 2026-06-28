@@ -5,6 +5,7 @@ import type {
   DeliveryManifest,
   FailureTriage,
   JobArtifact,
+  DemoRunProfile,
   DemoSessionStatus,
   LocalizationJob,
   LocalizationJobStatus,
@@ -63,6 +64,7 @@ const SUBTITLE_POLISHING_MODE_OPTIONS = [
   { value: 'BALANCED', label: 'Balanced polishing' },
   { value: 'STRICT', label: 'Strict cleanup' }
 ];
+const MANUAL_DEMO_PROFILE_VALUE = '';
 
 type DeliverableStatus = 'Ready' | 'Preview only' | 'Missing';
 
@@ -98,6 +100,7 @@ interface DemoEvidence {
     translationGlossaryEntryCount: number;
     translationGlossaryHash: string;
     subtitlePolishingMode: string;
+    demoProfileId: string | null;
     status: LocalizationJobStatus;
     retryCount: number;
     failureStage: string | null;
@@ -209,6 +212,7 @@ interface CacheReplayCandidate {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
 }
 
 interface CacheReplayBaseline {
@@ -226,6 +230,7 @@ interface CacheReplayEvidenceJob {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string;
   modelCallCount: number;
   estimatedCostUsd: number;
   artifactCacheHitCount: number;
@@ -272,6 +277,9 @@ const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
 ];
 
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
+  const [demoProfileId, setDemoProfileId] = useState(MANUAL_DEMO_PROFILE_VALUE);
+  const [demoRunProfiles, setDemoRunProfiles] = useState<DemoRunProfile[]>([]);
+  const [demoRunProfileError, setDemoRunProfileError] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [ttsVoice, setTtsVoice] = useState('');
   const [translationStyle, setTranslationStyle] = useState('NATURAL');
@@ -581,6 +589,31 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     let ignore = false;
 
     linguaFrameApi
+      .listDemoRunProfiles()
+      .then((profiles) => {
+        if (ignore) {
+          return;
+        }
+        setDemoRunProfiles(profiles);
+        setDemoRunProfileError(null);
+      })
+      .catch((profileLoadError) => {
+        if (ignore) {
+          return;
+        }
+        setDemoRunProfiles([]);
+        setDemoRunProfileError(toErrorMessage(profileLoadError));
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    linguaFrameApi
       .listPromptTemplates()
       .then((templates) => {
         if (ignore) {
@@ -669,6 +702,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  function applyDemoProfile(profileId: string) {
+    setDemoProfileId(profileId);
+    const profile = demoRunProfiles.find((candidate) => candidate.id === profileId);
+    if (!profile) {
+      return;
+    }
+    setTargetLanguage(profile.targetLanguage);
+    setTtsVoice(profile.ttsVoice);
+    setTranslationStyle(profile.translationStyle);
+    setSubtitleStylePreset(profile.subtitleStylePreset);
+    setSubtitlePolishingMode(profile.subtitlePolishingMode);
+    setTranslationGlossary(profile.translationGlossary);
+  }
+
   async function handleValidateUpload(form: HTMLFormElement | null) {
     const file = form ? getSelectedUploadFile(form) : null;
     if (!file) {
@@ -706,7 +753,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         translationStyle,
         subtitleStylePreset,
         translationGlossary,
-        subtitlePolishingMode
+        subtitlePolishingMode,
+        demoProfileId
       );
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
@@ -778,6 +826,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(recentJob.jobId);
     setTargetLanguage(recentJob.targetLanguage);
     setTtsVoice(recentJob.ttsVoice ?? '');
+    setDemoProfileId(recentJob.demoProfileId ?? MANUAL_DEMO_PROFILE_VALUE);
     setTranslationStyle(recentJob.translationStyle);
     setSubtitleStylePreset(recentJob.subtitleStylePreset);
     setSubtitlePolishingMode(recentJob.subtitlePolishingMode);
@@ -792,6 +841,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(historyJob.jobId);
     setTargetLanguage(historyJob.targetLanguage);
     setTtsVoice(historyJob.ttsVoice ?? '');
+    setDemoProfileId(historyJob.demoProfileId ?? MANUAL_DEMO_PROFILE_VALUE);
     setTranslationStyle(historyJob.translationStyle);
     setSubtitleStylePreset(historyJob.subtitleStylePreset);
     setSubtitlePolishingMode(historyJob.subtitlePolishingMode);
@@ -808,6 +858,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const language = nextJob.targetLanguage ?? targetLanguage;
     setTargetLanguage(language);
     setTtsVoice(nextJob.ttsVoice ?? '');
+    setDemoProfileId(nextJob.demoProfileId ?? MANUAL_DEMO_PROFILE_VALUE);
     setTranslationStyle(nextJob.translationStyle ?? 'NATURAL');
     setSubtitleStylePreset(nextJob.subtitleStylePreset ?? 'STANDARD');
     setSubtitlePolishingMode(nextJob.subtitlePolishingMode ?? 'OFF');
@@ -1041,6 +1092,18 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           <form className="panel" onSubmit={handleUpload}>
             <h2>Upload</h2>
             <label>
+              Demo profile
+              <select value={demoProfileId} onChange={(event) => applyDemoProfile(event.target.value)}>
+                <option value={MANUAL_DEMO_PROFILE_VALUE}>Manual settings</option>
+                {demoRunProfiles.map((profile) => (
+                  <option key={profile.id} value={profile.id}>
+                    {profile.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {demoRunProfileError ? <p className="error-text">{demoRunProfileError}</p> : null}
+            <label>
               Video file
               <input
                 name="videoFile"
@@ -1192,6 +1255,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       </span>
                       <span className="history-meta">
                         {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
+                        {formatDemoProfileId(historyJob.demoProfileId)} ·
                         {formatTranslationStyle(historyJob.translationStyle)} ·
                         {formatSubtitleStylePreset(historyJob.subtitleStylePreset)} ·
                         {formatSubtitlePolishingMode(historyJob.subtitlePolishingMode)} ·
@@ -1243,6 +1307,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       <span>{recentJob.filename}</span>
                       <span className="history-meta">
                         {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)} ·
+                        {formatDemoProfileId(recentJob.demoProfileId)} ·
                         {formatTranslationStyle(recentJob.translationStyle)} ·
                         {formatSubtitleStylePreset(recentJob.subtitleStylePreset)} ·
                         {formatSubtitlePolishingMode(recentJob.subtitlePolishingMode)} ·
@@ -1403,6 +1468,10 @@ function SourceMediaPanel({
           <div>
             <dt>Target language</dt>
             <dd>{job.targetLanguage}</dd>
+          </div>
+          <div>
+            <dt>Demo profile</dt>
+            <dd>{formatDemoProfileId(job.demoProfileId)}</dd>
           </div>
           <div>
             <dt>Translation style</dt>
@@ -2703,6 +2772,10 @@ function DeliveryHandoffPanel({
           <dd>{manifest.generatedArtifactCount} files</dd>
         </div>
         <div>
+          <dt>Demo profile</dt>
+          <dd>{formatDemoProfileId(manifest.demoProfileId)}</dd>
+        </div>
+        <div>
           <dt>Subtitle polishing</dt>
           <dd>{formatSubtitlePolishingMode(manifest.subtitlePolishingMode)}</dd>
         </div>
@@ -3820,6 +3893,7 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     translationGlossaryEntryCount: upload.translationGlossaryEntryCount,
     translationGlossaryHash: upload.translationGlossaryHash,
     subtitlePolishingMode: upload.subtitlePolishingMode,
+    demoProfileId: upload.demoProfileId,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -4141,6 +4215,7 @@ function buildDemoSessionReport(
         `Job ${job.jobId}`,
         `Video ${job.videoId}`,
         `Target language ${job.targetLanguage}`,
+        `Demo profile ${formatDemoProfileId(job.demoProfileId)}`,
         `Status ${job.status}`,
         `Retries ${job.retryCount}`,
         `Terminal ${terminalState ? 'yes' : 'no'}`
@@ -4257,6 +4332,7 @@ function buildDemoEvidence(
       translationGlossaryEntryCount: job.translationGlossaryEntryCount,
       translationGlossaryHash: job.translationGlossaryHash,
       subtitlePolishingMode: job.subtitlePolishingMode,
+      demoProfileId: job.demoProfileId,
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
@@ -4337,6 +4413,7 @@ function formatQualityEvaluationEvidence(job: LocalizationJob): string {
     `- Job: ${job.jobId}`,
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
+    `- Demo profile: ${formatDemoProfileId(job.demoProfileId)}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
     `- Subtitle polishing: ${formatSubtitlePolishingMode(job.subtitlePolishingMode)}`,
@@ -4401,6 +4478,7 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
     `- Job: ${evidence.job.jobId}`,
     `- Video: ${evidence.job.videoId}`,
     `- Target language: ${evidence.job.targetLanguage}`,
+    `- Demo profile: ${formatDemoProfileId(evidence.job.demoProfileId)}`,
     `- Status: ${evidence.job.status}`,
     `- Retries: ${evidence.job.retryCount}`,
     `- Model calls: ${evidence.usage.modelCallCount}`,
@@ -4552,6 +4630,7 @@ function formatDemoReviewPresenterNotes(
     `- Job: ${job.jobId}`,
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
+    `- Demo profile: ${formatDemoProfileId(job.demoProfileId)}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
     `- Subtitle polishing: ${formatSubtitlePolishingMode(job.subtitlePolishingMode)}`,
@@ -4591,7 +4670,8 @@ function buildCacheReplayCandidates(
         subtitleStylePreset: job.subtitleStylePreset,
         translationGlossaryEntryCount: job.translationGlossaryEntryCount,
         translationGlossaryHash: job.translationGlossaryHash,
-        subtitlePolishingMode: job.subtitlePolishingMode
+        subtitlePolishingMode: job.subtitlePolishingMode,
+        demoProfileId: job.demoProfileId
       });
     }
   });
@@ -4607,7 +4687,8 @@ function buildCacheReplayCandidates(
         subtitleStylePreset: job.subtitleStylePreset,
         translationGlossaryEntryCount: job.translationGlossaryEntryCount,
         translationGlossaryHash: job.translationGlossaryHash,
-        subtitlePolishingMode: job.subtitlePolishingMode
+        subtitlePolishingMode: job.subtitlePolishingMode,
+        demoProfileId: job.demoProfileId
       });
     }
   });
@@ -4655,6 +4736,7 @@ function cacheReplayEvidenceJob(
     translationGlossaryEntryCount: job.translationGlossaryEntryCount,
     translationGlossaryHash: job.translationGlossaryHash,
     subtitlePolishingMode: formatSubtitlePolishingMode(job.subtitlePolishingMode),
+    demoProfileId: formatDemoProfileId(job.demoProfileId),
     modelCallCount: modelCallCount(job),
     estimatedCostUsd: jobEstimatedCost(job),
     artifactCacheHitCount,
@@ -4681,6 +4763,8 @@ function formatCacheReplayEvidenceMarkdown(evidence: CacheReplayEvidence): strin
     `- Comparison provider cache hits: ${evidence.comparison.providerCacheHitCount}`,
     `- Baseline subtitle style: ${evidence.baseline.subtitleStylePreset}`,
     `- Comparison subtitle style: ${evidence.comparison.subtitleStylePreset}`,
+    `- Baseline demo profile: ${evidence.baseline.demoProfileId}`,
+    `- Comparison demo profile: ${evidence.comparison.demoProfileId}`,
     `- Baseline subtitle polishing: ${evidence.baseline.subtitlePolishingMode}`,
     `- Comparison subtitle polishing: ${evidence.comparison.subtitlePolishingMode}`,
     `- Baseline translation glossary: ${formatGlossaryMetadata(evidence.baseline.translationGlossaryEntryCount, evidence.baseline.translationGlossaryHash)}`,
@@ -4765,6 +4849,10 @@ function formatSubtitlePolishingMode(value: string | null | undefined): string {
   const normalized = value?.trim().toUpperCase() || 'OFF';
   const option = SUBTITLE_POLISHING_MODE_OPTIONS.find((candidate) => candidate.value === normalized);
   return option?.label ?? normalized;
+}
+
+function formatDemoProfileId(value: string | null | undefined): string {
+  return value?.trim() || 'Manual settings';
 }
 
 function formatGlossaryMetadata(entryCount: number | null | undefined, hash: string | null | undefined): string {

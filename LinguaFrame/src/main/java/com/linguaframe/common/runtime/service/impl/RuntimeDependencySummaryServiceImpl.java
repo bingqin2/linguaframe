@@ -32,6 +32,7 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
     private static final List<String> REQUIRED_ROUTES = List.of(
             "/api/runtime/dependencies",
             "/api/runtime/live-checks",
+            "/api/demo-run-profiles",
             "/api/media/uploads",
             "/api/media/uploads/{videoId}/source/download",
             "/api/jobs/{jobId}",

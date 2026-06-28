@@ -42,7 +42,19 @@ public interface MediaUploadService {
             String subtitleStylePreset,
             String translationGlossary
     ) {
-        return createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, null);
+        return createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, null, null);
+    }
+
+    default MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossary,
+            String subtitlePolishingMode
+    ) {
+        return createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, subtitlePolishingMode, null);
     }
 
     MediaUploadVo createUpload(
@@ -52,7 +64,8 @@ public interface MediaUploadService {
             String translationStyle,
             String subtitleStylePreset,
             String translationGlossary,
-            String subtitlePolishingMode
+            String subtitlePolishingMode,
+            String demoProfileId
     );
 
     MediaUploadDetailVo getUpload(String videoId);

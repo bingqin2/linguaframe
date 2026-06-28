@@ -436,6 +436,14 @@ Impact: `/api/demo-session` exposes sanitized gate state, `/api/demo-session/log
 
 ## 2026-06-28
 
+Decision: Treat demo run profiles as read-only presets instead of cache identity or editable experiments.
+
+Reason: Profiles should make repeated demos faster and easier to compare, but they should not fork provider behavior when the resolved upload settings are equivalent. Keeping the catalog fixed also avoids turning the demo into a prompt/profile management product.
+
+Impact: `GET /api/demo-run-profiles`, the React upload selector, and `LINGUAFRAME_DEMO_PROFILE_ID` expose the same built-in presets. Uploads persist `demoProfileId` for job detail, evidence, delivery manifests, handoff packages, demo run packages, worker summaries, and session reports, while provider/artifact cache keys continue to use target language, style, glossary, subtitle style, and polishing mode.
+
+## 2026-06-28
+
 Decision: Use a separate OpenAI demo profile instead of making `.env.example` provider-backed.
 
 Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.

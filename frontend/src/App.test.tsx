@@ -12,6 +12,7 @@ import type {
   MediaUpload,
   MediaUploadDetail,
   MediaUploadValidation,
+  DemoRunProfile,
   DemoSessionStatus,
   OperatorDashboard,
   PrivateDemoOperations,
@@ -68,6 +69,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
+    vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
   });
 
   test('shows demo readiness configuration in the sidebar', async () => {
@@ -732,10 +734,55 @@ describe('App', () => {
       'FORMAL',
       'HIGH_CONTRAST',
       'Maya => 玛雅',
-      'OFF'
+      'OFF',
+      ''
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
+  });
+
+  test('applies a demo run profile to upload fields', async () => {
+    vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({
+      demoProfileId: 'tears-showcase',
+      translationStyle: 'FORMAL',
+      subtitleStylePreset: 'HIGH_CONTRAST',
+      subtitlePolishingMode: 'BALANCED'
+    }));
+    vi.spyOn(linguaFrameApi, 'validateUpload').mockResolvedValue(mediaUploadValidationFixture());
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.selectOptions(await screen.findByLabelText(/demo profile/i), 'tears-showcase');
+
+    expect(screen.getByLabelText(/translation style/i)).toHaveValue('FORMAL');
+    expect(screen.getByLabelText(/subtitle style/i)).toHaveValue('HIGH_CONTRAST');
+    expect(screen.getByLabelText(/subtitle polishing/i)).toHaveValue('BALANCED');
+    expect(screen.getByLabelText(/translation glossary/i)).toHaveValue(
+      'Maya => 玛雅\nTears of Steel => 钢铁之泪'
+    );
+
+    await userEvent.upload(
+      screen.getByLabelText(/video file/i),
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' })
+    );
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() =>
+      expect(linguaFrameApi.uploadMedia).toHaveBeenCalledWith(
+        expect.any(File),
+        'zh-CN',
+        '',
+        'FORMAL',
+        'HIGH_CONTRAST',
+        expect.stringContaining('Tears of Steel'),
+        'BALANCED',
+        'tears-showcase'
+      )
+    );
   });
 
   test('validates selected file before upload when requested', async () => {
@@ -2795,6 +2842,34 @@ function retentionCleanupResultFixture(
   };
 }
 
+function demoRunProfileFixtures(overrides: Partial<DemoRunProfile>[] = []): DemoRunProfile[] {
+  const profiles: DemoRunProfile[] = [
+    {
+      id: 'quick-baseline',
+      label: 'Quick baseline',
+      description: 'Fast default demo run.',
+      targetLanguage: 'zh-CN',
+      ttsVoice: '',
+      translationStyle: 'NATURAL',
+      subtitleStylePreset: 'STANDARD',
+      subtitlePolishingMode: 'OFF',
+      translationGlossary: ''
+    },
+    {
+      id: 'tears-showcase',
+      label: 'Tears showcase',
+      description: 'Presentation profile for Tears of Steel.',
+      targetLanguage: 'zh-CN',
+      ttsVoice: '',
+      translationStyle: 'FORMAL',
+      subtitleStylePreset: 'HIGH_CONTRAST',
+      subtitlePolishingMode: 'BALANCED',
+      translationGlossary: 'Maya => 玛雅\nTears of Steel => 钢铁之泪'
+    }
+  ];
+  return profiles.map((profile, index) => ({ ...profile, ...(overrides[index] ?? {}) }));
+}
+
 function jobSummaryFixture(
   overrides: Partial<LocalizationJobList['jobs'][number]> = {}
 ): LocalizationJobList['jobs'][number] {
@@ -2809,6 +2884,7 @@ function jobSummaryFixture(
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
     subtitlePolishingMode: 'OFF',
+    demoProfileId: null,
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
@@ -2839,6 +2915,7 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
     subtitlePolishingMode: 'OFF',
+    demoProfileId: null,
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
@@ -2866,6 +2943,7 @@ function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): Del
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
     subtitlePolishingMode: 'OFF',
+    demoProfileId: null,
     status: 'COMPLETED',
     generatedAt: '2026-06-28T11:00:00Z',
     handoffReady: true,
@@ -3031,6 +3109,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
     subtitlePolishingMode: 'OFF',
+    demoProfileId: null,
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
