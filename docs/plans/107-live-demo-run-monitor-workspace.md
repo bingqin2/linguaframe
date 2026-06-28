@@ -105,4 +105,4 @@
 
 - [x] Document browser and terminal monitor usage.
 - [x] Record validation evidence in the execution log.
-- [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
+- [x] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
