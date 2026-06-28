@@ -130,4 +130,4 @@
 - [x] Run `cd frontend && npm run build`.
 - [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.
+- [x] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.
