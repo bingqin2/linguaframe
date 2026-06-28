@@ -539,6 +539,16 @@ export interface WorkerReadiness {
   maxRetries: number;
   dispatchBatchSize: number;
   dispatchIntervalMs: number;
+  listenerQueue: string;
+  jobExchange: string;
+  defaultJobQueue: string;
+  defaultRoutingKey: string;
+  ffmpegJobQueue: string;
+  ffmpegRoutingKey: string;
+  openaiJobQueue: string;
+  openaiRoutingKey: string;
+  ownedStageGroups: string[];
+  recommendedCommands: string[];
 }
 
 export interface MediaReadiness {

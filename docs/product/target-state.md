@@ -226,6 +226,8 @@ artifact-worker
 
 This split is optional. It should be implemented only after the modular monolith has stable stage boundaries and durable job state.
 
+Before a demo upload, the browser and terminal readiness surfaces should show the active worker role, listener queue, queue routes, stage ownership, and safe startup commands. This is an observability contract only; routing behavior remains controlled by worker role and RabbitMQ configuration.
+
 ## Safety And Cost Target
 
 LinguaFrame must:
@@ -261,6 +263,7 @@ The codebase should remain understandable to a Java backend interviewer:
 - Durable job status transitions.
 - Tests for validation, status transitions, retry behavior, and subtitle export formatting.
 - Local reproducible Docker Compose runtime.
+- Browser and terminal readiness evidence for combined and split-worker topology.
 
 ## Resume Target
 

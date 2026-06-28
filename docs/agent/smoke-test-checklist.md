@@ -69,6 +69,7 @@ Expected:
 - If `http://localhost:5173` is unavailable, the script starts `scripts/demo/frontend-local-dev.sh` for the current session and waits for it to respond.
 - `scripts/demo/private-demo-preflight.sh` passes before any media upload.
 - Preflight prints live dependency check lines for database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI. OpenAI is `SKIPPED` unless the explicit connectivity check is enabled.
+- Preflight prints `Worker topology readiness is visible` after the runtime contract check.
 - The script prints `http://localhost:5173`, `scripts/demo/upload-readiness.sh`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
 
 Validate Compose configuration and rebuild the backend image:
@@ -255,6 +256,8 @@ Expected browser behavior:
 - The `Demo runbook` panel explains that uploads are complete files up to the configured duration and file-size limits, and shows provider modes, budget guard state, subtitle burn-in state, and sample-media guidance without exposing secrets or raw local media paths.
 - If runtime readiness loading fails, the `Demo runbook` panel still shows static commands and reports the runtime guidance error.
 - The `Demo readiness` panel shows budget guard state, the configured per-job cost limit, daily demo budget state, daily limit, and safe budget identity without exposing provider credentials.
+- The `Demo readiness` panel shows `Worker topology` with active role, listener queue, job exchange, default route, FFmpeg route, OpenAI route, owned stage groups, and safe startup commands without exposing RabbitMQ credentials or demo tokens.
+- Terminal upload readiness output includes `workerTopologyRole`, `workerTopologyListenerQueue`, `workerTopologyFfmpegRoute`, `workerTopologyOpenaiRoute`, and `workerTopologyCommand` lines before any upload or provider call.
 - The `Live checks` panel shows overall `Ready` or `Blocked`, plus database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI statuses from `GET /api/runtime/live-checks`. OpenAI is `SKIPPED` by default and `UP` or `DOWN` only when the explicit connectivity check is enabled.
 - If live checks fail to load, the `Live checks` panel shows a short unavailable message and leaves upload controls usable.
 

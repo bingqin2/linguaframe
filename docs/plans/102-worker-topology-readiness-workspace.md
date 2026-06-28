@@ -47,9 +47,9 @@
 - `ownedStageGroups` should be concise labels, for example `FFMPEG:AUDIO_EXTRACTION,SUBTITLE_BURN_IN,DUBBED_VIDEO_DELIVERY` and `OPENAI:TRANSCRIPT_SUBTITLE_EXPORT,TARGET_SUBTITLE_EXPORT,SUBTITLE_POLISHING,QUALITY_EVALUATION,DUBBING_AUDIO_GENERATION`.
 - `recommendedCommands` should be metadata-only startup hints such as `LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend`.
 
-- [ ] Write failing controller test assertions that `/api/runtime/dependencies` returns worker queue/routing fields and recommended commands without credentials.
-- [ ] Implement the extended VO and populate it from `LinguaFrameProperties`.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test`.
+- [x] Write failing controller test assertions that `/api/runtime/dependencies` returns worker queue/routing fields and recommended commands without credentials.
+- [x] Implement the extended VO and populate it from `LinguaFrameProperties`.
+- [x] Run `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test`.
 
 ## Task 2: Browser Worker Topology Readiness Panel
 
@@ -64,9 +64,9 @@
 - Show role, execution/dispatch state, listener queue, exchange, FFmpeg queue/routing key, OpenAI queue/routing key, owned stage groups, and recommended commands.
 - Keep values text-only and copy-safe; do not render secrets or raw environment dumps.
 
-- [ ] Write failing `App.test.tsx` coverage proving the panel renders queue topology, owned stage groups, and recommended commands.
-- [ ] Implement the frontend type and UI changes.
-- [ ] Run `cd frontend && npm test -- --run App.test.tsx`.
+- [x] Write failing `App.test.tsx` coverage proving the panel renders queue topology, owned stage groups, and recommended commands.
+- [x] Implement the frontend type and UI changes.
+- [x] Run `cd frontend && npm test -- --run App.test.tsx`.
 
 ## Task 3: Terminal Readiness Summary
 
@@ -86,10 +86,10 @@
 - Keep output metadata-only and redaction-tested.
 - `private-demo-preflight.sh` should print a pass line for worker topology visibility after the runtime contract check succeeds.
 
-- [ ] Write failing shell helper tests that include queue/routing metadata and unsafe password/token markers in fixture JSON.
-- [ ] Implement summary output and preflight pass line.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/upload-readiness.sh scripts/demo/private-demo-preflight.sh`.
+- [x] Write failing shell helper tests that include queue/routing metadata and unsafe password/token markers in fixture JSON.
+- [x] Implement summary output and preflight pass line.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/upload-readiness.sh scripts/demo/private-demo-preflight.sh`.
 
 ## Task 4: Documentation And Validation
 
@@ -108,10 +108,10 @@
 - Document that this is observability/readiness only and does not change RabbitMQ routing.
 - Record validation commands and post-merge verification.
 
-- [ ] Update docs and execution log.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `cd frontend && npm test -- --run`.
-- [ ] Run `cd frontend && npm run build`.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `git diff --check`.
+- [x] Update docs and execution log.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `cd frontend && npm test -- --run`.
+- [x] Run `cd frontend && npm run build`.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.

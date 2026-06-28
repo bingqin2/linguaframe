@@ -226,6 +226,10 @@ PY
   rm -f "$response_file"
 
   pass "Backend runtime contract is current"
+  printf '%s' "$response" > "$response_file"
+  print_worker_topology_summary_file "$response_file"
+  rm -f "$response_file"
+  pass "Worker topology readiness is visible"
 }
 
 fetch_runtime_live_checks() {

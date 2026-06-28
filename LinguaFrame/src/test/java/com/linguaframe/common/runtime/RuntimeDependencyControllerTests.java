@@ -96,6 +96,26 @@ class RuntimeDependencyControllerTests {
         assertThat(worker.get("maxRetries")).isEqualTo(2);
         assertThat(worker.get("dispatchBatchSize")).isEqualTo(10);
         assertThat(worker.get("dispatchIntervalMs")).isEqualTo(5000);
+        assertThat(worker.get("listenerQueue")).isEqualTo("linguaframe.localization.jobs");
+        assertThat(worker.get("jobExchange")).isEqualTo("linguaframe.jobs");
+        assertThat(worker.get("defaultJobQueue")).isEqualTo("linguaframe.localization.jobs");
+        assertThat(worker.get("defaultRoutingKey")).isEqualTo("localization.queued");
+        assertThat(worker.get("ffmpegJobQueue")).isEqualTo("linguaframe.localization.jobs");
+        assertThat(worker.get("ffmpegRoutingKey")).isEqualTo("localization.queued");
+        assertThat(worker.get("openaiJobQueue")).isEqualTo("linguaframe.localization.openai.jobs");
+        assertThat(worker.get("openaiRoutingKey")).isEqualTo("localization.openai");
+        assertThat((Iterable<String>) worker.get("ownedStageGroups"))
+                .contains(
+                        "COMBINED:ALL",
+                        "FFMPEG:WORKER_SMOKE,AUDIO_EXTRACTION,SUBTITLE_BURN_IN,DUBBED_VIDEO_DELIVERY,ARTIFACT_SUMMARY",
+                        "OPENAI:TRANSCRIPT_SUBTITLE_EXPORT,TARGET_SUBTITLE_EXPORT,SUBTITLE_POLISHING,QUALITY_EVALUATION,DUBBING_AUDIO_GENERATION"
+                );
+        assertThat((Iterable<String>) worker.get("recommendedCommands"))
+                .contains(
+                        "LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend",
+                        "LINGUAFRAME_WORKER_ROLE=FFMPEG LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=linguaframe.localization.jobs docker compose --env-file .env up -d linguaframe-backend",
+                        "LINGUAFRAME_WORKER_ROLE=OPENAI LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=linguaframe.localization.openai.jobs docker compose --env-file .env up -d linguaframe-backend"
+                );
 
         assertThat(readiness.get("media")).isInstanceOf(Map.class);
         Map<?, ?> media = (Map<?, ?>) readiness.get("media");
@@ -163,7 +183,8 @@ class RuntimeDependencyControllerTests {
                 .doesNotContain("/tmp/linguaframe-media")
                 .doesNotContain("OPENAI_API_KEY")
                 .doesNotContain("linguaframe_dev_password")
-                .doesNotContain("linguaframe_minio_password");
+                .doesNotContain("linguaframe_minio_password")
+                .doesNotContain("X-LinguaFrame-Demo-Token");
     }
 
     @Test
