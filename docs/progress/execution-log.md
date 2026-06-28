@@ -2295,6 +2295,14 @@ Validation so far:
 - `cd frontend && npm run test:run -- App -t "demo review guide"` first failed because the guide panel did not exist, then passed with `Tests 2 passed`.
 - `cd frontend && npm run test:run -- App` passed with `Tests 56 passed`.
 
+Post-merge verification:
+
+- Merged `guided-demo-review-workspace` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- App -t "demo review guide"` passed on `main` with `Tests 2 passed`.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 56 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:
