@@ -2077,6 +2077,53 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoAcceptanceGateForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T11:50:00Z");
+        createJob("job-controller-video-acceptance", "job-controller-acceptance-baseline", "acceptance.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-acceptance-showcase",
+                "job-controller-video-acceptance",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings("job-controller-acceptance-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-acceptance-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-acceptance-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-acceptance-showcase", "job-controller-acceptance-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("acceptance-showcase-json", "job-controller-acceptance-showcase", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("acceptance-showcase-srt", "job-controller-acceptance-showcase", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("acceptance-showcase-vtt", "job-controller-acceptance-showcase", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+        artifactRepository.save(reviewedArtifact("acceptance-showcase-dubbed", "job-controller-acceptance-showcase", JobArtifactType.DUBBED_VIDEO));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-acceptance-gate",
+                        "job-controller-acceptance-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-acceptance-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-acceptance"))
+                .andExpect(jsonPath("$.gateStatus").value("READY"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'JOB_COMPLETED')].status").value("PASS"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'MEDIA_OUTPUT_AVAILABLE')].status").value("PASS"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'COMPLETION_CERTIFICATE_READY')].status").value("PASS"))
+                .andExpect(jsonPath("$.evidence[?(@.key == 'MEDIA_OUTPUT_COUNT')].value").value("1"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'ACCEPTANCE_GATE_JSON')].url")
+                        .value("/api/jobs/job-controller-acceptance-showcase/demo-acceptance-gate"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-acceptance-showcase/demo-run-package/download"))
+                .andExpect(jsonPath("$.safetyNotes").value(org.hamcrest.Matchers.hasItem(
+                        "The gate is generated on demand from existing safe evidence surfaces and does not create artifacts or call providers."
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))));
+    }
+
+    @Test
     void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
         createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",

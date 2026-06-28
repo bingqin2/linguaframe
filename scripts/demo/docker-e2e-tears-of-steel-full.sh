@@ -94,6 +94,11 @@ download_demo_completion_certificate_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/dem
 print_demo_completion_certificate_summary_file "$OUTPUT_DIR/demo-completion-certificate.json"
 echo "Downloaded demo completion certificate to $OUTPUT_DIR/demo-completion-certificate.json"
 
+echo "Demo acceptance gate:"
+download_demo_acceptance_gate_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-acceptance-gate.json"
+print_demo_acceptance_gate_summary_file "$OUTPUT_DIR/demo-acceptance-gate.json"
+echo "Downloaded demo acceptance gate to $OUTPUT_DIR/demo-acceptance-gate.json"
+
 echo "Demo run monitor:"
 download_demo_run_monitor_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.json"
 download_demo_run_monitor_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.md"

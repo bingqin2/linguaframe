@@ -16,6 +16,7 @@ import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
+import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
@@ -35,6 +36,7 @@ import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
+import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
 import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunMatrixService;
@@ -98,6 +100,7 @@ public class LocalizationJobController {
     private final DemoRunPackageService demoRunPackageService;
     private final AiAuditPackageService aiAuditPackageService;
     private final DemoRunMatrixService demoRunMatrixService;
+    private final DemoAcceptanceGateService demoAcceptanceGateService;
     private final DemoCompletionCertificateService demoCompletionCertificateService;
     private final DemoPresenterPackService demoPresenterPackService;
     private final DemoRunMonitorService demoRunMonitorService;
@@ -126,6 +129,7 @@ public class LocalizationJobController {
             DemoRunPackageService demoRunPackageService,
             AiAuditPackageService aiAuditPackageService,
             DemoRunMatrixService demoRunMatrixService,
+            DemoAcceptanceGateService demoAcceptanceGateService,
             DemoCompletionCertificateService demoCompletionCertificateService,
             DemoPresenterPackService demoPresenterPackService,
             DemoRunMonitorService demoRunMonitorService,
@@ -153,6 +157,7 @@ public class LocalizationJobController {
         this.demoRunPackageService = demoRunPackageService;
         this.aiAuditPackageService = aiAuditPackageService;
         this.demoRunMatrixService = demoRunMatrixService;
+        this.demoAcceptanceGateService = demoAcceptanceGateService;
         this.demoCompletionCertificateService = demoCompletionCertificateService;
         this.demoPresenterPackService = demoPresenterPackService;
         this.demoRunMonitorService = demoRunMonitorService;
@@ -214,6 +219,20 @@ public class LocalizationJobController {
             @RequestParam(required = false) Integer limit
     ) {
         return demoRunMatrixService.buildMatrix(jobId, limit);
+    }
+
+    @GetMapping("/{jobId}/demo-acceptance-gate")
+    @Operation(summary = "Build a metadata-only demo acceptance gate")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo acceptance gate was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoAcceptanceGateVo getDemoAcceptanceGate(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoAcceptanceGateService.buildGate(jobId);
     }
 
     @GetMapping("/{jobId}/demo-completion-certificate")

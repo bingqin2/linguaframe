@@ -42,6 +42,7 @@ git clone linguaframe
   -> compare two completed demo profile runs
   -> inspect the same-source demo run matrix
   -> open the demo presenter pack
+  -> verify the demo acceptance gate
 ```
 
 Stage 1 goals:
@@ -58,6 +59,7 @@ Stage 1 goals:
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.
+- Validate final demo readiness through the browser `Demo acceptance gate`, backend gate JSON, and terminal full-video `demo-acceptance-gate.json` output.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment
@@ -132,14 +134,15 @@ A user should be able to:
 16. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
 17. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
 18. Open a presenter pack that combines handoff readiness, recommended run IDs, safe package links, and copy/download presenter notes for one selected job.
-19. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
-20. Play the generated dubbing audio with visible file metadata and download evidence.
-21. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-22. Inspect cost and processing time.
-23. Retry the job if a step fails.
-24. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-25. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-26. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+19. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
+20. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
+21. Play the generated dubbing audio with visible file metadata and download evidence.
+22. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+23. Inspect cost and processing time.
+24. Retry the job if a step fails.
+25. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+26. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+27. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
@@ -200,6 +203,7 @@ The backend should provide:
 - A private-demo evidence gallery that safely aggregates recent completed jobs, handoff readiness, recommended run selection, and package links for browser and terminal handoff.
 - A private-demo owner quota preflight workspace that safely reports configured owner pressure and blocks new uploads before expensive work.
 - A pre-upload readiness workspace that combines access-gated API reachability, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warnings before media upload.
+- A demo acceptance gate that combines existing safe job evidence into one final read-only go/no-go answer after processing completes.
 
 ## Pipeline Target
 

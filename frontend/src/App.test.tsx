@@ -8,6 +8,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DeliveryManifest,
+  DemoAcceptanceGate,
   DemoCompletionCertificate,
   DemoRunLauncher,
   DemoSampleMediaCatalog,
@@ -119,6 +120,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
     vi.spyOn(linguaFrameApi, 'getDemoReplayCard').mockResolvedValue(demoReplayCardFixture());
     vi.spyOn(linguaFrameApi, 'getDemoCompletionCertificate').mockResolvedValue(demoCompletionCertificateFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(demoAcceptanceGateFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunSnapshot').mockResolvedValue(demoRunSnapshotFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
@@ -3024,6 +3026,47 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoCompletionCertificate).toHaveBeenCalledWith('certificate-showcase-job');
   });
 
+  test('shows a demo acceptance gate for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'acceptance-showcase-job',
+        videoId: 'acceptance-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(
+      demoAcceptanceGateFixture({
+        jobId: 'acceptance-showcase-job',
+        videoId: 'acceptance-video'
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'acceptance-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const gate = await screen.findByRole('region', { name: /demo acceptance gate/i });
+    expect(within(gate).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(gate).getByText('tears-showcase acceptance gate for zh-CN (READY)')).toBeInTheDocument();
+    expect(within(gate).getByText(/Present this run/i)).toBeInTheDocument();
+    expect(within(gate).getByText('Playable media outputs')).toBeInTheDocument();
+    expect(within(gate).getByText('1 (READY)')).toBeInTheDocument();
+    expect(within(gate).getByRole('link', { name: /demo acceptance gate json/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/acceptance-showcase-job/demo-acceptance-gate'
+    );
+    expect(within(gate).getByRole('link', { name: /demo run package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/acceptance-showcase-job/demo-run-package/download'
+    );
+    expect(linguaFrameApi.getDemoAcceptanceGate).toHaveBeenCalledWith('acceptance-showcase-job');
+  });
+
   test('shows a demo share sheet for selected jobs', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({
@@ -4585,6 +4628,82 @@ function demoCompletionCertificateFixture(
     safetyNotes: [
       'Metadata-only certificate: only IDs, status, readiness, costs, counts, safe routes, and replay commands are included.',
       'The certificate is generated on demand from existing safe evidence routes and does not create new artifacts.'
+    ],
+    ...overrides
+  };
+}
+
+function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}): DemoAcceptanceGate {
+  const jobId = overrides.jobId ?? 'acceptance-showcase-job';
+  return {
+    jobId,
+    videoId: overrides.videoId ?? 'acceptance-video',
+    generatedAt: '2026-06-29T11:00:00Z',
+    gateStatus: 'READY',
+    jobStatus: 'COMPLETED',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    headline: 'tears-showcase acceptance gate for zh-CN (READY)',
+    summary: `Job ${jobId} is COMPLETED with gateStatus=READY, failedChecks=0, warningChecks=0.`,
+    recommendedNextAction: 'Present this run using the completion certificate, demo run package, and snapshot.',
+    checks: [
+      {
+        key: 'JOB_COMPLETED',
+        label: 'Job completed',
+        status: 'PASS',
+        detail: 'Job status is COMPLETED.',
+        required: true
+      },
+      {
+        key: 'MEDIA_OUTPUT_AVAILABLE',
+        label: 'Playable media output available',
+        status: 'PASS',
+        detail: 'Playable/downloadable media output count is 1.',
+        required: true
+      },
+      {
+        key: 'COMPLETION_CERTIFICATE_READY',
+        label: 'Completion certificate ready',
+        status: 'PASS',
+        detail: 'Completion certificate status is READY.',
+        required: true
+      }
+    ],
+    evidence: [
+      {
+        key: 'MEDIA_OUTPUT_COUNT',
+        label: 'Playable media outputs',
+        value: '1',
+        status: 'READY'
+      },
+      {
+        key: 'QUALITY_SCORE',
+        label: 'Quality score',
+        value: '91',
+        status: 'READY'
+      },
+      {
+        key: 'CERTIFICATE_STATUS',
+        label: 'Completion certificate',
+        value: 'READY',
+        status: 'READY'
+      }
+    ],
+    links: [
+      {
+        kind: 'ACCEPTANCE_GATE_JSON',
+        label: 'Demo acceptance gate JSON',
+        url: `/api/jobs/${jobId}/demo-acceptance-gate`
+      },
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        url: `/api/jobs/${jobId}/demo-run-package/download`
+      }
+    ],
+    safetyNotes: [
+      'Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included.',
+      'The gate is generated on demand from existing safe evidence surfaces and does not create artifacts or call providers.'
     ],
     ...overrides
   };

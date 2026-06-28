@@ -1,6 +1,7 @@
 import type {
   AuthLoginResponse,
   AuthSessionStatus,
+  DemoAcceptanceGate,
   DemoSampleMediaCatalog,
   DemoCompletionCertificate,
   DemoRunLauncher,
@@ -244,6 +245,12 @@ export async function getDemoCompletionCertificate(jobId: string): Promise<DemoC
       method: 'GET'
     }
   );
+}
+
+export async function getDemoAcceptanceGate(jobId: string): Promise<DemoAcceptanceGate> {
+  return requestJson<DemoAcceptanceGate>(`/api/jobs/${encodeURIComponent(jobId)}/demo-acceptance-gate`, {
+    method: 'GET'
+  });
 }
 
 export async function getDemoRunSnapshot(jobId: string): Promise<DemoRunSnapshot> {
@@ -556,6 +563,7 @@ export const linguaFrameApi = {
   getDemoRunMonitor,
   getDemoReplayCard,
   getDemoCompletionCertificate,
+  getDemoAcceptanceGate,
   getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,

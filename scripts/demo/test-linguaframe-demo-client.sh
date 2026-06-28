@@ -1049,6 +1049,18 @@ test_download_demo_completion_certificate_helper_uses_backend_route() {
   [[ "$output" == *"http://example.test/api/jobs/certificate%20job%2Fslash/demo-completion-certificate"* ]] || fail "demo completion certificate helper used wrong route"
 }
 
+test_download_demo_acceptance_gate_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_acceptance_gate_json "http://example.test" "acceptance job/slash" "$TMPDIR/demo-acceptance-gate.json" >"$TMPDIR/acceptance-gate-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/acceptance-gate-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/acceptance%20job%2Fslash/demo-acceptance-gate"* ]] || fail "demo acceptance gate helper used wrong route"
+}
+
 test_download_demo_share_sheet_helpers_use_backend_routes() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1494,6 +1506,107 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "completion certificate summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "completion certificate summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "completion certificate summary exposed provider payload"
+}
+
+test_print_demo_acceptance_gate_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-acceptance-gate.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-29T11:15:00Z",
+  "gateStatus": "READY",
+  "jobStatus": "COMPLETED",
+  "targetLanguage": "zh-CN",
+  "demoProfileId": "tears-showcase",
+  "headline": "tears-showcase acceptance gate",
+  "summary": "raw transcript text /Users/example/private.mov sk-test provider payload",
+  "recommendedNextAction": "Present this run using the completion certificate, demo run package, and snapshot.",
+  "checks": [
+    {
+      "key": "JOB_COMPLETED",
+      "label": "Job completed",
+      "status": "PASS",
+      "detail": "Job status is COMPLETED.",
+      "required": true
+    },
+    {
+      "key": "BASELINE_RECOMMENDED",
+      "label": "Recommended baseline",
+      "status": "WARN",
+      "detail": "No same-source baseline was found.",
+      "required": false
+    },
+    {
+      "key": "UNSAFE_FIXTURE",
+      "label": "Unsafe fixture",
+      "status": "WARN",
+      "detail": "raw transcript text /Users/example/private.mov sk-test provider payload",
+      "required": false
+    }
+  ],
+  "evidence": [
+    {
+      "key": "MEDIA_OUTPUT_COUNT",
+      "label": "Playable media outputs",
+      "value": "1",
+      "status": "READY"
+    },
+    {
+      "key": "UNSAFE_EVIDENCE",
+      "label": "Unsafe evidence",
+      "value": "raw transcript text /Users/example/private.mov sk-test provider payload",
+      "status": "ATTENTION"
+    }
+  ],
+  "links": [
+    {
+      "kind": "ACCEPTANCE_GATE_JSON",
+      "label": "Demo acceptance gate JSON",
+      "url": "/api/jobs/showcase-job/demo-acceptance-gate"
+    },
+    {
+      "kind": "UNSAFE_LINK",
+      "label": "Unsafe link",
+      "url": "/Users/example/private.mov?token=sk-test&payload=provider payload"
+    }
+  ],
+  "safetyNotes": [
+    "Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included."
+  ]
+}
+JSON
+
+  print_demo_acceptance_gate_summary_file "$TMPDIR/demo-acceptance-gate.json" >"$TMPDIR/demo-acceptance-gate.out"
+  local output
+  output="$(cat "$TMPDIR/demo-acceptance-gate.out")"
+
+  [[ "$output" == *"demoAcceptanceGateJobId=showcase-job"* ]] || fail "acceptance gate summary missed job"
+  [[ "$output" == *"demoAcceptanceGateVideoId=video-demo"* ]] || fail "acceptance gate summary missed video"
+  [[ "$output" == *"demoAcceptanceGateStatus=READY"* ]] || fail "acceptance gate summary missed status"
+  [[ "$output" == *"demoAcceptanceGateJobStatus=COMPLETED"* ]] || fail "acceptance gate summary missed job status"
+  [[ "$output" == *"demoAcceptanceGateProfile=tears-showcase"* ]] || fail "acceptance gate summary missed profile"
+  [[ "$output" == *"demoAcceptanceGateNextAction=Present this run using the completion certificate, demo run package, and snapshot."* ]] || fail "acceptance gate summary missed next action"
+  [[ "$output" == *"demoAcceptanceGateCheck=JOB_COMPLETED:PASS:required=true"* ]] || fail "acceptance gate summary missed required check"
+  [[ "$output" == *"demoAcceptanceGateCheck=BASELINE_RECOMMENDED:WARN:required=false"* ]] || fail "acceptance gate summary missed warning check"
+  [[ "$output" == *"demoAcceptanceGateEvidence=MEDIA_OUTPUT_COUNT:1:READY"* ]] || fail "acceptance gate summary missed evidence"
+  [[ "$output" == *"demoAcceptanceGateLink=ACCEPTANCE_GATE_JSON:/api/jobs/showcase-job/demo-acceptance-gate"* ]] || fail "acceptance gate summary missed link"
+  [[ "$output" == *"demoAcceptanceGateSafetyNote=Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included."* ]] || fail "acceptance gate summary missed safety note"
+  [[ "$output" != *"raw transcript text"* ]] || fail "acceptance gate summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "acceptance gate summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "acceptance gate summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "acceptance gate summary exposed provider payload"
+}
+
+test_demo_acceptance_gate_script_requires_job_id() {
+  local status=0
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_DEMO_ACCEPTANCE_GATE_OUTPUT_DIR="$TMPDIR/demo-acceptance-gate-missing-job" \
+    bash "$SCRIPT_DIR/demo-acceptance-gate.sh" >"$TMPDIR/demo-acceptance-gate-missing-job.out" 2>"$TMPDIR/demo-acceptance-gate-missing-job.err" || status=$?
+
+  [[ "$status" -eq 2 ]] || fail "demo acceptance gate script did not exit 2 when job id is missing"
+  local error_output
+  error_output="$(cat "$TMPDIR/demo-acceptance-gate-missing-job.err")"
+  [[ "$error_output" == *"Missing LINGUAFRAME_DEMO_JOB_ID."* ]] || fail "demo acceptance gate script missed missing job message"
 }
 
 test_print_job_summary_includes_failure_triage() {
@@ -2721,6 +2834,7 @@ test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
 test_download_demo_replay_card_helper_uses_backend_route
 test_download_demo_completion_certificate_helper_uses_backend_route
+test_download_demo_acceptance_gate_helper_uses_backend_route
 test_download_demo_share_sheet_helpers_use_backend_routes
 test_download_demo_run_monitor_helpers_use_backend_routes
 test_print_demo_run_monitor_summary_is_metadata_only
@@ -2728,6 +2842,8 @@ test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_demo_replay_card_summary_is_metadata_only
 test_print_demo_completion_certificate_summary_is_metadata_only
+test_print_demo_acceptance_gate_summary_is_metadata_only
+test_demo_acceptance_gate_script_requires_job_id
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only
