@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -139,16 +140,18 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                 "demo-handoff-checklist.md",
                 "demo-session-report.md"
         );
-        return Map.of(
-                "generatedAt", Instant.now(),
-                "jobId", job.jobId(),
-                "videoId", job.videoId(),
-                "targetLanguage", job.targetLanguage(),
-                "subtitleStylePreset", job.subtitleStylePreset(),
-                "status", job.status().name(),
-                "artifactCount", diagnostics.artifactCount(),
-                "entries", entries,
-                "safety", Map.of(
+        Map<String, Object> manifest = new LinkedHashMap<>();
+        manifest.put("generatedAt", Instant.now());
+        manifest.put("jobId", job.jobId());
+        manifest.put("videoId", job.videoId());
+        manifest.put("targetLanguage", job.targetLanguage());
+        manifest.put("subtitleStylePreset", job.subtitleStylePreset());
+        manifest.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
+        manifest.put("translationGlossaryHash", job.translationGlossaryHash());
+        manifest.put("status", job.status().name());
+        manifest.put("artifactCount", diagnostics.artifactCount());
+        manifest.put("entries", entries);
+        manifest.put("safety", Map.of(
                         "includesMediaBytes", false,
                         "includesUploadedSourceVideo", false,
                         "includesGeneratedArtifacts", false,
@@ -157,8 +160,8 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                         "includesObjectKeys", false,
                         "includesProviderPayloads", false,
                         "includesCredentials", false
-                )
-        );
+                ));
+        return manifest;
     }
 
     private Map<String, Object> safeJobDetail(LocalizationJobVo job) {
@@ -167,6 +170,8 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         value.put("videoId", job.videoId());
         value.put("targetLanguage", job.targetLanguage());
         value.put("subtitleStylePreset", job.subtitleStylePreset());
+        value.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
+        value.put("translationGlossaryHash", job.translationGlossaryHash());
         value.put("ttsVoice", job.ttsVoice());
         value.put("status", job.status().name());
         value.put("createdAt", job.createdAt());

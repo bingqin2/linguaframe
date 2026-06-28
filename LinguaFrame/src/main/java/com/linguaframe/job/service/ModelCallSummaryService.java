@@ -10,6 +10,16 @@ public interface ModelCallSummaryService {
 
     String translationInput(String targetLanguage, String translationStyle, int segmentCount, int sourceCharacterCount);
 
+    default String translationInput(
+            String targetLanguage,
+            String translationStyle,
+            int segmentCount,
+            int sourceCharacterCount,
+            int glossaryEntryCount
+    ) {
+        return translationInput(targetLanguage, translationStyle, segmentCount, sourceCharacterCount);
+    }
+
     String translationOutput(int segmentCount, int targetCharacterCount);
 
     String transcriptionInput(BigDecimal audioSeconds);

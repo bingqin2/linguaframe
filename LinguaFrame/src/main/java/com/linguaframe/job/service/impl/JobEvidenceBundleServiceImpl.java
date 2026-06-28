@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -65,23 +66,25 @@ public class JobEvidenceBundleServiceImpl implements JobEvidenceBundleService {
     }
 
     private Map<String, Object> manifest(JobDiagnosticsReportVo diagnostics) {
-        return Map.of(
-                "generatedAt", Instant.now(),
-                "jobId", diagnostics.job().jobId(),
-                "videoId", diagnostics.job().videoId(),
-                "targetLanguage", diagnostics.job().targetLanguage(),
-                "subtitleStylePreset", diagnostics.job().subtitleStylePreset(),
-                "status", diagnostics.job().status().name(),
-                "artifactCount", diagnostics.artifactCount(),
-                "entries", List.of("manifest.json", "evidence.md", "diagnostics.json"),
-                "safety", Map.of(
+        Map<String, Object> manifest = new LinkedHashMap<>();
+        manifest.put("generatedAt", Instant.now());
+        manifest.put("jobId", diagnostics.job().jobId());
+        manifest.put("videoId", diagnostics.job().videoId());
+        manifest.put("targetLanguage", diagnostics.job().targetLanguage());
+        manifest.put("subtitleStylePreset", diagnostics.job().subtitleStylePreset());
+        manifest.put("translationGlossaryEntryCount", diagnostics.job().translationGlossaryEntryCount());
+        manifest.put("translationGlossaryHash", diagnostics.job().translationGlossaryHash());
+        manifest.put("status", diagnostics.job().status().name());
+        manifest.put("artifactCount", diagnostics.artifactCount());
+        manifest.put("entries", List.of("manifest.json", "evidence.md", "diagnostics.json"));
+        manifest.put("safety", Map.of(
                         "includesMediaBytes", false,
                         "includesRawTranscriptText", false,
                         "includesRawSubtitleText", false,
                         "includesObjectKeys", false,
                         "includesProviderPayloads", false
-                )
-        );
+                ));
+        return manifest;
     }
 
     private byte[] writeJson(Object value) {

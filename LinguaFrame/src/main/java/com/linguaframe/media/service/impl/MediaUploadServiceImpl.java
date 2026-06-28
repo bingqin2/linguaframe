@@ -1,5 +1,6 @@
 package com.linguaframe.media.service.impl;
 
+import com.linguaframe.job.domain.bo.TranslationGlossaryBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
@@ -7,6 +8,7 @@ import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
+import com.linguaframe.job.service.impl.TranslationGlossaryParser;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
@@ -17,6 +19,7 @@ import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.service.ObjectStorageService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -37,6 +40,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final VideoRepository videoRepository;
     private final LocalizationJobRepository jobRepository;
     private final JobDispatchOutboxService dispatchOutboxService;
+    private final TranslationGlossaryParser translationGlossaryParser;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -45,11 +49,24 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser());
+    }
+
+    @Autowired
+    public MediaUploadServiceImpl(
+            MediaUploadValidationService validationService,
+            ObjectStorageService objectStorageService,
+            VideoRepository videoRepository,
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService,
+            TranslationGlossaryParser translationGlossaryParser
+    ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
         this.videoRepository = videoRepository;
         this.jobRepository = jobRepository;
         this.dispatchOutboxService = dispatchOutboxService;
+        this.translationGlossaryParser = translationGlossaryParser;
     }
 
     @Override
@@ -59,10 +76,12 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             String targetLanguage,
             String ttsVoice,
             String translationStyle,
-            String subtitleStylePreset
+            String subtitleStylePreset,
+            String translationGlossary
     ) {
         String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
         String normalizedSubtitleStylePreset = SubtitleStylePreset.parse(subtitleStylePreset).name();
+        TranslationGlossaryBo parsedGlossary = translationGlossaryParser.parse(translationGlossary);
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
@@ -104,6 +123,9 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 normalizedTtsVoice,
                 normalizedTranslationStyle,
                 normalizedSubtitleStylePreset,
+                parsedGlossary.json(),
+                parsedGlossary.hash(),
+                parsedGlossary.entryCount(),
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -125,6 +147,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 normalizedTtsVoice,
                 normalizedTranslationStyle,
                 normalizedSubtitleStylePreset,
+                parsedGlossary.entryCount(),
+                parsedGlossary.hash(),
                 createdAt
         );
     }

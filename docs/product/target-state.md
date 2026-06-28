@@ -10,6 +10,7 @@ The project should stay focused on video localization:
 - Bilingual subtitle generation.
 - Subtitle translation and polishing.
 - Upload-time translation style control for natural, formal, or concise subtitle localization.
+- Upload-time translation glossary control for names, product terms, and demo vocabulary.
 - TTS dubbing audio.
 - Subtitle-burned preview video.
 - Cost, retry, and failure observability.

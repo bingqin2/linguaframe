@@ -49,6 +49,7 @@ public class TranslationCacheServiceImpl implements TranslationCacheService {
                 lookup.provider(),
                 lookup.model(),
                 lookup.promptVersion(),
+                lookup.translationGlossaryHash(),
                 writeJson(result),
                 jobId
         ));

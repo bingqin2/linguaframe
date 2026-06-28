@@ -344,7 +344,7 @@ Suggested ExecPlan:
 
 Goal: make OpenAI usage reproducible and inspectable instead of hidden inside pipeline stages.
 
-Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity.
+Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity. Upload-time translation glossary control is implemented with strict parsing, OpenAI request payload support, cache-key isolation, browser form/history/detail metadata, and safe evidence metadata.
 
 Build:
 

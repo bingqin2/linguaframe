@@ -420,6 +420,14 @@ Impact: Uploads can choose `STANDARD`, `LARGE`, or `HIGH_CONTRAST`. The selected
 
 ## 2026-06-28
 
+Decision: Treat upload glossaries as bounded job input metadata, not a full terminology-management subsystem.
+
+Reason: Demo operators need predictable handling for names, product terms, and sci-fi vocabulary, but LinguaFrame does not need reusable account-level glossaries yet. Keeping the glossary on the job makes the OpenAI payload, cache identity, evidence, and replay behavior explicit without adding ownership or lifecycle complexity.
+
+Impact: Uploads accept up to 20 `source => target` or `source = target` mappings. The backend stores normalized JSON plus hash/count, sends entries to translation providers, includes the hash in translation cache keys, and exposes only safe metadata in browser, backend evidence, delivery, handoff, AI audit, worker summary, and demo run packages.
+
+## 2026-06-28
+
 Decision: Add a private demo owner-session API before building public authentication.
 
 Reason: The browser demo needs a clear login/logout affordance for the project owner, but LinguaFrame still has no user model, owner-scoped media, account lifecycle, JWT refresh, or billing semantics. Reusing the configured demo access token keeps the private demo honest without pretending to be a public hosted service.

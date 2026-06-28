@@ -122,13 +122,22 @@ upload_demo_video() {
   local sample_path="$2"
   local translation_style="${LINGUAFRAME_DEMO_TRANSLATION_STYLE:-NATURAL}"
   local subtitle_style_preset="${LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET:-STANDARD}"
+  local translation_glossary="${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY:-}"
+  if [[ -z "$translation_glossary" && -n "${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE:-}" ]]; then
+    translation_glossary="$(<"$LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE")"
+  fi
 
-  demo_curl -fsS \
-    -F "file=@${sample_path};type=video/mp4" \
-    -F "targetLanguage=zh-CN" \
-    -F "translationStyle=${translation_style}" \
-    -F "subtitleStylePreset=${subtitle_style_preset}" \
-    "$base_url/api/media/uploads"
+  local form_args=(
+    -F "file=@${sample_path};type=video/mp4"
+    -F "targetLanguage=zh-CN"
+    -F "translationStyle=${translation_style}"
+    -F "subtitleStylePreset=${subtitle_style_preset}"
+  )
+  if [[ -n "${translation_glossary//[[:space:]]/}" ]]; then
+    form_args+=(-F "translationGlossary=${translation_glossary}")
+  fi
+
+  demo_curl -fsS "${form_args[@]}" "$base_url/api/media/uploads"
 }
 
 wait_for_job_status() {
@@ -301,6 +310,8 @@ job_id = job["jobId"]
 target_language = job.get("targetLanguage") or "N/A"
 translation_style = job.get("translationStyle") or "NATURAL"
 subtitle_style_preset = job.get("subtitleStylePreset") or "STANDARD"
+glossary_count = int(job.get("translationGlossaryEntryCount") or 0)
+glossary_hash = job.get("translationGlossaryHash") or "none"
 lines = [
     "# LinguaFrame Quality Evaluation Evidence",
     "",
@@ -310,6 +321,7 @@ lines = [
     "- Target language: " + target_language,
     "- Translation style: " + translation_style,
     "- Subtitle style: " + subtitle_style_preset,
+    f"- Translation glossary: {glossary_count} entries / {glossary_hash}",
     "- Job status: " + str(job.get("status") or "N/A"),
     "- Created at: " + str(job.get("createdAt") or "N/A"),
     "",
@@ -677,6 +689,8 @@ video_id = job.get("videoId", "unknown")
 target_language = job.get("targetLanguage", "unknown")
 translation_style = job.get("translationStyle", "NATURAL")
 subtitle_style_preset = job.get("subtitleStylePreset", "STANDARD")
+glossary_count = int(job.get("translationGlossaryEntryCount") or 0)
+glossary_hash = job.get("translationGlossaryHash") or "none"
 status = job.get("status", "UNKNOWN")
 pipeline = job.get("pipelineProgress") or {}
 usage = job.get("usageSummary") or {}
@@ -693,10 +707,11 @@ lines = [
     "",
     "## Input and job",
     f"- Video: {video_id}",
-    f"- Target language: {target_language}",
-    f"- Translation style: {translation_style}",
-    f"- Subtitle style: {subtitle_style_preset}",
-    f"- Status: {status}",
+f"- Target language: {target_language}",
+f"- Translation style: {translation_style}",
+f"- Subtitle style: {subtitle_style_preset}",
+f"- Translation glossary: {glossary_count} entries / {glossary_hash}",
+f"- Status: {status}",
     f"- Retries: {job.get('retryCount', 0)}",
     f"- Terminal: {'yes' if pipeline.get('terminal') or status in {'COMPLETED', 'FAILED', 'CANCELLED'} else 'no'}",
     "",

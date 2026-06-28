@@ -19,6 +19,43 @@ public record MediaUploadVo(
         String ttsVoice,
         String translationStyle,
         String subtitleStylePreset,
+        int translationGlossaryEntryCount,
+        String translationGlossaryHash,
         Instant createdAt
 ) {
+    public MediaUploadVo(
+            String videoId,
+            String jobId,
+            String filename,
+            String contentType,
+            long fileSizeBytes,
+            Integer durationSeconds,
+            String sourceObjectKey,
+            MediaUploadStatus status,
+            LocalizationJobStatus jobStatus,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            Instant createdAt
+    ) {
+        this(
+                videoId,
+                jobId,
+                filename,
+                contentType,
+                fileSizeBytes,
+                durationSeconds,
+                sourceObjectKey,
+                status,
+                jobStatus,
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                0,
+                "",
+                createdAt
+        );
+    }
 }

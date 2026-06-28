@@ -24,12 +24,23 @@ public interface MediaUploadService {
         return createUpload(file, targetLanguage, ttsVoice, translationStyle, null);
     }
 
-    MediaUploadVo createUpload(
+    default MediaUploadVo createUpload(
             MultipartFile file,
             String targetLanguage,
             String ttsVoice,
             String translationStyle,
             String subtitleStylePreset
+    ) {
+        return createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, null);
+    }
+
+    MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossary
     );
 
     MediaUploadDetailVo getUpload(String videoId);

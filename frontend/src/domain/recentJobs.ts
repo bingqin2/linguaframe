@@ -8,14 +8,18 @@ export interface RecentJob {
   ttsVoice: string | null;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   filename: string;
   createdAt: string;
 }
 
-type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset'> & {
+type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset' | 'translationGlossaryEntryCount' | 'translationGlossaryHash'> & {
   ttsVoice?: string | null;
   translationStyle?: string | null;
   subtitleStylePreset?: string | null;
+  translationGlossaryEntryCount?: number | null;
+  translationGlossaryHash?: string | null;
 };
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
@@ -44,7 +48,9 @@ export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[
     ...job,
     ttsVoice: job.ttsVoice ?? null,
     translationStyle: normalizeTranslationStyle(job.translationStyle),
-    subtitleStylePreset: normalizeSubtitleStylePreset(job.subtitleStylePreset)
+    subtitleStylePreset: normalizeSubtitleStylePreset(job.subtitleStylePreset),
+    translationGlossaryEntryCount: normalizeGlossaryEntryCount(job.translationGlossaryEntryCount),
+    translationGlossaryHash: normalizeGlossaryHash(job.translationGlossaryHash)
   };
   const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
@@ -85,6 +91,8 @@ function toRecentJob(value: unknown): RecentJob | null {
     ttsVoice: typeof candidate.ttsVoice === 'string' ? candidate.ttsVoice : null,
     translationStyle: normalizeTranslationStyle(candidate.translationStyle),
     subtitleStylePreset: normalizeSubtitleStylePreset(candidate.subtitleStylePreset),
+    translationGlossaryEntryCount: normalizeGlossaryEntryCount(candidate.translationGlossaryEntryCount),
+    translationGlossaryHash: normalizeGlossaryHash(candidate.translationGlossaryHash),
     filename: candidate.filename,
     createdAt: candidate.createdAt
   };
@@ -102,4 +110,12 @@ function normalizeSubtitleStylePreset(value: unknown): string {
     return 'STANDARD';
   }
   return value.trim().toUpperCase();
+}
+
+function normalizeGlossaryEntryCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
+}
+
+function normalizeGlossaryHash(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }

@@ -5,6 +5,7 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.ModelCallOperation;
 import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.bo.TranslationGlossaryEntryBo;
 import com.linguaframe.job.domain.enums.PromptTemplatePurpose;
 import com.linguaframe.job.domain.vo.PromptTemplateVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
@@ -89,6 +90,42 @@ class OpenAiTranslationProviderTests {
         assertThat(command.inputSummary()).doesNotContain("Hello from LinguaFrame.");
         assertThat(command.outputSummary()).doesNotContain("LinguaFrame 向你问好。");
         assertThat(command.latencyMs()).isGreaterThanOrEqualTo(0L);
+        server.verify();
+    }
+
+    @Test
+    void includesGlossaryEntriesInRequestPayloadAndSafeSummary() {
+        RestClient.Builder restClientBuilder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(restClientBuilder).build();
+        RestClient restClient = testRestClient(restClientBuilder);
+        RecordingModelCallAuditService auditService = new RecordingModelCallAuditService();
+        OpenAiTranslationProvider provider = new OpenAiTranslationProvider(
+                openAiProperties("test-openai-key", "test-translation-model", "https://api.openai.test", 5),
+                restClient,
+                objectMapper,
+                auditService,
+                defaultRegistry(),
+                summaryService
+        );
+
+        server.expect(requestTo("https://api.openai.test/v1/responses"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.input[1].content[0].text").value(org.hamcrest.Matchers.containsString("\"glossary\":[{\"sourceTerm\":\"Maya\",\"targetTerm\":\"玛雅\"}]")))
+                .andExpect(jsonPath("$.input[1].content[0].text").value(org.hamcrest.Matchers.containsString("\"translationStyle\":\"FORMAL\"")))
+                .andRespond(withSuccess(responsesPayload("""
+                        {"segments":[{"index":0,"text":"玛雅正在说话。"}]}
+                        """), MediaType.APPLICATION_JSON));
+
+        provider.translate(
+                "translation-job-glossary",
+                "zh-CN",
+                "FORMAL",
+                List.of(new TranslationGlossaryEntryBo("Maya", "玛雅")),
+                List.of(new TranscriptSegmentVo(0, 0L, 1_000L, "Maya is speaking."))
+        );
+
+        assertThat(auditService.successCommands.getFirst().inputSummary())
+                .isEqualTo("target=zh-CN, style=FORMAL, segments=1, sourceChars=17, glossaryEntries=1");
         server.verify();
     }
 

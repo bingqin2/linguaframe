@@ -162,6 +162,90 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void createsJobWithExplicitTranslationGlossary() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "glossary.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(
+                file,
+                "zh-CN",
+                "verse",
+                "formal",
+                "high_contrast",
+                """
+                        Maya => 玛雅
+                        Tears of Steel = 钢铁之泪
+                        """
+        );
+
+        assertThat(result.translationGlossaryEntryCount()).isEqualTo(2);
+        assertThat(result.translationGlossaryHash()).matches("[a-f0-9]{64}");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> {
+                    assertThat(job.translationGlossaryEntryCount()).isEqualTo(2);
+                    assertThat(job.translationGlossaryHash()).isEqualTo(result.translationGlossaryHash());
+                    assertThat(job.translationGlossaryJson()).contains("\"sourceTerm\":\"Maya\"");
+                });
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .get()
+                .satisfies(event -> assertThat(event.payloadJson())
+                        .contains("\"translationGlossaryEntryCount\":2")
+                        .contains("\"translationGlossaryHash\":\"" + result.translationGlossaryHash() + "\"")
+                        .contains("\"translationGlossaryJson\":\"[{"));
+    }
+
+    @Test
+    void defaultsBlankTranslationGlossaryToEmpty() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "no-glossary.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", null, null, null, "   ");
+
+        assertThat(result.translationGlossaryEntryCount()).isZero();
+        assertThat(result.translationGlossaryHash()).isEmpty();
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> {
+                    assertThat(job.translationGlossaryEntryCount()).isZero();
+                    assertThat(job.translationGlossaryHash()).isEmpty();
+                    assertThat(job.translationGlossaryJson()).isEqualTo("[]");
+                });
+    }
+
+    @Test
+    void rejectsInvalidTranslationGlossaryBeforeStorage() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "invalid-glossary.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN", null, null, null, "Maya 玛雅"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Translation glossary");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
     void defaultsBlankSubtitleStylePresetToStandard() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(

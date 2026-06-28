@@ -407,7 +407,7 @@ The backend can validate and accept a source video upload:
 
 ```bash
 curl -F "file=@sample.mp4" http://localhost:8080/api/media/uploads/validate
-curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" -F "subtitleStylePreset=HIGH_CONTRAST" http://localhost:8080/api/media/uploads
+curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" -F "subtitleStylePreset=HIGH_CONTRAST" -F $'translationGlossary=Maya => 玛雅\nTears of Steel = 钢铁之泪' http://localhost:8080/api/media/uploads
 ```
 
 The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
@@ -415,6 +415,8 @@ The default upload duration limit is 300 seconds, or 5 minutes. Videos above the
 Files with supported content types must also be inspectable by FFprobe. If LinguaFrame cannot inspect duration, the upload is rejected as `UNREADABLE_MEDIA` before storage or queue dispatch.
 
 Uploads may include `translationStyle=NATURAL`, `FORMAL`, or `CONCISE`. Blank values default to `NATURAL`; invalid styles are rejected before storage. The selected style is stored on the job, shown in the browser demo, included in safe evidence, sent to the OpenAI translation request, and included in the translation provider cache key.
+
+Uploads may include an optional `translationGlossary` with one mapping per line, using either `source term => target term` or `source term = target term`. Blank values default to no glossary. Invalid entries are rejected before storage. The glossary is stored as normalized metadata, sent to OpenAI under `glossary`, included in translation cache identity, and shown in browser/backend evidence as entry count plus hash. Demo scripts accept `LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY=$'Maya => 玛雅\nTears of Steel => 钢铁之泪'` or `LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE=/path/to/glossary.txt`; inline text wins when both are set.
 
 Uploads may also include `subtitleStylePreset=STANDARD`, `LARGE`, or `HIGH_CONTRAST`. Blank values default to `STANDARD`; invalid presets are rejected before storage. The selected preset is stored on the job, shown in the browser demo and safe evidence, applied to FFmpeg subtitle burn-in, and included in `BURNED_VIDEO` artifact cache reuse so different visual outputs are not mixed.
 

@@ -41,6 +41,7 @@ class TranslationCacheKeyServiceTests {
         assertThat(first.sourceHash()).isEqualTo(second.sourceHash());
         assertThat(first.targetLanguage()).isEqualTo("zh-CN");
         assertThat(first.translationStyle()).isEqualTo("NATURAL");
+        assertThat(first.translationGlossaryHash()).isEmpty();
         assertThat(first.cacheKey()).matches("[a-f0-9]{64}");
         assertThat(first.sourceHash()).matches("[a-f0-9]{64}");
     }
@@ -66,8 +67,25 @@ class TranslationCacheKeyServiceTests {
                 .isNotEqualTo(baseline.cacheKey());
         assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "FORMAL", segments("Hello world.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
+        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "NATURAL", "glossary-hash", segments("Hello world.")).cacheKey())
+                .isNotEqualTo(baseline.cacheKey());
         assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "NATURAL", segments("Different text.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
+    }
+
+    @Test
+    void recordsNormalizedGlossaryHashInCacheLookup() {
+        var lookup = service.build(
+                "zh-CN",
+                "OPENAI",
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                "NATURAL",
+                " glossary-hash ",
+                segments("Hello world.")
+        );
+
+        assertThat(lookup.translationGlossaryHash()).isEqualTo("glossary-hash");
     }
 
     @Test

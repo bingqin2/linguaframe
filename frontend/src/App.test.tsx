@@ -685,7 +685,9 @@ describe('App', () => {
       .mockResolvedValue(mediaUploadValidationFixture());
     vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({
       translationStyle: 'FORMAL',
-      subtitleStylePreset: 'HIGH_CONTRAST'
+      subtitleStylePreset: 'HIGH_CONTRAST',
+      translationGlossaryEntryCount: 1,
+      translationGlossaryHash: 'abc123'
     }));
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
@@ -702,6 +704,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/target language/i), 'zh-CN');
     await userEvent.selectOptions(screen.getByLabelText(/tts voice/i), 'verse');
     await userEvent.selectOptions(screen.getByLabelText(/translation style/i), 'FORMAL');
+    await userEvent.type(screen.getByLabelText(/translation glossary/i), 'Maya => 玛雅');
     await userEvent.selectOptions(screen.getByLabelText(/subtitle style/i), 'HIGH_CONTRAST');
     await userEvent.click(screen.getByRole('button', { name: /upload/i }));
 
@@ -716,7 +719,9 @@ describe('App', () => {
         targetLanguage: 'zh-CN',
         ttsVoice: 'verse',
         translationStyle: 'FORMAL',
-        subtitleStylePreset: 'HIGH_CONTRAST'
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        translationGlossaryEntryCount: 1,
+        translationGlossaryHash: 'abc123'
       })
     ]);
     expect(linguaFrameApi.uploadMedia).toHaveBeenCalledWith(
@@ -724,7 +729,8 @@ describe('App', () => {
       'zh-CN',
       'verse',
       'FORMAL',
-      'HIGH_CONTRAST'
+      'HIGH_CONTRAST',
+      'Maya => 玛雅'
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
@@ -2798,6 +2804,8 @@ function jobSummaryFixture(
     ttsVoice: null,
     translationStyle: 'NATURAL',
     subtitleStylePreset: 'STANDARD',
+    translationGlossaryEntryCount: 0,
+    translationGlossaryHash: '',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
@@ -2825,6 +2833,8 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     ttsVoice: 'verse',
     translationStyle: 'NATURAL',
     subtitleStylePreset: 'STANDARD',
+    translationGlossaryEntryCount: 0,
+    translationGlossaryHash: '',
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
@@ -2849,6 +2859,8 @@ function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): Del
     videoId: 'video-1',
     targetLanguage: 'zh-CN',
     subtitleStylePreset: 'STANDARD',
+    translationGlossaryEntryCount: 0,
+    translationGlossaryHash: '',
     status: 'COMPLETED',
     generatedAt: '2026-06-28T11:00:00Z',
     handoffReady: true,
@@ -3011,6 +3023,8 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     ttsVoice: 'verse',
     translationStyle: 'NATURAL',
     subtitleStylePreset: 'STANDARD',
+    translationGlossaryEntryCount: 0,
+    translationGlossaryHash: '',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,

@@ -12,6 +12,9 @@ public record LocalizationJobRecord(
         String ttsVoice,
         String translationStyle,
         String subtitleStylePreset,
+        String translationGlossaryJson,
+        String translationGlossaryHash,
+        int translationGlossaryEntryCount,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,
@@ -29,7 +32,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, null, "NATURAL", "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -40,7 +43,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -52,7 +55,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -65,7 +68,23 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
+    }
+
+    public LocalizationJobRecord(
+            String id,
+            String videoId,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossaryJson,
+            String translationGlossaryHash,
+            int translationGlossaryEntryCount,
+            LocalizationJobStatus status,
+            Instant createdAt
+    ) {
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -90,6 +109,9 @@ public record LocalizationJobRecord(
                 ttsVoice,
                 "NATURAL",
                 "STANDARD",
+                "[]",
+                "",
+                0,
                 status,
                 createdAt,
                 startedAt,
@@ -123,6 +145,9 @@ public record LocalizationJobRecord(
                 null,
                 "NATURAL",
                 "STANDARD",
+                "[]",
+                "",
+                0,
                 status,
                 createdAt,
                 startedAt,

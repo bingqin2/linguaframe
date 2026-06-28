@@ -20,6 +20,21 @@ public class ModelCallSummaryServiceImpl implements ModelCallSummaryService {
     }
 
     @Override
+    public String translationInput(
+            String targetLanguage,
+            String translationStyle,
+            int segmentCount,
+            int sourceCharacterCount,
+            int glossaryEntryCount
+    ) {
+        String base = translationInput(targetLanguage, translationStyle, segmentCount, sourceCharacterCount);
+        if (glossaryEntryCount <= 0) {
+            return base;
+        }
+        return base + ", glossaryEntries=" + glossaryEntryCount;
+    }
+
+    @Override
     public String translationOutput(int segmentCount, int targetCharacterCount) {
         return "segments=%d, targetChars=%d".formatted(segmentCount, targetCharacterCount);
     }
