@@ -30,6 +30,7 @@ import com.linguaframe.job.service.impl.TargetSubtitleExportPipelineStage;
 import com.linguaframe.job.service.impl.QualityEvaluationPipelineStage;
 import com.linguaframe.job.service.impl.DubbingAudioGenerationPipelineStage;
 import com.linguaframe.job.service.impl.SubtitleBurnInPipelineStage;
+import com.linguaframe.job.service.impl.DubbedVideoPipelineStage;
 import com.linguaframe.job.service.impl.WorkerSummaryArtifactPipelineStage;
 import com.linguaframe.job.service.impl.AudioExtractionPipelineStage;
 import com.linguaframe.job.service.impl.LocalizationJobExecutionServiceImpl;
@@ -37,12 +38,15 @@ import com.linguaframe.job.service.impl.WorkerSmokePipelineStage;
 import com.linguaframe.job.service.impl.WorkerStageRouterImpl;
 import com.linguaframe.media.domain.bo.BurnInSubtitlesCommand;
 import com.linguaframe.media.domain.bo.BurnedVideoBo;
+import com.linguaframe.media.domain.bo.DubbedVideoBo;
 import com.linguaframe.media.domain.bo.ExtractAudioCommand;
 import com.linguaframe.media.domain.bo.ExtractedAudioBo;
+import com.linguaframe.media.domain.bo.ReplaceVideoAudioCommand;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
 import com.linguaframe.media.service.FfmpegAudioExtractionService;
+import com.linguaframe.media.service.FfmpegAudioReplacementService;
 import com.linguaframe.media.service.FfmpegSubtitleBurnInService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
@@ -1023,6 +1027,7 @@ class LocalizationJobExecutionServiceTests {
         RecordingSubtitleService subtitleService = new RecordingSubtitleService();
         RecordingTtsProvider ttsProvider = new RecordingTtsProvider();
         RecordingFfmpegSubtitleBurnInService burnInService = new RecordingFfmpegSubtitleBurnInService();
+        RecordingFfmpegAudioReplacementService audioReplacementService = new RecordingFfmpegAudioReplacementService();
         properties.getFfmpeg().setAudioEnabled(true);
         properties.getFfmpeg().setBurnInEnabled(true);
         properties.getTranscription().setEnabled(true);
@@ -1073,6 +1078,12 @@ class LocalizationJobExecutionServiceTests {
                                 subtitleExportService,
                                 artifactService
                         ),
+                        new DubbedVideoPipelineStage(
+                                properties,
+                                workDirectoryService,
+                                artifactService,
+                                audioReplacementService
+                        ),
                         new WorkerSummaryArtifactPipelineStage(artifactService, Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC))
                 ),
                 Clock.fixed(now.plusSeconds(10), ZoneOffset.UTC)
@@ -1098,6 +1109,8 @@ class LocalizationJobExecutionServiceTests {
                             LocalizationJobStage.DUBBING_AUDIO_GENERATION + ":" + JobTimelineEventStatus.SUCCEEDED,
                             LocalizationJobStage.SUBTITLE_BURN_IN + ":" + JobTimelineEventStatus.STARTED,
                             LocalizationJobStage.SUBTITLE_BURN_IN + ":" + JobTimelineEventStatus.SUCCEEDED,
+                            LocalizationJobStage.DUBBED_VIDEO_DELIVERY + ":" + JobTimelineEventStatus.STARTED,
+                            LocalizationJobStage.DUBBED_VIDEO_DELIVERY + ":" + JobTimelineEventStatus.SUCCEEDED,
                             LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.STARTED,
                             LocalizationJobStage.ARTIFACT_SUMMARY + ":" + JobTimelineEventStatus.SUCCEEDED,
                             LocalizationJobStage.COMPLETED + ":" + JobTimelineEventStatus.SUCCEEDED
@@ -1117,6 +1130,7 @@ class LocalizationJobExecutionServiceTests {
                             JobArtifactType.TARGET_SUBTITLE_VTT,
                             JobArtifactType.DUBBING_AUDIO,
                             JobArtifactType.BURNED_VIDEO,
+                            JobArtifactType.DUBBED_VIDEO,
                             JobArtifactType.WORKER_SUMMARY
                     );
             CreateJobArtifactCommand command = artifactService.commands.get(7);
@@ -1131,6 +1145,14 @@ class LocalizationJobExecutionServiceTests {
             assertThat(burnedVideoCommand.filename()).isEqualTo("burned-video.mp4");
             assertThat(burnedVideoCommand.contentType()).isEqualTo("video/mp4");
             assertThat(burnedVideoCommand.content()).containsExactly(6, 5, 4);
+            assertThat(audioReplacementService.command.jobId()).isEqualTo("execution-job-10");
+            assertThat(audioReplacementService.command.inputVideoPath()).isEqualTo(workDirectoryService.workDirectory.resolve("burned-video.mp4"));
+            assertThat(audioReplacementService.command.inputAudioPath()).isEqualTo(workDirectoryService.workDirectory.resolve("dubbing-audio.mp3"));
+            assertThat(audioReplacementService.command.outputVideoPath()).isEqualTo(workDirectoryService.workDirectory.resolve("dubbed-video.mp4"));
+            CreateJobArtifactCommand dubbedVideoCommand = artifactService.commands.get(9);
+            assertThat(dubbedVideoCommand.filename()).isEqualTo("dubbed-video.mp4");
+            assertThat(dubbedVideoCommand.contentType()).isEqualTo("video/mp4");
+            assertThat(dubbedVideoCommand.content()).containsExactly(8, 7, 6);
         } finally {
             properties.getFfmpeg().setAudioEnabled(false);
             properties.getFfmpeg().setBurnInEnabled(false);
@@ -1747,6 +1769,17 @@ class LocalizationJobExecutionServiceTests {
         public BurnedVideoBo burnInSubtitles(BurnInSubtitlesCommand command) {
             this.command = command;
             return new BurnedVideoBo("burned-video.mp4", "video/mp4", new byte[] {6, 5, 4});
+        }
+    }
+
+    private static class RecordingFfmpegAudioReplacementService implements FfmpegAudioReplacementService {
+
+        private ReplaceVideoAudioCommand command;
+
+        @Override
+        public DubbedVideoBo replaceAudio(ReplaceVideoAudioCommand command) {
+            this.command = command;
+            return new DubbedVideoBo("dubbed-video.mp4", "video/mp4", new byte[] {8, 7, 6});
         }
     }
 

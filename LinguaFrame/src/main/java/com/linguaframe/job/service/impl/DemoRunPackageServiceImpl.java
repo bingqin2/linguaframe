@@ -41,6 +41,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
     private static final Set<JobArtifactType> MEDIA_TYPES = Set.of(
             JobArtifactType.DUBBING_AUDIO,
             JobArtifactType.BURNED_VIDEO,
+            JobArtifactType.DUBBED_VIDEO,
             JobArtifactType.REVIEWED_BURNED_VIDEO
     );
     private static final List<String> FORBIDDEN_MARKERS = List.of(

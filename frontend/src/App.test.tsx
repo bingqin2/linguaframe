@@ -1554,6 +1554,18 @@ describe('App', () => {
         cacheHit: false,
         sourceArtifactId: null,
         createdAt: '2026-06-26T10:00:07Z'
+      },
+      {
+        artifactId: 'artifact-dubbed-video',
+        jobId: 'artifact-job',
+        type: 'DUBBED_VIDEO',
+        filename: 'dubbed-video.mp4',
+        contentType: 'video/mp4',
+        sizeBytes: 84000,
+        contentSha256: '789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456',
+        cacheHit: false,
+        sourceArtifactId: null,
+        createdAt: '2026-06-26T10:00:08Z'
       }
     ]);
 
@@ -1589,7 +1601,7 @@ describe('App', () => {
     );
 
     const delivery = screen.getByRole('region', { name: /result delivery/i });
-    expect(within(delivery).getByText('3 generated')).toBeInTheDocument();
+    expect(within(delivery).getByText('4 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('1 reused')).toBeInTheDocument();
     expect(within(delivery).getByText('5 missing')).toBeInTheDocument();
     expect(within(delivery).getByText('2 calls')).toBeInTheDocument();
@@ -1631,6 +1643,7 @@ describe('App', () => {
     expect(within(mediaDelivery).getByText('Media delivery')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('Dubbing audio')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('Generated burned video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Dubbed video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByLabelText(/dubbing audio player/i)).toHaveAttribute(
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-audio/download'
@@ -1639,13 +1652,24 @@ describe('App', () => {
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-video/download'
     );
+    expect(within(mediaDelivery).getByLabelText(/dubbed video player/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/artifact-job/artifacts/artifact-dubbed-video/download'
+    );
     expect(within(mediaDelivery).getByRole('link', { name: /download dubbing audio/i })).toHaveAttribute(
       'href',
       '/api/jobs/artifact-job/artifacts/artifact-audio/download'
     );
+    expect(within(mediaDelivery).getByRole('link', { name: /download dubbed video/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/artifact-dubbed-video/download'
+    );
     expect(within(mediaDelivery).getByText('audio/mpeg')).toBeInTheDocument();
+    expect(within(mediaDelivery).getAllByText('video/mp4').length).toBeGreaterThanOrEqual(2);
     expect(within(mediaDelivery).getByText('4.10 KB')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('82.03 KB')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('abcdef012345')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('789abcdef012')).toBeInTheDocument();
   });
 
   test('renders generated and reviewed burned video as separate media delivery outputs', async () => {
@@ -1666,6 +1690,16 @@ describe('App', () => {
         sourceArtifactId: 'original-generated-video'
       }),
       artifactFixture({
+        artifactId: 'dubbed-video',
+        jobId: 'reviewed-media-job',
+        type: 'DUBBED_VIDEO',
+        filename: 'dubbed-video.mp4',
+        contentType: 'video/mp4',
+        contentSha256: '789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456',
+        cacheHit: false,
+        sourceArtifactId: null
+      }),
+      artifactFixture({
         artifactId: 'reviewed-video',
         jobId: 'reviewed-media-job',
         type: 'REVIEWED_BURNED_VIDEO',
@@ -1684,10 +1718,15 @@ describe('App', () => {
 
     const mediaDelivery = await screen.findByRole('region', { name: /media delivery/i });
     expect(within(mediaDelivery).getByText('Generated burned video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Dubbed video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('Reviewed burned video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByLabelText(/generated burned video player/i)).toHaveAttribute(
       'src',
       '/api/jobs/reviewed-media-job/artifacts/generated-video/download'
+    );
+    expect(within(mediaDelivery).getByLabelText(/dubbed video player/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/reviewed-media-job/artifacts/dubbed-video/download'
     );
     expect(within(mediaDelivery).getByLabelText(/reviewed burned video player/i)).toHaveAttribute(
       'src',
@@ -1698,6 +1737,7 @@ describe('App', () => {
       '/api/jobs/reviewed-media-job/artifacts/reviewed-video/download'
     );
     expect(within(mediaDelivery).getByText('fedcba987654')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('789abcdef012')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
   });
 
@@ -1763,6 +1803,13 @@ describe('App', () => {
         jobId: 'handoff-ready-job',
         type: 'BURNED_VIDEO',
         filename: 'burned-video.mp4',
+        contentType: 'video/mp4'
+      }),
+      artifactFixture({
+        artifactId: 'dubbed-video',
+        jobId: 'handoff-ready-job',
+        type: 'DUBBED_VIDEO',
+        filename: 'dubbed-video.mp4',
         contentType: 'video/mp4'
       }),
       artifactFixture({
@@ -1898,6 +1945,13 @@ describe('App', () => {
         jobId: 'session-ready-job',
         type: 'BURNED_VIDEO',
         filename: 'burned-video.mp4',
+        contentType: 'video/mp4'
+      }),
+      artifactFixture({
+        artifactId: 'session-dubbed-video',
+        jobId: 'session-ready-job',
+        type: 'DUBBED_VIDEO',
+        filename: 'dubbed-video.mp4',
         contentType: 'video/mp4'
       })
     ]);
@@ -2881,10 +2935,11 @@ describe('App', () => {
     const delivery = await screen.findByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('0 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('0 reused')).toBeInTheDocument();
-    expect(within(delivery).getByText('7 missing')).toBeInTheDocument();
+    expect(within(delivery).getByText('8 missing')).toBeInTheDocument();
     expect(within(delivery).getByText('Transcript JSON')).toBeInTheDocument();
     expect(within(delivery).getAllByText('Preview only')).toHaveLength(6);
     expect(within(delivery).getByText('Dubbing audio')).toBeInTheDocument();
+    expect(within(delivery).getByText('Dubbed video')).toBeInTheDocument();
     expect(within(delivery).getAllByText('Missing').length).toBeGreaterThan(0);
   });
 

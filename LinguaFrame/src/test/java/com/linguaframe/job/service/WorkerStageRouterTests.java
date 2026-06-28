@@ -23,6 +23,7 @@ class WorkerStageRouterTests {
                 LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
                 LocalizationJobStage.DUBBING_AUDIO_GENERATION,
                 LocalizationJobStage.SUBTITLE_BURN_IN,
+                LocalizationJobStage.DUBBED_VIDEO_DELIVERY,
                 LocalizationJobStage.ARTIFACT_SUMMARY
         ));
 
@@ -34,6 +35,7 @@ class WorkerStageRouterTests {
                 LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
                 LocalizationJobStage.DUBBING_AUDIO_GENERATION,
                 LocalizationJobStage.SUBTITLE_BURN_IN,
+                LocalizationJobStage.DUBBED_VIDEO_DELIVERY,
                 LocalizationJobStage.ARTIFACT_SUMMARY
         );
         assertThat(plan.nextStage()).isNull();
@@ -84,11 +86,13 @@ class WorkerStageRouterTests {
     void ffmpegWorkerExecutesFinalMediaStages() {
         var plan = router.plan(WorkerRole.FFMPEG, LocalizationJobStage.SUBTITLE_BURN_IN, stages(
                 LocalizationJobStage.SUBTITLE_BURN_IN,
+                LocalizationJobStage.DUBBED_VIDEO_DELIVERY,
                 LocalizationJobStage.ARTIFACT_SUMMARY
         ));
 
         assertThat(plan.executableStages()).extracting(LocalizationPipelineStage::stage).containsExactly(
                 LocalizationJobStage.SUBTITLE_BURN_IN,
+                LocalizationJobStage.DUBBED_VIDEO_DELIVERY,
                 LocalizationJobStage.ARTIFACT_SUMMARY
         );
         assertThat(plan.nextStage()).isNull();

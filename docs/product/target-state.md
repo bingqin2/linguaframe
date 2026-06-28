@@ -170,6 +170,7 @@ The backend should provide:
 - Redis-backed job status cache for job detail snapshots, rate-limit hooks, and lightweight coordination.
 - FFmpeg integration for audio extraction and subtitle burn-in.
 - Preset-based subtitle burn-in styling that is persisted per job and applied to generated preview videos.
+- TTS dubbed-video delivery that combines generated `DUBBING_AUDIO` with generated `BURNED_VIDEO` into a separate `DUBBED_VIDEO` artifact when both inputs are available.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.
 - Translation style metadata that is persisted per job and included in provider prompts, safe summaries, and translation cache keys.
@@ -271,7 +272,7 @@ The final project should demonstrate:
 - Redis caching and coordination.
 - RabbitMQ asynchronous processing.
 - S3-compatible object storage with MinIO.
-- FFmpeg media processing.
+- FFmpeg media processing for extraction, subtitle burn-in, and dubbed-video muxing.
 - OpenAI speech-to-text, language, and TTS APIs.
 - Prompt versioning and model-call tracing.
 - LLM-based quality evaluation.

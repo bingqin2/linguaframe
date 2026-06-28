@@ -96,8 +96,13 @@ download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/work
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
   download_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$OUTPUT_DIR/dubbing-audio.mp3"
   echo "Downloaded OpenAI TTS dubbing audio"
+  if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBED_VIDEO "$OUTPUT_DIR/dubbed-video.mp4"; then
+    echo "Downloaded OpenAI dubbed video"
+  else
+    echo "No dubbed video artifact found; subtitle burn-in or audio replacement may be disabled"
+  fi
 else
-  echo "TTS is disabled by the OpenAI smoke profile; no dubbing audio expected"
+  echo "TTS is disabled by the OpenAI smoke profile; no dubbing audio or dubbed video expected"
 fi
 
 print_zip_entries "$OUTPUT_DIR/artifacts.zip"

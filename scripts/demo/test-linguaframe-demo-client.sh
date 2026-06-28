@@ -1008,6 +1008,19 @@ test_print_media_delivery_summary_is_metadata_only() {
     "unsafePath": "/Users/example/private.mov"
   },
   {
+    "artifactId": "dubbed-video",
+    "jobId": "job-media",
+    "type": "DUBBED_VIDEO",
+    "filename": "dubbed-video.mp4",
+    "contentType": "video/mp4",
+    "sizeBytes": 84000,
+    "contentSha256": "789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456",
+    "cacheHit": false,
+    "sourceArtifactId": null,
+    "createdAt": "2026-06-28T11:21:30Z",
+    "unsafePayload": "provider request payload sk-test"
+  },
+  {
     "artifactId": "reviewed-video",
     "jobId": "job-media",
     "type": "REVIEWED_BURNED_VIDEO",
@@ -1040,15 +1053,18 @@ JSON
   local output
   output="$(cat "$TMPDIR/media-artifacts.out")"
 
-  [[ "$output" == *"mediaDeliveryReadyCount=3"* ]] || fail "media delivery summary missed ready count"
+  [[ "$output" == *"mediaDeliveryReadyCount=4"* ]] || fail "media delivery summary missed ready count"
   [[ "$output" == *"mediaDeliveryArtifact=DUBBING_AUDIO:dubbing-audio.mp3:audio/mpeg:Generated"* ]] || fail "media delivery summary missed audio artifact"
   [[ "$output" == *"mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Reused"* ]] || fail "media delivery summary missed generated video artifact"
+  [[ "$output" == *"mediaDeliveryArtifact=DUBBED_VIDEO:dubbed-video.mp4:video/mp4:Generated"* ]] || fail "media delivery summary missed dubbed video artifact"
   [[ "$output" == *"mediaDeliveryArtifact=REVIEWED_BURNED_VIDEO:reviewed-burned-video.mp4:video/mp4:Generated"* ]] || fail "media delivery summary missed reviewed video artifact"
   [[ "$output" != *"raw transcript text"* ]] || fail "media delivery summary exposed transcript"
   [[ "$output" != *"raw subtitle text"* ]] || fail "media delivery summary exposed subtitle"
   [[ "$output" != *"job-artifacts/private"* ]] || fail "media delivery summary exposed object key"
   [[ "$output" != *"/Users/example/private.mov"* ]] || fail "media delivery summary exposed local path"
   [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "media delivery summary exposed token"
+  [[ "$output" != *"provider request payload"* ]] || fail "media delivery summary exposed provider payload"
+  [[ "$output" != *"sk-test"* ]] || fail "media delivery summary exposed API key marker"
 }
 
 test_print_demo_handoff_checklist_summary_is_metadata_only() {

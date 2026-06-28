@@ -599,6 +599,7 @@ export interface JobArtifact {
     | 'REVIEWED_SUBTITLE_VTT'
     | 'DUBBING_AUDIO'
     | 'BURNED_VIDEO'
+    | 'DUBBED_VIDEO'
     | 'REVIEWED_BURNED_VIDEO'
     | 'WORKER_SUMMARY';
   filename: string;

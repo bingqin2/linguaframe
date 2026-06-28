@@ -580,6 +580,14 @@ Impact: `/api/jobs/{jobId}/ai-audit-package/download` returns a metadata-only ZI
 
 ## 2026-06-28
 
+Decision: Store TTS dubbed video as a separate generated artifact.
+
+Reason: A localized demo needs a playable video with target subtitles and generated dubbing audio, but the existing generated `BURNED_VIDEO` and optional `REVIEWED_BURNED_VIDEO` carry different audit and handoff meanings.
+
+Impact: The worker creates `DUBBED_VIDEO` only when `DUBBING_AUDIO` and generated `BURNED_VIDEO` are both available. Browser media delivery, terminal summaries, manifests, and demo packages count it as generated media, while reviewed artifacts remain a separate human-handoff surface.
+
+## 2026-06-28
+
 Decision: Treat source media metadata as safe evidence but keep storage object keys internal.
 
 Reason: A reviewer needs to verify the input video that produced the demo outputs, but object keys and local paths are implementation details that should not leak into browser or terminal evidence.

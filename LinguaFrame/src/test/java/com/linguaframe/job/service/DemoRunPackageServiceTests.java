@@ -75,10 +75,12 @@ class DemoRunPackageServiceTests {
         assertThat(entries.get("demo-handoff-checklist.md"))
                 .contains("# LinguaFrame Demo Handoff Checklist")
                 .contains("- PASS Job completed")
+                .contains("- PASS Media outputs available")
                 .contains("- PASS Quality evaluation available");
         assertThat(entries.get("demo-session-report.md"))
                 .contains("# LinguaFrame Demo Session Report")
                 .contains("- Overall: READY")
+                .contains("- Media outputs: 2")
                 .contains("- Quality: 92 / 100, GOOD, SUCCEEDED");
 
         String combined = String.join("\n", entries.values());
@@ -164,9 +166,20 @@ class DemoRunPackageServiceTests {
                                     false,
                                     null,
                                     Instant.parse("2026-06-28T12:00:31Z")
+                            ),
+                            new JobDiagnosticsArtifactVo(
+                                    "dubbed-video",
+                                    JobArtifactType.DUBBED_VIDEO,
+                                    "dubbed-video.mp4",
+                                    "video/mp4",
+                                    8192L,
+                                    "hash-dubbed-video",
+                                    false,
+                                    null,
+                                    Instant.parse("2026-06-28T12:00:32Z")
                             )
                     ),
-                    4
+                    5
             );
         }
 
