@@ -2284,6 +2284,21 @@ Validation so far:
 
 Work:
 
+- Planned the guided demo review workspace in `docs/plans/082-guided-demo-review-workspace.md`.
+- Added a React `Demo review guide` panel near the top of selected job detail.
+- The guide derives metadata-only steps for input, pipeline, review, delivery, evidence, handoff, and failure triage when applicable.
+- Added stable anchor links from guide steps to existing detailed panels and added presenter-notes copy/download actions.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, and this execution log with guided review behavior.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "demo review guide"` first failed because the guide panel did not exist, then passed with `Tests 2 passed`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 56 passed`.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo handoff package download MVP in `docs/plans/081-demo-handoff-package-download-mvp.md`.
 - Added `GET /api/jobs/{jobId}/handoff-package/download`, backed by an on-demand ZIP service that packages reviewed handoff artifacts with manifest, delivery manifest, diagnostics, and backend evidence.
 - Added OpenAPI and runtime required-route coverage for the handoff package endpoint.
