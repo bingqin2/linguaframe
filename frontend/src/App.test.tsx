@@ -1435,6 +1435,127 @@ describe('App', () => {
     );
   });
 
+  test('renders ready demo session report for completed reviewed media jobs', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'session-ready-job',
+        videoId: 'session-video',
+        targetLanguage: 'zh-CN',
+        status: 'COMPLETED'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'session-ready-job',
+        handoffReady: true,
+        reviewedSubtitleArtifactCount: 3,
+        reviewedBurnedVideoAvailable: true
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'session-reviewed-json',
+        jobId: 'session-ready-job',
+        type: 'REVIEWED_SUBTITLE_JSON',
+        filename: 'reviewed-subtitles.zh-CN.json'
+      }),
+      artifactFixture({
+        artifactId: 'session-reviewed-srt',
+        jobId: 'session-ready-job',
+        type: 'REVIEWED_SUBTITLE_SRT',
+        filename: 'reviewed-subtitles.zh-CN.srt'
+      }),
+      artifactFixture({
+        artifactId: 'session-reviewed-vtt',
+        jobId: 'session-ready-job',
+        type: 'REVIEWED_SUBTITLE_VTT',
+        filename: 'reviewed-subtitles.zh-CN.vtt'
+      }),
+      artifactFixture({
+        artifactId: 'session-dubbing-audio',
+        jobId: 'session-ready-job',
+        type: 'DUBBING_AUDIO',
+        filename: 'dubbing-audio.mp3',
+        contentType: 'audio/mpeg'
+      }),
+      artifactFixture({
+        artifactId: 'session-burned-video',
+        jobId: 'session-ready-job',
+        type: 'BURNED_VIDEO',
+        filename: 'burned-video.mp4',
+        contentType: 'video/mp4'
+      })
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'session-ready-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const report = await screen.findByRole('region', { name: /demo session report/i });
+    expect(within(report).getByText('Demo session report')).toBeInTheDocument();
+    expect(within(report).getByText('Session ready')).toBeInTheDocument();
+    expect(within(report).getByText('Input and job')).toBeInTheDocument();
+    expect(within(report).getByText('Generated outputs')).toBeInTheDocument();
+    expect(within(report).getByText('Handoff evidence')).toBeInTheDocument();
+    expect(within(report).getByRole('button', { name: /copy report/i })).toBeEnabled();
+    expect(within(report).getByRole('button', { name: /download report markdown/i })).toBeEnabled();
+  });
+
+  test('renders attention demo session report for failed jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'session-failed-job',
+        videoId: 'session-failed-video',
+        status: 'FAILED',
+        failureStage: 'TARGET_SUBTITLE_EXPORT',
+        failureReason: 'OpenAI request failed',
+        failureTriage: {
+          category: 'OPENAI_AUTH_OR_MODEL',
+          summary: 'OpenAI rejected the configured credentials or model.',
+          recommendedAction: 'Run the OpenAI preflight before retrying.',
+          retryable: false,
+          runbookCommand: 'scripts/demo/openai-demo-preflight.sh',
+          safeDetails: ['failureStage=TARGET_SUBTITLE_EXPORT']
+        }
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'session-failed-job',
+        handoffReady: false,
+        reviewedSubtitleArtifactCount: 0,
+        reviewedArtifacts: [],
+        auditArtifacts: [],
+        links: []
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'session-failed-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const report = await screen.findByRole('region', { name: /demo session report/i });
+    expect(within(report).getByText('Session needs attention')).toBeInTheDocument();
+    expect(within(report).getByText('Failure triage')).toBeInTheDocument();
+    expect(within(report).getByText(/OPENAI_AUTH_OR_MODEL/)).toBeInTheDocument();
+    expect(within(report).getByRole('link', { name: /download diagnostics/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/session-failed-job/diagnostics/download'
+    );
+  });
+
   test('edits, saves, resets, and clears subtitle draft rows', async () => {
     const updateDraft = vi.spyOn(linguaFrameApi, 'updateSubtitleDraft').mockResolvedValue(
       subtitleDraftFixture({

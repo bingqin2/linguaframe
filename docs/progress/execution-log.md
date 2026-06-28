@@ -2289,6 +2289,35 @@ Post-merge verification:
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed on `main`.
 - `git diff --check` passed on `main`.
 
+## 2026-06-28
+
+Work:
+
+- Planned the demo session report workspace in `docs/plans/080-demo-session-report-workspace.md`.
+- Added a React `Demo session report` panel that summarizes one run's input/job, generated outputs, handoff evidence, cost/cache, and failure triage from already-loaded safe metadata.
+- Added copy and Markdown download actions for the browser report.
+- Added terminal `/tmp/linguaframe-demo/demo-session-report.md` generation to the Docker E2E success script.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, and target state with demo session report verification expectations.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "demo session report"` first failed because the report panel did not exist, then passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `write_demo_session_report_markdown` did not exist, then passed.
+- `cd frontend && npm run test:run -- App` passed with `Tests 54 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
+- `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `demo-handoff-checklist-workspace` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 52 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed on `main`.
+- `git diff --check` passed on `main`.
+
 Post-merge verification:
 
 - Merged `subtitle-draft-edit-export` back to `main` with merge commit `bcfb27e`.
