@@ -269,11 +269,13 @@ Expected:
 - Terminal subtitle-review output excludes raw transcript text, raw subtitle text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `subtitleDraftSegmentCount`, `subtitleDraftEditedSegmentCount`, and `subtitleDraftLastUpdated`.
 - Terminal subtitle-draft output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Output includes `reviewedPublishArtifactCount=3`, `reviewedPublishSubtitleArtifactCount=3`, `reviewedPublishBurnedVideoRequested=false`, and `reviewedPublishBurnedVideoCreated=false`.
+- Terminal reviewed-publish output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.
 - Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `SUBTITLE_BURN_IN`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=9` by default and `artifactCount=10` when TTS is enabled.
+- Output includes `artifactCount=12` by default and `artifactCount=13` when TTS is enabled.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
 - Output includes `TRANSCRIPT_JSON transcript.json`.
 - Output includes `SUBTITLE_SRT subtitles.srt`.
@@ -281,6 +283,9 @@ Expected:
 - Output includes `TARGET_SUBTITLE_JSON target-subtitles.json`.
 - Output includes `TARGET_SUBTITLE_SRT target-subtitles.srt`.
 - Output includes `TARGET_SUBTITLE_VTT target-subtitles.vtt`.
+- Output includes `REVIEWED_SUBTITLE_JSON reviewed-subtitles.zh-CN.json`.
+- Output includes `REVIEWED_SUBTITLE_SRT reviewed-subtitles.zh-CN.srt`.
+- Output includes `REVIEWED_SUBTITLE_VTT reviewed-subtitles.zh-CN.vtt`.
 - Output includes `DUBBING_AUDIO dubbing-audio.mp3` only when TTS is enabled.
 - Output includes `BURNED_VIDEO burned-video.mp4`.
 - Output includes `WORKER_SUMMARY worker-summary.json`.

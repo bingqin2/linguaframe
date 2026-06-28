@@ -255,6 +255,58 @@ JSON
   [[ "$output" != *"raw corrected subtitle"* ]] || fail "subtitle draft summary exposed corrected text"
 }
 
+test_print_reviewed_publish_summary_is_metadata_only() {
+  cat >"$TMPDIR/reviewed-publish.json" <<'JSON'
+{
+  "jobId": "job-reviewed",
+  "targetLanguage": "zh-CN",
+  "burnedVideoRequested": true,
+  "burnedVideoCreated": false,
+  "artifacts": [
+    {
+      "artifactId": "reviewed-json",
+      "jobId": "job-reviewed",
+      "type": "REVIEWED_SUBTITLE_JSON",
+      "filename": "reviewed-subtitles.zh-CN.json",
+      "contentType": "application/json",
+      "sizeBytes": 512,
+      "contentSha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "cacheHit": false,
+      "sourceArtifactId": null,
+      "createdAt": "2026-06-28T09:15:00Z",
+      "unsafeText": "raw corrected subtitle"
+    },
+    {
+      "artifactId": "reviewed-srt",
+      "jobId": "job-reviewed",
+      "type": "REVIEWED_SUBTITLE_SRT",
+      "filename": "reviewed-subtitles.zh-CN.srt",
+      "contentType": "application/x-subrip",
+      "sizeBytes": 256,
+      "contentSha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+      "cacheHit": false,
+      "sourceArtifactId": null,
+      "createdAt": "2026-06-28T09:15:00Z"
+    }
+  ]
+}
+JSON
+
+  print_reviewed_publish_summary <"$TMPDIR/reviewed-publish.json" >"$TMPDIR/reviewed-publish.out"
+  local output
+  output="$(cat "$TMPDIR/reviewed-publish.out")"
+
+  [[ "$output" == *"reviewedPublishJobId=job-reviewed"* ]] || fail "reviewed publish summary missed job id"
+  [[ "$output" == *"reviewedPublishLanguage=zh-CN"* ]] || fail "reviewed publish summary missed language"
+  [[ "$output" == *"reviewedPublishArtifactCount=2"* ]] || fail "reviewed publish summary missed artifact count"
+  [[ "$output" == *"reviewedPublishBurnedVideoRequested=true"* ]] || fail "reviewed publish summary missed burn request"
+  [[ "$output" == *"reviewedPublishBurnedVideoCreated=false"* ]] || fail "reviewed publish summary missed burn result"
+  [[ "$output" == *"reviewedPublishSubtitleArtifactCount=2"* ]] || fail "reviewed publish summary missed subtitle count"
+  [[ "$output" == *"reviewedPublishBurnedVideoArtifactCount=0"* ]] || fail "reviewed publish summary missed burned video count"
+  [[ "$output" == *"reviewedPublishArtifact=REVIEWED_SUBTITLE_SRT:reviewed-subtitles.zh-CN.srt"* ]] || fail "reviewed publish summary missed reviewed artifact"
+  [[ "$output" != *"raw corrected subtitle"* ]] || fail "reviewed publish summary exposed corrected text"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -262,5 +314,6 @@ test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_print_subtitle_review_summary_is_metadata_only
 test_print_subtitle_draft_summary_is_metadata_only
+test_print_reviewed_publish_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

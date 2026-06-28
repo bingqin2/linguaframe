@@ -22,6 +22,7 @@ import {
   getDemoSession,
   loginDemoSession,
   logoutDemoSession,
+  publishReviewedSubtitles,
   readDemoToken,
   cancelJob,
   retryJob,
@@ -694,6 +695,50 @@ describe('linguaframeApi', () => {
     );
     expect(subtitleDraftExportUrl('job with/slash', 'zh-CN', 'srt')).toBe(
       '/api/jobs/job%20with%2Fslash/subtitle-draft/export?language=zh-CN&format=srt'
+    );
+  });
+
+  test('publishes reviewed subtitle artifacts with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job reviewed/slash',
+        targetLanguage: 'zh-CN',
+        burnedVideoRequested: true,
+        burnedVideoCreated: false,
+        artifacts: [
+          {
+            artifactId: 'reviewed-srt',
+            jobId: 'job reviewed/slash',
+            type: 'REVIEWED_SUBTITLE_SRT',
+            filename: 'reviewed-subtitles.zh-CN.srt',
+            contentType: 'application/x-subrip;charset=UTF-8',
+            sizeBytes: 120,
+            contentSha256: '1234567890abcdef',
+            cacheHit: false,
+            sourceArtifactId: null,
+            createdAt: '2026-06-28T10:30:00Z'
+          }
+        ]
+      })
+    );
+
+    const result = await publishReviewedSubtitles('job reviewed/slash', {
+      language: 'zh-CN',
+      includeBurnedVideo: true
+    });
+
+    expect(result.artifacts[0].type).toBe('REVIEWED_SUBTITLE_SRT');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20reviewed%2Fslash/subtitle-draft/publish',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        },
+        body: JSON.stringify({ language: 'zh-CN', includeBurnedVideo: true })
+      }
     );
   });
 

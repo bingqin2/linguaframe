@@ -7,8 +7,10 @@ import type {
   MediaUpload,
   MediaUploadValidation,
   OperatorDashboard,
+  PublishReviewedSubtitlesRequest,
   PromptTemplate,
   RetentionCleanupResult,
+  ReviewedSubtitlePublish,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
   SubtitleDraftSummary,
@@ -227,6 +229,22 @@ export async function clearSubtitleDraft(
   );
 }
 
+export async function publishReviewedSubtitles(
+  jobId: string,
+  request: PublishReviewedSubtitlesRequest
+): Promise<ReviewedSubtitlePublish> {
+  return requestJson<ReviewedSubtitlePublish>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-draft/publish`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export function subtitleDraftExportUrl(
   jobId: string,
   language: string,
@@ -285,6 +303,7 @@ export const linguaFrameApi = {
   getSubtitleDraft,
   updateSubtitleDraft,
   clearSubtitleDraft,
+  publishReviewedSubtitles,
   subtitleDraftExportUrl,
   artifactDownloadUrl,
   artifactArchiveDownloadUrl,

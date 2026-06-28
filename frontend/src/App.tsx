@@ -92,6 +92,10 @@ interface DemoEvidence {
     editedSegmentCount: number;
     lastUpdatedAt: string | null;
   } | null;
+  reviewedDelivery: {
+    subtitleArtifactCount: number;
+    burnedVideoAvailable: boolean;
+  };
   usage: {
     modelCallCount: number;
     failedModelCallCount: number;
@@ -181,8 +185,12 @@ const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
   },
   { key: 'target-srt', label: 'Target SRT', artifactType: 'TARGET_SUBTITLE_SRT', preview: 'subtitle' },
   { key: 'target-vtt', label: 'Target VTT', artifactType: 'TARGET_SUBTITLE_VTT', preview: 'subtitle' },
+  { key: 'reviewed-json', label: 'Reviewed subtitle JSON', artifactType: 'REVIEWED_SUBTITLE_JSON', preview: null },
+  { key: 'reviewed-srt', label: 'Reviewed SRT', artifactType: 'REVIEWED_SUBTITLE_SRT', preview: null },
+  { key: 'reviewed-vtt', label: 'Reviewed VTT', artifactType: 'REVIEWED_SUBTITLE_VTT', preview: null },
   { key: 'dubbing-audio', label: 'Dubbing audio', artifactType: 'DUBBING_AUDIO', preview: null },
   { key: 'burned-video', label: 'Burned video', artifactType: 'BURNED_VIDEO', preview: null },
+  { key: 'reviewed-burned-video', label: 'Reviewed burned video', artifactType: 'REVIEWED_BURNED_VIDEO', preview: null },
   { key: 'worker-summary', label: 'Worker summary', artifactType: 'WORKER_SUMMARY', preview: null }
 ];
 
@@ -223,6 +231,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [subtitleDraftStatus, setSubtitleDraftStatus] = useState<string | null>(null);
   const [isSavingSubtitleDraft, setIsSavingSubtitleDraft] = useState(false);
   const [isClearingSubtitleDraft, setIsClearingSubtitleDraft] = useState(false);
+  const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -719,6 +728,27 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handlePublishReviewedSubtitles(includeBurnedVideo: boolean) {
+    if (!job) {
+      return;
+    }
+    setIsPublishingReviewedSubtitles(true);
+    try {
+      const published = await linguaFrameApi.publishReviewedSubtitles(job.jobId, {
+        language: selectedLanguage,
+        includeBurnedVideo
+      });
+      const refreshedArtifacts = await linguaFrameApi.listArtifacts(job.jobId);
+      setArtifacts(refreshedArtifacts);
+      setSubtitleDraftError(null);
+      setSubtitleDraftStatus(`Published ${published.artifacts.length} reviewed artifacts.`);
+    } catch (publishError) {
+      setSubtitleDraftError(toErrorMessage(publishError));
+    } finally {
+      setIsPublishingReviewedSubtitles(false);
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -1018,6 +1048,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isCancelling={isCancelling}
               isClearingSubtitleDraft={isClearingSubtitleDraft}
               isLoadingJob={isLoadingJob}
+              isPublishingReviewedSubtitles={isPublishingReviewedSubtitles}
               isRetrying={isRetrying}
               isSavingSubtitleDraft={isSavingSubtitleDraft}
               artifacts={artifacts}
@@ -1034,6 +1065,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onRetry={handleRetry}
+              onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
@@ -1601,6 +1633,7 @@ function JobDetail({
   isCancelling,
   isClearingSubtitleDraft,
   isLoadingJob,
+  isPublishingReviewedSubtitles,
   isRetrying,
   isSavingSubtitleDraft,
   artifacts,
@@ -1617,6 +1650,7 @@ function JobDetail({
   onPinCacheReplayBaseline,
   onSelectCacheReplayComparison,
   onRetry,
+  onPublishReviewedSubtitles,
   onSaveSubtitleDraft,
   previewErrors,
   selectedLanguage,
@@ -1632,6 +1666,7 @@ function JobDetail({
   isCancelling: boolean;
   isClearingSubtitleDraft: boolean;
   isLoadingJob: boolean;
+  isPublishingReviewedSubtitles: boolean;
   isRetrying: boolean;
   isSavingSubtitleDraft: boolean;
   artifacts: JobArtifact[];
@@ -1648,6 +1683,7 @@ function JobDetail({
   onPinCacheReplayBaseline: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onRetry: () => void;
+  onPublishReviewedSubtitles: (includeBurnedVideo: boolean) => void;
   onSaveSubtitleDraft: (segments: Array<{ index: number; text: string }>) => void;
   previewErrors: string[];
   selectedLanguage: string;
@@ -1780,9 +1816,11 @@ function JobDetail({
         draft={subtitleDraft}
         error={subtitleDraftError}
         isClearing={isClearingSubtitleDraft}
+        isPublishing={isPublishingReviewedSubtitles}
         isSaving={isSavingSubtitleDraft}
         jobId={job.jobId}
         onClear={onClearSubtitleDraft}
+        onPublish={onPublishReviewedSubtitles}
         onSave={onSaveSubtitleDraft}
         status={subtitleDraftStatus}
       />
@@ -2561,22 +2599,27 @@ function SubtitleDraftEditorPanel({
   draft,
   error,
   isClearing,
+  isPublishing,
   isSaving,
   jobId,
   onClear,
+  onPublish,
   onSave,
   status
 }: {
   draft: SubtitleDraftSummary | null;
   error: string | null;
   isClearing: boolean;
+  isPublishing: boolean;
   isSaving: boolean;
   jobId: string;
   onClear: () => void;
+  onPublish: (includeBurnedVideo: boolean) => void;
   onSave: (segments: Array<{ index: number; text: string }>) => void;
   status: string | null;
 }) {
   const [draftTextByIndex, setDraftTextByIndex] = useState<Record<number, string>>({});
+  const [includeReviewedBurnedVideo, setIncludeReviewedBurnedVideo] = useState(false);
 
   useEffect(() => {
     if (!draft) {
@@ -2667,6 +2710,21 @@ function SubtitleDraftEditorPanel({
           disabled={draft.editedSegmentCount === 0 || isClearing}
         >
           {isClearing ? 'Clearing...' : 'Clear draft'}
+        </button>
+        <label className="inline-checkbox">
+          <input
+            type="checkbox"
+            checked={includeReviewedBurnedVideo}
+            onChange={(event) => setIncludeReviewedBurnedVideo(event.target.checked)}
+          />
+          Include reviewed burned video
+        </label>
+        <button
+          type="button"
+          onClick={() => onPublish(includeReviewedBurnedVideo)}
+          disabled={isPublishing}
+        >
+          {isPublishing ? 'Publishing...' : 'Publish reviewed subtitles'}
         </button>
         <a className="secondary-link" href={linguaFrameApi.subtitleDraftExportUrl(jobId, draft.targetLanguage, 'json')}>
           Download corrected JSON
@@ -2789,6 +2847,14 @@ function buildDemoEvidence(
   subtitleReview: SubtitleReviewSummary | null,
   subtitleDraft: SubtitleDraftSummary | null
 ): DemoEvidence {
+  const reviewedSubtitleArtifactCount = artifacts.filter(
+    (artifact) =>
+      artifact.type === 'REVIEWED_SUBTITLE_JSON' ||
+      artifact.type === 'REVIEWED_SUBTITLE_SRT' ||
+      artifact.type === 'REVIEWED_SUBTITLE_VTT'
+  ).length;
+  const reviewedBurnedVideoAvailable = artifacts.some((artifact) => artifact.type === 'REVIEWED_BURNED_VIDEO');
+
   return {
     generatedAt: new Date().toISOString(),
     job: {
@@ -2824,6 +2890,10 @@ function buildDemoEvidence(
           lastUpdatedAt: subtitleDraft.lastUpdatedAt
         }
       : null,
+    reviewedDelivery: {
+      subtitleArtifactCount: reviewedSubtitleArtifactCount,
+      burnedVideoAvailable: reviewedBurnedVideoAvailable
+    },
     usage: {
       modelCallCount: job.usageSummary?.modelCallCount ?? job.modelCalls.length,
       failedModelCallCount: job.usageSummary?.failedModelCallCount ?? 0,
@@ -2935,6 +3005,10 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
       `- Subtitle draft last updated: ${evidence.subtitleDraft.lastUpdatedAt ?? 'Not saved'}`
     );
   }
+  lines.push(
+    `- Reviewed subtitle artifacts: ${evidence.reviewedDelivery.subtitleArtifactCount}`,
+    `- Reviewed burned video: ${evidence.reviewedDelivery.burnedVideoAvailable ? 'Available' : 'Not available'}`
+  );
   if (evidence.timeline.length > 0) {
     lines.push('', 'Timeline:');
     evidence.timeline.forEach((event) => {

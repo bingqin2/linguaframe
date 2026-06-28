@@ -363,6 +363,18 @@ get_job_subtitle_draft() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/subtitle-draft?language=$language"
 }
 
+publish_reviewed_subtitles() {
+  local base_url="$1"
+  local job_id="$2"
+  local language="$3"
+  local include_burned_video="${4:-false}"
+
+  demo_curl -fsS -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"language\":\"$language\",\"includeBurnedVideo\":$include_burned_video}" \
+    "$base_url/api/jobs/$job_id/subtitle-draft/publish"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -392,6 +404,28 @@ print("subtitleDraftLanguage=" + draft["targetLanguage"])
 print("subtitleDraftSegmentCount=" + str(draft.get("segmentCount", 0)))
 print("subtitleDraftEditedSegmentCount=" + str(draft.get("editedSegmentCount", 0)))
 print("subtitleDraftLastUpdated=" + str(draft.get("lastUpdatedAt") or "Not saved"))
+'
+}
+
+print_reviewed_publish_summary() {
+  python3 -c '
+import json
+import sys
+
+publish = json.load(sys.stdin)
+artifacts = publish.get("artifacts", [])
+subtitle_types = {"REVIEWED_SUBTITLE_JSON", "REVIEWED_SUBTITLE_SRT", "REVIEWED_SUBTITLE_VTT"}
+subtitle_count = sum(1 for artifact in artifacts if artifact.get("type") in subtitle_types)
+burned_video_count = sum(1 for artifact in artifacts if artifact.get("type") == "REVIEWED_BURNED_VIDEO")
+print("reviewedPublishJobId=" + publish["jobId"])
+print("reviewedPublishLanguage=" + publish["targetLanguage"])
+print("reviewedPublishArtifactCount=" + str(len(artifacts)))
+print("reviewedPublishBurnedVideoRequested=" + str(publish.get("burnedVideoRequested", False)).lower())
+print("reviewedPublishBurnedVideoCreated=" + str(publish.get("burnedVideoCreated", False)).lower())
+print("reviewedPublishSubtitleArtifactCount=" + str(subtitle_count))
+print("reviewedPublishBurnedVideoArtifactCount=" + str(burned_video_count))
+for artifact in artifacts:
+    print("reviewedPublishArtifact=" + artifact.get("type", "UNKNOWN") + ":" + artifact.get("filename", "unnamed"))
 '
 }
 
