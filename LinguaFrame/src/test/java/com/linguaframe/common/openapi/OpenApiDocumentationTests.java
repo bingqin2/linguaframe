@@ -115,6 +115,7 @@ class OpenApiDocumentationTests {
                         "/api/prompt-templates",
                         "/api/operator/dashboard",
                         "/api/operator/private-demo/operations",
+                        "/api/operator/private-demo/launch-rehearsal",
                         "/api/retention/cleanup/preview",
                         "/api/retention/cleanup/run"
                 );

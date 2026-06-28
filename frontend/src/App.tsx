@@ -17,6 +17,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PromptTemplate,
   ProviderReadiness,
@@ -338,6 +339,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   );
   const [privateDemoOperationsError, setPrivateDemoOperationsError] = useState<string | null>(null);
   const [isLoadingPrivateDemoOperations, setIsLoadingPrivateDemoOperations] = useState(false);
+  const [privateDemoLaunchRehearsal, setPrivateDemoLaunchRehearsal] =
+    useState<PrivateDemoLaunchRehearsal | null>(null);
+  const [privateDemoLaunchRehearsalError, setPrivateDemoLaunchRehearsalError] = useState<string | null>(
+    null
+  );
+  const [isLoadingPrivateDemoLaunchRehearsal, setIsLoadingPrivateDemoLaunchRehearsal] = useState(false);
   const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
   const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
   const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
@@ -510,6 +517,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadPrivateDemoLaunchRehearsal = useCallback(async () => {
+    setIsLoadingPrivateDemoLaunchRehearsal(true);
+    try {
+      const rehearsal = await linguaFrameApi.getPrivateDemoLaunchRehearsal();
+      setPrivateDemoLaunchRehearsal(rehearsal);
+      setPrivateDemoLaunchRehearsalError(null);
+    } catch (rehearsalLoadError) {
+      setPrivateDemoLaunchRehearsal(null);
+      setPrivateDemoLaunchRehearsalError(toErrorMessage(rehearsalLoadError));
+    } finally {
+      setIsLoadingPrivateDemoLaunchRehearsal(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -626,6 +647,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadPrivateDemoOperations();
   }, [loadPrivateDemoOperations]);
+
+  useEffect(() => {
+    void loadPrivateDemoLaunchRehearsal();
+  }, [loadPrivateDemoLaunchRehearsal]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1369,6 +1394,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={privateDemoOperationsError}
             isLoading={isLoadingPrivateDemoOperations}
             onRefresh={loadPrivateDemoOperations}
+          />
+
+          <PrivateDemoLaunchRehearsalPanel
+            rehearsal={privateDemoLaunchRehearsal}
+            error={privateDemoLaunchRehearsalError}
+            isLoading={isLoadingPrivateDemoLaunchRehearsal}
+            onRefresh={loadPrivateDemoLaunchRehearsal}
           />
 
           <RetentionCleanupPanel
@@ -2150,6 +2182,126 @@ function PrivateDemoOperationsPanel({
   );
 }
 
+function PrivateDemoLaunchRehearsalPanel({
+  rehearsal,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  rehearsal: PrivateDemoLaunchRehearsal | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = rehearsal ? formatPrivateDemoLaunchRehearsalNotes(rehearsal) : '';
+
+  const handleCopy = async () => {
+    if (!rehearsal || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Launch rehearsal notes copied.');
+  };
+
+  const handleDownload = () => {
+    if (!rehearsal) {
+      return;
+    }
+    const blob = new Blob([notes], { type: 'text/markdown;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'linguaframe-private-demo-launch-rehearsal.md';
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Launch rehearsal notes downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-launch-rehearsal-panel" aria-label="Private demo launch rehearsal">
+      <div className="panel-heading">
+        <h2>Private demo launch rehearsal</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Launch rehearsal unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !rehearsal ? <p className="muted">Loading launch rehearsal...</p> : null}
+      {rehearsal ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>
+                <span className={operationsStatusClassName(rehearsal.overallStatus)}>
+                  {rehearsal.overallStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Next</dt>
+              <dd>{rehearsal.recommendedNextStepId}</dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{rehearsal.readyCount} ready</dd>
+            </div>
+            <div>
+              <dt>Attention</dt>
+              <dd>{rehearsal.attentionCount} attention</dd>
+            </div>
+            <div>
+              <dt>Blocked</dt>
+              <dd>{rehearsal.blockedCount} blocked</dd>
+            </div>
+          </dl>
+          <ol className="operations-section-list launch-rehearsal-step-list" aria-label="Launch rehearsal steps">
+            {rehearsal.steps.map((step) => (
+              <li key={step.id}>
+                <div className="operations-section-heading">
+                  <strong>{step.title}</strong>
+                  <span className={operationsStatusClassName(step.status)}>{step.status}</span>
+                </div>
+                <p>{step.detail}</p>
+                <code>{step.command}</code>
+                <small>Evidence: {step.evidencePath}</small>
+                <small>Next: {step.nextAction}</small>
+                {step.blocking ? <small className="error-text">Blocking launch until resolved.</small> : null}
+              </li>
+            ))}
+          </ol>
+          <h3>Evidence</h3>
+          <ul className="link-list">
+            {rehearsal.evidenceDownloads.map((download) => (
+              <li key={download}>
+                <code>{download}</code>
+              </li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy launch rehearsal notes
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownload}>
+              Download launch rehearsal notes
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function formatPrivateDemoOperationsReport(operations: PrivateDemoOperations): string {
   const lines = [
     '# LinguaFrame Private Demo Operations Report',
@@ -2175,6 +2327,32 @@ function formatPrivateDemoOperationsReport(operations: PrivateDemoOperations): s
   lines.push('', '## Documentation');
   operations.documentationLinks.forEach((link) => {
     lines.push(`- ${link.path}: ${link.detail}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
+function formatPrivateDemoLaunchRehearsalNotes(rehearsal: PrivateDemoLaunchRehearsal): string {
+  if (rehearsal.rehearsalNotesMarkdown.trim().length > 0) {
+    return `${rehearsal.rehearsalNotesMarkdown.trim()}\n`;
+  }
+  const lines = [
+    '# LinguaFrame Private Demo Launch Rehearsal',
+    '',
+    `- Overall: ${rehearsal.overallStatus}`,
+    `- Generated at: ${rehearsal.generatedAt}`,
+    `- Recommended next step: ${rehearsal.recommendedNextStepId}`,
+    '',
+    '## Steps'
+  ];
+  rehearsal.steps.forEach((step) => {
+    lines.push(`- ${step.status} ${step.id}: ${step.title}`);
+    lines.push(`  Command: ${step.command}`);
+    lines.push(`  Evidence: ${step.evidencePath}`);
+    lines.push(`  Next: ${step.nextAction}`);
+  });
+  lines.push('', '## Evidence Routes');
+  rehearsal.evidenceDownloads.forEach((download) => {
+    lines.push(`- ${download}`);
   });
   return `${lines.join('\n')}\n`;
 }

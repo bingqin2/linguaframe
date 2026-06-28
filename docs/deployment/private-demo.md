@@ -72,6 +72,18 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-operations-repo
 
 The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` unless `LINGUAFRAME_PRIVATE_DEMO_OPERATIONS_REPORT_PATH` is set. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero so deployment scripts can stop before upload or provider spend.
 
+## Launch Rehearsal
+
+Use the browser `Private demo launch rehearsal` panel as the ordered go/no-go checklist for a real presentation. It sits above operations readiness: operations explains current health, while launch rehearsal explains the next manual step and expected evidence.
+
+Generate the same launch packet from the terminal:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-launch-rehearsal.sh
+```
+
+The script writes `launch-rehearsal.json` and `launch-rehearsal.md` under `/tmp/linguaframe-demo/private-demo-launch-rehearsal/` by default. It is read-only: it does not start Docker, upload media, call OpenAI, create backups, restore data, or run cleanup. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero.
+
 ## Safety Defaults
 
 - Backend and frontend host ports are removed in the private overlay; traffic enters through Caddy.

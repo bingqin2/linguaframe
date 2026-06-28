@@ -1260,6 +1260,77 @@ JSON
   [[ "$output" != *"provider payload"* ]] || fail "operations report exposed provider payload"
 }
 
+test_private_demo_launch_rehearsal_helpers_are_metadata_only() {
+  cat >"$TMPDIR/private-demo-launch-rehearsal.json" <<'JSON'
+{
+  "generatedAt": "2026-06-28T08:30:00Z",
+  "overallStatus": "ATTENTION",
+  "readyCount": 8,
+  "attentionCount": 2,
+  "blockedCount": 0,
+  "recommendedNextStepId": "openai-preflight",
+  "steps": [
+    {
+      "id": "deploy-preflight",
+      "title": "Deployment preflight",
+      "status": "READY",
+      "detail": "The backend runtime contract includes launch rehearsal.",
+      "command": "LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-deploy-preflight.sh",
+      "evidencePath": "/api/runtime/dependencies",
+      "nextAction": "Run before starting the stack.",
+      "blocking": false
+    },
+    {
+      "id": "openai-preflight",
+      "title": "OpenAI provider preflight",
+      "status": "ATTENTION",
+      "detail": "Provider readiness needs manual confirmation.",
+      "command": "LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/openai-demo-preflight.sh",
+      "evidencePath": "/api/runtime/live-checks",
+      "nextAction": "Run only when paid provider access should be proven.",
+      "blocking": false,
+      "unsafeToken": "OPENAI_API_KEY",
+      "unsafePath": "/Users/example/private.mov",
+      "unsafePayload": "provider payload"
+    }
+  ],
+  "evidenceDownloads": [
+    "/api/operator/private-demo/operations",
+    "/api/jobs/{jobId}/demo-presenter-pack"
+  ],
+  "rehearsalNotesMarkdown": "# LinguaFrame Private Demo Launch Rehearsal\nraw transcript text /Users/example/private.mov private-demo-token provider payload"
+}
+JSON
+
+  print_private_demo_launch_rehearsal_summary_file \
+    "$TMPDIR/private-demo-launch-rehearsal.json" \
+    >"$TMPDIR/private-demo-launch-rehearsal.out"
+  local summary
+  summary="$(cat "$TMPDIR/private-demo-launch-rehearsal.out")"
+  [[ "$summary" == *"privateDemoLaunchOverall=ATTENTION"* ]] || fail "launch summary missed overall"
+  [[ "$summary" == *"privateDemoLaunchRecommendedNextStepId=openai-preflight"* ]] || fail "launch summary missed next step"
+  [[ "$summary" == *"privateDemoLaunchStep=ATTENTION:openai-preflight:OpenAI provider preflight:blocking=false"* ]] || fail "launch summary missed step"
+  [[ "$summary" != *"OPENAI_API_KEY"* ]] || fail "launch summary exposed API key"
+  [[ "$summary" != *"/Users/example"* ]] || fail "launch summary exposed local path"
+  [[ "$summary" != *"provider payload"* ]] || fail "launch summary exposed provider payload"
+
+  write_private_demo_launch_rehearsal_report \
+    "$TMPDIR/private-demo-launch-rehearsal.json" \
+    "$TMPDIR/private-demo-launch-rehearsal.md"
+  local output
+  output="$(cat "$TMPDIR/private-demo-launch-rehearsal.md")"
+  [[ "$output" == *"# LinguaFrame Private Demo Launch Rehearsal"* ]] || fail "launch report missed title"
+  [[ "$output" == *"- Overall: ATTENTION"* ]] || fail "launch report missed overall"
+  [[ "$output" == *"- Recommended next step: openai-preflight"* ]] || fail "launch report missed next step"
+  [[ "$output" == *"LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/openai-demo-preflight.sh"* ]] || fail "launch report missed command"
+  [[ "$output" == *"/api/jobs/{jobId}/demo-presenter-pack"* ]] || fail "launch report missed evidence route"
+  [[ "$output" != *"private-demo-token"* ]] || fail "launch report exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "launch report exposed API key"
+  [[ "$output" != *"/Users/example"* ]] || fail "launch report exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "launch report exposed provider payload"
+  [[ "$output" != *"raw transcript text"* ]] || fail "launch report exposed transcript"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -1287,5 +1358,6 @@ test_print_ai_audit_package_summary_validates_zip_and_secrets
 test_print_source_media_summary_is_metadata_only
 test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
+test_private_demo_launch_rehearsal_helpers_are_metadata_only
 
 echo "linguaframe-demo client tests passed"

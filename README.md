@@ -156,6 +156,14 @@ docker compose --env-file .env.private-demo \
 
 The overlay adds a Caddy reverse proxy on ports 80/443, keeps backend/frontend host ports internal, and routes `/api`, Swagger, actuator, downloads, previews, and SSE through the same public domain. See `docs/deployment/private-demo.md`.
 
+Private demo launch rehearsal is the read-only go/no-go checklist before inviting a viewer or spending provider budget:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-launch-rehearsal.sh
+```
+
+It fetches `GET /api/operator/private-demo/launch-rehearsal`, writes `launch-rehearsal.json` and `launch-rehearsal.md` under `/tmp/linguaframe-demo/private-demo-launch-rehearsal/`, and exits non-zero only when the backend reports `BLOCKED`. It does not start Docker, upload media, call OpenAI, create backups, restore data, or run cleanup.
+
 Private demo backups export job history, MinIO artifacts, and Caddy state without provider calls:
 
 ```bash
@@ -185,6 +193,8 @@ scripts/demo/private-demo-operations-report.sh
 ```
 
 The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` by default and exits non-zero only when the backend reports `BLOCKED`.
+
+Use the adjacent `Private demo launch rehearsal` panel when you need the ordered presentation gate. It calls `GET /api/operator/private-demo/launch-rehearsal`, shows the recommended next step, lists manual commands for deploy preflight, stack startup, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence exports, and provides metadata-only launch notes.
 
 For a selected job, the browser demo includes a `Demo review guide` panel near the top of the job view. It orders the walkthrough into input, pipeline, review, delivery, evidence, and handoff steps, shows whether the run is presentation-ready, links to the existing detailed panels, and exports metadata-only presenter notes. The guide does not replace diagnostics, evidence bundle, demo session report, delivery manifest, or handoff package; it is the browser navigation layer for presenting them in a coherent order.
 

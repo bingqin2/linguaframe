@@ -287,6 +287,7 @@ Build:
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
 - Read-only demo readiness panel. Status: implemented for demo gate, media limits, worker mode, FFmpeg toggles, provider modes, budget guard settings, and feature flags.
+- Private demo launch rehearsal. Status: implemented with `GET /api/operator/private-demo/launch-rehearsal`, a browser `Private demo launch rehearsal` panel, and terminal `private-demo-launch-rehearsal.sh` output for ordered go/no-go steps, recommended next action, safe commands, and evidence routes.
 
 Do not build yet:
 

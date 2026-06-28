@@ -124,6 +124,30 @@ class OperatorDashboardControllerTests {
                     .andExpect(jsonPath("$.documentationLinks[?(@.path == 'docs/deployment/private-demo.md')]").exists());
         }
 
+        @Test
+        void returnsPrivateDemoLaunchRehearsal() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:00:00Z");
+            createJob("launch-controller-video", "launch-controller-job", "launch.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/private-demo/launch-rehearsal"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.recommendedNextStepId").exists())
+                    .andExpect(jsonPath("$.readyCount").isNumber())
+                    .andExpect(jsonPath("$.attentionCount").isNumber())
+                    .andExpect(jsonPath("$.blockedCount").isNumber())
+                    .andExpect(jsonPath("$.steps[?(@.id == 'deploy-preflight')]").exists())
+                    .andExpect(jsonPath("$.steps[?(@.id == 'private-preflight')]").exists())
+                    .andExpect(jsonPath("$.steps[?(@.id == 'openai-preflight')]").exists())
+                    .andExpect(jsonPath("$.steps[?(@.id == 'full-tears-demo')]").exists())
+                    .andExpect(jsonPath("$.evidenceDownloads[?(@ == '/api/operator/private-demo/operations')]").exists())
+                    .andExpect(jsonPath("$.evidenceDownloads[?(@ == '/api/jobs/{jobId}/demo-presenter-pack')]").exists())
+                    .andExpect(jsonPath("$.rehearsalNotesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Private Demo Launch Rehearsal"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -166,6 +190,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/private-demo/operations")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/private-demo/launch-rehearsal"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/private-demo/launch-rehearsal")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

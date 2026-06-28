@@ -18,6 +18,7 @@ import type {
   DemoRunProfile,
   DemoSessionStatus,
   OperatorDashboard,
+  PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PromptTemplate,
   RetentionCleanupResult,
@@ -70,6 +71,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
     vi.spyOn(linguaFrameApi, 'getPrivateDemoOperations').mockResolvedValue(
       privateDemoOperationsFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoLaunchRehearsal').mockResolvedValue(
+      privateDemoLaunchRehearsalFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -397,6 +401,41 @@ describe('App', () => {
     const operations = await screen.findByRole('region', { name: /private demo operations/i });
     expect(within(operations).getByText('Operations readiness unavailable')).toBeInTheDocument();
     expect(within(operations).getByText('Operations unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows private demo launch rehearsal checklist and report actions', async () => {
+    render(<App />);
+
+    const rehearsal = await screen.findByRole('region', {
+      name: /private demo launch rehearsal/i
+    });
+    expect(within(rehearsal).getAllByText('ATTENTION').length).toBeGreaterThan(0);
+    expect(within(rehearsal).getByText('openai-preflight')).toBeInTheDocument();
+    expect(within(rehearsal).getByText('Deployment preflight')).toBeInTheDocument();
+    expect(within(rehearsal).getByText('OpenAI provider preflight')).toBeInTheDocument();
+    expect(within(rehearsal).getByText('Full Tears of Steel demo')).toBeInTheDocument();
+    expect(within(rehearsal).getByText(/scripts\/demo\/private-demo-deploy-preflight\.sh/))
+      .toBeInTheDocument();
+    expect(within(rehearsal).getByText('/api/jobs/{jobId}/demo-presenter-pack'))
+      .toBeInTheDocument();
+    expect(within(rehearsal).getByRole('button', { name: /copy launch rehearsal notes/i }))
+      .toBeEnabled();
+    expect(within(rehearsal).getByRole('button', { name: /download launch rehearsal notes/i }))
+      .toBeEnabled();
+  });
+
+  test('keeps upload controls usable when private demo launch rehearsal fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoLaunchRehearsal').mockRejectedValue(
+      new Error('Launch rehearsal unavailable')
+    );
+
+    render(<App />);
+
+    const rehearsal = await screen.findByRole('region', {
+      name: /private demo launch rehearsal/i
+    });
+    expect(within(rehearsal).getAllByText('Launch rehearsal unavailable').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
@@ -2853,6 +2892,57 @@ function privateDemoOperationsFixture(
         detail: 'Reverse proxy, env, backup, and restore runbook.'
       }
     ],
+    ...overrides
+  };
+}
+
+function privateDemoLaunchRehearsalFixture(
+  overrides: Partial<PrivateDemoLaunchRehearsal> = {}
+): PrivateDemoLaunchRehearsal {
+  return {
+    generatedAt: '2026-06-28T08:30:00Z',
+    overallStatus: 'ATTENTION',
+    readyCount: 8,
+    attentionCount: 2,
+    blockedCount: 0,
+    recommendedNextStepId: 'openai-preflight',
+    steps: [
+      {
+        id: 'deploy-preflight',
+        title: 'Deployment preflight',
+        status: 'READY',
+        detail: 'The backend runtime contract includes launch rehearsal.',
+        command: 'LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-deploy-preflight.sh',
+        evidencePath: '/api/runtime/dependencies',
+        nextAction: 'Run this before starting the stack.',
+        blocking: false
+      },
+      {
+        id: 'openai-preflight',
+        title: 'OpenAI provider preflight',
+        status: 'ATTENTION',
+        detail: 'Provider-backed demo readiness needs manual confirmation.',
+        command: 'LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/openai-demo-preflight.sh',
+        evidencePath: '/api/runtime/live-checks',
+        nextAction: 'Run only when you intend to prove paid provider access.',
+        blocking: false
+      },
+      {
+        id: 'full-tears-demo',
+        title: 'Full Tears of Steel demo',
+        status: 'ATTENTION',
+        detail: 'Processes the complete public demo sample.',
+        command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        evidencePath: '/tmp/linguaframe-demo/tears-of-steel-full',
+        nextAction: 'Run after the short smoke path passes.',
+        blocking: false
+      }
+    ],
+    evidenceDownloads: [
+      '/api/operator/private-demo/operations',
+      '/api/jobs/{jobId}/demo-presenter-pack'
+    ],
+    rehearsalNotesMarkdown: '# LinguaFrame Private Demo Launch Rehearsal\n',
     ...overrides
   };
 }

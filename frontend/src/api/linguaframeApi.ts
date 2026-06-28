@@ -13,6 +13,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PublishReviewedSubtitlesRequest,
   PromptTemplate,
@@ -208,6 +209,12 @@ export async function getOperatorDashboard(): Promise<OperatorDashboard> {
 
 export async function getPrivateDemoOperations(): Promise<PrivateDemoOperations> {
   return requestJson<PrivateDemoOperations>('/api/operator/private-demo/operations', {
+    method: 'GET'
+  });
+}
+
+export async function getPrivateDemoLaunchRehearsal(): Promise<PrivateDemoLaunchRehearsal> {
+  return requestJson<PrivateDemoLaunchRehearsal>('/api/operator/private-demo/launch-rehearsal', {
     method: 'GET'
   });
 }
@@ -414,6 +421,7 @@ export const linguaFrameApi = {
   listPromptTemplates,
   getOperatorDashboard,
   getPrivateDemoOperations,
+  getPrivateDemoLaunchRehearsal,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getRetentionCleanupPreview,
