@@ -4,6 +4,7 @@ import type {
   JobArtifact,
   JobComparison,
   DemoRunMonitor,
+  DemoRunSnapshot,
   DemoPresenterPack,
   DemoRunMatrix,
   DemoRunProfile,
@@ -222,6 +223,12 @@ export async function getDemoPresenterPack(jobId: string): Promise<DemoPresenter
 
 export async function getDemoRunMonitor(jobId: string): Promise<DemoRunMonitor> {
   return requestJson<DemoRunMonitor>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-monitor`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoRunSnapshot(jobId: string): Promise<DemoRunSnapshot> {
+  return requestJson<DemoRunSnapshot>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-snapshot`, {
     method: 'GET'
   });
 }
@@ -484,6 +491,10 @@ export function demoRunMonitorMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-monitor/markdown/download`;
 }
 
+export function demoRunSnapshotDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-snapshot/download`;
+}
+
 export function jobComparisonMarkdownDownloadUrl(jobId: string, comparisonJobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/comparison/${encodeURIComponent(
     comparisonJobId
@@ -512,6 +523,7 @@ export const linguaFrameApi = {
   getDeliveryManifest,
   getDemoRunMatrix,
   getDemoRunMonitor,
+  getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,
   getJobComparison,
@@ -548,6 +560,7 @@ export const linguaFrameApi = {
   sourceMediaDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   demoRunMonitorMarkdownDownloadUrl,
+  demoRunSnapshotDownloadUrl,
   demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,
   jobEventsUrl,

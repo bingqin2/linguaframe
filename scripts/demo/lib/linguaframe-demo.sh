@@ -391,6 +391,28 @@ download_demo_share_sheet_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-share-sheet/markdown/download" -o "$output_path"
 }
 
+download_demo_run_snapshot_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-snapshot" -o "$output_path"
+}
+
+download_demo_run_snapshot_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-snapshot/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -817,6 +839,45 @@ for stage in monitor.get("stages") or []:
     ]))
 for link in monitor.get("links") or []:
     print("demoRunMonitorLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
+PY
+}
+
+print_demo_run_snapshot_summary_file() {
+  local snapshot_path="$1"
+
+  python3 - "$snapshot_path" <<'PY'
+import json
+import sys
+
+snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "raw subtitle text", "/Users/", "sk-", "provider payload", "objectKey")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("demoRunSnapshotJobId=" + text(snapshot.get("jobId")))
+print("demoRunSnapshotVideoId=" + text(snapshot.get("videoId")))
+print("demoRunSnapshotReadiness=" + text(snapshot.get("readiness")))
+print("demoRunSnapshotHeadline=" + safe(snapshot.get("headline")))
+print("demoRunSnapshotSectionCount=" + str(len(snapshot.get("sections") or [])))
+print("demoRunSnapshotPackageEntryCount=" + str(len(snapshot.get("packageEntries") or [])))
+summary = safe(snapshot.get("summary"))
+if summary != "REDACTED_UNSAFE_DETAIL":
+    print("demoRunSnapshotSummary=" + summary)
+for section in snapshot.get("sections") or []:
+    print("demoRunSnapshotSection=" + text(section.get("kind")) + ":" + text(section.get("filename")) + ":" + text(section.get("status")))
+for entry in snapshot.get("packageEntries") or []:
+    print("demoRunSnapshotEntry=" + text(entry))
+for link in snapshot.get("links") or []:
+    print("demoRunSnapshotLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
 PY
 }
 
@@ -2250,6 +2311,74 @@ with zipfile.ZipFile(package_path) as archive:
 
 print("demoRunPackageJobId=" + expected_job_id)
 print("demoRunPackageEntryCount=" + str(len(required_entries)))
+PY
+}
+
+print_demo_run_snapshot_package_summary() {
+  local package_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$package_path" "$expected_job_id" <<'PY'
+import json
+import sys
+import zipfile
+
+package_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+required_entries = {
+    "index.html",
+    "manifest.json",
+    "README.md",
+    "demo-share-sheet.md",
+    "demo-share-sheet.json",
+    "demo-run-monitor.md",
+    "demo-run-monitor.json",
+    "presenter-pack.json",
+    "delivery-manifest.md",
+    "diagnostics.json",
+    "evidence.md",
+}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+
+with zipfile.ZipFile(package_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Demo run snapshot package is missing entries: " + ", ".join(missing))
+
+    combined = ""
+    for name in sorted(required_entries):
+        data = archive.read(name)
+        try:
+            combined += data.decode("utf-8") + "\n"
+        except UnicodeDecodeError:
+            continue
+
+    for value in forbidden:
+        if value in combined:
+            raise SystemExit("Demo run snapshot package contains forbidden sensitive string: " + value)
+
+    manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    if manifest.get("jobId") != expected_job_id:
+        raise SystemExit("Demo run snapshot package manifest job id mismatch: " + str(manifest.get("jobId")))
+
+print("demoRunSnapshotPackageJobId=" + expected_job_id)
+print("demoRunSnapshotPackageEntryCount=" + str(len(required_entries)))
 PY
 }
 

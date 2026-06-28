@@ -96,6 +96,13 @@ download_demo_share_sheet_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-share
 print_demo_share_sheet_summary_file "$OUTPUT_DIR/demo-share-sheet.json"
 echo "Downloaded demo share sheet to $OUTPUT_DIR/demo-share-sheet.json and $OUTPUT_DIR/demo-share-sheet.md"
 
+echo "Demo run snapshot:"
+download_demo_run_snapshot_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-snapshot.json"
+download_demo_run_snapshot_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-snapshot.zip"
+print_demo_run_snapshot_summary_file "$OUTPUT_DIR/demo-run-snapshot.json"
+print_demo_run_snapshot_package_summary "$OUTPUT_DIR/demo-run-snapshot.zip" "$job_id"
+echo "Downloaded demo run snapshot to $OUTPUT_DIR/demo-run-snapshot.json and $OUTPUT_DIR/demo-run-snapshot.zip"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

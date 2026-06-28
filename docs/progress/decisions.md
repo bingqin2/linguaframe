@@ -641,3 +641,11 @@ Decision: Treat source media metadata as safe evidence but keep storage object k
 Reason: A reviewer needs to verify the input video that produced the demo outputs, but object keys and local paths are implementation details that should not leak into browser or terminal evidence.
 
 Impact: `GET /api/media/uploads/{videoId}` returns safe source metadata without `sourceObjectKey`, while `GET /api/media/uploads/{videoId}/source/download` streams the source bytes only through an explicit route. Browser and terminal demos expose source media evidence without embedding source media bytes in metadata packages.
+
+## 2026-06-29
+
+Decision: Generate demo run snapshots on demand as static metadata-only reviewer workspaces.
+
+Reason: The demo now has a browser share sheet, run monitor, presenter pack, delivery manifest, diagnostics, and evidence outputs. A reviewer needs one offline folder with an HTML entry point without creating another persisted artifact or exposing source/generated media.
+
+Impact: `/api/jobs/{jobId}/demo-run-snapshot` previews readiness, sections, entries, links, and exclusion policy. `/api/jobs/{jobId}/demo-run-snapshot/download` returns a ZIP with `index.html`, `manifest.json`, `README.md`, share sheet, run monitor, presenter pack JSON, delivery manifest, diagnostics, and evidence. Browser and terminal demos expose the package, while scripts validate required entries and forbidden sensitive markers.

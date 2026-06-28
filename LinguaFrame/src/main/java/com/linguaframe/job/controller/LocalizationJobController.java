@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredAiAuditPackageBo;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunPackageBo;
+import com.linguaframe.job.domain.bo.StoredDemoRunSnapshotPackageBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
@@ -18,6 +19,7 @@ import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
+import com.linguaframe.job.domain.vo.DemoRunSnapshotVo;
 import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -35,6 +37,7 @@ import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunMonitorService;
 import com.linguaframe.job.service.DemoRunPackageService;
+import com.linguaframe.job.service.DemoRunSnapshotService;
 import com.linguaframe.job.service.DemoShareSheetService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
@@ -93,6 +96,7 @@ public class LocalizationJobController {
     private final DemoRunMatrixService demoRunMatrixService;
     private final DemoPresenterPackService demoPresenterPackService;
     private final DemoRunMonitorService demoRunMonitorService;
+    private final DemoRunSnapshotService demoRunSnapshotService;
     private final DemoShareSheetService demoShareSheetService;
     private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
@@ -118,6 +122,7 @@ public class LocalizationJobController {
             DemoRunMatrixService demoRunMatrixService,
             DemoPresenterPackService demoPresenterPackService,
             DemoRunMonitorService demoRunMonitorService,
+            DemoRunSnapshotService demoRunSnapshotService,
             DemoShareSheetService demoShareSheetService,
             JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
@@ -142,6 +147,7 @@ public class LocalizationJobController {
         this.demoRunMatrixService = demoRunMatrixService;
         this.demoPresenterPackService = demoPresenterPackService;
         this.demoRunMonitorService = demoRunMonitorService;
+        this.demoRunSnapshotService = demoRunSnapshotService;
         this.demoShareSheetService = demoShareSheetService;
         this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
@@ -292,6 +298,45 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(body);
+    }
+
+    @GetMapping("/{jobId}/demo-run-snapshot")
+    @Operation(summary = "Build a static reviewer demo snapshot preview")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run snapshot preview was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoRunSnapshotVo getDemoRunSnapshot(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoRunSnapshotService.buildSnapshot(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-run-snapshot/download")
+    @Operation(summary = "Download a metadata-only static demo snapshot ZIP")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run snapshot ZIP was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadDemoRunSnapshot(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredDemoRunSnapshotPackageBo resource = demoRunSnapshotService.openSnapshotPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf(resource.contentType()))
+                .contentLength(resource.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(resource.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(resource.inputStream()));
     }
 
     @GetMapping(value = "/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

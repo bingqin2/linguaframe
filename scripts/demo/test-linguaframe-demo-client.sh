@@ -811,6 +811,24 @@ test_download_demo_run_monitor_helpers_use_backend_routes() {
   [[ "$markdown_output" == *"http://example.test/api/jobs/monitor%20job%2Fslash/demo-run-monitor/markdown/download"* ]] || fail "demo run monitor markdown helper used wrong route"
 }
 
+test_download_demo_run_snapshot_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_snapshot_json "http://example.test" "snapshot job/slash" "$TMPDIR/demo-run-snapshot.json" >"$TMPDIR/run-snapshot-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_snapshot_zip "http://example.test" "snapshot job/slash" "$TMPDIR/demo-run-snapshot.zip" >"$TMPDIR/run-snapshot-zip-curl.out"
+
+  local json_output
+  json_output="$(cat "$TMPDIR/run-snapshot-json-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/jobs/snapshot%20job%2Fslash/demo-run-snapshot"* ]] || fail "demo run snapshot json helper used wrong route"
+
+  local zip_output
+  zip_output="$(cat "$TMPDIR/run-snapshot-zip-curl.out")"
+  [[ "$zip_output" == *"http://example.test/api/jobs/snapshot%20job%2Fslash/demo-run-snapshot/download"* ]] || fail "demo run snapshot zip helper used wrong route"
+}
+
 test_print_demo_run_monitor_summary_is_metadata_only() {
   cat >"$TMPDIR/demo-run-monitor.json" <<'JSON'
 {
@@ -875,6 +893,73 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "run monitor summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "run monitor summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "run monitor summary exposed provider payload"
+}
+
+test_print_demo_run_snapshot_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-run-snapshot.json" <<'JSON'
+{
+  "jobId": "snapshot-job",
+  "videoId": "video-demo",
+  "targetLanguage": "zh-CN",
+  "demoProfileId": "tears-showcase",
+  "generatedAt": "2026-06-29T12:00:00Z",
+  "readiness": "READY",
+  "headline": "tears-showcase demo to zh-CN",
+  "summary": "Offline reviewer snapshot.",
+  "sections": [
+    {
+      "kind": "INDEX_HTML",
+      "title": "Offline index",
+      "status": "READY",
+      "filename": "index.html",
+      "summary": "Self-contained index."
+    },
+    {
+      "kind": "SHARE_SHEET",
+      "title": "Share sheet",
+      "status": "READY",
+      "filename": "demo-share-sheet.md",
+      "summary": "raw transcript text /Users/example/private.mov sk-test provider payload"
+    }
+  ],
+  "packageEntries": [
+    "index.html",
+    "manifest.json",
+    "README.md",
+    "demo-share-sheet.md"
+  ],
+  "links": [
+    {
+      "kind": "DEMO_RUN_SNAPSHOT_DOWNLOAD",
+      "label": "Static demo snapshot ZIP",
+      "url": "/api/jobs/snapshot-job/demo-run-snapshot/download"
+    }
+  ],
+  "exclusionPolicy": [
+    "media bytes",
+    "transcript content"
+  ],
+  "markdown": "raw transcript text /Users/example/private.mov sk-test provider payload"
+}
+JSON
+
+  print_demo_run_snapshot_summary_file "$TMPDIR/demo-run-snapshot.json" >"$TMPDIR/demo-run-snapshot.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-snapshot.out")"
+
+  [[ "$output" == *"demoRunSnapshotJobId=snapshot-job"* ]] || fail "snapshot summary missed job"
+  [[ "$output" == *"demoRunSnapshotVideoId=video-demo"* ]] || fail "snapshot summary missed video"
+  [[ "$output" == *"demoRunSnapshotReadiness=READY"* ]] || fail "snapshot summary missed readiness"
+  [[ "$output" == *"demoRunSnapshotHeadline=tears-showcase demo to zh-CN"* ]] || fail "snapshot summary missed headline"
+  [[ "$output" == *"demoRunSnapshotSectionCount=2"* ]] || fail "snapshot summary missed section count"
+  [[ "$output" == *"demoRunSnapshotPackageEntryCount=4"* ]] || fail "snapshot summary missed entry count"
+  [[ "$output" == *"demoRunSnapshotSection=INDEX_HTML:index.html:READY"* ]] || fail "snapshot summary missed index section"
+  [[ "$output" == *"demoRunSnapshotEntry=demo-share-sheet.md"* ]] || fail "snapshot summary missed package entry"
+  [[ "$output" == *"demoRunSnapshotLink=DEMO_RUN_SNAPSHOT_DOWNLOAD:/api/jobs/snapshot-job/demo-run-snapshot/download"* ]] || fail "snapshot summary missed download link"
+  [[ "$output" != *"raw transcript text"* ]] || fail "snapshot summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "snapshot summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "snapshot summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "snapshot summary exposed provider payload"
 }
 
 test_print_demo_share_sheet_summary_is_metadata_only() {
@@ -1623,6 +1708,57 @@ PY
     fail "demo run package summary accepted unsafe ZIP"
   fi
   [[ "$(cat "$TMPDIR/unsafe-demo-run-package.out")" == *"forbidden sensitive string"* ]] || fail "demo run package unsafe failure was not explicit"
+}
+
+test_print_demo_run_snapshot_package_summary_validates_zip_and_secrets() {
+  python3 - "$TMPDIR/demo-run-snapshot.zip" "$TMPDIR/unsafe-demo-run-snapshot.zip" <<'PY'
+import json
+import sys
+import zipfile
+
+safe_path = sys.argv[1]
+unsafe_path = sys.argv[2]
+manifest = {
+    "jobId": "job-demo-run-snapshot",
+    "videoId": "video-demo-run-snapshot",
+    "targetLanguage": "zh-CN",
+    "readiness": "READY",
+}
+entries = {
+    "index.html": "<!doctype html><title>LinguaFrame Demo Snapshot</title>",
+    "manifest.json": json.dumps(manifest, separators=(",", ":")),
+    "README.md": "# LinguaFrame Demo Snapshot\n- Job: job-demo-run-snapshot\n",
+    "demo-share-sheet.md": "# Share sheet\n- Job: job-demo-run-snapshot\n",
+    "demo-share-sheet.json": json.dumps({"jobId": "job-demo-run-snapshot"}),
+    "demo-run-monitor.md": "# Monitor\n- Job: job-demo-run-snapshot\n",
+    "demo-run-monitor.json": json.dumps({"jobId": "job-demo-run-snapshot"}),
+    "presenter-pack.json": json.dumps({"anchorJobId": "job-demo-run-snapshot"}),
+    "delivery-manifest.md": "# Delivery manifest\n- Job: job-demo-run-snapshot\n",
+    "diagnostics.json": json.dumps({"jobId": "job-demo-run-snapshot"}),
+    "evidence.md": "# Evidence\n- Job: job-demo-run-snapshot\n",
+}
+with zipfile.ZipFile(safe_path, "w") as archive:
+    for name, content in entries.items():
+        archive.writestr(name, content)
+
+unsafe_entries = dict(entries)
+unsafe_entries["index.html"] = "provider request payload sk-test /Users/example/job-artifacts/raw.json"
+with zipfile.ZipFile(unsafe_path, "w") as archive:
+    for name, content in unsafe_entries.items():
+        archive.writestr(name, content)
+PY
+
+  print_demo_run_snapshot_package_summary "$TMPDIR/demo-run-snapshot.zip" "job-demo-run-snapshot" >"$TMPDIR/demo-run-snapshot-package.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-snapshot-package.out")"
+
+  [[ "$output" == *"demoRunSnapshotPackageJobId=job-demo-run-snapshot"* ]] || fail "demo run snapshot package summary missed job id"
+  [[ "$output" == *"demoRunSnapshotPackageEntryCount=11"* ]] || fail "demo run snapshot package summary missed entry count"
+
+  if print_demo_run_snapshot_package_summary "$TMPDIR/unsafe-demo-run-snapshot.zip" "job-demo-run-snapshot" >"$TMPDIR/unsafe-demo-run-snapshot.out" 2>&1; then
+    fail "demo run snapshot package summary accepted unsafe ZIP"
+  fi
+  [[ "$(cat "$TMPDIR/unsafe-demo-run-snapshot.out")" == *"forbidden sensitive string"* ]] || fail "demo run snapshot package unsafe failure was not explicit"
 }
 
 test_print_ai_audit_package_summary_validates_zip_and_secrets() {

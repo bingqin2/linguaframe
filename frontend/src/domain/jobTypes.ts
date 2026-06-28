@@ -255,6 +255,36 @@ export interface DemoRunMonitor {
   markdown: string;
 }
 
+export interface DemoRunSnapshotSection {
+  kind: string;
+  title: string;
+  status: string;
+  filename: string;
+  summary: string;
+}
+
+export interface DemoRunSnapshotLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoRunSnapshot {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  demoProfileId: string;
+  generatedAt: string;
+  readiness: string;
+  headline: string;
+  summary: string;
+  sections: DemoRunSnapshotSection[];
+  packageEntries: string[];
+  links: DemoRunSnapshotLink[];
+  exclusionPolicy: string[];
+  markdown: string;
+}
+
 export interface LocalizationJobSummary {
   jobId: string;
   videoId: string;
