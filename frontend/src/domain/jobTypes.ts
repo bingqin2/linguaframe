@@ -1058,6 +1058,49 @@ export interface DemoPresenterPack {
   presenterNotesMarkdown: string;
 }
 
+export interface DemoReplayCardSetting {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface DemoReplayCardCommand {
+  kind: string;
+  label: string;
+  command: string;
+  note: string;
+}
+
+export interface DemoReplayCardLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoReplayCard {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  headline: string;
+  readiness: string;
+  status: LocalizationJobStatus;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  modelCallCount: number;
+  providerCacheHitCount: number;
+  artifactCacheHitCount: number;
+  estimatedCostUsd: number;
+  recommendedBaselineJobId: string | null;
+  bestQualityJobId: string | null;
+  lowestCostJobId: string | null;
+  settings: DemoReplayCardSetting[];
+  commands: DemoReplayCardCommand[];
+  links: DemoReplayCardLink[];
+  safetyNotes: string[];
+}
+
 export interface DemoShareSheetLink {
   kind: string;
   label: string;

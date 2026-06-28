@@ -1025,6 +1025,18 @@ test_download_demo_presenter_pack_helper_uses_backend_route() {
   [[ "$output" == *"http://example.test/api/jobs/presenter%20job%2Fslash/demo-presenter-pack"* ]] || fail "demo presenter pack helper used wrong route"
 }
 
+test_download_demo_replay_card_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_replay_card_json "http://example.test" "replay job/slash" "$TMPDIR/demo-replay-card.json" >"$TMPDIR/replay-card-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/replay-card-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/replay%20job%2Fslash/demo-replay-card"* ]] || fail "demo replay card helper used wrong route"
+}
+
 test_download_demo_share_sheet_helpers_use_backend_routes() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1325,6 +1337,75 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "presenter pack summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "presenter pack summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "presenter pack summary exposed provider payload"
+}
+
+test_print_demo_replay_card_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-replay-card.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-29T10:15:30Z",
+  "headline": "tears-showcase replay card to zh-CN",
+  "readiness": "READY",
+  "status": "COMPLETED",
+  "targetLanguage": "zh-CN",
+  "demoProfileId": "tears-showcase",
+  "qualityScore": 91,
+  "qualityVerdict": "GOOD",
+  "modelCallCount": 3,
+  "providerCacheHitCount": 1,
+  "artifactCacheHitCount": 0,
+  "estimatedCostUsd": 0.000090,
+  "recommendedBaselineJobId": "baseline-job",
+  "bestQualityJobId": "showcase-job",
+  "lowestCostJobId": "baseline-job",
+  "settings": [
+    {
+      "key": "targetLanguage",
+      "label": "Target language",
+      "value": "zh-CN"
+    },
+    {
+      "key": "unsafe",
+      "label": "Unsafe detail",
+      "value": "raw transcript text /Users/example/private.mov sk-test provider payload"
+    }
+  ],
+  "commands": [
+    {
+      "kind": "EXPORT_REPLAY_CARD",
+      "label": "Export this replay card",
+      "command": "LINGUAFRAME_DEMO_JOB_ID=showcase-job scripts/demo/demo-replay-card.sh",
+      "note": "Writes JSON."
+    }
+  ],
+  "links": [
+    {
+      "kind": "DEMO_RUN_PACKAGE",
+      "label": "Demo run package",
+      "url": "/api/jobs/showcase-job/demo-run-package/download"
+    }
+  ],
+  "safetyNotes": [
+    "Metadata only: no API keys, object storage credentials, raw prompts, or media bytes are included."
+  ]
+}
+JSON
+
+  print_demo_replay_card_summary_file "$TMPDIR/demo-replay-card.json" >"$TMPDIR/demo-replay-card.out"
+  local output
+  output="$(cat "$TMPDIR/demo-replay-card.out")"
+
+  [[ "$output" == *"demoReplayCardJobId=showcase-job"* ]] || fail "replay card summary missed job"
+  [[ "$output" == *"demoReplayCardVideoId=video-demo"* ]] || fail "replay card summary missed video"
+  [[ "$output" == *"demoReplayCardReadiness=READY"* ]] || fail "replay card summary missed readiness"
+  [[ "$output" == *"demoReplayCardRecommendedBaselineJobId=baseline-job"* ]] || fail "replay card summary missed baseline"
+  [[ "$output" == *"demoReplayCardCommand=EXPORT_REPLAY_CARD:LINGUAFRAME_DEMO_JOB_ID=showcase-job scripts/demo/demo-replay-card.sh"* ]] || fail "replay card summary missed command"
+  [[ "$output" == *"demoReplayCardLink=DEMO_RUN_PACKAGE:/api/jobs/showcase-job/demo-run-package/download"* ]] || fail "replay card summary missed link"
+  [[ "$output" != *"raw transcript text"* ]] || fail "replay card summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "replay card summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "replay card summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "replay card summary exposed provider payload"
 }
 
 test_print_job_summary_includes_failure_triage() {
@@ -2550,11 +2631,13 @@ test_print_job_comparison_summary_is_metadata_only
 test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
+test_download_demo_replay_card_helper_uses_backend_route
 test_download_demo_share_sheet_helpers_use_backend_routes
 test_download_demo_run_monitor_helpers_use_backend_routes
 test_print_demo_run_monitor_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
+test_print_demo_replay_card_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

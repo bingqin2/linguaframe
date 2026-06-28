@@ -665,3 +665,11 @@ Decision: Add a read-only demo run launcher instead of auto-running the full pub
 Reason: The project needs a repeatable bridge from sample selection to full-demo execution, but starting Docker, uploading media, or calling OpenAI from an operator metadata endpoint would hide cost and state changes.
 
 Impact: `/api/operator/demo-run-launcher`, the browser `Demo run launcher` panel, and `scripts/demo/demo-run-launcher.sh` show the recommended sample/profile command, readiness gates, and expected evidence files. The launcher remains metadata-only and does not upload media, start Docker, edit `.env`, call OpenAI, or expose full local paths.
+
+## 2026-06-29
+
+Decision: Generate demo replay cards on demand from existing job evidence instead of storing rerun recipes.
+
+Reason: Presenters need a reliable way to reproduce or compare a selected job, but automatically replaying uploads would hide cost, state changes, and unavailable local media paths.
+
+Impact: `/api/jobs/{jobId}/demo-replay-card`, the browser `Demo replay card` panel, and `scripts/demo/demo-replay-card.sh` expose safe settings, recommended replay commands, baseline comparison guidance, and package links. The card is read-only, omits local source paths and secrets, and reuses job detail, run matrix, presenter pack, and evidence routes.

@@ -6,6 +6,7 @@ import type {
   JobArtifact,
   JobComparison,
   DemoRunMonitor,
+  DemoReplayCard,
   DemoRunSnapshot,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -225,6 +226,12 @@ export async function getDemoPresenterPack(jobId: string): Promise<DemoPresenter
 
 export async function getDemoRunMonitor(jobId: string): Promise<DemoRunMonitor> {
   return requestJson<DemoRunMonitor>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-monitor`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoReplayCard(jobId: string): Promise<DemoReplayCard> {
+  return requestJson<DemoReplayCard>(`/api/jobs/${encodeURIComponent(jobId)}/demo-replay-card`, {
     method: 'GET'
   });
 }
@@ -537,6 +544,7 @@ export const linguaFrameApi = {
   getDeliveryManifest,
   getDemoRunMatrix,
   getDemoRunMonitor,
+  getDemoReplayCard,
   getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,

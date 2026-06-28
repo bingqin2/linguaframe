@@ -4,6 +4,7 @@ import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemo
 import type {
   AuthSessionStatus,
   DemoRunLauncher,
+  DemoReplayCard,
   DemoSampleMediaCatalog,
   DeliveryManifest,
   DemoPresenterPack,
@@ -420,6 +421,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunMonitor, setDemoRunMonitor] = useState<DemoRunMonitor | null>(null);
   const [demoRunMonitorError, setDemoRunMonitorError] = useState<string | null>(null);
   const [isLoadingDemoRunMonitor, setIsLoadingDemoRunMonitor] = useState(false);
+  const [demoReplayCard, setDemoReplayCard] = useState<DemoReplayCard | null>(null);
+  const [demoReplayCardError, setDemoReplayCardError] = useState<string | null>(null);
+  const [isLoadingDemoReplayCard, setIsLoadingDemoReplayCard] = useState(false);
   const [demoRunSnapshot, setDemoRunSnapshot] = useState<DemoRunSnapshot | null>(null);
   const [demoRunSnapshotError, setDemoRunSnapshotError] = useState<string | null>(null);
   const [isLoadingDemoRunSnapshot, setIsLoadingDemoRunSnapshot] = useState(false);
@@ -487,6 +491,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoPresenterPackError(null);
           setDemoRunMonitor(null);
           setDemoRunMonitorError(null);
+          setDemoReplayCard(null);
+          setDemoReplayCardError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
         }
@@ -555,6 +561,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunMonitorError(toErrorMessage(monitorLoadError));
     } finally {
       setIsLoadingDemoRunMonitor(false);
+    }
+  }, []);
+
+  const loadDemoReplayCard = useCallback(async (jobId: string) => {
+    setIsLoadingDemoReplayCard(true);
+    try {
+      const card = await linguaFrameApi.getDemoReplayCard(jobId);
+      setDemoReplayCard(card);
+      setDemoReplayCardError(null);
+    } catch (cardLoadError) {
+      setDemoReplayCard(null);
+      setDemoReplayCardError(toErrorMessage(cardLoadError));
+    } finally {
+      setIsLoadingDemoReplayCard(false);
     }
   }, []);
 
@@ -978,6 +998,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
           void loadDemoPresenterPack(nextJob.jobId);
+          void loadDemoReplayCard(nextJob.jobId);
           void loadDemoRunSnapshot(nextJob.jobId);
           void loadDemoShareSheet(nextJob.jobId);
           void loadHistory(historyStatusFilter);
@@ -994,7 +1015,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1090,6 +1111,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(upload.jobId);
       await loadDemoRunMonitor(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
+      await loadDemoReplayCard(upload.jobId);
       await loadDemoRunSnapshot(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
       await loadHistory(historyStatusFilter);
@@ -1116,6 +1138,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(jobId);
     await loadDemoRunMonitor(jobId);
     await loadDemoPresenterPack(jobId);
+    await loadDemoReplayCard(jobId);
     await loadDemoRunSnapshot(jobId);
     await loadDemoShareSheet(jobId);
   }
@@ -1133,6 +1156,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(retriedJob.jobId);
       await loadDemoRunMonitor(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
+      await loadDemoReplayCard(retriedJob.jobId);
       await loadDemoRunSnapshot(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
       setError(null);
@@ -1157,6 +1181,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(cancelledJob.jobId);
       await loadDemoRunMonitor(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
+      await loadDemoReplayCard(cancelledJob.jobId);
       await loadDemoRunSnapshot(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
       setError(null);
@@ -1184,6 +1209,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(recentJob.jobId);
     await loadDemoRunMonitor(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
+    await loadDemoReplayCard(recentJob.jobId);
     await loadDemoRunSnapshot(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
   }
@@ -1204,6 +1230,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(historyJob.jobId);
     await loadDemoRunMonitor(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
+    await loadDemoReplayCard(historyJob.jobId);
     await loadDemoRunSnapshot(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
   }
@@ -1225,6 +1252,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(failure.jobId);
     await loadDemoRunMonitor(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
+    await loadDemoReplayCard(failure.jobId);
     await loadDemoRunSnapshot(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
   }
@@ -1893,6 +1921,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoRunMatrixError={demoRunMatrixError}
               demoRunMonitor={demoRunMonitor}
               demoRunMonitorError={demoRunMonitorError}
+              demoReplayCard={demoReplayCard}
+              demoReplayCardError={demoReplayCardError}
               demoRunSnapshot={demoRunSnapshot}
               demoRunSnapshotError={demoRunSnapshotError}
               demoPresenterPack={demoPresenterPack}
@@ -1903,6 +1933,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               isLoadingDemoRunMonitor={isLoadingDemoRunMonitor}
+              isLoadingDemoReplayCard={isLoadingDemoReplayCard}
               isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
@@ -1911,6 +1942,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
+              onRefreshDemoReplayCard={() => void loadDemoReplayCard(job.jobId)}
               onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
@@ -3637,6 +3669,8 @@ function JobDetail({
   demoRunMatrixError,
   demoRunMonitor,
   demoRunMonitorError,
+  demoReplayCard,
+  demoReplayCardError,
   demoRunSnapshot,
   demoRunSnapshotError,
   demoPresenterPack,
@@ -3647,6 +3681,7 @@ function JobDetail({
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
   isLoadingDemoRunMonitor,
+  isLoadingDemoReplayCard,
   isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
@@ -3655,6 +3690,7 @@ function JobDetail({
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
+  onRefreshDemoReplayCard,
   onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
@@ -3699,6 +3735,8 @@ function JobDetail({
   demoRunMatrixError: string | null;
   demoRunMonitor: DemoRunMonitor | null;
   demoRunMonitorError: string | null;
+  demoReplayCard: DemoReplayCard | null;
+  demoReplayCardError: string | null;
   demoRunSnapshot: DemoRunSnapshot | null;
   demoRunSnapshotError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
@@ -3709,6 +3747,7 @@ function JobDetail({
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
   isLoadingDemoRunMonitor: boolean;
+  isLoadingDemoReplayCard: boolean;
   isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
@@ -3717,6 +3756,7 @@ function JobDetail({
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
+  onRefreshDemoReplayCard: () => void;
   onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
@@ -3901,6 +3941,13 @@ function JobDetail({
         isLoading={isLoadingDemoPresenterPack}
         pack={demoPresenterPack}
         onRefresh={onRefreshDemoPresenterPack}
+      />
+
+      <DemoReplayCardPanel
+        card={demoReplayCard}
+        error={demoReplayCardError}
+        isLoading={isLoadingDemoReplayCard}
+        onRefresh={onRefreshDemoReplayCard}
       />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
@@ -5424,6 +5471,111 @@ function DemoPresenterPackPanel({
             {pack.downloads.map((download) => (
               <a key={download.kind} href={download.url}>
                 {download.label}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoReplayCardPanel({
+  card,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  card: DemoReplayCard | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function copyCommand(command: string) {
+    await navigator.clipboard.writeText(command);
+    setStatus('Replay command copied.');
+  }
+
+  return (
+    <section className="panel demo-replay-card-panel" aria-label="Demo replay card">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo replay card</h3>
+          <p className="muted">Metadata-only settings and commands for reproducing this run.</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+      {isLoading && !card ? <p className="muted">Loading demo replay card...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="success-text">{status}</p> : null}
+      {card ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Readiness</dt>
+              <dd>{card.readiness}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(card.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Recommended baseline</dt>
+              <dd>{card.recommendedBaselineJobId ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatCost(card.estimatedCostUsd)}</dd>
+            </div>
+          </dl>
+          <h4>{card.headline}</h4>
+          <div className="snapshot-section-grid">
+            <div>
+              <h4>Replay commands</h4>
+              <ul className="compact-list command-list">
+                {card.commands.map((command) => (
+                  <li key={command.kind}>
+                    <strong>{command.label}</strong>
+                    <code>{command.command}</code>
+                    <span>{command.note}</span>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => void copyCommand(command.command)}
+                    >
+                      Copy
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Run settings</h4>
+              <dl className="compact-definition-list">
+                {card.settings.map((setting) => (
+                  <div key={setting.key}>
+                    <dt>{setting.label}</dt>
+                    <dd>{setting.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </div>
+          <ul className="checklist compact-list">
+            {card.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="link-list">
+            {card.links.slice(0, 8).map((link) => (
+              <a key={`${link.kind}-${link.url}`} href={link.url}>
+                {link.label}
               </a>
             ))}
           </div>

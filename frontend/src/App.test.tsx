@@ -11,6 +11,7 @@ import type {
   DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoRunMonitor,
+  DemoReplayCard,
   DemoRunSnapshot,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -115,6 +116,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoReplayCard').mockResolvedValue(demoReplayCardFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunSnapshot').mockResolvedValue(demoRunSnapshotFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
@@ -2946,6 +2948,39 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoPresenterPack).toHaveBeenCalledWith('presenter-showcase-job');
   });
 
+  test('shows a demo replay card for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'replay-showcase-job',
+        videoId: 'replay-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoReplayCard').mockResolvedValue(demoReplayCardFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'replay-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const replayCard = await screen.findByRole('region', { name: /demo replay card/i });
+    expect(within(replayCard).getByText('READY')).toBeInTheDocument();
+    expect(within(replayCard).getByText('tears-showcase replay card to zh-CN')).toBeInTheDocument();
+    expect(within(replayCard).getByText('Full Tears of Steel replay')).toBeInTheDocument();
+    expect(within(replayCard).getByText('LINGUAFRAME_DEMO_JOB_ID=replay-showcase-job scripts/demo/demo-replay-card.sh')).toBeInTheDocument();
+    expect(within(replayCard).getByRole('link', { name: /demo run package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/replay-showcase-job/demo-run-package/download'
+    );
+    await userEvent.click(within(replayCard).getAllByRole('button', { name: /copy/i })[0]);
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalled());
+    expect(linguaFrameApi.getDemoReplayCard).toHaveBeenCalledWith('replay-showcase-job');
+  });
+
   test('shows a demo share sheet for selected jobs', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({
@@ -4366,6 +4401,71 @@ function demoPresenterPackFixture(overrides: Partial<DemoPresenterPack> = {}): D
       }
     ],
     presenterNotesMarkdown: '# LinguaFrame Demo Presenter Pack\n- Anchor job: presenter-showcase-job\n',
+    ...overrides
+  };
+}
+
+function demoReplayCardFixture(overrides: Partial<DemoReplayCard> = {}): DemoReplayCard {
+  return {
+    jobId: 'replay-showcase-job',
+    videoId: 'replay-video',
+    generatedAt: '2026-06-29T10:15:30Z',
+    headline: 'tears-showcase replay card to zh-CN',
+    readiness: 'READY',
+    status: 'COMPLETED',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    qualityScore: 91,
+    qualityVerdict: 'GOOD',
+    modelCallCount: 2,
+    providerCacheHitCount: 1,
+    artifactCacheHitCount: 0,
+    estimatedCostUsd: 0.000141,
+    recommendedBaselineJobId: 'replay-baseline-job',
+    bestQualityJobId: 'replay-showcase-job',
+    lowestCostJobId: 'replay-baseline-job',
+    settings: [
+      {
+        key: 'targetLanguage',
+        label: 'Target language',
+        value: 'zh-CN'
+      },
+      {
+        key: 'demoProfileId',
+        label: 'Demo profile',
+        value: 'tears-showcase'
+      },
+      {
+        key: 'translationGlossary',
+        label: 'Glossary',
+        value: '3 entries / abc123'
+      }
+    ],
+    commands: [
+      {
+        kind: 'TEARS_FULL_REPLAY',
+        label: 'Full Tears of Steel replay',
+        command: 'LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        note: 'Set LINGUAFRAME_TEARS_SAMPLE_PATH if the sample is not in the default location.'
+      },
+      {
+        kind: 'EXPORT_REPLAY_CARD',
+        label: 'Export this replay card',
+        command: 'LINGUAFRAME_DEMO_JOB_ID=replay-showcase-job scripts/demo/demo-replay-card.sh',
+        note: 'Writes the metadata-only replay card JSON under /tmp/linguaframe-demo/demo-replay-card.'
+      }
+    ],
+    links: [
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        url: '/api/jobs/replay-showcase-job/demo-run-package/download'
+      }
+    ],
+    safetyNotes: [
+      'Metadata only: no API keys, object storage credentials, raw prompts, or media bytes are included.',
+      'Local source paths are intentionally omitted; choose the source file again before replaying.'
+    ],
     ...overrides
   };
 }

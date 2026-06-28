@@ -3256,3 +3256,26 @@ Post-merge verification:
 - `mvn -pl LinguaFrame -Dtest=DemoSampleMediaCatalogServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed on `main` with `Test Files 2 passed` and `Tests 138 passed`.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo replay card workspace in `docs/plans/111-demo-replay-card-workspace.md`.
+- Added backend `GET /api/jobs/{jobId}/demo-replay-card` with metadata-only settings, replay commands, run recommendations, and safe evidence links.
+- Added a React `Demo replay card` panel with readiness, replay commands, settings, safety notes, links, refresh, and command copy controls.
+- Added `scripts/demo/demo-replay-card.sh`, shared demo-client helpers, and full Tears export of `demo-replay-card.json`.
+- Updated README, Docker E2E guide, and decisions with replay-card usage and read-only behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=DemoReplayCardServiceTests,LocalizationJobControllerTests test` first failed on test fixture/assertion issues, then passed with `Tests run: 46, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoReplayCardServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 51, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run App.test.tsx` passed with `Test Files 1 passed` and `Tests 83 passed`.
+- `bash -n scripts/demo/demo-replay-card.sh` passed.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 577, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 148 passed`.
