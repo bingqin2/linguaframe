@@ -271,6 +271,8 @@ Expected:
 - Terminal subtitle-draft output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `reviewedPublishArtifactCount=3`, `reviewedPublishSubtitleArtifactCount=3`, `reviewedPublishBurnedVideoRequested=false`, and `reviewedPublishBurnedVideoCreated=false`.
 - Terminal reviewed-publish output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Output includes `deliveryManifestHandoffReady=true`, `deliveryManifestReviewedSubtitleArtifactCount=3`, `deliveryManifestReviewedBurnedVideoAvailable=false`, `deliveryManifestGeneratedArtifactCount`, and `deliveryManifestLinkCount`.
+- Terminal delivery-manifest output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.
@@ -299,6 +301,7 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
 - The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
 - The script downloads `/tmp/linguaframe-demo/job-diagnostics.json`.
+- The script downloads `/tmp/linguaframe-demo/delivery-manifest.md`.
 - The script downloads `/tmp/linguaframe-demo/worker-summary.json`.
 
 Inspect job-scoped backend logs:

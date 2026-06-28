@@ -2321,3 +2321,26 @@ Post-merge verification:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Planned the delivery handoff manifest MVP in `docs/plans/077-delivery-handoff-manifest-mvp.md`.
+- Added delivery manifest VO types and a service that separates reviewed handoff artifacts from generated audit artifacts.
+- Added JSON and Markdown delivery manifest endpoints plus OpenAPI and runtime route contracts.
+- Added a React `Delivery handoff` panel that shows handoff readiness, reviewed artifacts, audit artifacts, manifest download, and verification links.
+- Updated deterministic demo scripts to print delivery manifest metadata and download `/tmp/linguaframe-demo/delivery-manifest.md`.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DeliveryManifestServiceTests test` first failed because the manifest service did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDeliveryManifestJsonAndMarkdownForLocalizationJob,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- linguaFrameApi` first failed because delivery manifest helpers did not exist, then passed with `Tests 33 passed`.
+- `cd frontend && npm run test:run -- App -t "edits, saves, resets, and clears subtitle draft rows"` first failed because the `Delivery handoff` panel was missing, then passed.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Tests 82 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=DeliveryManifestServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 38, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.

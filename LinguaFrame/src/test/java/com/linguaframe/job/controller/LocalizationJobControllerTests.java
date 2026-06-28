@@ -1265,6 +1265,92 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDeliveryManifestJsonAndMarkdownForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:25:00Z");
+        createJob("job-controller-video-manifest", "job-controller-job-manifest", "manifest.mp4", LocalizationJobStatus.COMPLETED, createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "manifest-reviewed-json",
+                "job-controller-job-manifest",
+                JobArtifactType.REVIEWED_SUBTITLE_JSON,
+                "job-artifacts/job-controller-job-manifest/reviewed-json/reviewed-subtitles.zh-CN.json",
+                "reviewed-subtitles.zh-CN.json",
+                "application/json",
+                128L,
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "manifest-reviewed-srt",
+                "job-controller-job-manifest",
+                JobArtifactType.REVIEWED_SUBTITLE_SRT,
+                "job-artifacts/job-controller-job-manifest/reviewed-srt/reviewed-subtitles.zh-CN.srt",
+                "reviewed-subtitles.zh-CN.srt",
+                "application/x-subrip",
+                64L,
+                "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "manifest-reviewed-vtt",
+                "job-controller-job-manifest",
+                JobArtifactType.REVIEWED_SUBTITLE_VTT,
+                "job-artifacts/job-controller-job-manifest/reviewed-vtt/reviewed-subtitles.zh-CN.vtt",
+                "reviewed-subtitles.zh-CN.vtt",
+                "text/vtt",
+                72L,
+                "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+                false,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "manifest-worker",
+                "job-controller-job-manifest",
+                JobArtifactType.WORKER_SUMMARY,
+                "job-artifacts/job-controller-job-manifest/worker/worker-summary.json",
+                "worker-summary.json",
+                "application/json",
+                42L,
+                "1111111111111111111111111111111111111111111111111111111111111111",
+                false,
+                null,
+                createdAt.plusSeconds(4)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/delivery-manifest", "job-controller-job-manifest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-manifest"))
+                .andExpect(jsonPath("$.handoffReady").value(true))
+                .andExpect(jsonPath("$.reviewedSubtitleArtifactCount").value(3))
+                .andExpect(jsonPath("$.reviewedArtifacts[1].downloadUrl").value(
+                        "/api/jobs/job-controller-job-manifest/artifacts/manifest-reviewed-srt/download"
+                ))
+                .andExpect(jsonPath("$.auditArtifacts[0].filename").value("worker-summary.json"))
+                .andExpect(jsonPath("$.links[0].url").value("/api/jobs/job-controller-job-manifest/artifacts/archive/download"));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/delivery-manifest/markdown/download",
+                        "job-controller-job-manifest"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-job-manifest-delivery-manifest.md\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown).contains("reviewed-subtitles.zh-CN.srt");
+        assertThat(markdown).contains("/api/jobs/job-controller-job-manifest/evidence/bundle/download");
+        assertThat(markdown).doesNotContain("job-artifacts/job-controller-job-manifest");
+        assertThat(markdown).doesNotContain("raw transcript");
+        assertThat(markdown).doesNotContain("raw corrected subtitle");
+        assertThat(markdown).doesNotContain("OPENAI_API_KEY");
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);

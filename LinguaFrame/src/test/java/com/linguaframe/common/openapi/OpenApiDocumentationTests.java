@@ -91,6 +91,8 @@ class OpenApiDocumentationTests {
                         "/api/jobs/{jobId}/diagnostics/download",
                         "/api/jobs/{jobId}/evidence/markdown/download",
                         "/api/jobs/{jobId}/evidence/bundle/download",
+                        "/api/jobs/{jobId}/delivery-manifest",
+                        "/api/jobs/{jobId}/delivery-manifest/markdown/download",
                         "/api/jobs/{jobId}/transcript",
                         "/api/jobs/{jobId}/subtitles/{language}",
                         "/api/jobs/{jobId}/subtitle-draft/publish",
