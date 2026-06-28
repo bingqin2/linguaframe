@@ -23,6 +23,13 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `demo-upload-readiness-workspace` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=DemoUploadReadinessServiceTests,MediaUploadControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 27, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed on `main` with `Tests 120 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
