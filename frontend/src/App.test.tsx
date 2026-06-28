@@ -1297,6 +1297,144 @@ describe('App', () => {
     expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
   });
 
+  test('renders ready demo handoff checklist for completed reviewed media jobs', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'handoff-ready-job',
+        videoId: 'handoff-video',
+        targetLanguage: 'zh-CN',
+        status: 'COMPLETED'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'handoff-ready-job',
+        handoffReady: true,
+        reviewedSubtitleArtifactCount: 3,
+        reviewedBurnedVideoAvailable: true,
+        links: [
+          {
+            label: 'Evidence bundle',
+            kind: 'EVIDENCE_BUNDLE',
+            url: '/api/jobs/handoff-ready-job/evidence/bundle/download'
+          }
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'reviewed-json',
+        jobId: 'handoff-ready-job',
+        type: 'REVIEWED_SUBTITLE_JSON',
+        filename: 'reviewed-subtitles.zh-CN.json'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-srt',
+        jobId: 'handoff-ready-job',
+        type: 'REVIEWED_SUBTITLE_SRT',
+        filename: 'reviewed-subtitles.zh-CN.srt'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-vtt',
+        jobId: 'handoff-ready-job',
+        type: 'REVIEWED_SUBTITLE_VTT',
+        filename: 'reviewed-subtitles.zh-CN.vtt'
+      }),
+      artifactFixture({
+        artifactId: 'dubbing-audio',
+        jobId: 'handoff-ready-job',
+        type: 'DUBBING_AUDIO',
+        filename: 'dubbing-audio.mp3',
+        contentType: 'audio/mpeg'
+      }),
+      artifactFixture({
+        artifactId: 'burned-video',
+        jobId: 'handoff-ready-job',
+        type: 'BURNED_VIDEO',
+        filename: 'burned-video.mp4',
+        contentType: 'video/mp4'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-video',
+        jobId: 'handoff-ready-job',
+        type: 'REVIEWED_BURNED_VIDEO',
+        filename: 'reviewed-burned-video.mp4',
+        contentType: 'video/mp4'
+      })
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'handoff-ready-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const checklist = await screen.findByRole('region', { name: /demo handoff checklist/i });
+    expect(within(checklist).getByText('Demo handoff checklist')).toBeInTheDocument();
+    expect(within(checklist).getByText('Ready for demo handoff')).toBeInTheDocument();
+    expect(within(checklist).getByText('Job completed')).toBeInTheDocument();
+    expect(within(checklist).getByText('Reviewed subtitles ready')).toBeInTheDocument();
+    expect(within(checklist).getByText('Media outputs available')).toBeInTheDocument();
+    expect(within(checklist).getByText('Evidence downloads ready')).toBeInTheDocument();
+    expect(within(checklist).getByRole('button', { name: /copy checklist/i })).toBeEnabled();
+    expect(within(checklist).getByRole('button', { name: /download checklist json/i })).toBeEnabled();
+  });
+
+  test('renders attention demo handoff checklist for failed jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'handoff-failed-job',
+        videoId: 'handoff-failed-video',
+        status: 'FAILED',
+        failureStage: 'TARGET_SUBTITLE_EXPORT',
+        failureReason: 'OpenAI request failed',
+        failureTriage: {
+          category: 'OPENAI_AUTH_OR_MODEL',
+          summary: 'OpenAI rejected the configured credentials or model.',
+          recommendedAction: 'Run the OpenAI preflight before retrying.',
+          retryable: false,
+          runbookCommand: 'scripts/demo/openai-demo-preflight.sh',
+          safeDetails: ['failureStage=TARGET_SUBTITLE_EXPORT']
+        }
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'handoff-failed-job',
+        handoffReady: false,
+        reviewedSubtitleArtifactCount: 0,
+        reviewedArtifacts: [],
+        auditArtifacts: [],
+        links: []
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'handoff-failed-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const checklist = await screen.findByRole('region', { name: /demo handoff checklist/i });
+    expect(within(checklist).getByText('Needs attention')).toBeInTheDocument();
+    expect(within(checklist).getByText('Job completed')).toBeInTheDocument();
+    expect(within(checklist).getByText('Reviewed subtitles ready')).toBeInTheDocument();
+    expect(within(checklist).getByText('Failure triage available')).toBeInTheDocument();
+    expect(within(checklist).getByText(/OPENAI_AUTH_OR_MODEL/)).toBeInTheDocument();
+    expect(within(checklist).getByRole('link', { name: /download diagnostics/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/handoff-failed-job/diagnostics/download'
+    );
+  });
+
   test('edits, saves, resets, and clears subtitle draft rows', async () => {
     const updateDraft = vi.spyOn(linguaFrameApi, 'updateSubtitleDraft').mockResolvedValue(
       subtitleDraftFixture({

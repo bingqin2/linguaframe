@@ -2380,3 +2380,23 @@ Post-merge verification:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Planned the demo handoff checklist workspace in `docs/plans/079-demo-handoff-checklist-workspace.md`.
+- Added a React `Demo handoff checklist` panel that summarizes job completion, terminal pipeline state, reviewed subtitle readiness, media outputs, evidence downloads, quality, model-call/cost evidence, cache evidence, and failure triage from already-loaded safe metadata.
+- Added copy and JSON download actions for a metadata-only checklist.
+- Added terminal `demoHandoff*` summary output to the Docker E2E success script.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, and target state with final demo handoff verification expectations.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "demo handoff checklist"` first failed because the checklist panel did not exist, then passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_demo_handoff_checklist_summary` did not exist, then passed.
+- `cd frontend && npm run test:run -- App` passed with `Tests 52 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
+- `git diff --check` passed.

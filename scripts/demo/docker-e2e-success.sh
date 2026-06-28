@@ -25,6 +25,9 @@ DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/job
 EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/job-evidence.md}"
 EVIDENCE_BUNDLE_PATH="${LINGUAFRAME_DEMO_EVIDENCE_BUNDLE_PATH:-/tmp/linguaframe-demo/job-evidence.zip}"
 DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_PATH:-/tmp/linguaframe-demo/delivery-manifest.md}"
+DELIVERY_MANIFEST_JSON_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_JSON_PATH:-/tmp/linguaframe-demo/delivery-manifest.json}"
+ARTIFACTS_JSON_PATH="${LINGUAFRAME_DEMO_ARTIFACTS_JSON_PATH:-/tmp/linguaframe-demo/artifacts.json}"
+JOB_DETAIL_PATH="${LINGUAFRAME_DEMO_JOB_DETAIL_PATH:-/tmp/linguaframe-demo/job-detail.json}"
 
 wait_for_backend "$BASE_URL"
 ensure_demo_sample "$SAMPLE_PATH"
@@ -34,6 +37,8 @@ job_id="$(printf '%s' "$upload_response" | extract_json_field jobId)"
 
 echo "Uploaded demo video. Waiting for job $job_id to complete..."
 job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
+mkdir -p "$(dirname "$JOB_DETAIL_PATH")"
+printf '%s' "$job_response" >"$JOB_DETAIL_PATH"
 printf '%s' "$job_response" | print_job_summary
 
 echo "Subtitle draft summary for job $job_id:"
@@ -41,12 +46,19 @@ get_job_subtitle_draft "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_draft_summ
 echo "Publishing reviewed subtitle artifacts for job $job_id:"
 publish_reviewed_subtitles "$BASE_URL" "$job_id" "zh-CN" "false" | print_reviewed_publish_summary
 echo "Delivery manifest summary for job $job_id:"
-get_delivery_manifest "$BASE_URL" "$job_id" | print_delivery_manifest_summary
+delivery_manifest_response="$(get_delivery_manifest "$BASE_URL" "$job_id")"
+mkdir -p "$(dirname "$DELIVERY_MANIFEST_JSON_PATH")"
+printf '%s' "$delivery_manifest_response" >"$DELIVERY_MANIFEST_JSON_PATH"
+printf '%s' "$delivery_manifest_response" | print_delivery_manifest_summary
 echo "Artifacts for job $job_id:"
 artifacts_response="$(list_job_artifacts "$BASE_URL" "$job_id")"
+mkdir -p "$(dirname "$ARTIFACTS_JSON_PATH")"
+printf '%s' "$artifacts_response" >"$ARTIFACTS_JSON_PATH"
 printf '%s' "$artifacts_response" | print_artifact_summary
 echo "Media delivery summary for job $job_id:"
 printf '%s' "$artifacts_response" | print_media_delivery_summary
+echo "Demo handoff checklist for job $job_id:"
+print_demo_handoff_checklist_summary "$JOB_DETAIL_PATH" "$DELIVERY_MANIFEST_JSON_PATH" "$ARTIFACTS_JSON_PATH"
 echo "Transcript preview for job $job_id:"
 get_job_transcript "$BASE_URL" "$job_id" | python3 -m json.tool
 echo "Target subtitle preview for job $job_id:"

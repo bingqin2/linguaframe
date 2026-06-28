@@ -342,6 +342,77 @@ td {
   gap: 12px;
 }
 
+.handoff-checklist-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.checklist-summary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.checklist-summary dd {
+  display: block;
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+.checklist-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-list li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 220px) 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 12px;
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  background: #f8fbfc;
+}
+
+.checklist-list p {
+  margin: 0;
+  color: #52616d;
+}
+
+.checklist-status-pass,
+.checklist-status-warn,
+.checklist-status-fail {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.checklist-status-pass {
+  color: #11613a;
+  background: #dff6ea;
+}
+
+.checklist-status-warn {
+  color: #7a4b00;
+  background: #fff0c2;
+}
+
+.checklist-status-fail {
+  color: #8d351f;
+  background: #ffe0d6;
+}
+
+.checklist-links {
+  justify-content: flex-start;
+}
+
 .evidence-preview {
   max-height: 280px;
   overflow: auto;
@@ -783,6 +854,10 @@ video {
   .app-header,
   .job-header {
     display: grid;
+  }
+
+  .checklist-list li {
+    grid-template-columns: 1fr;
   }
 
   .header-tools,

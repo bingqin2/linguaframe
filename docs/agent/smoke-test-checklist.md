@@ -211,6 +211,10 @@ Expected browser behavior:
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
 - `Download evidence bundle` points to `/api/jobs/{jobId}/evidence/bundle/download` and returns a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`.
+- The `Demo handoff checklist` panel appears in the selected job view.
+- The `Demo handoff checklist` panel shows `Ready for demo handoff` when the job is completed, reviewed subtitles are ready, and evidence links are available.
+- Failed or incomplete jobs show `Needs attention`, while still exposing diagnostics and backend evidence links.
+- `Copy checklist` and `Download checklist JSON` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, or media bytes.
 - The `Cache replay` panel can pin the selected job as a baseline, compare it with another loaded job, show provider cache-hit stages, artifact reused/generated counts, model-call delta, estimated-cost delta, and export safe replay evidence.
 - `Copy replay evidence` and `Download replay evidence JSON` must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, credentials, or provider payloads.
 - Transcript and subtitle preview panels render when backend preview data exists.
@@ -277,6 +281,11 @@ Expected:
 - Output includes `deliveryManifestHandoffReady=true`, `deliveryManifestReviewedSubtitleArtifactCount=3`, `deliveryManifestReviewedBurnedVideoAvailable=false`, `deliveryManifestGeneratedArtifactCount`, and `deliveryManifestLinkCount`.
 - Terminal delivery-manifest output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Terminal media-delivery output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Terminal demo-handoff-checklist output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Output includes `demoHandoffOverall=READY` for completed reviewed handoff runs, otherwise `demoHandoffOverall=ATTENTION`.
+- Output includes `demoHandoffItem=PASS:Job completed` when the job completes.
+- Output includes `demoHandoffItem=PASS:Reviewed subtitles ready` after reviewed JSON/SRT/VTT artifacts are published.
+- Output includes `demoHandoffItem=PASS:Evidence downloads ready`.
 - Output includes `mediaDeliveryReadyCount`.
 - Output includes `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Generated` or `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Reused`.
 - Output includes `mediaDeliveryArtifact=DUBBING_AUDIO:dubbing-audio.mp3:audio/mpeg:Generated` only when TTS is enabled.
