@@ -259,6 +259,95 @@ if count < 1:
 PY
 }
 
+print_quality_evaluation_summary_file() {
+  local job_detail_path="$1"
+
+  python3 - "$job_detail_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+evaluation = job.get("qualityEvaluation")
+print("qualityEvaluationJobId=" + job["jobId"])
+if not evaluation:
+    print("qualityEvaluationStatus=NOT_RECORDED")
+else:
+    print("qualityEvaluationStatus=" + str(evaluation.get("status")))
+    print("qualityEvaluationScore=" + str(evaluation.get("score")))
+    print("qualityEvaluationVerdict=" + str(evaluation.get("verdict")))
+    print("qualityEvaluationLanguage=" + str(evaluation.get("language")))
+    print("qualityEvaluationIssueCount=" + str(len(evaluation.get("issues") or [])))
+    print("qualityEvaluationSuggestedFixCount=" + str(len(evaluation.get("suggestedFixes") or [])))
+PY
+}
+
+write_quality_evaluation_evidence_markdown() {
+  local job_detail_path="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$job_detail_path" "$output_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+output_path = sys.argv[2]
+evaluation = job.get("qualityEvaluation")
+job_id = job["jobId"]
+target_language = job.get("targetLanguage") or "N/A"
+lines = [
+    "# LinguaFrame Quality Evaluation Evidence",
+    "",
+    "## Job",
+    "- Job: " + job_id,
+    "- Video: " + str(job.get("videoId") or "N/A"),
+    "- Target language: " + target_language,
+    "- Job status: " + str(job.get("status") or "N/A"),
+    "- Created at: " + str(job.get("createdAt") or "N/A"),
+    "",
+]
+if not evaluation:
+    lines.extend([
+        "## Evaluation",
+        "- Status: NOT_RECORDED",
+        "- Quality evaluation has not been recorded for this job.",
+        "",
+    ])
+else:
+    lines.extend([
+        "## Evaluation",
+        "- Status: " + str(evaluation.get("status") or "N/A"),
+        "- Score: " + str(evaluation.get("score")) + " / 100",
+        "- Verdict: " + str(evaluation.get("verdict") or "N/A"),
+        "- Evaluation language: " + str(evaluation.get("language") or "N/A"),
+        "- Created at: " + str(evaluation.get("createdAt") or "N/A"),
+        "",
+        "## Dimensions",
+        "- Completeness: " + str(evaluation.get("completeness")) + " / 100",
+        "- Readability: " + str(evaluation.get("readability")) + " / 100",
+        "- Timing preservation: " + str(evaluation.get("timingPreservation")) + " / 100",
+        "- Naturalness: " + str(evaluation.get("naturalness")) + " / 100",
+        "",
+        "## Issues",
+        "- Issue count: " + str(len(evaluation.get("issues") or [])),
+    ])
+    lines.extend("- " + issue for issue in (evaluation.get("issues") or ["None recorded."]))
+    lines.extend(["", "## Suggested Fixes", "- Suggested fix count: " + str(len(evaluation.get("suggestedFixes") or []))])
+    lines.extend("- " + fix for fix in (evaluation.get("suggestedFixes") or ["None recorded."]))
+    lines.append("")
+lines.extend([
+    "## Related Safe Routes",
+    "- Job detail: /api/jobs/" + job_id,
+    "- Diagnostics: /api/jobs/" + job_id + "/diagnostics/download",
+    "- Backend evidence: /api/jobs/" + job_id + "/evidence/markdown/download",
+    "- Backend quality evidence: /api/jobs/" + job_id + "/quality-evaluation/evidence/markdown/download",
+    "- Subtitle review: /api/jobs/" + job_id + "/subtitle-review?language=" + target_language,
+    "",
+])
+open(output_path, "w", encoding="utf-8").write("\n".join(lines))
+PY
+}
+
 print_cache_hit_comparison() {
   local first_job_detail_path="$1"
   local second_job_detail_path="$2"
@@ -777,6 +866,15 @@ download_job_evidence_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/evidence/markdown/download" -o "$output_path"
 }
 
+download_quality_evaluation_evidence_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/quality-evaluation/evidence/markdown/download" -o "$output_path"
+}
+
 download_job_evidence_bundle() {
   local base_url="$1"
   local job_id="$2"
@@ -897,6 +995,44 @@ for value in required:
         raise SystemExit("Evidence report is missing required marker: " + value)
 print("evidenceMarkdownJobId=" + expected_job_id)
 print("evidenceMarkdownBytes=" + str(len(text.encode("utf-8"))))
+PY
+}
+
+print_quality_evidence_markdown_summary() {
+  local evidence_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$evidence_path" "$expected_job_id" <<'PY'
+import sys
+
+evidence_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+]
+required = [
+    "# LinguaFrame Quality Evaluation Evidence",
+    "- Job: " + expected_job_id,
+    "## Evaluation",
+    "## Related Safe Routes",
+]
+text = open(evidence_path, encoding="utf-8").read()
+for value in forbidden:
+    if value in text:
+        raise SystemExit("Quality evidence report contains forbidden sensitive string: " + value)
+for value in required:
+    if value not in text:
+        raise SystemExit("Quality evidence report is missing required marker: " + value)
+print("qualityEvidenceMarkdownJobId=" + expected_job_id)
+print("qualityEvidenceMarkdownBytes=" + str(len(text.encode("utf-8"))))
 PY
 }
 

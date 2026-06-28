@@ -114,6 +114,7 @@ A user should be able to:
 17. Retry the job if a step fails.
 18. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
 19. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+20. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 

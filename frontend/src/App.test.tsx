@@ -844,14 +844,15 @@ describe('App', () => {
     expect(getJob).toHaveBeenCalledTimes(2);
   });
 
-  test('renders timeline, usage summary, model calls, failed reason, and retry action', async () => {
+  test('renders timeline, usage summary, model calls, quality evidence, failed reason, and retry action', async () => {
     const retryJob = vi
       .spyOn(linguaFrameApi, 'retryJob')
       .mockResolvedValue(jobFixture({ status: 'RETRYING', retryCount: 1, failureReason: null }));
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({
         status: 'FAILED',
-        failureReason: 'stage failed safely',
+        failureReason:
+          'stage failed safely provider request payload raw transcript text sk-test /Users/example/job-artifacts/raw.json',
         failureTriage: {
           category: 'OPENAI_AUTH_OR_MODEL',
           summary: 'OpenAI rejected the configured credentials or model.',
@@ -909,7 +910,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
-    expect(await screen.findByText('stage failed safely')).toBeInTheDocument();
+    expect((await screen.findAllByText(/stage failed safely/)).length).toBeGreaterThan(0);
     const timeline = screen.getByRole('region', { name: /timeline/i });
     expect(within(timeline).getByText('WORKER_RECEIVED')).toBeInTheDocument();
     const modelCalls = screen.getByRole('region', { name: /model calls/i });
@@ -942,6 +943,28 @@ describe('App', () => {
     expect(
       within(qualityEvaluation).getByText('Review tone and terminology before publishing.')
     ).toBeInTheDocument();
+    expect(
+      within(qualityEvaluation).getByRole('link', { name: /download backend quality evidence/i })
+    ).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/quality-evaluation/evidence/markdown/download'
+    );
+    await userEvent.click(
+      within(qualityEvaluation).getByRole('button', { name: /copy quality evidence/i })
+    );
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalled());
+    const copiedEvidence = vi.mocked(navigator.clipboard.writeText).mock.calls.at(-1)?.[0] ?? '';
+    expect(copiedEvidence).toContain('# LinguaFrame Quality Evaluation Evidence');
+    expect(copiedEvidence).toContain('- Job: job-1');
+    expect(copiedEvidence).toContain('- Score: 92 / 100');
+    expect(copiedEvidence).not.toContain('raw transcript text');
+    expect(copiedEvidence).not.toContain('provider request payload');
+    expect(copiedEvidence).not.toContain('/Users/');
+    expect(copiedEvidence).not.toContain('sk-test');
+    expect(within(qualityEvaluation).getByText('Quality evidence copied.')).toBeInTheDocument();
+    expect(
+      within(qualityEvaluation).getByRole('button', { name: /download quality evidence/i })
+    ).toBeEnabled();
     const selectedJob = screen.getByRole('region', { name: /selected job/i });
     expect(
       within(selectedJob)
