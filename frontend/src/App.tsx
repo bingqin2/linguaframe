@@ -6,6 +6,7 @@ import type {
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
+  DemoRunMonitor,
   DemoShareSheet,
   FailureTriage,
   DemoUploadReadiness,
@@ -407,6 +408,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoPresenterPack, setDemoPresenterPack] = useState<DemoPresenterPack | null>(null);
   const [demoPresenterPackError, setDemoPresenterPackError] = useState<string | null>(null);
   const [isLoadingDemoPresenterPack, setIsLoadingDemoPresenterPack] = useState(false);
+  const [demoRunMonitor, setDemoRunMonitor] = useState<DemoRunMonitor | null>(null);
+  const [demoRunMonitorError, setDemoRunMonitorError] = useState<string | null>(null);
+  const [isLoadingDemoRunMonitor, setIsLoadingDemoRunMonitor] = useState(false);
   const [demoShareSheet, setDemoShareSheet] = useState<DemoShareSheet | null>(null);
   const [demoShareSheetError, setDemoShareSheetError] = useState<string | null>(null);
   const [isLoadingDemoShareSheet, setIsLoadingDemoShareSheet] = useState(false);
@@ -469,6 +473,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoRunMatrixError(null);
           setDemoPresenterPack(null);
           setDemoPresenterPackError(null);
+          setDemoRunMonitor(null);
+          setDemoRunMonitorError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
         }
@@ -523,6 +529,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoPresenterPackError(toErrorMessage(packLoadError));
     } finally {
       setIsLoadingDemoPresenterPack(false);
+    }
+  }, []);
+
+  const loadDemoRunMonitor = useCallback(async (jobId: string) => {
+    setIsLoadingDemoRunMonitor(true);
+    try {
+      const monitor = await linguaFrameApi.getDemoRunMonitor(jobId);
+      setDemoRunMonitor(monitor);
+      setDemoRunMonitorError(null);
+    } catch (monitorLoadError) {
+      setDemoRunMonitor(null);
+      setDemoRunMonitorError(toErrorMessage(monitorLoadError));
+    } finally {
+      setIsLoadingDemoRunMonitor(false);
     }
   }, []);
 
@@ -887,6 +907,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         setJob(nextJob);
         setError(null);
         void loadSourceMedia(nextJob.videoId);
+        void loadDemoRunMonitor(nextJob.jobId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
@@ -906,7 +927,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1000,6 +1021,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(nextJob.videoId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
       await loadDemoRunMatrix(upload.jobId);
+      await loadDemoRunMonitor(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
       await loadHistory(historyStatusFilter);
@@ -1024,6 +1046,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
     await loadDemoRunMatrix(jobId);
+    await loadDemoRunMonitor(jobId);
     await loadDemoPresenterPack(jobId);
     await loadDemoShareSheet(jobId);
   }
@@ -1039,6 +1062,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setJob(retriedJob);
       await loadSourceMedia(retriedJob.videoId);
       await loadDemoRunMatrix(retriedJob.jobId);
+      await loadDemoRunMonitor(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
       setError(null);
@@ -1061,6 +1085,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setJob(cancelledJob);
       await loadSourceMedia(cancelledJob.videoId);
       await loadDemoRunMatrix(cancelledJob.jobId);
+      await loadDemoRunMonitor(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
       setError(null);
@@ -1086,6 +1111,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
     await loadDemoRunMatrix(recentJob.jobId);
+    await loadDemoRunMonitor(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
   }
@@ -1104,6 +1130,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
     await loadDemoRunMatrix(historyJob.jobId);
+    await loadDemoRunMonitor(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
   }
@@ -1123,6 +1150,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
     await loadDemoRunMatrix(failure.jobId);
+    await loadDemoRunMonitor(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
   }
@@ -1777,6 +1805,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoComparisonJobId={demoComparisonJobId}
               demoRunMatrix={demoRunMatrix}
               demoRunMatrixError={demoRunMatrixError}
+              demoRunMonitor={demoRunMonitor}
+              demoRunMonitorError={demoRunMonitorError}
               demoPresenterPack={demoPresenterPack}
               demoPresenterPackError={demoPresenterPackError}
               demoShareSheet={demoShareSheet}
@@ -1784,12 +1814,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
+              isLoadingDemoRunMonitor={isLoadingDemoRunMonitor}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
+              onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
@@ -3335,6 +3367,8 @@ function JobDetail({
   demoComparisonJobId,
   demoRunMatrix,
   demoRunMatrixError,
+  demoRunMonitor,
+  demoRunMonitorError,
   demoPresenterPack,
   demoPresenterPackError,
   demoShareSheet,
@@ -3342,12 +3376,14 @@ function JobDetail({
   isLoadingCacheReplayComparison,
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
+  isLoadingDemoRunMonitor,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
+  onRefreshDemoRunMonitor,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
   onSelectCacheReplayComparison,
@@ -3389,6 +3425,8 @@ function JobDetail({
   demoComparisonJobId: string;
   demoRunMatrix: DemoRunMatrix | null;
   demoRunMatrixError: string | null;
+  demoRunMonitor: DemoRunMonitor | null;
+  demoRunMonitorError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
   demoPresenterPackError: string | null;
   demoShareSheet: DemoShareSheet | null;
@@ -3396,12 +3434,14 @@ function JobDetail({
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
+  isLoadingDemoRunMonitor: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
+  onRefreshDemoRunMonitor: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
@@ -3549,6 +3589,14 @@ function JobDetail({
       />
 
       <DemoHandoffChecklistPanel checklist={demoHandoffChecklist} jobId={job.jobId} />
+
+      <DemoRunMonitorPanel
+        error={demoRunMonitorError}
+        isLoading={isLoadingDemoRunMonitor}
+        jobId={job.jobId}
+        monitor={demoRunMonitor}
+        onRefresh={onRefreshDemoRunMonitor}
+      />
 
       <PipelineProgressPanel progress={job.pipelineProgress} />
 
@@ -4101,6 +4149,110 @@ function PipelineProgressPanel({ progress }: { progress: LocalizationJob['pipeli
       ) : (
         <p className="muted">No measured stage events yet.</p>
       )}
+    </section>
+  );
+}
+
+function DemoRunMonitorPanel({
+  error,
+  isLoading,
+  jobId,
+  monitor,
+  onRefresh
+}: {
+  error: string | null;
+  isLoading: boolean;
+  jobId: string;
+  monitor: DemoRunMonitor | null;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="panel demo-run-monitor-panel" aria-label="Demo run monitor">
+      <div className="panel-heading">
+        <h3>Demo run monitor</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <a className="secondary-link" href={linguaFrameApi.demoRunMonitorMarkdownDownloadUrl(jobId)}>
+            Download backend Markdown
+          </a>
+        </div>
+      </div>
+      {isLoading && !monitor ? <p className="muted">Loading demo run monitor...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {monitor ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Attention</dt>
+              <dd>{monitor.attentionLevel}</dd>
+            </div>
+            <div>
+              <dt>Current stage</dt>
+              <dd>{monitor.currentStage ?? 'Queued'}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>
+                {monitor.completedStageCount} / {monitor.totalStageCount}
+              </dd>
+            </div>
+            <div>
+              <dt>Elapsed</dt>
+              <dd>{monitor.elapsedMs === null ? 'N/A' : formatDurationMs(monitor.elapsedMs)}</dd>
+            </div>
+            <div>
+              <dt>Slowest stage</dt>
+              <dd>
+                {monitor.slowestStage
+                  ? `${monitor.slowestStage} · ${formatDurationMs(monitor.slowestStageDurationMs ?? 0)}`
+                  : 'Not measured'}
+              </dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(monitor.generatedAt)}</dd>
+            </div>
+          </dl>
+          <p>{monitor.summary}</p>
+          <p>
+            <strong>Next action:</strong> {monitor.recommendedNextAction}
+          </p>
+          {monitor.stages.length === 0 ? (
+            <p className="muted">No stage timing events have been recorded yet.</p>
+          ) : (
+            <ul className="result-deliverable-list compact-list">
+              {monitor.stages.map((stage) => (
+                <li key={`${stage.stage}-${stage.status}-${stage.startedAt ?? 'pending'}`}>
+                  <div className="result-deliverable-main">
+                    <strong>{stage.stage}</strong>
+                    <span className="status-pill">{stage.attention}</span>
+                  </div>
+                  <div className="result-deliverable-meta">
+                    <span>{stage.status}</span>
+                    <span>
+                      {stage.durationMs === null
+                        ? `Running ${formatDurationMs(stage.runningForMs ?? 0)}`
+                        : formatDurationMs(stage.durationMs)}
+                    </span>
+                    {stage.message ? <span>{stage.message}</span> : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          {monitor.links.length > 0 ? (
+            <div className="link-list">
+              {monitor.links.map((link) => (
+                <a key={link.kind} href={link.url}>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }

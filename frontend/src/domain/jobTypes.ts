@@ -217,6 +217,44 @@ export interface JobStageProgress {
   message: string | null;
 }
 
+export interface DemoRunMonitorStage {
+  stage: LocalizationJobStage;
+  status: JobTimelineEvent['status'];
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+  runningForMs: number | null;
+  attention: string;
+  message: string | null;
+}
+
+export interface DemoRunMonitorLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoRunMonitor {
+  jobId: string;
+  videoId: string;
+  status: LocalizationJobStatus;
+  dispatchStatus: 'PENDING' | 'DISPATCHED' | 'FAILED' | null;
+  generatedAt: string;
+  elapsedMs: number | null;
+  currentStage: LocalizationJobStage | null;
+  completedStageCount: number;
+  totalStageCount: number;
+  failedStageCount: number;
+  slowestStage: LocalizationJobStage | null;
+  slowestStageDurationMs: number | null;
+  attentionLevel: string;
+  summary: string;
+  recommendedNextAction: string;
+  stages: DemoRunMonitorStage[];
+  links: DemoRunMonitorLink[];
+  markdown: string;
+}
+
 export interface LocalizationJobSummary {
   jobId: string;
   videoId: string;

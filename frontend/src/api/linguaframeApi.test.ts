@@ -31,6 +31,7 @@ import {
   getDeliveryManifest,
   getJobComparison,
   getDemoRunMatrix,
+  getDemoRunMonitor,
   getDemoPresenterPack,
   getDemoShareSheet,
   getDemoUploadReadiness,
@@ -39,6 +40,7 @@ import {
   loginDemoSession,
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
+  demoRunMonitorMarkdownDownloadUrl,
   demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,
   publishReviewedSubtitles,
@@ -735,6 +737,12 @@ describe('linguaframeApi', () => {
   test('builds demo share sheet markdown download URL with encoded job id', () => {
     expect(demoShareSheetMarkdownDownloadUrl('job with/slash')).toBe(
       '/api/jobs/job%20with%2Fslash/demo-share-sheet/markdown/download'
+    );
+  });
+
+  test('builds demo run monitor markdown download URL with encoded job id', () => {
+    expect(demoRunMonitorMarkdownDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/demo-run-monitor/markdown/download'
     );
   });
 
@@ -1527,6 +1535,61 @@ describe('linguaframeApi', () => {
     expect(result.readiness).toBe('READY');
     expect(result.links[0]?.kind).toBe('DEMO_RUN_PACKAGE');
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20share%2Fslash/demo-share-sheet', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('gets demo run monitor with encoded id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-monitor',
+        videoId: 'video-monitor',
+        status: 'PROCESSING',
+        dispatchStatus: 'DISPATCHED',
+        generatedAt: '2026-06-29T10:00:00Z',
+        elapsedMs: 540000,
+        currentStage: 'TARGET_SUBTITLE_EXPORT',
+        completedStageCount: 2,
+        totalStageCount: 12,
+        failedStageCount: 0,
+        slowestStage: 'TRANSCRIPT_SUBTITLE_EXPORT',
+        slowestStageDurationMs: 90000,
+        attentionLevel: 'RUNNING',
+        summary: 'Localization job is running.',
+        recommendedNextAction: 'Keep watching this monitor.',
+        stages: [
+          {
+            stage: 'TARGET_SUBTITLE_EXPORT',
+            status: 'STARTED',
+            startedAt: '2026-06-29T09:51:00Z',
+            finishedAt: null,
+            durationMs: null,
+            runningForMs: 540000,
+            attention: 'RUNNING',
+            message: 'Stage is running.'
+          }
+        ],
+        links: [
+          {
+            kind: 'JOB_DETAIL',
+            label: 'Job detail',
+            url: '/api/jobs/job-monitor'
+          }
+        ],
+        markdown: '# LinguaFrame Demo Run Monitor\n'
+      })
+    );
+
+    const result = await getDemoRunMonitor('job monitor/slash');
+
+    expect(result.attentionLevel).toBe('RUNNING');
+    expect(result.currentStage).toBe('TARGET_SUBTITLE_EXPORT');
+    expect(result.stages[0]?.attention).toBe('RUNNING');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20monitor%2Fslash/demo-run-monitor', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

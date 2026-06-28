@@ -793,6 +793,90 @@ test_download_demo_share_sheet_helpers_use_backend_routes() {
   [[ "$markdown_output" == *"http://example.test/api/jobs/share%20job%2Fslash/demo-share-sheet/markdown/download"* ]] || fail "demo share sheet markdown helper used wrong route"
 }
 
+test_download_demo_run_monitor_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_monitor_json "http://example.test" "monitor job/slash" "$TMPDIR/demo-run-monitor.json" >"$TMPDIR/run-monitor-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_monitor_markdown "http://example.test" "monitor job/slash" "$TMPDIR/demo-run-monitor.md" >"$TMPDIR/run-monitor-md-curl.out"
+
+  local json_output
+  json_output="$(cat "$TMPDIR/run-monitor-json-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/jobs/monitor%20job%2Fslash/demo-run-monitor"* ]] || fail "demo run monitor json helper used wrong route"
+
+  local markdown_output
+  markdown_output="$(cat "$TMPDIR/run-monitor-md-curl.out")"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/monitor%20job%2Fslash/demo-run-monitor/markdown/download"* ]] || fail "demo run monitor markdown helper used wrong route"
+}
+
+test_print_demo_run_monitor_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-run-monitor.json" <<'JSON'
+{
+  "jobId": "monitor-job",
+  "videoId": "video-demo",
+  "status": "PROCESSING",
+  "dispatchStatus": "DISPATCHED",
+  "generatedAt": "2026-06-29T10:00:00Z",
+  "elapsedMs": 540000,
+  "currentStage": "TARGET_SUBTITLE_EXPORT",
+  "completedStageCount": 2,
+  "totalStageCount": 12,
+  "failedStageCount": 0,
+  "slowestStage": "TRANSCRIPT_SUBTITLE_EXPORT",
+  "slowestStageDurationMs": 90000,
+  "attentionLevel": "RUNNING",
+  "summary": "Localization job is running at TARGET_SUBTITLE_EXPORT.",
+  "recommendedNextAction": "Keep watching this monitor.",
+  "stages": [
+    {
+      "stage": "WORKER_RECEIVED",
+      "status": "SUCCEEDED",
+      "durationMs": 1000,
+      "runningForMs": null,
+      "attention": "OK",
+      "message": "Stage completed."
+    },
+    {
+      "stage": "TARGET_SUBTITLE_EXPORT",
+      "status": "STARTED",
+      "durationMs": null,
+      "runningForMs": 540000,
+      "attention": "RUNNING",
+      "message": "raw transcript text /Users/example/private.mov sk-test provider payload"
+    }
+  ],
+  "links": [
+    {
+      "kind": "JOB_DETAIL",
+      "label": "Job detail",
+      "url": "/api/jobs/monitor-job"
+    }
+  ],
+  "markdown": "raw transcript text /Users/example/private.mov sk-test provider payload"
+}
+JSON
+
+  print_demo_run_monitor_summary_file "$TMPDIR/demo-run-monitor.json" >"$TMPDIR/demo-run-monitor.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-monitor.out")"
+
+  [[ "$output" == *"demoRunMonitorJobId=monitor-job"* ]] || fail "run monitor summary missed job"
+  [[ "$output" == *"demoRunMonitorVideoId=video-demo"* ]] || fail "run monitor summary missed video"
+  [[ "$output" == *"demoRunMonitorStatus=PROCESSING"* ]] || fail "run monitor summary missed status"
+  [[ "$output" == *"demoRunMonitorAttentionLevel=RUNNING"* ]] || fail "run monitor summary missed attention"
+  [[ "$output" == *"demoRunMonitorCurrentStage=TARGET_SUBTITLE_EXPORT"* ]] || fail "run monitor summary missed current stage"
+  [[ "$output" == *"demoRunMonitorCompletedStageCount=2"* ]] || fail "run monitor summary missed completed count"
+  [[ "$output" == *"demoRunMonitorSlowestStage=TRANSCRIPT_SUBTITLE_EXPORT"* ]] || fail "run monitor summary missed slowest stage"
+  [[ "$output" == *"demoRunMonitorStage=TARGET_SUBTITLE_EXPORT:STARTED:attention=RUNNING:durationMs=N/A:runningForMs=540000"* ]] || fail "run monitor summary missed running stage"
+  [[ "$output" == *"demoRunMonitorTerminal=false"* ]] || fail "run monitor summary missed terminal false"
+  [[ "$output" != *"raw transcript text"* ]] || fail "run monitor summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "run monitor summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "run monitor summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "run monitor summary exposed provider payload"
+}
+
 test_print_demo_share_sheet_summary_is_metadata_only() {
   cat >"$TMPDIR/demo-share-sheet.json" <<'JSON'
 {
@@ -2077,6 +2161,8 @@ test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
 test_download_demo_share_sheet_helpers_use_backend_routes
+test_download_demo_run_monitor_helpers_use_backend_routes
+test_print_demo_run_monitor_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage

@@ -2048,6 +2048,102 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoRunMonitorForSelectedProcessingJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T18:15:00Z");
+        createJob("job-controller-video-monitor", "job-controller-monitor", "monitor.mp4",
+                LocalizationJobStatus.QUEUED, createdAt);
+        jobRepository.claimForExecution("job-controller-monitor", createdAt.plusSeconds(30));
+        dispatchEventRepository.save(new JobDispatchEventRecord(
+                "job-controller-monitor-dispatch",
+                "job-controller-monitor",
+                JobDispatchEventType.LOCALIZATION_JOB_QUEUED,
+                "{}",
+                JobDispatchEventStatus.DISPATCHED,
+                1,
+                createdAt.plusSeconds(20),
+                null,
+                createdAt.plusSeconds(21),
+                createdAt.plusSeconds(20),
+                createdAt.plusSeconds(21)
+        ));
+        timelineEventRepository.save(new JobTimelineEventRecord(
+                "job-controller-monitor-worker",
+                "job-controller-monitor",
+                LocalizationJobStage.WORKER_RECEIVED,
+                JobTimelineEventStatus.SUCCEEDED,
+                "worker received",
+                1000L,
+                null,
+                createdAt.plusSeconds(31)
+        ));
+        timelineEventRepository.save(new JobTimelineEventRecord(
+                "job-controller-monitor-translation",
+                "job-controller-monitor",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                JobTimelineEventStatus.STARTED,
+                "raw transcript text /Users/example sk-test provider payload",
+                null,
+                null,
+                createdAt.plusSeconds(40)
+        ));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-monitor",
+                        "job-controller-monitor"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-monitor"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-monitor"))
+                .andExpect(jsonPath("$.status").value("PROCESSING"))
+                .andExpect(jsonPath("$.dispatchStatus").value("DISPATCHED"))
+                .andExpect(jsonPath("$.currentStage").value("TARGET_SUBTITLE_EXPORT"))
+                .andExpect(jsonPath("$.completedStageCount").value(1))
+                .andExpect(jsonPath("$.attentionLevel").value(org.hamcrest.Matchers.anyOf(
+                        org.hamcrest.Matchers.is("RUNNING"),
+                        org.hamcrest.Matchers.is("ATTENTION")
+                )))
+                .andExpect(jsonPath("$.links[?(@.kind == 'JOB_DETAIL')].url")
+                        .value("/api/jobs/job-controller-monitor"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_SHARE_SHEET')].url")
+                        .value("/api/jobs/job-controller-monitor/demo-share-sheet"))
+                .andExpect(jsonPath("$.markdown").value(org.hamcrest.Matchers.containsString(
+                        "LinguaFrame Demo Run Monitor"
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))));
+    }
+
+    @Test
+    void downloadsDemoRunMonitorMarkdownForSelectedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T18:30:00Z");
+        createJob("job-controller-video-monitor-md", "job-controller-monitor-md", "monitor-md.mp4",
+                LocalizationJobStatus.FAILED, createdAt);
+        jobRepository.claimForExecution("job-controller-monitor-md", createdAt.plusSeconds(1));
+        jobRepository.markFailed(
+                "job-controller-monitor-md",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                "raw transcript text /Users/example sk-test provider payload",
+                createdAt.plusSeconds(60)
+        );
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-monitor/markdown/download",
+                        "job-controller-monitor-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-monitor-md-demo-run-monitor.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame Demo Run Monitor")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Attention level: BLOCKED")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Open diagnostics")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);
