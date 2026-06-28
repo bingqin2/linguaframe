@@ -23,10 +23,12 @@ import {
   getRuntimeLiveChecks,
   getDemoSession,
   getDeliveryManifest,
+  getJobComparison,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
+  jobComparisonMarkdownDownloadUrl,
   publishReviewedSubtitles,
   readDemoToken,
   cancelJob,
@@ -1038,6 +1040,94 @@ describe('linguaframeApi', () => {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
     });
+  });
+
+  test('gets job comparison and builds markdown download URL with encoded ids', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        baselineJobId: 'job base/slash',
+        comparisonJobId: 'job compare/slash',
+        sameVideo: true,
+        generatedAt: '2026-06-28T12:00:00Z',
+        baseline: {
+          jobId: 'job base/slash',
+          videoId: 'video',
+          targetLanguage: 'zh-CN',
+          demoProfileId: 'quick-baseline',
+          ttsVoice: null,
+          translationStyle: 'NATURAL',
+          subtitleStylePreset: 'STANDARD',
+          translationGlossaryEntryCount: 0,
+          translationGlossaryHash: '',
+          subtitlePolishingMode: 'OFF',
+          status: 'COMPLETED',
+          qualityScore: 82,
+          qualityVerdict: 'GOOD',
+          modelCallCount: 1,
+          failedModelCallCount: 0,
+          estimatedCostUsd: 0.000063,
+          artifactCacheHitCount: 0,
+          generatedArtifactCount: 3,
+          providerCacheHitCount: 0,
+          handoffReady: true
+        },
+        comparison: {
+          jobId: 'job compare/slash',
+          videoId: 'video',
+          targetLanguage: 'zh-CN',
+          demoProfileId: 'tears-showcase',
+          ttsVoice: null,
+          translationStyle: 'FORMAL',
+          subtitleStylePreset: 'HIGH_CONTRAST',
+          translationGlossaryEntryCount: 3,
+          translationGlossaryHash: 'abc123',
+          subtitlePolishingMode: 'BALANCED',
+          status: 'COMPLETED',
+          qualityScore: 91,
+          qualityVerdict: 'GOOD',
+          modelCallCount: 2,
+          failedModelCallCount: 0,
+          estimatedCostUsd: 0.000141,
+          artifactCacheHitCount: 1,
+          generatedArtifactCount: 4,
+          providerCacheHitCount: 1,
+          handoffReady: false
+        },
+        delta: {
+          qualityScore: 9,
+          modelCallCount: 1,
+          estimatedCostUsd: 0.000078,
+          artifactCacheHitCount: 1,
+          generatedArtifactCount: 1,
+          providerCacheHitCount: 1
+        },
+        settingDiffs: [
+          {
+            field: 'demoProfileId',
+            baselineValue: 'quick-baseline',
+            comparisonValue: 'tears-showcase'
+          }
+        ]
+      })
+    );
+
+    const result = await getJobComparison('job base/slash', 'job compare/slash');
+
+    expect(result.delta.qualityScore).toBe(9);
+    expect(result.settingDiffs[0].field).toBe('demoProfileId');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20base%2Fslash/comparison/job%20compare%2Fslash',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+    expect(jobComparisonMarkdownDownloadUrl('job base/slash', 'job compare/slash')).toBe(
+      '/api/jobs/job%20base%2Fslash/comparison/job%20compare%2Fslash/markdown/download'
+    );
   });
 
   test('lists jobs with default paging params', async () => {

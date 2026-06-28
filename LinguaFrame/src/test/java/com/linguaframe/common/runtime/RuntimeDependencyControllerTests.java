@@ -70,6 +70,8 @@ class RuntimeDependencyControllerTests {
                         "/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download",
                         "/api/jobs/{jobId}/demo-run-package/download",
                         "/api/jobs/{jobId}/ai-audit-package/download",
+                        "/api/jobs/{jobId}/comparison/{comparisonJobId}",
+                        "/api/jobs/{jobId}/comparison/{comparisonJobId}/markdown/download",
                         "/api/jobs/{jobId}/delivery-manifest",
                         "/api/jobs/{jobId}/delivery-manifest/markdown/download",
                         "/api/jobs/{jobId}/handoff-package/download",

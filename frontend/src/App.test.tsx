@@ -7,6 +7,7 @@ import { linguaFrameApi } from './api/linguaframeApi';
 import type {
   DeliveryManifest,
   JobArtifact,
+  JobComparison,
   LocalizationJob,
   LocalizationJobList,
   MediaUpload,
@@ -2232,6 +2233,65 @@ describe('App', () => {
     expect(within(evidence).getByRole('button', { name: /copy evidence/i })).toBeDisabled();
   });
 
+  test('compares selected job with another demo run using backend evidence', async () => {
+    vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(
+      jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'compare-baseline-job',
+            videoId: 'compare-video',
+            filename: 'compare.mp4',
+            status: 'COMPLETED',
+            demoProfileId: 'quick-baseline'
+          }),
+          jobSummaryFixture({
+            jobId: 'compare-showcase-job',
+            videoId: 'compare-video',
+            filename: 'compare.mp4',
+            status: 'COMPLETED',
+            demoProfileId: 'tears-showcase'
+          })
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'compare-baseline-job',
+        videoId: 'compare-video',
+        status: 'COMPLETED',
+        demoProfileId: 'quick-baseline'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getJobComparison').mockResolvedValue(jobComparisonFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'compare-baseline-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    const comparison = await screen.findByRole('region', { name: /demo comparison/i });
+    await userEvent.selectOptions(
+      within(comparison).getByLabelText(/comparison job/i),
+      'compare-showcase-job'
+    );
+
+    expect(await within(comparison).findByText('compare-showcase-job')).toBeInTheDocument();
+    expect(within(comparison).getByText('tears-showcase')).toBeInTheDocument();
+    expect(within(comparison).getByText('+9')).toBeInTheDocument();
+    expect(within(comparison).getByText('+$0.00007800')).toBeInTheDocument();
+    expect(within(comparison).getByText('demoProfileId')).toBeInTheDocument();
+    expect(within(comparison).getByRole('link', { name: /download markdown/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/compare-baseline-job/comparison/compare-showcase-job/markdown/download'
+    );
+    expect(linguaFrameApi.getJobComparison).toHaveBeenCalledWith(
+      'compare-baseline-job',
+      'compare-showcase-job'
+    );
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -2957,6 +3017,75 @@ function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): Del
         label: 'Result bundle',
         kind: 'RESULT_BUNDLE',
         url: '/api/jobs/job-1/artifacts/archive/download'
+      }
+    ],
+    ...overrides
+  };
+}
+
+function jobComparisonFixture(overrides: Partial<JobComparison> = {}): JobComparison {
+  return {
+    baselineJobId: 'compare-baseline-job',
+    comparisonJobId: 'compare-showcase-job',
+    sameSourceVideo: true,
+    generatedAt: '2026-06-28T12:00:00Z',
+    baseline: {
+      jobId: 'compare-baseline-job',
+      videoId: 'compare-video',
+      targetLanguage: 'zh-CN',
+      demoProfileId: 'quick-baseline',
+      ttsVoice: null,
+      translationStyle: 'NATURAL',
+      subtitleStylePreset: 'STANDARD',
+      translationGlossaryEntryCount: 0,
+      translationGlossaryHash: '',
+      subtitlePolishingMode: 'OFF',
+      status: 'COMPLETED',
+      qualityScore: 82,
+      qualityVerdict: 'GOOD',
+      modelCallCount: 1,
+      failedModelCallCount: 0,
+      estimatedCostUsd: 0.000063,
+      artifactCacheHitCount: 0,
+      generatedArtifactCount: 3,
+      providerCacheHitCount: 0,
+      handoffReady: true
+    },
+    comparison: {
+      jobId: 'compare-showcase-job',
+      videoId: 'compare-video',
+      targetLanguage: 'zh-CN',
+      demoProfileId: 'tears-showcase',
+      ttsVoice: null,
+      translationStyle: 'FORMAL',
+      subtitleStylePreset: 'HIGH_CONTRAST',
+      translationGlossaryEntryCount: 3,
+      translationGlossaryHash: 'abc123',
+      subtitlePolishingMode: 'BALANCED',
+      status: 'COMPLETED',
+      qualityScore: 91,
+      qualityVerdict: 'GOOD',
+      modelCallCount: 2,
+      failedModelCallCount: 0,
+      estimatedCostUsd: 0.000141,
+      artifactCacheHitCount: 1,
+      generatedArtifactCount: 4,
+      providerCacheHitCount: 1,
+      handoffReady: false
+    },
+    delta: {
+      qualityScore: 9,
+      modelCallCount: 1,
+      estimatedCostUsd: 0.000078,
+      artifactCacheHitCount: 1,
+      generatedArtifactCount: 1,
+      providerCacheHitCount: 1
+    },
+    settingDiffs: [
+      {
+        field: 'demoProfileId',
+        baselineValue: 'quick-baseline',
+        comparisonValue: 'tears-showcase'
       }
     ],
     ...overrides

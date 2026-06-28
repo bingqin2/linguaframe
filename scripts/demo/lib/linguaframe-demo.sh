@@ -204,6 +204,85 @@ download_job_detail() {
   demo_curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
 }
 
+url_encode_path_segment() {
+  python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
+}
+
+download_job_comparison_json() {
+  local base_url="$1"
+  local baseline_job_id="$2"
+  local comparison_job_id="$3"
+  local output_path="$4"
+  local encoded_baseline_job_id
+  local encoded_comparison_job_id
+  encoded_baseline_job_id="$(url_encode_path_segment "$baseline_job_id")"
+  encoded_comparison_job_id="$(url_encode_path_segment "$comparison_job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_baseline_job_id/comparison/$encoded_comparison_job_id" -o "$output_path"
+}
+
+download_job_comparison_markdown() {
+  local base_url="$1"
+  local baseline_job_id="$2"
+  local comparison_job_id="$3"
+  local output_path="$4"
+  local encoded_baseline_job_id
+  local encoded_comparison_job_id
+  encoded_baseline_job_id="$(url_encode_path_segment "$baseline_job_id")"
+  encoded_comparison_job_id="$(url_encode_path_segment "$comparison_job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_baseline_job_id/comparison/$encoded_comparison_job_id/markdown/download" -o "$output_path"
+}
+
+print_job_comparison_summary_file() {
+  local comparison_path="$1"
+
+  python3 - "$comparison_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+comparison = json.load(open(sys.argv[1], encoding="utf-8"), parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return "N/A"
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def setting_value(field, value):
+    if field in {"translationGlossary"}:
+        return "[present]" if value and str(value).strip() else "[empty]"
+    return text(value) if str(value or "").strip() else "None"
+
+baseline = comparison["baseline"]
+candidate = comparison["comparison"]
+delta = comparison["delta"]
+
+print("comparisonBaselineJobId=" + comparison["baselineJobId"])
+print("comparisonJobId=" + comparison["comparisonJobId"])
+print("comparisonSameSourceVideo=" + str(comparison.get("sameSourceVideo", False)).lower())
+print("comparisonBaselineProfile=" + text(baseline.get("demoProfileId")))
+print("comparisonProfile=" + text(candidate.get("demoProfileId")))
+print("comparisonBaselineStatus=" + text(baseline.get("status")))
+print("comparisonStatus=" + text(candidate.get("status")))
+print("comparisonQualityDelta=" + text(delta.get("qualityScore")))
+print("comparisonModelCallDelta=" + text(delta.get("modelCallCount")))
+print("comparisonEstimatedCostDeltaUsd=" + text(delta.get("estimatedCostUsd")))
+print("comparisonArtifactCacheHitDelta=" + text(delta.get("artifactCacheHitCount")))
+print("comparisonProviderCacheHitDelta=" + text(delta.get("providerCacheHitCount")))
+print("comparisonGeneratedArtifactDelta=" + text(delta.get("generatedArtifactCount")))
+for diff in comparison.get("settingDiffs", []):
+    field = diff["field"]
+    baseline_value = setting_value(field, diff.get("baselineValue"))
+    comparison_value = setting_value(field, diff.get("comparisonValue"))
+    print("comparisonSettingDiff=" + field + ":" + baseline_value + "->" + comparison_value)
+PY
+}
+
 print_job_summary() {
   python3 -c '
 import json

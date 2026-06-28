@@ -20,6 +20,14 @@ Impact: Job detail exposes `pipelineProgress`, the operator dashboard aggregates
 
 ## 2026-06-28
 
+Decision: Add a backend aggregate endpoint for demo profile comparison while keeping cache replay as a separate frontend-composed workflow.
+
+Reason: Profile A/B demos need one stable evidence object that compares quality, cost, model calls, cache counts, handoff readiness, and changed settings across two completed jobs. Backend Markdown keeps terminal and browser demos aligned.
+
+Impact: Operators can compare `quick-baseline`, `tears-showcase`, and other profile runs from the browser or full-video script without exposing raw transcript, subtitle, provider payload, local path, or secret data.
+
+## 2026-06-28
+
 Decision: Compose cache replay comparison in the React demo from existing safe job APIs instead of adding a backend aggregate endpoint.
 
 Reason: The backend already exposes job detail, timeline, cache summary, model-call summary, and artifact cache state. A frontend-composed comparison is enough for the private demo and avoids adding a redundant read API before public multi-user needs exist.

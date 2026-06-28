@@ -38,6 +38,7 @@ git clone linguaframe
   -> open React frontend
   -> upload sample video
   -> inspect generated artifacts
+  -> compare two completed demo profile runs
 ```
 
 Stage 1 goals:
@@ -50,6 +51,7 @@ Stage 1 goals:
 - Validate FFmpeg availability.
 - Validate OpenAI API calls with a short sample video.
 - Validate real OpenAI demo runs through an explicit no-secret env template, preflight, and smoke runner instead of enabling paid providers by default.
+- Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment

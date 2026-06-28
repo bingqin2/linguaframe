@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo profile comparison workspace in `docs/plans/093-demo-profile-comparison-workspace.md`.
+- Added backend job comparison JSON and Markdown download endpoints for two localization jobs.
+- Added comparison VO models and service logic for same-source status, demo profiles, quality delta, model-call delta, cost delta, cache deltas, handoff readiness, and tracked setting differences.
+- Added a React `Demo comparison` panel that loads backend comparison evidence, shows changed settings, and links the backend Markdown report.
+- Added terminal helpers for comparison JSON/Markdown downloads and metadata-only comparison summaries.
+- Extended the full Tears of Steel demo script with optional `LINGUAFRAME_COMPARISON_BASELINE_JOB_ID` output.
+- Updated README, Docker E2E guide, roadmap, target state, decisions, and this execution log with the comparison workflow.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=JobComparisonServiceTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=JobComparisonServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 42, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "job comparison"` passed.
+- `cd frontend && npm test -- --run src/App.test.tsx -t "compares selected job"` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `cd frontend && npm test -- --run` passed with `Tests 111 passed`.
+- `cd frontend && npm run build` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 462, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo run profiles workspace in `docs/plans/092-demo-run-profiles-workspace.md`.
 - Added a read-only backend demo profile catalog and `GET /api/demo-run-profiles`.
 - Added optional `demoProfileId` upload metadata with validation and persistence through job detail, summaries, queued messages, worker summaries, diagnostics, evidence, delivery manifests, handoff packages, demo run packages, AI audit manifests, and browser cache replay evidence.

@@ -343,6 +343,22 @@ LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2
 
 The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
 
+To compare two complete Tears of Steel runs, first run a baseline profile and keep the completed job id:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=quick-baseline scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+Then run the showcase profile against that baseline:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+LINGUAFRAME_COMPARISON_BASELINE_JOB_ID=<baseline-job-id> \
+scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+The second run downloads `job-comparison.json` and `job-comparison.md` to `/tmp/linguaframe-demo/tears-of-steel-full/` and prints a metadata-only summary with profile, quality, model-call, cost, cache, and setting deltas. The same backend-backed comparison is available in the browser `Demo comparison` panel.
+
 ## Recommended OpenAI Smoke Demo
 
 Use this path when you have real OpenAI credentials and want one repeatable provider-backed proof run. The default deterministic demo stays on `.env.example`; the OpenAI smoke uses a separate ignored env file:
