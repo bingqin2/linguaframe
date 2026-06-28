@@ -252,7 +252,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, pipeline progress, previews, subtitle review, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, pipeline progress, previews, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 
@@ -263,6 +263,7 @@ Build:
 - Status timeline.
 - Subtitle preview.
 - Subtitle review workspace. Status: implemented as a read-only source/target comparison panel with missing-target and timing-mismatch counts, quality score/verdict, target subtitle artifact count, and safe evidence metadata.
+- Subtitle draft editing workspace. Status: implemented as a target-subtitle draft overlay with save, reset, clear, corrected JSON/SRT/VTT export links, and metadata-only evidence counts. It intentionally does not regenerate TTS audio or burned video artifacts.
 - Audio player.
 - Video preview.
 - Artifact downloads.

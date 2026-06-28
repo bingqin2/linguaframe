@@ -425,3 +425,11 @@ Decision: Keep failed-job triage advisory instead of changing retry semantics.
 Reason: Retry transitions already have backend ownership, bounded retry counts, cache eviction, and dispatch side effects. The next demo gap is explaining likely causes and next actions safely across browser, diagnostics, evidence, and terminal scripts, not adding another automatic recovery path.
 
 Impact: Failed or cancelled job detail can include `failureTriage` with category, retryability, summary, recommended action, static runbook command, and safe details. The same structure flows through diagnostics JSON, backend Markdown evidence, browser evidence export, and script summaries without exposing secrets, object keys, local paths, provider payloads, raw transcript/subtitle text, or media bytes.
+
+## 2026-06-28
+
+Decision: Store subtitle corrections as a draft overlay separate from generated subtitle artifacts.
+
+Reason: Human review needs editable corrected subtitles, but saving a text correction should not imply that LinguaFrame has regenerated TTS audio, burned video, artifact cache entries, or provider outputs.
+
+Impact: `/api/jobs/{jobId}/subtitle-draft` persists per-segment draft text and corrected JSON/SRT/VTT exports read from the overlay. Existing generated target subtitle artifacts remain unchanged, and evidence exports report draft counts and timestamps without raw corrected text.

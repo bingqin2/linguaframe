@@ -444,6 +444,33 @@ export interface SubtitleReviewSummary {
   segments: SubtitleReviewSegment[];
 }
 
+export interface SubtitleDraftSummary {
+  jobId: string;
+  targetLanguage: string;
+  segmentCount: number;
+  editedSegmentCount: number;
+  lastUpdatedAt: string | null;
+  segments: SubtitleDraftSegment[];
+}
+
+export interface SubtitleDraftSegment {
+  index: number;
+  startMs: number;
+  endMs: number;
+  sourceText: string;
+  generatedText: string;
+  draftText: string;
+  edited: boolean;
+  updatedAt: string | null;
+}
+
+export interface UpdateSubtitleDraftRequest {
+  segments: Array<{
+    index: number;
+    text: string;
+  }>;
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;

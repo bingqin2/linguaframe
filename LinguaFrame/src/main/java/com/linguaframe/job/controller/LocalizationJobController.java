@@ -2,6 +2,8 @@ package com.linguaframe.job.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
+import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
@@ -10,6 +12,7 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
@@ -21,6 +24,7 @@ import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.SubtitleService;
+import com.linguaframe.job.service.SubtitleDraftService;
 import com.linguaframe.job.service.SubtitleReviewService;
 import com.linguaframe.job.service.TranscriptService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -35,8 +39,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,6 +65,7 @@ public class LocalizationJobController {
     private final JobEvidenceReportService evidenceReportService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
+    private final SubtitleDraftService subtitleDraftService;
     private final SubtitleReviewService subtitleReviewService;
     private final ObjectMapper objectMapper;
 
@@ -71,6 +79,7 @@ public class LocalizationJobController {
             JobEvidenceReportService evidenceReportService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
+            SubtitleDraftService subtitleDraftService,
             SubtitleReviewService subtitleReviewService,
             ObjectMapper objectMapper
     ) {
@@ -83,6 +92,7 @@ public class LocalizationJobController {
         this.evidenceReportService = evidenceReportService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
+        this.subtitleDraftService = subtitleDraftService;
         this.subtitleReviewService = subtitleReviewService;
         this.objectMapper = objectMapper;
     }
@@ -296,6 +306,97 @@ public class LocalizationJobController {
             @RequestParam(defaultValue = "zh-CN") String language
     ) {
         return subtitleReviewService.buildReview(jobId, language);
+    }
+
+    @GetMapping("/{jobId}/subtitle-draft")
+    @Operation(summary = "Get editable subtitle draft overlay for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle draft summary was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No generated target subtitles exist for the supplied job and language.")
+    })
+    public SubtitleDraftSummaryVo subtitleDraft(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Target subtitle language such as zh-CN.")
+            @RequestParam(defaultValue = "zh-CN") String language
+    ) {
+        return subtitleDraftService.getDraft(jobId, language);
+    }
+
+    @PutMapping("/{jobId}/subtitle-draft")
+    @Operation(summary = "Update editable subtitle draft text for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle draft was updated."),
+            @ApiResponse(responseCode = "400", description = "The update references an invalid segment or blank text."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No generated target subtitles exist for the supplied job and language.")
+    })
+    public SubtitleDraftSummaryVo updateSubtitleDraft(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Target subtitle language such as zh-CN.")
+            @RequestParam(defaultValue = "zh-CN") String language,
+            @RequestBody UpdateSubtitleDraftRequest request
+    ) {
+        return subtitleDraftService.updateDraft(jobId, language, request);
+    }
+
+    @DeleteMapping("/{jobId}/subtitle-draft")
+    @Operation(summary = "Clear editable subtitle draft text for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle draft was cleared."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No generated target subtitles exist for the supplied job and language.")
+    })
+    public SubtitleDraftSummaryVo clearSubtitleDraft(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Target subtitle language such as zh-CN.")
+            @RequestParam(defaultValue = "zh-CN") String language
+    ) {
+        return subtitleDraftService.clearDraft(jobId, language);
+    }
+
+    @GetMapping("/{jobId}/subtitle-draft/export")
+    @Operation(summary = "Download corrected subtitle draft export for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Corrected subtitle draft export was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No generated target subtitles exist for the supplied job and language.")
+    })
+    public ResponseEntity<byte[]> exportSubtitleDraft(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Target subtitle language such as zh-CN.")
+            @RequestParam(defaultValue = "zh-CN") String language,
+            @Parameter(description = "Export format: JSON, SRT, or VTT.")
+            @RequestParam(defaultValue = "srt") String format
+    ) {
+        SubtitleDraftExportFormat exportFormat = parseDraftExportFormat(format);
+        byte[] body = subtitleDraftService.exportDraft(jobId, language, exportFormat);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(exportFormat.contentType()))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("corrected-subtitles." + language + "." + exportFormat.extension())
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    private SubtitleDraftExportFormat parseDraftExportFormat(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Subtitle draft export format must not be blank.");
+        }
+        try {
+            return SubtitleDraftExportFormat.valueOf(value.trim().toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported subtitle draft export format: " + value, ex);
+        }
     }
 
     @GetMapping("/{jobId}/artifacts/{artifactId}/download")

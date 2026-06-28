@@ -101,12 +101,13 @@ A user should be able to:
 4. Watch job progress through a status timeline.
 5. Preview transcript segments and translated subtitles.
 6. Download SRT or VTT files.
-7. Play the generated dubbing audio.
-8. Preview or download the subtitle-burned video.
-9. Inspect cost and processing time.
-10. Retry the job if a step fails.
-11. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-12. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+7. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
+8. Play the generated dubbing audio.
+9. Preview or download the subtitle-burned video.
+10. Inspect cost and processing time.
+11. Retry the job if a step fails.
+12. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+13. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
@@ -123,6 +124,7 @@ Target screens:
 - Pipeline progress and stage timing summary.
 - Transcript and subtitle table.
 - Read-only subtitle review workspace.
+- Subtitle draft editor with corrected JSON/SRT/VTT export.
 - Artifact preview and downloads.
 - Cost and usage summary.
 - Failure and retry panel.
@@ -148,6 +150,7 @@ The backend should provide:
 - Model-call audit records with model, prompt version, usage, latency, cost, status, and safe errors.
 - Timeline-derived pipeline progress and stage timing summaries.
 - Read-only subtitle review summary derived from transcript segments, target subtitle segments, quality evaluation, and subtitle artifacts.
+- Subtitle draft persistence and corrected JSON/SRT/VTT export as a human-review layer separate from TTS or burn-in regeneration.
 - Content-hash caching hooks for repeated transcription and translation work.
 - Per-job and per-user budget checks before expensive stages.
 - SRT and VTT export.

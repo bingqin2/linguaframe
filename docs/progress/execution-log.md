@@ -2259,3 +2259,23 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `docker compose --env-file .env.example config --quiet` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Planned the subtitle draft edit and corrected export MVP in `docs/plans/075-subtitle-draft-edit-export-mvp.md`.
+- Added `subtitle_draft_segments` persistence for per-job, per-language corrected subtitle text.
+- Added subtitle draft APIs to read, save, clear, and export corrected JSON/SRT/VTT without changing generated target subtitle artifacts.
+- Added a React `Subtitle draft editor` panel with saved/unsaved counts, save/reset/clear controls, and corrected export links.
+- Extended browser, backend, and terminal evidence to include subtitle draft metadata while excluding raw corrected text.
+- Updated README, target state, roadmap, Docker E2E docs, smoke checklist, and decisions with the draft-overlay boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=SubtitleDraftServiceTests,LocalizationJobControllerTests,JobEvidenceReportServiceTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 41, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Tests 79 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
+- `git diff --check` passed.

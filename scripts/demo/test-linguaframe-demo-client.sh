@@ -218,11 +218,49 @@ JSON
   [[ "$output" != *"raw subtitle text"* ]] || fail "subtitle review summary exposed raw subtitle text"
 }
 
+test_print_subtitle_draft_summary_is_metadata_only() {
+  cat >"$TMPDIR/subtitle-draft.json" <<'JSON'
+{
+  "jobId": "job-draft",
+  "targetLanguage": "zh-CN",
+  "segmentCount": 2,
+  "editedSegmentCount": 1,
+  "lastUpdatedAt": "2026-06-28T09:15:00Z",
+  "segments": [
+    {
+      "index": 0,
+      "startMs": 0,
+      "endMs": 1000,
+      "sourceText": "raw transcript text",
+      "generatedText": "raw generated subtitle",
+      "draftText": "raw corrected subtitle",
+      "edited": true,
+      "updatedAt": "2026-06-28T09:15:00Z"
+    }
+  ]
+}
+JSON
+
+  print_subtitle_draft_summary <"$TMPDIR/subtitle-draft.json" >"$TMPDIR/subtitle-draft.out"
+  local output
+  output="$(cat "$TMPDIR/subtitle-draft.out")"
+
+  [[ "$output" == *"subtitleDraftJobId=job-draft"* ]] || fail "subtitle draft summary missed job id"
+  [[ "$output" == *"subtitleDraftLanguage=zh-CN"* ]] || fail "subtitle draft summary missed language"
+  [[ "$output" == *"subtitleDraftSegmentCount=2"* ]] || fail "subtitle draft summary missed segment count"
+  [[ "$output" == *"subtitleDraftEditedSegmentCount=1"* ]] || fail "subtitle draft summary missed edited count"
+  [[ "$output" == *"subtitleDraftLastUpdated=2026-06-28T09:15:00Z"* ]] || fail "subtitle draft summary missed last updated"
+  [[ "$output" != *"raw transcript text"* ]] || fail "subtitle draft summary exposed raw transcript text"
+  [[ "$output" != *"raw generated subtitle"* ]] || fail "subtitle draft summary exposed generated text"
+  [[ "$output" != *"raw corrected subtitle"* ]] || fail "subtitle draft summary exposed corrected text"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_print_subtitle_review_summary_is_metadata_only
+test_print_subtitle_draft_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"
