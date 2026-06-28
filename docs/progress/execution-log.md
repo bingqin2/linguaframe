@@ -27,6 +27,7 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
+- Feature commit `85c44ad` was merged to `main` with merge commit `ec28f86`.
 
 ## 2026-06-28
 

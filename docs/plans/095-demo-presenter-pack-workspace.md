@@ -105,4 +105,4 @@
 - [x] Run `cd frontend && npm run build`.
 - [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit on `demo-presenter-pack-workspace`, then merge back to `main` after validation.
+- [x] Commit on `demo-presenter-pack-workspace`, then merge back to `main` after validation.
