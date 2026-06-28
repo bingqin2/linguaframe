@@ -3339,3 +3339,11 @@ Validation so far:
 - `git diff --check` passed.
 - `mvn -pl LinguaFrame test` passed with `Tests run: 586, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 150 passed`.
+
+Post-merge verification:
+
+- Merged `demo-acceptance-gate-workspace` back to `main`.
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run App.test.tsx` passed on `main` with `Test Files 1 passed` and `Tests 85 passed`.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `git diff --check` passed on `main`.
