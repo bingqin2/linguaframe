@@ -6,6 +6,27 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the subtitle polishing control workspace in `docs/plans/091-subtitle-polishing-control-workspace.md`.
+- Added upload-time `subtitlePolishingMode` with `OFF`, `BALANCED`, and `STRICT` values.
+- Added a separate `SUBTITLE_POLISHING` pipeline stage after target subtitle export, with OpenAI/demo providers, prompt template registration, model-call audit records, provider cache identity, and safe evidence metadata.
+- Updated backend upload/job/queue/manifest/package models, React upload/history/detail/demo evidence, and terminal demo scripts so the selected mode stays visible through handoff.
+- Documented the upload parameter and `LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE` demo override.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=MediaUploadServiceTests,SubtitlePolishingCacheKeyServiceTests,SubtitlePolishingPipelineStageTests,OpenAiSubtitlePolishingProviderTests test` passed.
+- `mvn -pl LinguaFrame -DskipTests compile test-compile` passed.
+- `cd frontend && npm test -- --run` passed.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 456, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the translation glossary control workspace in `docs/plans/090-translation-glossary-control-workspace.md`.
 - Added strict backend glossary parsing for `source => target` and `source = target` mappings with max-entry, max-term, and raw-input limits.
 - Persisted normalized glossary JSON, hash, and count on localization jobs and dispatch payloads.

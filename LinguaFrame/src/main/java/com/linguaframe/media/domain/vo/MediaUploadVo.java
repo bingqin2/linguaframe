@@ -21,6 +21,7 @@ public record MediaUploadVo(
         String subtitleStylePreset,
         int translationGlossaryEntryCount,
         String translationGlossaryHash,
+        String subtitlePolishingMode,
         Instant createdAt
 ) {
     public MediaUploadVo(
@@ -55,6 +56,7 @@ public record MediaUploadVo(
                 subtitleStylePreset,
                 0,
                 "",
+                "OFF",
                 createdAt
         );
     }

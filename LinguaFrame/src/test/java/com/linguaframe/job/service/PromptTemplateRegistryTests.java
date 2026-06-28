@@ -39,11 +39,26 @@ class PromptTemplateRegistryTests {
     }
 
     @Test
+    void returnsActiveSubtitlePolishingTemplate() {
+        var template = registry.activeTemplate(PromptTemplatePurpose.SUBTITLE_POLISHING);
+
+        assertThat(template.version()).isEqualTo("openai-subtitle-polishing-v1");
+        assertThat(template.purpose()).isEqualTo(PromptTemplatePurpose.SUBTITLE_POLISHING);
+        assertThat(template.provider()).isEqualTo("OPENAI");
+        assertThat(template.modelFamily()).isEqualTo("responses");
+        assertThat(template.systemPrompt()).contains("polish translated subtitle segments");
+        assertThat(template.outputContract())
+                .isEqualTo("Return JSON with segments[{index,text}] and do not add or remove segments.");
+        assertThat(template.active()).isTrue();
+    }
+
+    @Test
     void listsOnlyActiveTemplates() {
         assertThat(registry.listActiveTemplates())
                 .extracting(template -> template.purpose() + ":" + template.version())
                 .containsExactly(
                         "SUBTITLE_TRANSLATION:openai-subtitle-translation-v1",
+                        "SUBTITLE_POLISHING:openai-subtitle-polishing-v1",
                         "TRANSLATION_QUALITY_EVALUATION:openai-translation-quality-evaluation-v1"
                 );
     }

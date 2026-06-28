@@ -74,6 +74,7 @@ public class JobEvidenceBundleServiceImpl implements JobEvidenceBundleService {
         manifest.put("subtitleStylePreset", diagnostics.job().subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", diagnostics.job().translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", diagnostics.job().translationGlossaryHash());
+        manifest.put("subtitlePolishingMode", diagnostics.job().subtitlePolishingMode());
         manifest.put("status", diagnostics.job().status().name());
         manifest.put("artifactCount", diagnostics.artifactCount());
         manifest.put("entries", List.of("manifest.json", "evidence.md", "diagnostics.json"));

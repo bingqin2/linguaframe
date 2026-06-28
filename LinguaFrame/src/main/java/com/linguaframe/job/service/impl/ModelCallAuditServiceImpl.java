@@ -140,7 +140,7 @@ public class ModelCallAuditServiceImpl implements ModelCallAuditService {
         }
         BigDecimal cost = switch (command.operation()) {
             case TRANSCRIPTION -> transcriptionCost(command);
-            case TRANSLATION, EVALUATION -> translationCost(command);
+            case TRANSLATION, SUBTITLE_POLISHING, EVALUATION -> translationCost(command);
             case TTS -> ttsCost(command);
         };
         return cost.setScale(COST_SCALE, RoundingMode.HALF_UP);

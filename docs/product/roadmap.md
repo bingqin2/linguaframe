@@ -344,15 +344,16 @@ Suggested ExecPlan:
 
 Goal: make OpenAI usage reproducible and inspectable instead of hidden inside pipeline stages.
 
-Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity. Upload-time translation glossary control is implemented with strict parsing, OpenAI request payload support, cache-key isolation, browser form/history/detail metadata, and safe evidence metadata.
+Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation/polishing prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity. Upload-time translation glossary control is implemented with strict parsing, OpenAI request payload support, cache-key isolation, browser form/history/detail metadata, and safe evidence metadata. Upload-time subtitle polishing control is implemented for `OFF`, `BALANCED`, and `STRICT` jobs, including a separate audited stage, provider cache identity, browser/demo controls, and evidence metadata.
 
 Build:
 
-- Prompt template records for translation, subtitle polishing, and quality evaluation. Status: implemented for read-only in-code translation and evaluation templates.
-- Active prompt version selection. Status: implemented for OpenAI translation and quality evaluation providers.
+- Prompt template records for translation, subtitle polishing, and quality evaluation. Status: implemented for read-only in-code translation, subtitle polishing, and evaluation templates.
+- Active prompt version selection. Status: implemented for OpenAI translation, subtitle polishing, and quality evaluation providers.
 - Model-call audit records. Status: implemented.
 - Safe input and output summaries. Status: implemented with count-only summaries for transcription, translation, quality evaluation, and TTS.
 - Translation style control. Status: implemented across upload, job metadata, OpenAI translation payloads, safe summaries, provider cache keys, React demo controls, and demo scripts.
+- Subtitle polishing control. Status: implemented across upload, job metadata, OpenAI polishing payloads, safe summaries, provider cache keys, React demo controls, and demo scripts.
 - Latency, token, audio, character, and estimated-cost fields. Status: implemented.
 - Job detail API for model calls. Status: implemented.
 - Frontend model-call panel. Status: implemented.

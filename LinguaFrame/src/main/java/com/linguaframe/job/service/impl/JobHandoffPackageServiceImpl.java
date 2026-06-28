@@ -110,6 +110,7 @@ public class JobHandoffPackageServiceImpl implements JobHandoffPackageService {
         manifest.put("subtitleStylePreset", diagnostics.job().subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", diagnostics.job().translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", diagnostics.job().translationGlossaryHash());
+        manifest.put("subtitlePolishingMode", diagnostics.job().subtitlePolishingMode());
         manifest.put("status", diagnostics.job().status().name());
         manifest.put("handoffReady", handoffReady(reviewedArtifacts));
         manifest.put("reviewedArtifactCount", reviewedArtifacts.size());

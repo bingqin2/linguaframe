@@ -721,7 +721,8 @@ describe('App', () => {
         translationStyle: 'FORMAL',
         subtitleStylePreset: 'HIGH_CONTRAST',
         translationGlossaryEntryCount: 1,
-        translationGlossaryHash: 'abc123'
+        translationGlossaryHash: 'abc123',
+        subtitlePolishingMode: 'OFF'
       })
     ]);
     expect(linguaFrameApi.uploadMedia).toHaveBeenCalledWith(
@@ -730,7 +731,8 @@ describe('App', () => {
       'verse',
       'FORMAL',
       'HIGH_CONTRAST',
-      'Maya => 玛雅'
+      'Maya => 玛雅',
+      'OFF'
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
@@ -2806,6 +2808,7 @@ function jobSummaryFixture(
     subtitleStylePreset: 'STANDARD',
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
+    subtitlePolishingMode: 'OFF',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
@@ -2835,6 +2838,7 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     subtitleStylePreset: 'STANDARD',
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
+    subtitlePolishingMode: 'OFF',
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
@@ -2861,6 +2865,7 @@ function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): Del
     subtitleStylePreset: 'STANDARD',
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
+    subtitlePolishingMode: 'OFF',
     status: 'COMPLETED',
     generatedAt: '2026-06-28T11:00:00Z',
     handoffReady: true,
@@ -3025,6 +3030,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     subtitleStylePreset: 'STANDARD',
     translationGlossaryEntryCount: 0,
     translationGlossaryHash: '',
+    subtitlePolishingMode: 'OFF',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,

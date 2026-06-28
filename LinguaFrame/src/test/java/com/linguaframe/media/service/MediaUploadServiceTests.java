@@ -203,6 +203,57 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void createsJobWithExplicitSubtitlePolishingMode() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "polished.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(
+                file,
+                "zh-CN",
+                "verse",
+                "formal",
+                "high_contrast",
+                "Maya => 玛雅",
+                " balanced "
+        );
+
+        assertThat(result.subtitlePolishingMode()).isEqualTo("BALANCED");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.subtitlePolishingMode()).isEqualTo("BALANCED"));
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .get()
+                .satisfies(event -> assertThat(event.payloadJson()).contains("\"subtitlePolishingMode\":\"BALANCED\""));
+    }
+
+    @Test
+    void defaultsBlankSubtitlePolishingModeToOff() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "unpolished.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", null, null, null, null, "   ");
+
+        assertThat(result.subtitlePolishingMode()).isEqualTo("OFF");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.subtitlePolishingMode()).isEqualTo("OFF"));
+    }
+
+    @Test
     void defaultsBlankTranslationGlossaryToEmpty() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(
