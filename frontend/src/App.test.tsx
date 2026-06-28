@@ -1509,6 +1509,94 @@ describe('App', () => {
     expect(within(report).getByRole('button', { name: /download report markdown/i })).toBeEnabled();
   });
 
+  test('renders ready demo review guide for presentation walkthroughs', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'guide-ready-job',
+        videoId: 'guide-video',
+        targetLanguage: 'zh-CN',
+        status: 'COMPLETED'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1000,
+        text: 'source preview row'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([
+      {
+        language: 'zh-CN',
+        index: 0,
+        startMs: 0,
+        endMs: 1000,
+        text: 'target preview row'
+      }
+    ]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'guide-ready-job',
+        handoffReady: true,
+        reviewedSubtitleArtifactCount: 3,
+        reviewedBurnedVideoAvailable: true
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'guide-reviewed-json',
+        jobId: 'guide-ready-job',
+        type: 'REVIEWED_SUBTITLE_JSON',
+        filename: 'reviewed-subtitles.zh-CN.json'
+      }),
+      artifactFixture({
+        artifactId: 'guide-reviewed-srt',
+        jobId: 'guide-ready-job',
+        type: 'REVIEWED_SUBTITLE_SRT',
+        filename: 'reviewed-subtitles.zh-CN.srt'
+      }),
+      artifactFixture({
+        artifactId: 'guide-reviewed-vtt',
+        jobId: 'guide-ready-job',
+        type: 'REVIEWED_SUBTITLE_VTT',
+        filename: 'reviewed-subtitles.zh-CN.vtt'
+      }),
+      artifactFixture({
+        artifactId: 'guide-dubbing-audio',
+        jobId: 'guide-ready-job',
+        type: 'DUBBING_AUDIO',
+        filename: 'dubbing-audio.mp3',
+        contentType: 'audio/mpeg'
+      })
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'guide-ready-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const guide = await screen.findByRole('region', { name: /demo review guide/i });
+    expect(within(guide).getByText('Demo review guide')).toBeInTheDocument();
+    expect(within(guide).getByText('Presentation ready')).toBeInTheDocument();
+    expect(within(guide).getByText('Input')).toBeInTheDocument();
+    expect(within(guide).getByText('Pipeline')).toBeInTheDocument();
+    expect(within(guide).getByText('Review')).toBeInTheDocument();
+    expect(within(guide).getByText('Delivery')).toBeInTheDocument();
+    expect(within(guide).getByText('Evidence')).toBeInTheDocument();
+    expect(within(guide).getByText('Handoff')).toBeInTheDocument();
+    expect(within(guide).getByRole('link', { name: /open delivery/i })).toHaveAttribute(
+      'href',
+      '#delivery-handoff'
+    );
+    expect(within(guide).getByRole('button', { name: /copy presenter notes/i })).toBeEnabled();
+  });
+
   test('renders attention demo session report for failed jobs', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({
@@ -1553,6 +1641,56 @@ describe('App', () => {
     expect(within(report).getByRole('link', { name: /download diagnostics/i })).toHaveAttribute(
       'href',
       '/api/jobs/session-failed-job/diagnostics/download'
+    );
+  });
+
+  test('renders attention demo review guide for failed jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'guide-failed-job',
+        videoId: 'guide-failed-video',
+        status: 'FAILED',
+        failureStage: 'TARGET_SUBTITLE_EXPORT',
+        failureReason: 'OpenAI request failed',
+        failureTriage: {
+          category: 'OPENAI_AUTH_OR_MODEL',
+          summary: 'OpenAI rejected the configured credentials or model.',
+          recommendedAction: 'Run the OpenAI preflight before retrying.',
+          retryable: false,
+          runbookCommand: 'scripts/demo/openai-demo-preflight.sh',
+          safeDetails: ['failureStage=TARGET_SUBTITLE_EXPORT']
+        }
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(
+      deliveryManifestFixture({
+        jobId: 'guide-failed-job',
+        handoffReady: false,
+        reviewedSubtitleArtifactCount: 0,
+        reviewedArtifacts: [],
+        auditArtifacts: [],
+        links: []
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'guide-failed-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const guide = await screen.findByRole('region', { name: /demo review guide/i });
+    expect(within(guide).getByText('Needs attention')).toBeInTheDocument();
+    expect(within(guide).getByText(/failure triage/i)).toBeInTheDocument();
+    expect(within(guide).getByRole('link', { name: /open pipeline/i })).toHaveAttribute(
+      'href',
+      '#pipeline-progress'
+    );
+    expect(within(guide).getByRole('link', { name: /open evidence/i })).toHaveAttribute(
+      'href',
+      '#demo-evidence'
     );
   });
 

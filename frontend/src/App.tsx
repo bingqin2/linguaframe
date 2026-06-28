@@ -167,6 +167,15 @@ interface DemoSessionReport {
   links: DemoEvidence['links'];
 }
 
+interface DemoReviewStep {
+  key: string;
+  title: string;
+  status: 'READY' | 'ATTENTION' | 'BLOCKED';
+  detail: string;
+  anchor: string;
+  actionLabel: string;
+}
+
 interface CacheReplayCandidate {
   jobId: string;
   filename: string;
@@ -1775,6 +1784,19 @@ function JobDetail({
     () => buildDemoSessionReport(job, artifacts, deliveryManifest, demoEvidence, demoHandoffChecklist),
     [artifacts, deliveryManifest, demoEvidence, demoHandoffChecklist, job]
   );
+  const demoReviewSteps = useMemo(
+    () =>
+      buildDemoReviewSteps(
+        job,
+        artifacts,
+        deliveryManifest,
+        subtitleReview,
+        subtitleDraft,
+        demoHandoffChecklist,
+        demoSessionReport
+      ),
+    [artifacts, deliveryManifest, demoHandoffChecklist, demoSessionReport, job, subtitleDraft, subtitleReview]
+  );
 
   const statusItems = useMemo(
     () => [
@@ -1847,6 +1869,8 @@ function JobDetail({
         </div>
       </section>
 
+      <DemoReviewGuidePanel job={job} report={demoSessionReport} steps={demoReviewSteps} />
+
       <ResultDeliveryPanel
         deliverables={deliverables}
         estimatedCost={estimatedCost}
@@ -1899,7 +1923,7 @@ function JobDetail({
         status={subtitleDraftStatus}
       />
 
-      <section className="panel" aria-label="Timeline">
+      <section id="timeline" className="panel" aria-label="Timeline">
         <h3>Timeline</h3>
         {job.timelineEvents.length === 0 ? (
           <p className="muted">No timeline events yet.</p>
@@ -1916,7 +1940,7 @@ function JobDetail({
         )}
       </section>
 
-      <section className="panel" aria-label="Model calls">
+      <section id="model-calls" className="panel" aria-label="Model calls">
         <h3>Model calls</h3>
         {job.modelCalls.length === 0 ? (
           <p className="muted">No model calls recorded yet.</p>
@@ -1983,7 +2007,7 @@ function JobDetail({
         </section>
       </section>
 
-      <section className="panel" aria-label="Artifacts">
+      <section id="artifacts" className="panel" aria-label="Artifacts">
         <div className="panel-heading artifact-panel-heading">
           <h3>Artifacts</h3>
           <a className="secondary-link" href={linguaFrameApi.artifactArchiveDownloadUrl(job.jobId)}>
@@ -2049,7 +2073,7 @@ function MediaDeliveryPanel({ artifacts, jobId }: { artifacts: JobArtifact[]; jo
   }
 
   return (
-    <section className="panel media-delivery-panel" aria-label="Media delivery">
+    <section id="media-delivery" className="panel media-delivery-panel" aria-label="Media delivery">
       <div className="panel-heading">
         <h3>Media delivery</h3>
         <p className="muted">{mediaItems.length} playable outputs</p>
@@ -2123,7 +2147,7 @@ function ResultDeliveryPanel({
   const missingCount = deliverables.filter((deliverable) => deliverable.status === 'Missing').length;
 
   return (
-    <section className="panel result-delivery-panel" aria-label="Result delivery">
+    <section id="result-delivery" className="panel result-delivery-panel" aria-label="Result delivery">
       <div className="panel-heading">
         <h3>Result delivery</h3>
         <div className="panel-actions">
@@ -2205,7 +2229,7 @@ function DeliveryHandoffPanel({
 }) {
   if (error) {
     return (
-      <section className="panel" aria-label="Delivery handoff">
+      <section id="delivery-handoff" className="panel" aria-label="Delivery handoff">
         <h3>Delivery handoff</h3>
         <p className="error-text">{error}</p>
       </section>
@@ -2213,7 +2237,7 @@ function DeliveryHandoffPanel({
   }
   if (!manifest) {
     return (
-      <section className="panel" aria-label="Delivery handoff">
+      <section id="delivery-handoff" className="panel" aria-label="Delivery handoff">
         <h3>Delivery handoff</h3>
         <p className="muted">Delivery manifest is not loaded.</p>
       </section>
@@ -2221,7 +2245,7 @@ function DeliveryHandoffPanel({
   }
 
   return (
-    <section className="panel delivery-handoff-panel" aria-label="Delivery handoff">
+    <section id="delivery-handoff" className="panel delivery-handoff-panel" aria-label="Delivery handoff">
       <div className="panel-heading">
         <div>
           <h3>Delivery handoff</h3>
@@ -2311,7 +2335,7 @@ function PipelineProgressPanel({ progress }: { progress: LocalizationJob['pipeli
   }
 
   return (
-    <section className="panel" aria-label="Pipeline progress">
+    <section id="pipeline-progress" className="panel" aria-label="Pipeline progress">
       <h3>Pipeline progress</h3>
       <dl className="status-grid compact-status-grid">
         <div>
@@ -2373,7 +2397,7 @@ function FailureTriagePanel({ triage }: { triage: FailureTriage | null }) {
   }
 
   return (
-    <section className="panel" aria-label="Failure triage">
+    <section id="failure-triage" className="panel" aria-label="Failure triage">
       <h3>Failure triage</h3>
       <dl className="status-grid">
         <div>
@@ -2400,6 +2424,93 @@ function FailureTriagePanel({ triage }: { triage: FailureTriage | null }) {
           ))}
         </ul>
       ) : null}
+    </section>
+  );
+}
+
+function DemoReviewGuidePanel({
+  job,
+  report,
+  steps
+}: {
+  job: LocalizationJob;
+  report: DemoSessionReport;
+  steps: DemoReviewStep[];
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+  const mainSteps = steps.filter((step) => step.key !== 'failure-triage');
+  const ready = mainSteps.every((step) => step.status === 'READY');
+  const markdown = formatDemoReviewPresenterNotes(job, steps, report);
+
+  const handleCopyPresenterNotes = useCallback(async () => {
+    if (!canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Presenter notes copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownloadPresenterNotes = useCallback(() => {
+    const blob = new Blob([markdown], {
+      type: 'text/markdown'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-demo-review-${sanitizeFilename(job.jobId)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Presenter notes Markdown downloaded.');
+  }, [job.jobId, markdown]);
+
+  return (
+    <section className="panel demo-review-guide-panel" aria-label="Demo review guide">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo review guide</h3>
+          <p className="muted">Walk through this job in a presentation-ready order.</p>
+        </div>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!canCopy}
+            onClick={handleCopyPresenterNotes}
+          >
+            Copy presenter notes
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadPresenterNotes}>
+            Download presenter notes
+          </button>
+        </div>
+      </div>
+      <p className={ready ? 'status-pill success' : 'status-pill warning'}>
+        {ready ? 'Presentation ready' : 'Needs attention'}
+      </p>
+      {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      <ol className="demo-review-steps">
+        {steps.map((step) => (
+          <li className="demo-review-step" key={step.key}>
+            <div className="demo-review-step-main">
+              <span className={demoReviewStatusClassName(step.status)}>{step.status}</span>
+              <div>
+                <strong>{step.title}</strong>
+                <p>{step.detail}</p>
+              </div>
+            </div>
+            <div className="demo-review-step-actions">
+              <a className="secondary-link" href={step.anchor}>
+                {step.actionLabel}
+              </a>
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -2443,7 +2554,7 @@ function DemoHandoffChecklistPanel({
   }, [checklist, jobId]);
 
   return (
-    <section className="panel handoff-checklist-panel" aria-label="Demo handoff checklist">
+    <section id="demo-handoff-checklist" className="panel handoff-checklist-panel" aria-label="Demo handoff checklist">
       <div className="panel-heading">
         <div>
           <h3>Demo handoff checklist</h3>
@@ -2548,7 +2659,7 @@ function DemoSessionReportPanel({
   }, [jobId, markdown]);
 
   return (
-    <section className="panel demo-session-report-panel" aria-label="Demo session report">
+    <section id="demo-session-report" className="panel demo-session-report-panel" aria-label="Demo session report">
       <div className="panel-heading">
         <div>
           <h3>Demo session report</h3>
@@ -2641,7 +2752,7 @@ function DemoEvidencePanel({
   }, [evidence]);
 
   return (
-    <section className="panel demo-evidence-panel" aria-label="Demo evidence">
+    <section id="demo-evidence" className="panel demo-evidence-panel" aria-label="Demo evidence">
       <div className="panel-heading">
         <h3>Demo evidence</h3>
         <div className="panel-actions">
@@ -2939,7 +3050,7 @@ function QualityEvaluationPanel({
 function SubtitleReviewPanel({ review }: { review: SubtitleReviewSummary | null }) {
   if (!review) {
     return (
-      <section className="panel" aria-label="Subtitle review">
+      <section id="subtitle-review" className="panel" aria-label="Subtitle review">
         <h3>Subtitle review</h3>
         <p className="muted">No subtitle review summary loaded yet.</p>
       </section>
@@ -2947,7 +3058,7 @@ function SubtitleReviewPanel({ review }: { review: SubtitleReviewSummary | null 
   }
 
   return (
-    <section className="panel" aria-label="Subtitle review">
+    <section id="subtitle-review" className="panel" aria-label="Subtitle review">
       <div className="panel-heading">
         <h3>Subtitle review</h3>
         <span className="status-pill">{review.targetLanguage}</span>
@@ -3081,7 +3192,7 @@ function SubtitleDraftEditorPanel({
 
   if (!draft) {
     return (
-      <section className="panel" aria-label="Subtitle draft editor">
+      <section id="subtitle-draft-editor" className="panel" aria-label="Subtitle draft editor">
         <h3>Subtitle draft editor</h3>
         {error ? <p className="muted">{error}</p> : <p className="muted">No editable subtitle draft loaded yet.</p>}
       </section>
@@ -3089,7 +3200,7 @@ function SubtitleDraftEditorPanel({
   }
 
   return (
-    <section className="panel" aria-label="Subtitle draft editor">
+    <section id="subtitle-draft-editor" className="panel" aria-label="Subtitle draft editor">
       <div className="panel-heading">
         <h3>Subtitle draft editor</h3>
         <span className="status-pill">{draft.targetLanguage}</span>
@@ -3416,6 +3527,108 @@ function countArtifacts(artifacts: JobArtifact[], types: JobArtifact['type'][]):
   return artifacts.filter((artifact) => accepted.has(artifact.type)).length;
 }
 
+function buildDemoReviewSteps(
+  job: LocalizationJob,
+  artifacts: JobArtifact[],
+  manifest: DeliveryManifest | null,
+  subtitleReview: SubtitleReviewSummary | null,
+  subtitleDraft: SubtitleDraftSummary | null,
+  checklist: DemoHandoffChecklist,
+  report: DemoSessionReport
+): DemoReviewStep[] {
+  const reviewedSubtitleCount = countArtifacts(artifacts, [
+    'REVIEWED_SUBTITLE_JSON',
+    'REVIEWED_SUBTITLE_SRT',
+    'REVIEWED_SUBTITLE_VTT'
+  ]);
+  const mediaOutputCount = countArtifacts(artifacts, [
+    'DUBBING_AUDIO',
+    'BURNED_VIDEO',
+    'REVIEWED_BURNED_VIDEO'
+  ]);
+  const pipelineTerminal = job.pipelineProgress?.terminal ?? ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.status);
+  const hasInput = Boolean(job.jobId && job.videoId && job.targetLanguage);
+
+  const steps: DemoReviewStep[] = [
+    {
+      key: 'input',
+      title: 'Input',
+      status: hasInput ? 'READY' : 'BLOCKED',
+      detail: hasInput
+        ? `Job ${job.jobId} localizes video ${job.videoId} to ${job.targetLanguage}.`
+        : 'The selected job is missing required input metadata.',
+      anchor: '#result-delivery',
+      actionLabel: 'Open input'
+    },
+    {
+      key: 'pipeline',
+      title: 'Pipeline',
+      status: pipelineTerminal ? 'READY' : 'ATTENTION',
+      detail: pipelineTerminal
+        ? `Pipeline is terminal with job status ${job.status}.`
+        : 'Pipeline is still running or stage timing has not reached a terminal state.',
+      anchor: '#pipeline-progress',
+      actionLabel: 'Open pipeline'
+    },
+    {
+      key: 'review',
+      title: 'Review',
+      status: subtitleReview ? (reviewedSubtitleCount >= 3 ? 'READY' : 'ATTENTION') : 'BLOCKED',
+      detail: subtitleReview
+        ? reviewedSubtitleCount >= 3
+          ? `${reviewedSubtitleCount} reviewed subtitle artifacts are ready${subtitleDraft ? ` with ${subtitleDraft.editedSegmentCount} saved draft edits.` : '.'}`
+          : `Subtitle review is loaded, but only ${reviewedSubtitleCount} reviewed subtitle artifacts are ready.`
+        : 'Subtitle review metadata is not loaded yet.',
+      anchor: '#subtitle-review',
+      actionLabel: 'Open review'
+    },
+    {
+      key: 'delivery',
+      title: 'Delivery',
+      status: manifest ? (manifest.handoffReady ? 'READY' : 'ATTENTION') : 'BLOCKED',
+      detail: manifest
+        ? manifest.handoffReady
+          ? `${manifest.reviewedSubtitleArtifactCount} reviewed subtitle files and ${mediaOutputCount} playable media outputs are available.`
+          : 'Delivery manifest is loaded, but reviewed handoff outputs still need attention.'
+        : 'Delivery manifest is not loaded.',
+      anchor: '#delivery-handoff',
+      actionLabel: 'Open delivery'
+    },
+    {
+      key: 'evidence',
+      title: 'Evidence',
+      status: 'READY',
+      detail: 'Diagnostics, backend evidence, evidence bundle, and handoff package links are available for this job.',
+      anchor: '#demo-evidence',
+      actionLabel: 'Open evidence'
+    },
+    {
+      key: 'handoff',
+      title: 'Handoff',
+      status: checklist.overallStatus === 'READY' && report.status === 'READY' ? 'READY' : 'ATTENTION',
+      detail:
+        checklist.overallStatus === 'READY' && report.status === 'READY'
+          ? 'Checklist and session report both indicate this run is ready for handoff.'
+          : 'Checklist or session report still needs attention before handoff.',
+      anchor: '#demo-session-report',
+      actionLabel: 'Open handoff'
+    }
+  ];
+
+  if (job.failureTriage) {
+    steps.push({
+      key: 'failure-triage',
+      title: 'Failure triage',
+      status: 'ATTENTION',
+      detail: `${job.failureTriage.category}: ${job.failureTriage.recommendedAction}`,
+      anchor: '#failure-triage',
+      actionLabel: 'Open triage'
+    });
+  }
+
+  return steps;
+}
+
 function buildDemoSessionReport(
   job: LocalizationJob,
   artifacts: JobArtifact[],
@@ -3514,6 +3727,16 @@ function checklistStatusClassName(status: ChecklistStatus): string {
     return 'checklist-status-pass';
   }
   if (status === 'WARN') {
+    return 'checklist-status-warn';
+  }
+  return 'checklist-status-fail';
+}
+
+function demoReviewStatusClassName(status: DemoReviewStep['status']): string {
+  if (status === 'READY') {
+    return 'checklist-status-pass';
+  }
+  if (status === 'ATTENTION') {
     return 'checklist-status-warn';
   }
   return 'checklist-status-fail';
@@ -3755,6 +3978,37 @@ function formatDemoSessionReportMarkdown(report: DemoSessionReport, jobId: strin
     `- Evidence bundle: ${report.links.evidenceBundle}`
   );
   return lines.join('\n').trimEnd();
+}
+
+function formatDemoReviewPresenterNotes(
+  job: LocalizationJob,
+  steps: DemoReviewStep[],
+  report: DemoSessionReport
+): string {
+  const ready = steps
+    .filter((step) => step.key !== 'failure-triage')
+    .every((step) => step.status === 'READY');
+  const lines = [
+    '# LinguaFrame Demo Review Notes',
+    '',
+    `- Job: ${job.jobId}`,
+    `- Video: ${job.videoId}`,
+    `- Target language: ${job.targetLanguage}`,
+    `- Overall: ${ready ? 'READY' : 'ATTENTION'}`,
+    '',
+    '## Walkthrough'
+  ];
+  steps.forEach((step) => {
+    lines.push(`- ${step.status} ${step.title}: ${step.detail}`);
+  });
+  lines.push('', '## Session report');
+  report.sections.forEach((section) => {
+    lines.push(`- ${section.title}`);
+    section.lines.forEach((line) => {
+      lines.push(`  - ${line}`);
+    });
+  });
+  return lines.join('\n');
 }
 
 function buildCacheReplayCandidates(

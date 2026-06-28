@@ -203,6 +203,10 @@ Expected browser behavior:
 - The `Media delivery` panel appears when playable media artifacts exist.
 - The `Media delivery` panel renders `DUBBING_AUDIO`, generated `BURNED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs when present.
 - Each `Media delivery` output has a browser player, direct download link, content type, size, short SHA-256 hash, and generated/reused cache state.
+- The `Demo review guide` panel appears near the top of the selected job view.
+- The guide shows `Presentation ready` only when the pipeline is terminal, reviewed subtitles are ready, handoff delivery is ready, evidence links are available, and the session report is ready.
+- Failed or incomplete jobs show `Needs attention` and link to pipeline progress, demo evidence, and failure triage when triage exists.
+- `Copy presenter notes` and `Download presenter notes` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.
 - The read-only `Subtitle review` panel shows segment count, missing target count, timing mismatch count, average/max duration, quality score/verdict when available, and downloadable subtitle artifact count.
 - The `Subtitle review` panel renders source/target comparison rows with timing range, delta, and `Aligned`, `Missing target`, or `Timing mismatch` status.
 - Subtitle-review API failures appear as non-blocking preview errors, while job detail, transcript preview, subtitle preview, and artifacts remain usable.
