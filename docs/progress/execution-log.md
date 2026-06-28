@@ -2282,6 +2282,15 @@ Validation so far:
 
 Post-merge verification:
 
+- Merged `demo-handoff-checklist-workspace` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 52 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed on `main`.
+- `git diff --check` passed on `main`.
+
+Post-merge verification:
+
 - Merged `subtitle-draft-edit-export` back to `main` with merge commit `bcfb27e`.
 - `mvn -pl LinguaFrame -Dtest=SubtitleDraftServiceTests,LocalizationJobControllerTests,JobEvidenceReportServiceTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 41, Failures: 0, Errors: 0, Skipped: 0`.
 - `cd frontend && npm run test:run -- App linguaFrameApi` passed on `main` with `Tests 79 passed`.
