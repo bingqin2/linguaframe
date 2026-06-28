@@ -2371,3 +2371,12 @@ Validation so far:
 - `cd frontend && npm run test:run -- App -t "renders generated and reviewed burned video as separate media delivery outputs"` passed.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_media_delivery_summary` did not exist, then passed.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
+
+Post-merge verification:
+
+- Merged `media-preview-delivery-workspace` back to `main` with merge commit.
+- `cd frontend && npm run test:run -- App` passed on `main` with `Tests 50 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed on `main`.
+- `git diff --check` passed on `main`.
