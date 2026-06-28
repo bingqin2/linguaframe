@@ -718,6 +718,46 @@ td {
   color: #5f7180;
 }
 
+.operations-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+
+.operations-section-list {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.operations-section-list > li {
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+  min-width: 0;
+}
+
+.operations-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.operations-check-list {
+  margin-bottom: 0;
+}
+
+.operations-check-list li small,
+.command-list small {
+  display: block;
+  margin-top: 4px;
+  color: #5f7180;
+}
+
 .demo-runbook-panel h3 {
   margin: 14px 0 8px;
   color: #4f6170;

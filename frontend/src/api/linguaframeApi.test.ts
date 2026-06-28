@@ -16,6 +16,7 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getPrivateDemoOperations,
   getRetentionCleanupPreview,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
@@ -423,6 +424,25 @@ describe('linguaframeApi', () => {
     expect(dashboard.modelCalls.modelCallCount).toBe(2);
     expect(dashboard.cache.providerCacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/dashboard', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches private demo operations with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(privateDemoOperationsFixture())
+    );
+
+    const operations = await getPrivateDemoOperations();
+
+    expect(operations.overallStatus).toBe('READY');
+    expect(operations.sections[0]?.title).toBe('Access gate');
+    expect(operations.commands[0]?.command).toBe('scripts/demo/private-demo-preflight.sh');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/operations', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
@@ -920,6 +940,44 @@ function operatorDashboardFixture() {
       generatedArtifactCount: 3,
       providerCacheHitCount: 1
     }
+  };
+}
+
+function privateDemoOperationsFixture() {
+  return {
+    generatedAt: '2026-06-28T08:00:00Z',
+    overallStatus: 'READY',
+    readyCount: 8,
+    attentionCount: 0,
+    blockedCount: 0,
+    sections: [
+      {
+        title: 'Access gate',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Owner access gate',
+            status: 'READY',
+            detail: 'Private demo API access requires the configured owner token.',
+            nextAction: 'Use the browser owner-session login or demo token header for API calls.'
+          }
+        ]
+      }
+    ],
+    commands: [
+      {
+        label: 'Private demo preflight',
+        command: 'scripts/demo/private-demo-preflight.sh',
+        detail: 'Checks local env and dependency reachability.'
+      }
+    ],
+    documentationLinks: [
+      {
+        label: 'Private demo deployment',
+        path: 'docs/deployment/private-demo.md',
+        detail: 'Reverse proxy, env, backup, and restore runbook.'
+      }
+    ]
   };
 }
 

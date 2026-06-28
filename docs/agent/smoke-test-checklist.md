@@ -256,6 +256,7 @@ Run private-demo preflight before uploading media:
 
 ```bash
 LINGUAFRAME_ENV_FILE=.env.example scripts/demo/private-demo-preflight.sh
+scripts/demo/private-demo-operations-report.sh
 ```
 
 Expected:
@@ -265,6 +266,7 @@ Expected:
 - Backend runtime contract is current: `runtime.latestMigrationVersion` is at least the highest local `LinguaFrame/src/main/resources/db/migration/V*__*.sql` version.
 - Required demo routes are listed in `runtime.requiredRoutes`, including diagnostics and artifact archive downloads.
 - Runtime live dependency checks pass for database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI, or preflight fails before upload with the failing dependency names. OpenAI `SKIPPED` is accepted when the connectivity check is disabled.
+- The browser `Private demo operations` panel and `scripts/demo/private-demo-operations-report.sh` summarize access gate, runtime contract, live dependencies, provider readiness, cost safety, storage/recovery, retention cleanup, and demo evidence without secrets or raw media paths.
 - A stale backend container fails preflight before media upload and prints the backend package/recreate commands.
 - Frontend responds on `http://localhost:5173`.
 - If `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, anonymous `/api/**` access returns `401` and the configured header succeeds.

@@ -164,6 +164,7 @@ The backend should provide:
 - Cost estimation and usage capture.
 - OpenAPI documentation.
 - Structured logs with job and stage identifiers.
+- A private-demo operations readiness workspace that safely aggregates access gate, runtime contract, live dependency, provider, cost, storage/recovery, retention, and demo-evidence checks for browser and terminal handoff.
 
 ## Pipeline Target
 

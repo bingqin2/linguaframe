@@ -56,8 +56,21 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh
 - Swagger UI: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/swagger-ui/index.html`
 - Runtime readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/runtime/dependencies`
 - Live checks: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/runtime/live-checks`
+- Operations readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/operator/private-demo/operations`
 
 When a token is configured, `/api/**` requires the demo token. Enter it in the browser `Demo access token` field before uploads, downloads, previews, or SSE.
+
+## Operations Readiness Report
+
+Use the browser `Private demo operations` panel before uploading media or running provider-backed demos. It is a read-only aggregate of the access gate, runtime contract, live dependency checks, provider readiness, budget controls, storage/recovery guidance, retention cleanup preview, and demo evidence.
+
+Generate the same metadata-only report from the terminal:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-operations-report.sh
+```
+
+The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` unless `LINGUAFRAME_PRIVATE_DEMO_OPERATIONS_REPORT_PATH` is set. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero so deployment scripts can stop before upload or provider spend.
 
 ## Safety Defaults
 

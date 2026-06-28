@@ -674,6 +674,93 @@ JSON
   [[ "$output" != *"private-demo-token"* ]] || fail "demo session report exposed demo token"
 }
 
+test_write_private_demo_operations_report_is_metadata_only() {
+  cat >"$TMPDIR/private-demo-operations.json" <<'JSON'
+{
+  "generatedAt": "2026-06-28T08:00:00Z",
+  "overallStatus": "ATTENTION",
+  "readyCount": 7,
+  "attentionCount": 2,
+  "blockedCount": 0,
+  "sections": [
+    {
+      "title": "Access gate",
+      "status": "READY",
+      "checks": [
+        {
+          "label": "Owner access gate",
+          "status": "READY",
+          "detail": "Private demo API access requires the configured owner token.",
+          "nextAction": "Use the browser owner-session login or demo token header for API calls.",
+          "unsafeToken": "private-demo-token"
+        }
+      ]
+    },
+    {
+      "title": "Live dependencies",
+      "status": "ATTENTION",
+      "checks": [
+        {
+          "label": "openai",
+          "status": "ATTENTION",
+          "detail": "OpenAI connectivity check is disabled.",
+          "nextAction": "Enable the check before provider-backed demos.",
+          "unsafeApiKey": "OPENAI_API_KEY",
+          "unsafePayload": "provider payload"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "label": "Private demo preflight",
+      "command": "scripts/demo/private-demo-preflight.sh",
+      "detail": "Checks local env and dependency reachability."
+    },
+    {
+      "label": "Restore dry-run",
+      "command": "scripts/demo/private-demo-restore.sh --dry-run --backup-dir <backup-dir>",
+      "detail": "Validates a selected backup before any guarded restore.",
+      "unsafePath": "/Users/example/backups/private"
+    }
+  ],
+  "documentationLinks": [
+    {
+      "label": "Private demo deployment",
+      "path": "docs/deployment/private-demo.md",
+      "detail": "Reverse proxy, env, backup, and restore runbook.",
+      "unsafeObjectKey": "job-artifacts/private"
+    }
+  ]
+}
+JSON
+
+  print_private_demo_operations_summary <"$TMPDIR/private-demo-operations.json" >"$TMPDIR/private-demo-operations.out"
+  local summary
+  summary="$(cat "$TMPDIR/private-demo-operations.out")"
+  [[ "$summary" == *"privateDemoOperationsOverall=ATTENTION"* ]] || fail "operations summary missed overall"
+  [[ "$summary" == *"privateDemoOperationsReadyCount=7"* ]] || fail "operations summary missed ready count"
+  [[ "$summary" == *"privateDemoOperationsSection=ATTENTION:Live dependencies"* ]] || fail "operations summary missed section"
+
+  write_private_demo_operations_report \
+    "$TMPDIR/private-demo-operations.json" \
+    "$TMPDIR/private-demo-operations-report.md"
+  local output
+  output="$(cat "$TMPDIR/private-demo-operations-report.md")"
+
+  [[ "$output" == *"# LinguaFrame Private Demo Operations Report"* ]] || fail "operations report missed title"
+  [[ "$output" == *"- Overall: ATTENTION"* ]] || fail "operations report missed overall"
+  [[ "$output" == *"## Checks"* ]] || fail "operations report missed checks section"
+  [[ "$output" == *"ATTENTION Live dependencies / openai: OpenAI connectivity check is disabled."* ]] || fail "operations report missed openai check"
+  [[ "$output" == *"scripts/demo/private-demo-preflight.sh"* ]] || fail "operations report missed preflight command"
+  [[ "$output" == *"docs/deployment/private-demo.md"* ]] || fail "operations report missed doc link"
+  [[ "$output" != *"private-demo-token"* ]] || fail "operations report exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "operations report exposed API key"
+  [[ "$output" != *"job-artifacts/"* ]] || fail "operations report exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "operations report exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "operations report exposed provider payload"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -687,5 +774,6 @@ test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only
 test_print_handoff_package_summary_validates_zip_and_secrets
 test_write_demo_session_report_markdown_is_metadata_only
+test_write_private_demo_operations_report_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

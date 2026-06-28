@@ -13,6 +13,7 @@ import type {
   MediaUploadValidation,
   DemoSessionStatus,
   OperatorDashboard,
+  PrivateDemoOperations,
   PromptTemplate,
   RetentionCleanupResult,
   RuntimeDependencySummary,
@@ -45,8 +46,17 @@ describe('App', () => {
     vi.useRealTimers();
     window.localStorage.clear();
     vi.restoreAllMocks();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: vi.fn().mockResolvedValue(undefined)
+      }
+    });
     vi.spyOn(linguaFrameApi, 'listJobs').mockResolvedValue(jobListFixture());
     vi.spyOn(linguaFrameApi, 'getOperatorDashboard').mockResolvedValue(operatorDashboardFixture());
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoOperations').mockResolvedValue(
+      privateDemoOperationsFixture()
+    );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
@@ -340,6 +350,37 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: /job failed-dashboard-job/i })).toBeInTheDocument();
     expect(getJob).toHaveBeenCalledWith('failed-dashboard-job');
+  });
+
+  test('shows private demo operations readiness and report actions', async () => {
+    render(<App />);
+
+    const operations = await screen.findByRole('region', { name: /private demo operations/i });
+    expect(within(operations).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(operations).getByText('8 ready')).toBeInTheDocument();
+    expect(within(operations).getByText('Access gate')).toBeInTheDocument();
+    expect(within(operations).getByText('Live dependencies')).toBeInTheDocument();
+    expect(within(operations).getByText('Cost safety')).toBeInTheDocument();
+    expect(within(operations).getByText('Storage and recovery')).toBeInTheDocument();
+    expect(within(operations).getByText('Retention cleanup')).toBeInTheDocument();
+    expect(within(operations).getByText('Demo evidence')).toBeInTheDocument();
+    expect(within(operations).getByText('scripts/demo/private-demo-preflight.sh')).toBeInTheDocument();
+    expect(within(operations).getByRole('button', { name: /copy operations report/i })).toBeEnabled();
+    expect(within(operations).getByRole('button', { name: /download operations report/i }))
+      .toBeEnabled();
+  });
+
+  test('keeps upload controls usable when private demo operations fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoOperations').mockRejectedValue(
+      new Error('Operations unavailable')
+    );
+
+    render(<App />);
+
+    const operations = await screen.findByRole('region', { name: /private demo operations/i });
+    expect(within(operations).getByText('Operations readiness unavailable')).toBeInTheDocument();
+    expect(within(operations).getByText('Operations unavailable')).toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
   test('keeps upload controls usable when operator dashboard fails', async () => {
@@ -2440,6 +2481,112 @@ function operatorDashboardFixture(overrides: Partial<OperatorDashboard> = {}): O
         averageDurationMs: 1200,
         maxDurationMs: 2400,
         latestDurationMs: 900
+      }
+    ],
+    ...overrides
+  };
+}
+
+function privateDemoOperationsFixture(
+  overrides: Partial<PrivateDemoOperations> = {}
+): PrivateDemoOperations {
+  return {
+    generatedAt: '2026-06-28T08:00:00Z',
+    overallStatus: 'READY',
+    readyCount: 8,
+    attentionCount: 0,
+    blockedCount: 0,
+    sections: [
+      {
+        title: 'Access gate',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Owner access gate',
+            status: 'READY',
+            detail: 'Private demo API access requires the configured owner token.',
+            nextAction: 'Use the browser owner-session login or demo token header for API calls.'
+          }
+        ]
+      },
+      {
+        title: 'Live dependencies',
+        status: 'READY',
+        checks: [
+          {
+            label: 'database',
+            status: 'READY',
+            detail: 'Database query succeeded',
+            nextAction: 'No action required before the next demo run.'
+          }
+        ]
+      },
+      {
+        title: 'Cost safety',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Per-job budget guard',
+            status: 'READY',
+            detail: 'Per-job budget guard is enabled at $0.50000000.',
+            nextAction: 'Keep the limit aligned with the planned demo sample length.'
+          }
+        ]
+      },
+      {
+        title: 'Storage and recovery',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Backup and restore commands',
+            status: 'READY',
+            detail: 'Dry-run backup and restore commands are available.',
+            nextAction: 'Run backup dry-run first.'
+          }
+        ]
+      },
+      {
+        title: 'Retention cleanup',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Retention policy',
+            status: 'READY',
+            detail: 'Retention cleanup is enabled and preview reports 2 candidate jobs.',
+            nextAction: 'Review the browser preview before any deleting cleanup run.'
+          }
+        ]
+      },
+      {
+        title: 'Demo evidence',
+        status: 'READY',
+        checks: [
+          {
+            label: 'Recorded demo jobs',
+            status: 'READY',
+            detail: '5 jobs are visible in the operator dashboard.',
+            nextAction: 'Use a completed job for browser review.'
+          }
+        ]
+      }
+    ],
+    commands: [
+      {
+        label: 'Private demo preflight',
+        command: 'scripts/demo/private-demo-preflight.sh',
+        detail: 'Checks local env and dependency reachability.'
+      },
+      {
+        label: 'Backup dry-run',
+        command: 'scripts/demo/private-demo-backup.sh --dry-run',
+        detail: 'Validates backup shape without exporting service data.'
+      }
+    ],
+    documentationLinks: [
+      {
+        label: 'Private demo deployment',
+        path: 'docs/deployment/private-demo.md',
+        detail: 'Reverse proxy, env, backup, and restore runbook.'
       }
     ],
     ...overrides

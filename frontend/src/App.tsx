@@ -12,6 +12,7 @@ import type {
   MediaUpload,
   MediaUploadValidation,
   OperatorDashboard,
+  PrivateDemoOperations,
   PromptTemplate,
   ProviderReadiness,
   RetentionCleanupResult,
@@ -284,6 +285,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
   const [operatorDashboardError, setOperatorDashboardError] = useState<string | null>(null);
   const [isLoadingOperatorDashboard, setIsLoadingOperatorDashboard] = useState(false);
+  const [privateDemoOperations, setPrivateDemoOperations] = useState<PrivateDemoOperations | null>(
+    null
+  );
+  const [privateDemoOperationsError, setPrivateDemoOperationsError] = useState<string | null>(null);
+  const [isLoadingPrivateDemoOperations, setIsLoadingPrivateDemoOperations] = useState(false);
   const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
   const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
   const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
@@ -381,6 +387,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setOperatorDashboardError(toErrorMessage(dashboardLoadError));
     } finally {
       setIsLoadingOperatorDashboard(false);
+    }
+  }, []);
+
+  const loadPrivateDemoOperations = useCallback(async () => {
+    setIsLoadingPrivateDemoOperations(true);
+    try {
+      const operations = await linguaFrameApi.getPrivateDemoOperations();
+      setPrivateDemoOperations(operations);
+      setPrivateDemoOperationsError(null);
+    } catch (operationsLoadError) {
+      setPrivateDemoOperations(null);
+      setPrivateDemoOperationsError(toErrorMessage(operationsLoadError));
+    } finally {
+      setIsLoadingPrivateDemoOperations(false);
     }
   }, []);
 
@@ -496,6 +516,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadOperatorDashboard();
   }, [loadOperatorDashboard]);
+
+  useEffect(() => {
+    void loadPrivateDemoOperations();
+  }, [loadPrivateDemoOperations]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1066,6 +1090,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             onOpenFailure={openDashboardFailure}
           />
 
+          <PrivateDemoOperationsPanel
+            operations={privateDemoOperations}
+            error={privateDemoOperationsError}
+            isLoading={isLoadingPrivateDemoOperations}
+            onRefresh={loadPrivateDemoOperations}
+          />
+
           <RetentionCleanupPanel
             result={retentionCleanup}
             error={retentionCleanupError}
@@ -1614,6 +1645,168 @@ function OperatorDashboardPanel({
       ) : null}
     </section>
   );
+}
+
+function PrivateDemoOperationsPanel({
+  operations,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  operations: PrivateDemoOperations | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const report = operations ? formatPrivateDemoOperationsReport(operations) : '';
+
+  const handleCopy = async () => {
+    if (!operations || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(report);
+    setStatus('Operations report copied.');
+  };
+
+  const handleDownload = () => {
+    if (!operations) {
+      return;
+    }
+    const blob = new Blob([report], { type: 'text/markdown;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'linguaframe-private-demo-operations.md';
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Operations report Markdown downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Private demo operations">
+      <div className="panel-heading">
+        <h2>Private demo operations</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Operations readiness unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !operations ? <p className="muted">Loading operations readiness...</p> : null}
+      {operations ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>
+                <span className={operationsStatusClassName(operations.overallStatus)}>
+                  {operations.overallStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{operations.readyCount} ready</dd>
+            </div>
+            <div>
+              <dt>Attention</dt>
+              <dd>{operations.attentionCount} attention</dd>
+            </div>
+            <div>
+              <dt>Blocked</dt>
+              <dd>{operations.blockedCount} blocked</dd>
+            </div>
+          </dl>
+          <ul className="operations-section-list" aria-label="Private demo operation sections">
+            {operations.sections.map((section) => (
+              <li key={section.title}>
+                <div className="operations-section-heading">
+                  <strong>{section.title}</strong>
+                  <span className={operationsStatusClassName(section.status)}>{section.status}</span>
+                </div>
+                <ul className="readiness-list operations-check-list">
+                  {section.checks.map((check) => (
+                    <li key={`${section.title}-${check.label}`}>
+                      <span>
+                        <strong>{check.label}</strong> · {check.detail}
+                      </span>
+                      <small>{check.nextAction}</small>
+                    </li>
+                  ))}
+                </ul>
+              </li>
+            ))}
+          </ul>
+          <h3>Commands</h3>
+          <ul className="command-list">
+            {operations.commands.map((command) => (
+              <li key={command.command}>
+                <strong>{command.label}</strong>
+                <code>{command.command}</code>
+                <small>{command.detail}</small>
+              </li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy operations report
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownload}>
+              Download operations report
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function formatPrivateDemoOperationsReport(operations: PrivateDemoOperations): string {
+  const lines = [
+    '# LinguaFrame Private Demo Operations Report',
+    '',
+    `- Overall: ${operations.overallStatus}`,
+    `- Generated at: ${operations.generatedAt}`,
+    `- Ready: ${operations.readyCount}`,
+    `- Attention: ${operations.attentionCount}`,
+    `- Blocked: ${operations.blockedCount}`,
+    '',
+    '## Checks'
+  ];
+  operations.sections.forEach((section) => {
+    section.checks.forEach((check) => {
+      lines.push(`- ${check.status} ${section.title} / ${check.label}: ${check.detail}`);
+      lines.push(`  Next: ${check.nextAction}`);
+    });
+  });
+  lines.push('', '## Commands');
+  operations.commands.forEach((command) => {
+    lines.push(`- ${command.command}`);
+  });
+  lines.push('', '## Documentation');
+  operations.documentationLinks.forEach((link) => {
+    lines.push(`- ${link.path}: ${link.detail}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
+function operationsStatusClassName(status: PrivateDemoOperations['overallStatus']): string {
+  if (status === 'BLOCKED') {
+    return 'status-pill danger';
+  }
+  if (status === 'ATTENTION') {
+    return 'status-pill warning';
+  }
+  return 'status-pill';
 }
 
 function RetentionCleanupPanel({

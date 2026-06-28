@@ -101,6 +101,29 @@ class OperatorDashboardControllerTests {
                     .andExpect(jsonPath("$.stageTimings[0].maxDurationMs").value(1500));
         }
 
+        @Test
+        void returnsPrivateDemoOperationsReadiness() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:00:00Z");
+            createJob("operations-controller-video", "operations-controller-job", "operations.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/private-demo/operations"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.readyCount").isNumber())
+                    .andExpect(jsonPath("$.attentionCount").isNumber())
+                    .andExpect(jsonPath("$.blockedCount").isNumber())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Access gate')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Live dependencies')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Cost safety')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Storage and recovery')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Retention cleanup')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.title == 'Demo evidence')]").exists())
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/private-demo-preflight.sh')]").exists())
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/private-demo-backup.sh --dry-run')]").exists())
+                    .andExpect(jsonPath("$.documentationLinks[?(@.path == 'docs/deployment/private-demo.md')]").exists());
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -136,6 +159,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/dashboard")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/private-demo/operations"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/private-demo/operations")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }
