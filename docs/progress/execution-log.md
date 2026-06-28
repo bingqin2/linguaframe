@@ -24,6 +24,13 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `worker-topology-readiness-workspace` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests,DemoUploadReadinessServiceTests,PrivateDemoOperationsServiceTests test` passed on `main` with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx` passed on `main` with `Tests 72 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:
