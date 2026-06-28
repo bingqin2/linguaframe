@@ -363,6 +363,29 @@ export interface PrivateDemoOperationsLink {
   detail: string;
 }
 
+export interface PrivateDemoLaunchRehearsal {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  readyCount: number;
+  attentionCount: number;
+  blockedCount: number;
+  recommendedNextStepId: string;
+  steps: PrivateDemoLaunchRehearsalStep[];
+  evidenceDownloads: string[];
+  rehearsalNotesMarkdown: string;
+}
+
+export interface PrivateDemoLaunchRehearsalStep {
+  id: string;
+  title: string;
+  status: PrivateDemoOperationsStatus;
+  detail: string;
+  command: string;
+  evidencePath: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
 export interface RuntimeDependencySummary {
   runtime: RuntimeContract;
   database: NetworkDependency;

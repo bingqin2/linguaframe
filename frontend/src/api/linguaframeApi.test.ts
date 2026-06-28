@@ -17,6 +17,7 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getPrivateDemoLaunchRehearsal,
   getPrivateDemoOperations,
   getRetentionCleanupPreview,
   getRuntimeDependencies,
@@ -668,6 +669,25 @@ describe('linguaframeApi', () => {
     expect(operations.sections[0]?.title).toBe('Access gate');
     expect(operations.commands[0]?.command).toBe('scripts/demo/private-demo-preflight.sh');
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/operations', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches private demo launch rehearsal with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(privateDemoLaunchRehearsalFixture())
+    );
+
+    const rehearsal = await getPrivateDemoLaunchRehearsal();
+
+    expect(rehearsal.overallStatus).toBe('ATTENTION');
+    expect(rehearsal.recommendedNextStepId).toBe('openai-preflight');
+    expect(rehearsal.steps[0]?.id).toBe('deploy-preflight');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/launch-rehearsal', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
@@ -1396,6 +1416,34 @@ function privateDemoOperationsFixture() {
         detail: 'Reverse proxy, env, backup, and restore runbook.'
       }
     ]
+  };
+}
+
+function privateDemoLaunchRehearsalFixture() {
+  return {
+    generatedAt: '2026-06-28T08:30:00Z',
+    overallStatus: 'ATTENTION',
+    readyCount: 8,
+    attentionCount: 2,
+    blockedCount: 0,
+    recommendedNextStepId: 'openai-preflight',
+    steps: [
+      {
+        id: 'deploy-preflight',
+        title: 'Deployment preflight',
+        status: 'READY',
+        detail: 'The backend runtime contract includes launch rehearsal.',
+        command: 'LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-deploy-preflight.sh',
+        evidencePath: '/api/runtime/dependencies',
+        nextAction: 'Run this before starting the stack.',
+        blocking: false
+      }
+    ],
+    evidenceDownloads: [
+      '/api/operator/private-demo/operations',
+      '/api/jobs/{jobId}/demo-presenter-pack'
+    ],
+    rehearsalNotesMarkdown: '# LinguaFrame Private Demo Launch Rehearsal\n'
   };
 }
 

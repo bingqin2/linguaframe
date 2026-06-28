@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the private demo launch rehearsal workspace in `docs/plans/096-private-demo-launch-rehearsal-workspace.md`.
+- Added `GET /api/operator/private-demo/launch-rehearsal` for an ordered private-demo go/no-go checklist.
+- Added launch rehearsal aggregation from private-demo operations readiness, runtime contract routes, safe command templates, evidence routes, and metadata-only launch notes.
+- Added a React `Private demo launch rehearsal` panel with overall status, recommended next step, ordered manual commands, expected evidence, and copy/download notes actions.
+- Added terminal helpers and `scripts/demo/private-demo-launch-rehearsal.sh` to write `launch-rehearsal.json` and `launch-rehearsal.md` without running Docker, OpenAI, upload, backup, restore, or cleanup steps.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoLaunchRehearsalServiceTests test` first failed because the launch rehearsal service and VO types did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoLaunchRehearsalServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "private demo launch rehearsal"` first failed because `getPrivateDemoLaunchRehearsal` did not exist, then passed.
+- `cd frontend && npm test -- --run src/App.test.tsx -t "private demo launch rehearsal"` first failed because the panel did not exist, then passed after adding the panel and scoping duplicate text assertions.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "private demo launch rehearsal"` passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_private_demo_launch_rehearsal_summary_file` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/private-demo-launch-rehearsal.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 472, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 118 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo presenter pack workspace in `docs/plans/095-demo-presenter-pack-workspace.md`.
 - Added `GET /api/jobs/{jobId}/demo-presenter-pack` for one selected job's presenter-facing evidence checklist.
 - Added presenter pack aggregation from job detail, same-source demo run matrix, delivery manifest readiness, safe download routes, quality/cost/cache evidence, and metadata-only presenter notes.

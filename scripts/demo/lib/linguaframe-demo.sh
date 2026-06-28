@@ -1055,6 +1055,91 @@ with open(output_path, "w", encoding="utf-8") as handle:
 PY
 }
 
+download_private_demo_launch_rehearsal_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/launch-rehearsal" -o "$output_path"
+}
+
+print_private_demo_launch_rehearsal_summary_file() {
+  local rehearsal_path="$1"
+
+  python3 - "$rehearsal_path" <<'PY'
+import json
+import sys
+
+rehearsal = json.load(open(sys.argv[1], encoding="utf-8"))
+print("privateDemoLaunchOverall=" + rehearsal.get("overallStatus", "UNKNOWN"))
+print("privateDemoLaunchReadyCount=" + str(rehearsal.get("readyCount", 0)))
+print("privateDemoLaunchAttentionCount=" + str(rehearsal.get("attentionCount", 0)))
+print("privateDemoLaunchBlockedCount=" + str(rehearsal.get("blockedCount", 0)))
+print("privateDemoLaunchRecommendedNextStepId=" + rehearsal.get("recommendedNextStepId", ""))
+for step in rehearsal.get("steps", []):
+    print(
+        "privateDemoLaunchStep="
+        + step.get("status", "UNKNOWN")
+        + ":"
+        + step.get("id", "")
+        + ":"
+        + step.get("title", "")
+        + ":blocking="
+        + ("true" if step.get("blocking") else "false")
+    )
+for route in rehearsal.get("evidenceDownloads", []):
+    print("privateDemoLaunchEvidence=" + route)
+PY
+}
+
+write_private_demo_launch_rehearsal_report() {
+  local rehearsal_path="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$rehearsal_path" "$output_path" <<'PY'
+import json
+import sys
+
+rehearsal = json.load(open(sys.argv[1], encoding="utf-8"))
+output_path = sys.argv[2]
+
+lines = [
+    "# LinguaFrame Private Demo Launch Rehearsal",
+    "",
+    f"- Overall: {rehearsal.get('overallStatus', 'UNKNOWN')}",
+    f"- Generated at: {rehearsal.get('generatedAt', 'unknown')}",
+    f"- Ready: {rehearsal.get('readyCount', 0)}",
+    f"- Attention: {rehearsal.get('attentionCount', 0)}",
+    f"- Blocked: {rehearsal.get('blockedCount', 0)}",
+    f"- Recommended next step: {rehearsal.get('recommendedNextStepId', '')}",
+    "",
+    "## Steps",
+]
+
+for step in rehearsal.get("steps", []):
+    lines.append(f"- {step.get('status', 'UNKNOWN')} {step.get('id', '')}: {step.get('title', '')}")
+    command = step.get("command")
+    if command:
+        lines.append(f"  Command: {command}")
+    evidence = step.get("evidencePath")
+    if evidence:
+        lines.append(f"  Evidence: {evidence}")
+    next_action = step.get("nextAction")
+    if next_action:
+        lines.append(f"  Next: {next_action}")
+    if step.get("blocking"):
+        lines.append("  Blocking: yes")
+
+lines.extend(["", "## Evidence Routes"])
+for route in rehearsal.get("evidenceDownloads", []):
+    lines.append(f"- {route}")
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(lines) + "\n")
+PY
+}
+
 fetch_source_media_metadata() {
   local base_url="$1"
   local video_id="$2"

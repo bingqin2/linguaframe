@@ -82,6 +82,7 @@ Stage 2 goals:
 - Let the owner start and end a browser session with the configured private demo token, while keeping Swagger, curl, and scripts compatible with the demo access header.
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
+- Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
 - Keep file size and duration limits conservative.
 - Show repeatable demo input and output.
 

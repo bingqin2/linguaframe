@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Keep private demo launch rehearsal read-only and command-oriented instead of auto-running deployment, backup, restore, OpenAI, upload, or cleanup steps.
+
+Reason: A launch rehearsal should answer whether the owner can safely present the demo and what manual step comes next. Automatically starting services, spending provider credits, exporting backups, restoring data, or deleting retention candidates would mix evidence collection with operational mutation.
+
+Impact: `GET /api/operator/private-demo/launch-rehearsal`, the browser panel, and `scripts/demo/private-demo-launch-rehearsal.sh` produce metadata-only go/no-go notes and safe command templates. Actual Docker startup, OpenAI preflight, upload, backup, restore, and cleanup remain explicit operator commands.
+
+## 2026-06-28
+
 Decision: Derive demo presenter packs on demand from existing evidence APIs instead of storing curated presentation sessions.
 
 Reason: The private demo needs one presenter-facing checklist for a selected job, but job detail, same-source run matrix, delivery manifest, diagnostics, evidence reports, and package routes already provide the durable facts.

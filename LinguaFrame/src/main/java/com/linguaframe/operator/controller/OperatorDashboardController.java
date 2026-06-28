@@ -1,8 +1,10 @@
 package com.linguaframe.operator.controller;
 
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
+import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.service.OperatorDashboardService;
+import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -19,13 +21,16 @@ public class OperatorDashboardController {
 
     private final OperatorDashboardService dashboardService;
     private final PrivateDemoOperationsService operationsService;
+    private final PrivateDemoLaunchRehearsalService launchRehearsalService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
-            PrivateDemoOperationsService operationsService
+            PrivateDemoOperationsService operationsService,
+            PrivateDemoLaunchRehearsalService launchRehearsalService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
+        this.launchRehearsalService = launchRehearsalService;
     }
 
     @GetMapping("/dashboard")
@@ -46,5 +51,15 @@ public class OperatorDashboardController {
     })
     public PrivateDemoOperationsVo privateDemoOperations() {
         return operationsService.operations();
+    }
+
+    @GetMapping("/private-demo/launch-rehearsal")
+    @Operation(summary = "Get private demo launch rehearsal checklist")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo launch rehearsal checklist was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public PrivateDemoLaunchRehearsalVo privateDemoLaunchRehearsal() {
+        return launchRehearsalService.launchRehearsal();
     }
 }
