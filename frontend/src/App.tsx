@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   DeliveryManifest,
+  DemoPresenterPack,
   DemoRunMatrix,
   FailureTriage,
   JobArtifact,
@@ -362,6 +363,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunMatrix, setDemoRunMatrix] = useState<DemoRunMatrix | null>(null);
   const [demoRunMatrixError, setDemoRunMatrixError] = useState<string | null>(null);
   const [isLoadingDemoRunMatrix, setIsLoadingDemoRunMatrix] = useState(false);
+  const [demoPresenterPack, setDemoPresenterPack] = useState<DemoPresenterPack | null>(null);
+  const [demoPresenterPackError, setDemoPresenterPackError] = useState<string | null>(null);
+  const [isLoadingDemoPresenterPack, setIsLoadingDemoPresenterPack] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
@@ -403,6 +407,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoComparisonError(null);
           setDemoRunMatrix(null);
           setDemoRunMatrixError(null);
+          setDemoPresenterPack(null);
+          setDemoPresenterPackError(null);
         }
         setIsSseUnavailable(false);
         setError(null);
@@ -441,6 +447,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunMatrixError(toErrorMessage(matrixLoadError));
     } finally {
       setIsLoadingDemoRunMatrix(false);
+    }
+  }, []);
+
+  const loadDemoPresenterPack = useCallback(async (jobId: string) => {
+    setIsLoadingDemoPresenterPack(true);
+    try {
+      const pack = await linguaFrameApi.getDemoPresenterPack(jobId);
+      setDemoPresenterPack(pack);
+      setDemoPresenterPackError(null);
+    } catch (packLoadError) {
+      setDemoPresenterPack(null);
+      setDemoPresenterPackError(toErrorMessage(packLoadError));
+    } finally {
+      setIsLoadingDemoPresenterPack(false);
     }
   }, []);
 
@@ -696,6 +716,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
+          void loadDemoPresenterPack(nextJob.jobId);
           void loadHistory(historyStatusFilter);
           eventSource.close();
         }
@@ -710,7 +731,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoRunMatrix, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -794,6 +815,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(nextJob.videoId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
       await loadDemoRunMatrix(upload.jobId);
+      await loadDemoPresenterPack(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -814,6 +836,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
     await loadDemoRunMatrix(jobId);
+    await loadDemoPresenterPack(jobId);
   }
 
   async function handleRetry() {
@@ -827,6 +850,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setJob(retriedJob);
       await loadSourceMedia(retriedJob.videoId);
       await loadDemoRunMatrix(retriedJob.jobId);
+      await loadDemoPresenterPack(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -847,6 +871,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setJob(cancelledJob);
       await loadSourceMedia(cancelledJob.videoId);
       await loadDemoRunMatrix(cancelledJob.jobId);
+      await loadDemoPresenterPack(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -870,6 +895,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
     await loadDemoRunMatrix(recentJob.jobId);
+    await loadDemoPresenterPack(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -886,6 +912,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
     await loadDemoRunMatrix(historyJob.jobId);
+    await loadDemoPresenterPack(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -903,6 +930,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
     await loadDemoRunMatrix(failure.jobId);
+    await loadDemoPresenterPack(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -1410,13 +1438,17 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoComparisonJobId={demoComparisonJobId}
               demoRunMatrix={demoRunMatrix}
               demoRunMatrixError={demoRunMatrixError}
+              demoPresenterPack={demoPresenterPack}
+              demoPresenterPackError={demoPresenterPackError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
+              isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
+              onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
@@ -2256,13 +2288,17 @@ function JobDetail({
   demoComparisonJobId,
   demoRunMatrix,
   demoRunMatrixError,
+  demoPresenterPack,
+  demoPresenterPackError,
   isLoadingCacheReplayComparison,
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
+  isLoadingDemoPresenterPack,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
+  onRefreshDemoPresenterPack,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
@@ -2302,13 +2338,17 @@ function JobDetail({
   demoComparisonJobId: string;
   demoRunMatrix: DemoRunMatrix | null;
   demoRunMatrixError: string | null;
+  demoPresenterPack: DemoPresenterPack | null;
+  demoPresenterPackError: string | null;
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
+  isLoadingDemoPresenterPack: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
+  onRefreshDemoPresenterPack: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
@@ -2460,6 +2500,13 @@ function JobDetail({
       <FailureTriagePanel triage={job.failureTriage} />
 
       <DemoSessionReportPanel report={demoSessionReport} jobId={job.jobId} />
+
+      <DemoPresenterPackPanel
+        error={demoPresenterPackError}
+        isLoading={isLoadingDemoPresenterPack}
+        pack={demoPresenterPack}
+        onRefresh={onRefreshDemoPresenterPack}
+      />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
 
@@ -3762,6 +3809,144 @@ function DemoRunMatrixPanel({
       ) : null}
     </section>
   );
+}
+
+function DemoPresenterPackPanel({
+  error,
+  isLoading,
+  pack,
+  onRefresh
+}: {
+  error: string | null;
+  isLoading: boolean;
+  pack: DemoPresenterPack | null;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function copyPresenterNotes() {
+    if (!pack) {
+      return;
+    }
+    await navigator.clipboard.writeText(pack.presenterNotesMarkdown);
+    setStatus('Presenter notes copied.');
+  }
+
+  function downloadPresenterNotes() {
+    if (!pack) {
+      return;
+    }
+    const blob = new Blob([pack.presenterNotesMarkdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `linguaframe-demo-presenter-${sanitizeFilename(pack.anchorJobId)}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setStatus('Presenter notes Markdown downloaded.');
+  }
+
+  return (
+    <section className="panel demo-presenter-pack-panel" aria-label="Demo presenter pack">
+      <div className="panel-heading">
+        <h3>Demo presenter pack</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button type="button" className="secondary-button" onClick={copyPresenterNotes} disabled={!pack}>
+            Copy presenter notes
+          </button>
+          <button type="button" className="secondary-button" onClick={downloadPresenterNotes} disabled={!pack}>
+            Download presenter notes
+          </button>
+        </div>
+      </div>
+      {isLoading && !pack ? <p className="muted">Loading demo presenter pack...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="success-text">{status}</p> : null}
+      {pack ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Readiness</dt>
+              <dd>{pack.readinessStatus}</dd>
+            </div>
+            <div>
+              <dt>Recommended baseline</dt>
+              <dd>{pack.recommendedBaselineJobId ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Best quality</dt>
+              <dd>{pack.bestQualityJobId ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Lowest cost</dt>
+              <dd>{pack.lowestCostJobId ?? 'N/A'}</dd>
+            </div>
+          </dl>
+          <table>
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Status</th>
+                <th>Quality</th>
+                <th>Cost</th>
+                <th>Calls</th>
+                <th>Cache</th>
+                <th>Handoff</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pack.runs.map((run) => (
+                <tr key={run.jobId}>
+                  <td>
+                    <strong>{formatDemoProfileId(run.demoProfileId)}</strong>
+                    <span className="history-meta">{run.jobId}</span>
+                    <span className="badge-row">
+                      {run.roles.map((role) => (
+                        <span className="status-pill" key={role}>
+                          {formatPresenterRole(role)}
+                        </span>
+                      ))}
+                    </span>
+                  </td>
+                  <td>{run.status}</td>
+                  <td>{run.qualityScore === null ? 'N/A' : `${run.qualityScore} / 100`}</td>
+                  <td>{formatCost(run.estimatedCostUsd)}</td>
+                  <td>{run.modelCallCount} calls</td>
+                  <td>{run.providerCacheHitCount} provider hits</td>
+                  <td>{run.handoffReady ? 'Ready' : 'Attention'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="link-list">
+            {pack.downloads.map((download) => (
+              <a key={download.kind} href={download.url}>
+                {download.label}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function formatPresenterRole(role: string): string {
+  switch (role) {
+    case 'ANCHOR':
+      return 'Anchor';
+    case 'RECOMMENDED_BASELINE':
+      return 'Recommended baseline';
+    case 'BEST_QUALITY':
+      return 'Best quality';
+    case 'LOWEST_COST':
+      return 'Lowest cost';
+    default:
+      return role;
+  }
 }
 
 function RunMatrixBadges({ matrix, jobId }: { matrix: DemoRunMatrix; jobId: string }) {

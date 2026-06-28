@@ -1930,6 +1930,57 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoPresenterPackForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T17:30:00Z");
+        createJob("job-controller-video-presenter", "job-controller-presenter-baseline", "presenter.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-presenter-showcase",
+                "job-controller-video-presenter",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings("job-controller-presenter-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-presenter-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-presenter-baseline", 100, 100, 80, "0.00006300"));
+        modelCallAuditService.recordSuccess(modelCall("job-controller-presenter-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-presenter-baseline", "job-controller-presenter-baseline", 82, createdAt.plusSeconds(30)));
+        qualityEvaluationRepository.save(quality("quality-presenter-showcase", "job-controller-presenter-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("presenter-showcase-json", "job-controller-presenter-showcase", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("presenter-showcase-srt", "job-controller-presenter-showcase", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("presenter-showcase-vtt", "job-controller-presenter-showcase", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-presenter-pack",
+                        "job-controller-presenter-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anchorJobId").value("job-controller-presenter-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-presenter"))
+                .andExpect(jsonPath("$.readinessStatus").value("READY"))
+                .andExpect(jsonPath("$.recommendedBaselineJobId").value("job-controller-presenter-baseline"))
+                .andExpect(jsonPath("$.bestQualityJobId").value("job-controller-presenter-showcase"))
+                .andExpect(jsonPath("$.runs[0].jobId").value("job-controller-presenter-showcase"))
+                .andExpect(jsonPath("$.runs[0].roles[0]").value("ANCHOR"))
+                .andExpect(jsonPath("$.runs[0].roles[1]").value("BEST_QUALITY"))
+                .andExpect(jsonPath("$.runs[1].jobId").value("job-controller-presenter-baseline"))
+                .andExpect(jsonPath("$.runs[1].roles[0]").value("RECOMMENDED_BASELINE"))
+                .andExpect(jsonPath("$.downloads[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-presenter-showcase/demo-run-package/download"))
+                .andExpect(jsonPath("$.downloads[?(@.kind == 'AI_AUDIT_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-presenter-showcase/ai-audit-package/download"))
+                .andExpect(jsonPath("$.downloads[?(@.kind == 'SOURCE_MEDIA')].url")
+                        .value("/api/media/uploads/job-controller-video-presenter/source/download"))
+                .andExpect(jsonPath("$.presenterNotesMarkdown").value(org.hamcrest.Matchers.containsString(
+                        "LinguaFrame Demo Presenter Pack"
+                )))
+                .andExpect(jsonPath("$.presenterNotesMarkdown").value(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("provider payload")
+                )));
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);

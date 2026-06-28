@@ -693,6 +693,39 @@ export interface DemoRunMatrix {
   lowestCostJobId: string | null;
 }
 
+export interface DemoPresenterPackRun {
+  jobId: string;
+  demoProfileId: string | null;
+  status: LocalizationJobStatus;
+  completedAt: string | null;
+  qualityScore: number | null;
+  estimatedCostUsd: number;
+  modelCallCount: number;
+  providerCacheHitCount: number;
+  handoffReady: boolean;
+  roles: string[];
+}
+
+export interface DemoPresenterPackDownload {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoPresenterPack {
+  anchorJobId: string;
+  videoId: string;
+  generatedAt: string;
+  headline: string;
+  readinessStatus: string;
+  recommendedBaselineJobId: string | null;
+  bestQualityJobId: string | null;
+  lowestCostJobId: string | null;
+  runs: DemoPresenterPackRun[];
+  downloads: DemoPresenterPackDownload[];
+  presenterNotesMarkdown: string;
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;

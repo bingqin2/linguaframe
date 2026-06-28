@@ -247,6 +247,17 @@ download_demo_run_matrix_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-matrix" -o "$output_path"
 }
 
+download_demo_presenter_pack_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-presenter-pack" -o "$output_path"
+}
+
 print_job_comparison_summary_file() {
   local comparison_path="$1"
 
@@ -333,6 +344,54 @@ for job in jobs:
         "providerCacheHits=" + text(job.get("providerCacheHitCount", 0)),
         "handoffReady=" + flag(job.get("handoffReady")),
     ]))
+PY
+}
+
+print_demo_presenter_pack_summary_file() {
+  local pack_path="$1"
+
+  python3 - "$pack_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+pack = json.load(open(sys.argv[1], encoding="utf-8"), parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return "N/A"
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def flag(value):
+    return str(bool(value)).lower()
+
+runs = pack.get("runs") or []
+downloads = pack.get("downloads") or []
+
+print("demoPresenterPackAnchorJobId=" + text(pack.get("anchorJobId")))
+print("demoPresenterPackVideoId=" + text(pack.get("videoId")))
+print("demoPresenterPackReadiness=" + text(pack.get("readinessStatus")))
+print("demoPresenterPackRunCount=" + str(len(runs)))
+print("demoPresenterPackRecommendedBaselineJobId=" + text(pack.get("recommendedBaselineJobId")))
+print("demoPresenterPackBestQualityJobId=" + text(pack.get("bestQualityJobId")))
+print("demoPresenterPackLowestCostJobId=" + text(pack.get("lowestCostJobId")))
+for run in runs:
+    roles = ",".join(run.get("roles") or [])
+    print("demoPresenterPackRun=" + ":".join([
+        text(run.get("jobId")),
+        text(run.get("demoProfileId") or "manual"),
+        text(run.get("status")),
+        "roles=" + roles,
+        "quality=" + text(run.get("qualityScore")),
+        "cost=" + text(run.get("estimatedCostUsd")),
+        "modelCalls=" + text(run.get("modelCallCount", 0)),
+        "providerCacheHits=" + text(run.get("providerCacheHitCount", 0)),
+        "handoffReady=" + flag(run.get("handoffReady")),
+    ]))
+for download in downloads:
+    print("demoPresenterPackDownload=" + text(download.get("kind")) + ":" + text(download.get("url")))
 PY
 }
 

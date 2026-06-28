@@ -303,6 +303,85 @@ JSON
   [[ "$output" != *"provider payload"* ]] || fail "matrix summary exposed provider payload"
 }
 
+test_download_demo_presenter_pack_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_presenter_pack_json "http://example.test" "presenter job/slash" "$TMPDIR/demo-presenter-pack.json" >"$TMPDIR/presenter-pack-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/presenter-pack-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/presenter%20job%2Fslash/demo-presenter-pack"* ]] || fail "demo presenter pack helper used wrong route"
+}
+
+test_print_demo_presenter_pack_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-presenter-pack.json" <<'JSON'
+{
+  "anchorJobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-28T12:00:00Z",
+  "headline": "tears-showcase demo to zh-CN",
+  "readinessStatus": "READY",
+  "recommendedBaselineJobId": "baseline-job",
+  "bestQualityJobId": "showcase-job",
+  "lowestCostJobId": "baseline-job",
+  "runs": [
+    {
+      "jobId": "showcase-job",
+      "demoProfileId": "tears-showcase",
+      "status": "COMPLETED",
+      "completedAt": "2026-06-28T11:03:00Z",
+      "qualityScore": 91,
+      "estimatedCostUsd": 0.000090,
+      "modelCallCount": 3,
+      "providerCacheHitCount": 1,
+      "handoffReady": true,
+      "roles": ["ANCHOR", "BEST_QUALITY"]
+    },
+    {
+      "jobId": "baseline-job",
+      "demoProfileId": "quick-baseline",
+      "status": "COMPLETED",
+      "completedAt": "2026-06-28T10:03:00Z",
+      "qualityScore": 80,
+      "estimatedCostUsd": 0.000012,
+      "modelCallCount": 2,
+      "providerCacheHitCount": 0,
+      "handoffReady": true,
+      "roles": ["RECOMMENDED_BASELINE", "LOWEST_COST"]
+    }
+  ],
+  "downloads": [
+    {
+      "kind": "DEMO_RUN_PACKAGE",
+      "label": "Demo run package",
+      "url": "/api/jobs/showcase-job/demo-run-package/download"
+    }
+  ],
+  "presenterNotesMarkdown": "raw transcript text /Users/example/private.mov sk-test provider payload"
+}
+JSON
+
+  print_demo_presenter_pack_summary_file "$TMPDIR/demo-presenter-pack.json" >"$TMPDIR/demo-presenter-pack.out"
+  local output
+  output="$(cat "$TMPDIR/demo-presenter-pack.out")"
+
+  [[ "$output" == *"demoPresenterPackAnchorJobId=showcase-job"* ]] || fail "presenter pack summary missed anchor"
+  [[ "$output" == *"demoPresenterPackVideoId=video-demo"* ]] || fail "presenter pack summary missed video"
+  [[ "$output" == *"demoPresenterPackReadiness=READY"* ]] || fail "presenter pack summary missed readiness"
+  [[ "$output" == *"demoPresenterPackRunCount=2"* ]] || fail "presenter pack summary missed run count"
+  [[ "$output" == *"demoPresenterPackRecommendedBaselineJobId=baseline-job"* ]] || fail "presenter pack summary missed baseline"
+  [[ "$output" == *"demoPresenterPackBestQualityJobId=showcase-job"* ]] || fail "presenter pack summary missed best quality"
+  [[ "$output" == *"demoPresenterPackLowestCostJobId=baseline-job"* ]] || fail "presenter pack summary missed lowest cost"
+  [[ "$output" == *"demoPresenterPackRun=showcase-job:tears-showcase:COMPLETED:roles=ANCHOR,BEST_QUALITY:quality=91:cost=0.000090:modelCalls=3:providerCacheHits=1:handoffReady=true"* ]] || fail "presenter pack summary missed showcase row"
+  [[ "$output" == *"demoPresenterPackDownload=DEMO_RUN_PACKAGE:/api/jobs/showcase-job/demo-run-package/download"* ]] || fail "presenter pack summary missed download"
+  [[ "$output" != *"raw transcript text"* ]] || fail "presenter pack summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "presenter pack summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "presenter pack summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "presenter pack summary exposed provider payload"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -1191,6 +1270,8 @@ test_download_job_comparison_helpers_use_backend_routes
 test_print_job_comparison_summary_is_metadata_only
 test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
+test_download_demo_presenter_pack_helper_uses_backend_route
+test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

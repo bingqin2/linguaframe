@@ -6,6 +6,7 @@ import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type {
   DeliveryManifest,
+  DemoPresenterPack,
   DemoRunMatrix,
   JobArtifact,
   JobComparison,
@@ -81,6 +82,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
   });
 
@@ -2320,6 +2322,39 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoRunMatrix).toHaveBeenCalledWith('matrix-showcase-job', 8);
   });
 
+  test('shows a demo presenter pack for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'presenter-showcase-job',
+        videoId: 'presenter-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'presenter-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const presenterPack = await screen.findByRole('region', { name: /demo presenter pack/i });
+    expect(within(presenterPack).getByText('READY')).toBeInTheDocument();
+    expect(within(presenterPack).getAllByText('Recommended baseline').length).toBeGreaterThan(0);
+    expect(within(presenterPack).getAllByText('Best quality').length).toBeGreaterThan(0);
+    expect(within(presenterPack).getAllByText('Lowest cost').length).toBeGreaterThan(0);
+    expect(within(presenterPack).getByText('Demo run package')).toBeInTheDocument();
+    expect(within(presenterPack).getByRole('link', { name: /ai audit package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/presenter-showcase-job/ai-audit-package/download'
+    );
+    expect(within(presenterPack).getByRole('button', { name: /copy presenter notes/i })).toBeEnabled();
+    expect(linguaFrameApi.getDemoPresenterPack).toHaveBeenCalledWith('presenter-showcase-job');
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -3186,6 +3221,59 @@ function demoRunMatrixFixture(overrides: Partial<DemoRunMatrix> = {}): DemoRunMa
         handoffReady: true
       }
     ],
+    ...overrides
+  };
+}
+
+function demoPresenterPackFixture(overrides: Partial<DemoPresenterPack> = {}): DemoPresenterPack {
+  return {
+    anchorJobId: 'presenter-showcase-job',
+    videoId: 'presenter-video',
+    generatedAt: '2026-06-28T12:00:00Z',
+    headline: 'tears-showcase demo to zh-CN',
+    readinessStatus: 'READY',
+    recommendedBaselineJobId: 'presenter-baseline-job',
+    bestQualityJobId: 'presenter-showcase-job',
+    lowestCostJobId: 'presenter-baseline-job',
+    runs: [
+      {
+        jobId: 'presenter-showcase-job',
+        demoProfileId: 'tears-showcase',
+        status: 'COMPLETED',
+        completedAt: '2026-06-28T11:03:00Z',
+        qualityScore: 91,
+        estimatedCostUsd: 0.000141,
+        modelCallCount: 2,
+        providerCacheHitCount: 1,
+        handoffReady: true,
+        roles: ['ANCHOR', 'BEST_QUALITY']
+      },
+      {
+        jobId: 'presenter-baseline-job',
+        demoProfileId: 'quick-baseline',
+        status: 'COMPLETED',
+        completedAt: '2026-06-28T10:03:00Z',
+        qualityScore: 82,
+        estimatedCostUsd: 0.000063,
+        modelCallCount: 1,
+        providerCacheHitCount: 0,
+        handoffReady: true,
+        roles: ['RECOMMENDED_BASELINE', 'LOWEST_COST']
+      }
+    ],
+    downloads: [
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        url: '/api/jobs/presenter-showcase-job/demo-run-package/download'
+      },
+      {
+        kind: 'AI_AUDIT_PACKAGE',
+        label: 'AI audit package',
+        url: '/api/jobs/presenter-showcase-job/ai-audit-package/download'
+      }
+    ],
+    presenterNotesMarkdown: '# LinguaFrame Demo Presenter Pack\n- Anchor job: presenter-showcase-job\n',
     ...overrides
   };
 }
