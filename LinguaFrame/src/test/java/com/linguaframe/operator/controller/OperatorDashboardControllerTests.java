@@ -1,9 +1,12 @@
 package com.linguaframe.operator.controller;
 
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
+import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -41,6 +44,9 @@ class OperatorDashboardControllerTests {
         private LocalizationJobRepository jobRepository;
 
         @Autowired
+        private JobTimelineEventRepository timelineEventRepository;
+
+        @Autowired
         private JdbcClient jdbcClient;
 
         @BeforeEach
@@ -67,6 +73,16 @@ class OperatorDashboardControllerTests {
                     "worker smoke failed",
                     createdAt.plusSeconds(1)
             );
+            timelineEventRepository.save(new JobTimelineEventRecord(
+                    "dashboard-controller-stage-timing",
+                    "dashboard-controller-job",
+                    LocalizationJobStage.WORKER_SMOKE,
+                    JobTimelineEventStatus.FAILED,
+                    "WORKER_SMOKE failed.",
+                    1500L,
+                    "worker smoke failed",
+                    createdAt.plusSeconds(1)
+            ));
 
             mockMvc.perform(get("/api/operator/dashboard"))
                     .andExpect(status().isOk())
@@ -79,7 +95,10 @@ class OperatorDashboardControllerTests {
                     .andExpect(jsonPath("$.modelCalls.failedModelCallCount").value(0))
                     .andExpect(jsonPath("$.modelCalls.estimatedCostUsd").value(0))
                     .andExpect(jsonPath("$.cache.artifactCacheHitCount").value(0))
-                    .andExpect(jsonPath("$.cache.providerCacheHitCount").value(0));
+                    .andExpect(jsonPath("$.cache.providerCacheHitCount").value(0))
+                    .andExpect(jsonPath("$.stageTimings[0].stage").value("WORKER_SMOKE"))
+                    .andExpect(jsonPath("$.stageTimings[0].failedEventCount").value(1))
+                    .andExpect(jsonPath("$.stageTimings[0].maxDurationMs").value(1500));
         }
 
         private void createJob(

@@ -183,6 +183,16 @@ if triage:
     print("failureTriageRecommendedAction=" + triage["recommendedAction"])
     if triage.get("runbookCommand"):
         print("failureTriageRunbookCommand=" + triage["runbookCommand"])
+progress = job.get("pipelineProgress")
+if progress:
+    print("pipelineCurrentStage=" + str(progress.get("currentStage")))
+    print("pipelineTerminal=" + str(progress.get("terminal")).lower())
+    print("pipelineCompletedStageCount=" + str(progress.get("completedStageCount", 0)))
+    print("pipelineFailedStageCount=" + str(progress.get("failedStageCount", 0)))
+    print("pipelineTotalMeasuredDurationMs=" + str(progress.get("totalMeasuredDurationMs", 0)))
+    if progress.get("slowestStage"):
+        print("pipelineSlowestStage=" + progress["slowestStage"])
+        print("pipelineSlowestStageDurationMs=" + str(progress.get("slowestStageDurationMs", 0)))
 summary = job.get("usageSummary") or {}
 print("modelCallCount=" + str(summary.get("modelCallCount", 0)))
 print("failedModelCallCount=" + str(summary.get("failedModelCallCount", 0)))
@@ -494,6 +504,12 @@ triage = job.get("failureTriage")
 if triage:
     print("diagnosticsFailureTriageCategory=" + triage["category"])
     print("diagnosticsFailureTriageRetryable=" + str(triage["retryable"]).lower())
+progress = job.get("pipelineProgress")
+if progress:
+    print("diagnosticsPipelineCurrentStage=" + str(progress.get("currentStage")))
+    print("diagnosticsPipelineTerminal=" + str(progress.get("terminal")).lower())
+    print("diagnosticsPipelineCompletedStageCount=" + str(progress.get("completedStageCount", 0)))
+    print("diagnosticsPipelineTotalMeasuredDurationMs=" + str(progress.get("totalMeasuredDurationMs", 0)))
 PY
 }
 

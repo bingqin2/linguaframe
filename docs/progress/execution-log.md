@@ -6,6 +6,27 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added timeline-derived `pipelineProgress` to localization job detail and diagnostics.
+- Added backend progress summarization for current stage, completed/failed/skipped/cache-hit counts, terminal state, measured stage duration, slowest stage, and per-stage rows.
+- Added operator dashboard stage timing aggregates for slow recent stages.
+- Added a React `Pipeline progress` panel, operator stage timing rows, and pipeline progress in browser-generated evidence.
+- Added pipeline progress to backend Markdown evidence and terminal demo summary helpers.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=JobPipelineProgressServiceTests,LocalizationJobQueryServiceTests,JobEvidenceReportServiceTests,OperatorDashboardRepositoryTests,OperatorDashboardControllerTests test` passed with `Tests run: 16, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobRetryServiceTests,RedisLocalizationJobStatusCacheServiceTests test` passed with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+- `cd frontend && npm run test:run -- App` passed with `Tests 47 passed`.
+- `cd frontend && npm run build` passed and produced the Vite production bundle.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Added a browser `Cache replay` panel to compare a pinned baseline job with another loaded job.
 - Added safe replay evidence copy/download actions for provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe job routes.
 - Added focused React tests for cache replay comparison, safe exports, and comparison-load failure handling.

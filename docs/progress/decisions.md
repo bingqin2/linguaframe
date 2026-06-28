@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Derive pipeline progress and stage timing from durable timeline events instead of adding a separate progress table.
+
+Reason: `job_timeline_events` already captures stage, status, timestamps, duration, and safe messages. Reusing it keeps progress advisory, avoids another consistency boundary, and makes diagnostics, evidence, browser UI, and terminal scripts agree with the same source of truth.
+
+Impact: Job detail exposes `pipelineProgress`, the operator dashboard aggregates recent stage timings, and evidence exports can explain current stage and slowest stage without changing worker execution, retry, cancellation, cache, or provider semantics.
+
+## 2026-06-28
+
 Decision: Compose cache replay comparison in the React demo from existing safe job APIs instead of adding a backend aggregate endpoint.
 
 Reason: The backend already exposes job detail, timeline, cache summary, model-call summary, and artifact cache state. A frontend-composed comparison is enough for the private demo and avoids adding a redundant read API before public multi-user needs exist.

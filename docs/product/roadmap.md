@@ -223,6 +223,7 @@ Build:
 - Estimated cost configuration.
 - Basic model-call audit records.
 - Job timeline events.
+- Timeline-derived pipeline progress and stage timing. Status: implemented in job detail, diagnostics, evidence exports, terminal demo summaries, React selected-job progress, and operator dashboard timing rows.
 - Failed-stage retry behavior. Status: implemented with bounded retry count, structured conflict responses, visible retry evidence in job detail, and advisory failure triage for OpenAI, budget, media, storage, worker/queue, configuration, cancellation, and unknown failures.
 - Redis status cache. Status: implemented for `GET /api/jobs/{jobId}` and SSE job-detail snapshots with short-lived Redis cache-aside entries.
 - Rate-limit hooks. Status: implemented for upload and upload-validation `POST` APIs with Redis-backed fixed-window counters.
@@ -251,7 +252,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, previews, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, pipeline progress, previews, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 

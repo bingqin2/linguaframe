@@ -70,6 +70,7 @@ interface DemoEvidence {
     failureStage: string | null;
     failureReason: string | null;
     failureTriage: FailureTriage | null;
+    pipelineProgress: LocalizationJob['pipelineProgress'];
   };
   previews: {
     transcriptSegmentCount: number;
@@ -1411,6 +1412,26 @@ function OperatorDashboardPanel({
           ) : (
             <p className="muted">No recent failed jobs.</p>
           )}
+          <h3>Stage timings</h3>
+          {dashboard.stageTimings.length > 0 ? (
+            <ul className="recent-list" aria-label="Stage timings">
+              {dashboard.stageTimings.map((timing) => (
+                <li key={timing.stage}>
+                  <span>{timing.stage}</span>
+                  <span className="history-meta">
+                    max {formatDurationMs(timing.maxDurationMs)} · avg{' '}
+                    {formatDurationMs(timing.averageDurationMs)}
+                  </span>
+                  <small>
+                    {timing.completedEventCount} completed / {timing.failedEventCount} failed · latest{' '}
+                    {formatDurationMs(timing.latestDurationMs)}
+                  </small>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No stage timing data yet.</p>
+          )}
         </>
       ) : null}
     </section>
@@ -1634,6 +1655,8 @@ function JobDetail({
         job={job}
         modelCallLabel={modelCallLabel}
       />
+
+      <PipelineProgressPanel progress={job.pipelineProgress} />
 
       <FailureTriagePanel triage={job.failureTriage} />
 
@@ -1904,6 +1927,68 @@ function ResultDeliveryPanel({
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function PipelineProgressPanel({ progress }: { progress: LocalizationJob['pipelineProgress'] }) {
+  if (!progress) {
+    return null;
+  }
+
+  return (
+    <section className="panel" aria-label="Pipeline progress">
+      <h3>Pipeline progress</h3>
+      <dl className="status-grid compact-status-grid">
+        <div>
+          <dt>Current stage</dt>
+          <dd>{progress.currentStage ?? 'Queued'}</dd>
+        </div>
+        <div>
+          <dt>Completed</dt>
+          <dd>
+            {progress.completedStageCount} / {progress.totalStageCount}
+          </dd>
+        </div>
+        <div>
+          <dt>Terminal</dt>
+          <dd>{progress.terminal ? 'Yes' : 'No'}</dd>
+        </div>
+        <div>
+          <dt>Measured time</dt>
+          <dd>{formatDurationMs(progress.totalMeasuredDurationMs)}</dd>
+        </div>
+        <div>
+          <dt>Slowest stage</dt>
+          <dd>
+            {progress.slowestStage
+              ? `${progress.slowestStage} · ${formatDurationMs(progress.slowestStageDurationMs ?? 0)}`
+              : 'Not measured'}
+          </dd>
+        </div>
+        <div>
+          <dt>Other states</dt>
+          <dd>
+            {progress.failedStageCount} failed / {progress.skippedStageCount} skipped /{' '}
+            {progress.cacheHitStageCount} cache hits
+          </dd>
+        </div>
+      </dl>
+      {progress.stages.length > 0 ? (
+        <ul className="recent-list" aria-label="Pipeline stages">
+          {progress.stages.map((stage) => (
+            <li key={stage.stage}>
+              <span>{stage.stage}</span>
+              <span className="history-meta">
+                {stage.status ?? 'PENDING'} · {formatDurationMs(stage.durationMs ?? 0)}
+              </span>
+              {stage.message ? <small>{stage.message}</small> : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No measured stage events yet.</p>
+      )}
     </section>
   );
 }
@@ -2358,7 +2443,8 @@ function buildDemoEvidence(
       retryCount: job.retryCount,
       failureStage: job.failureStage,
       failureReason: job.failureReason,
-      failureTriage: job.failureTriage
+      failureTriage: job.failureTriage,
+      pipelineProgress: job.pipelineProgress
     },
     previews: {
       transcriptSegmentCount,
@@ -2436,6 +2522,20 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
     if (evidence.job.failureTriage.runbookCommand) {
       lines.push(`- Failure runbook: ${evidence.job.failureTriage.runbookCommand}`);
     }
+  }
+  if (evidence.job.pipelineProgress) {
+    lines.push(
+      `- Pipeline current stage: ${evidence.job.pipelineProgress.currentStage ?? 'Queued'}`,
+      `- Pipeline completed: ${evidence.job.pipelineProgress.completedStageCount} / ${evidence.job.pipelineProgress.totalStageCount}`,
+      `- Pipeline measured time: ${formatDurationMs(evidence.job.pipelineProgress.totalMeasuredDurationMs)}`,
+      `- Pipeline slowest stage: ${
+        evidence.job.pipelineProgress.slowestStage
+          ? `${evidence.job.pipelineProgress.slowestStage} (${formatDurationMs(
+              evidence.job.pipelineProgress.slowestStageDurationMs ?? 0
+            )})`
+          : 'Not measured'
+      }`
+    );
   }
   if (evidence.qualityEvaluation) {
     lines.push(
@@ -2591,6 +2691,13 @@ function formatSignedInteger(value: number): string {
     return `+${value}`;
   }
   return String(value);
+}
+
+function formatDurationMs(durationMs: number): string {
+  if (durationMs < 1000) {
+    return `${durationMs} ms`;
+  }
+  return `${(durationMs / 1000).toFixed(1)} s`;
 }
 
 function formatVoice(value: string | null | undefined): string {

@@ -26,6 +26,7 @@ import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.FailureTriageServiceImpl;
+import com.linguaframe.job.service.impl.JobPipelineProgressServiceImpl;
 import com.linguaframe.job.service.impl.LocalizationJobQueryServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -51,6 +52,7 @@ class LocalizationJobQueryServiceTests {
     private final QualityEvaluationService qualityEvaluationService = mock(QualityEvaluationService.class);
     private final LocalizationJobStatusCacheService cacheService = mock(LocalizationJobStatusCacheService.class);
     private final FailureTriageService failureTriageService = new FailureTriageServiceImpl();
+    private final JobPipelineProgressService pipelineProgressService = new JobPipelineProgressServiceImpl();
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
@@ -235,6 +237,8 @@ class LocalizationJobQueryServiceTests {
         assertThat(result.job().jobId()).isEqualTo("job-diagnostics-complete");
         assertThat(result.job().status()).isEqualTo(LocalizationJobStatus.COMPLETED);
         assertThat(result.job().timelineEvents()).hasSize(1);
+        assertThat(result.job().pipelineProgress().currentStage()).isEqualTo(LocalizationJobStage.SUBTITLE_BURN_IN);
+        assertThat(result.job().pipelineProgress().totalMeasuredDurationMs()).isEqualTo(1500L);
         assertThat(result.job().usageSummary().modelCallCount()).isEqualTo(1);
         assertThat(result.job().modelCalls()).hasSize(1);
         assertThat(result.job().qualityEvaluation().score()).isEqualTo(91);
@@ -336,6 +340,8 @@ class LocalizationJobQueryServiceTests {
         assertThat(result.failureTriage()).isNotNull();
         assertThat(result.failureTriage().category()).isEqualTo(FailureTriageCategory.OPENAI_AUTH_OR_MODEL);
         assertThat(result.failureTriage().runbookCommand()).isEqualTo("scripts/demo/openai-demo-preflight.sh");
+        assertThat(result.pipelineProgress()).isNotNull();
+        assertThat(result.pipelineProgress().terminal()).isTrue();
     }
 
     private LocalizationJobQueryServiceImpl service() {
@@ -347,7 +353,8 @@ class LocalizationJobQueryServiceTests {
                 modelCallAuditService,
                 qualityEvaluationService,
                 cacheService,
-                failureTriageService
+                failureTriageService,
+                pipelineProgressService
         );
     }
 
@@ -372,6 +379,7 @@ class LocalizationJobQueryServiceTests {
                 emptyUsage(),
                 new JobCacheSummaryVo(0, 0, 0),
                 List.of(),
+                null,
                 null,
                 null
         );

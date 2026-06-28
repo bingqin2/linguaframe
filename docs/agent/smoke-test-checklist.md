@@ -192,8 +192,11 @@ Expected browser behavior:
 - A recent job appears in the browser-local recent jobs list.
 - The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
 - Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
+- The `Pipeline progress` panel renders current stage, completed stage count, terminal state, total measured duration, slowest stage, and per-stage status/duration rows from timeline-derived `pipelineProgress`.
+- The operator dashboard shows stage timing rows with max, average, latest, completed count, and failed count for the slowest recent stages.
 - Failed jobs render a `Failure triage` panel with category, retryability, recommended action, optional static runbook command, and safe details.
 - Failed-job diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal demo summaries include the same safe failure triage without secrets, object keys, local paths, provider payloads, media bytes, raw transcript text, or raw subtitle text.
+- Diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal demo summaries include safe pipeline progress without secrets, object keys, local paths, provider payloads, media bytes, raw transcript text, or raw subtitle text.
 - The `Result delivery` panel renders expected deliverables with `Ready`, `Preview only`, and `Missing` states.
 - The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
 - The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.

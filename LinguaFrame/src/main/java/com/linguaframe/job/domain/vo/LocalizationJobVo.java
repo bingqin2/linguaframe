@@ -28,6 +28,7 @@ public record LocalizationJobVo(
         JobCacheSummaryVo cacheSummary,
         List<ModelCallVo> modelCalls,
         QualityEvaluationVo qualityEvaluation,
-        FailureTriageVo failureTriage
+        FailureTriageVo failureTriage,
+        JobPipelineProgressVo pipelineProgress
 ) {
 }

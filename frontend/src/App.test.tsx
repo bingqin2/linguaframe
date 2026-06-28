@@ -324,6 +324,9 @@ describe('App', () => {
     expect(within(dashboard).getByText('1 failed')).toBeInTheDocument();
     expect(within(dashboard).getByText('$0.00015000')).toBeInTheDocument();
     expect(within(dashboard).getByText('1 / 3 artifacts')).toBeInTheDocument();
+    expect(within(dashboard).getByText('AUDIO_EXTRACTION')).toBeInTheDocument();
+    expect(within(dashboard).getByText('max 2.4 s · avg 1.2 s')).toBeInTheDocument();
+    expect(within(dashboard).getByText('2 completed / 0 failed · latest 900 ms')).toBeInTheDocument();
     expect(within(dashboard).getByRole('button', { name: /failed-dashboard\.mp4/i }))
       .toHaveTextContent('DUBBING_AUDIO_GENERATION');
 
@@ -869,6 +872,12 @@ describe('App', () => {
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();
     expect(within(usageSummary).getByText('Cache hits')).toBeInTheDocument();
     expect(within(usageSummary).getByText('1 artifacts / 1 provider')).toBeInTheDocument();
+    const pipelineProgress = screen.getByRole('region', { name: /pipeline progress/i });
+    expect(within(pipelineProgress).getAllByText('TARGET_SUBTITLE_EXPORT').length).toBeGreaterThan(0);
+    expect(within(pipelineProgress).getByText('2 / 10')).toBeInTheDocument();
+    expect(within(pipelineProgress).getByText('1.7 s')).toBeInTheDocument();
+    expect(within(pipelineProgress).getByText('TARGET_SUBTITLE_EXPORT · 1.5 s')).toBeInTheDocument();
+    expect(within(pipelineProgress).getByText('TARGET_SUBTITLE_EXPORT failed')).toBeInTheDocument();
     expect(within(modelCalls).getByText('TRANSLATION')).toBeInTheDocument();
     expect(within(modelCalls).getByText('target=zh-CN, segments=2, sourceChars=61')).toBeInTheDocument();
     expect(within(modelCalls).getByText('segments=2, targetChars=29')).toBeInTheDocument();
@@ -1267,6 +1276,9 @@ describe('App', () => {
     expect(evidenceText).toContain('Artifacts: 1');
     expect(evidenceText).toContain('Transcript preview segments: 1');
     expect(evidenceText).toContain('Subtitle preview segments: 1');
+    expect(evidenceText).toContain('Pipeline current stage: TARGET_SUBTITLE_EXPORT');
+    expect(evidenceText).toContain('Pipeline completed: 2 / 10');
+    expect(evidenceText).toContain('Pipeline slowest stage: TARGET_SUBTITLE_EXPORT (1.5 s)');
     expect(evidenceText).toContain('Result bundle: /api/jobs/evidence-job/artifacts/archive/download');
     expect(evidenceText).toContain('Diagnostics: /api/jobs/evidence-job/diagnostics/download');
     expect(within(evidence).getByRole('link', { name: /download backend evidence/i })).toHaveAttribute(
@@ -1695,6 +1707,16 @@ function operatorDashboardFixture(overrides: Partial<OperatorDashboard> = {}): O
       generatedArtifactCount: 3,
       providerCacheHitCount: 1
     },
+    stageTimings: [
+      {
+        stage: 'AUDIO_EXTRACTION',
+        completedEventCount: 2,
+        failedEventCount: 0,
+        averageDurationMs: 1200,
+        maxDurationMs: 2400,
+        latestDurationMs: 900
+      }
+    ],
     ...overrides
   };
 }
@@ -1950,6 +1972,51 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     },
     qualityEvaluation: null,
     failureTriage: null,
+    pipelineProgress: pipelineProgressFixture(),
+    ...overrides
+  };
+}
+
+function pipelineProgressFixture(
+  overrides: Partial<NonNullable<LocalizationJob['pipelineProgress']>> = {}
+): NonNullable<LocalizationJob['pipelineProgress']> {
+  return {
+    totalStageCount: 10,
+    completedStageCount: 2,
+    failedStageCount: 1,
+    skippedStageCount: 0,
+    cacheHitStageCount: 0,
+    currentStage: 'TARGET_SUBTITLE_EXPORT',
+    terminal: true,
+    totalMeasuredDurationMs: 1700,
+    slowestStage: 'TARGET_SUBTITLE_EXPORT',
+    slowestStageDurationMs: 1500,
+    stages: [
+      {
+        stage: 'WORKER_RECEIVED',
+        status: 'SUCCEEDED',
+        startedAt: '2026-06-26T10:00:01Z',
+        finishedAt: '2026-06-26T10:00:01Z',
+        durationMs: 50,
+        message: 'Worker received localization job.'
+      },
+      {
+        stage: 'WORKER_SMOKE',
+        status: 'SUCCEEDED',
+        startedAt: '2026-06-26T10:00:01Z',
+        finishedAt: '2026-06-26T10:00:02Z',
+        durationMs: 150,
+        message: 'WORKER_SMOKE succeeded'
+      },
+      {
+        stage: 'TARGET_SUBTITLE_EXPORT',
+        status: 'FAILED',
+        startedAt: '2026-06-26T10:00:02Z',
+        finishedAt: '2026-06-26T10:00:04Z',
+        durationMs: 1500,
+        message: 'TARGET_SUBTITLE_EXPORT failed'
+      }
+    ],
     ...overrides
   };
 }
