@@ -168,6 +168,29 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsPrivateDemoRunArchive() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:00:00Z");
+            createJob("archive-controller-video", "archive-controller-job", "archive.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/private-demo/run-archive"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.recommendedJobId").value("archive-controller-job"))
+                    .andExpect(jsonPath("$.recommendedVideoId").value("archive-controller-video"))
+                    .andExpect(jsonPath("$.operationsOverallStatus").exists())
+                    .andExpect(jsonPath("$.launchOverallStatus").exists())
+                    .andExpect(jsonPath("$.galleryCompletedJobCount").value(1))
+                    .andExpect(jsonPath("$.candidates[0].jobId").value("archive-controller-job"))
+                    .andExpect(jsonPath("$.archiveLinks[?(@.href == '/api/operator/private-demo/operations')]").exists())
+                    .andExpect(jsonPath("$.archiveLinks[?(@.href == '/api/operator/private-demo/evidence-gallery')]").exists())
+                    .andExpect(jsonPath("$.archiveLinks[?(@.href == '/api/jobs/archive-controller-job/demo-run-package/download')]").exists())
+                    .andExpect(jsonPath("$.archiveNotesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Private Demo Run Archive"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -224,6 +247,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/private-demo/evidence-gallery")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/private-demo/run-archive"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/private-demo/run-archive")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

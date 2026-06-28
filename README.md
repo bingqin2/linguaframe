@@ -223,6 +223,14 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-evidence-galler
 
 The script writes `evidence-gallery.json` and `evidence-gallery.md` under `/tmp/linguaframe-demo/private-demo-evidence-gallery/` by default. It does not upload media, call OpenAI, run Docker, create backups, restore data, publish subtitles, or clean storage.
 
+Before sharing evidence externally or ending a private demo session, use the `Private demo run archive` panel or terminal archive report. It calls `GET /api/operator/private-demo/run-archive` and combines operations readiness, launch rehearsal status, evidence gallery counts, the recommended completed job, and safe package routes into one metadata-only index:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-run-archive.sh
+```
+
+The script writes `run-archive.json` and `run-archive.md` under `/tmp/linguaframe-demo/private-demo-run-archive/` by default. This archive is not a backup, does not contain generated media bytes, and does not replace per-job demo run packages; it is the operator-level table of contents for the private demo evidence set.
+
 For a selected job, the browser demo includes a `Demo review guide` panel near the top of the job view. It orders the walkthrough into input, pipeline, review, delivery, evidence, and handoff steps, shows whether the run is presentation-ready, links to the existing detailed panels, and exports metadata-only presenter notes. The guide does not replace diagnostics, evidence bundle, demo session report, delivery manifest, or handoff package; it is the browser navigation layer for presenting them in a coherent order.
 
 The selected job view also includes a `Source media` panel. It shows safe uploaded-input metadata such as filename, content type, size, duration, upload status, created time, video id, job id, and target language, plus a `Download source video` link backed by `GET /api/media/uploads/{videoId}/source/download`. The metadata API does not expose source object keys or local paths; source bytes move only through the explicit download route.

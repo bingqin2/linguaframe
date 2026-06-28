@@ -4,10 +4,12 @@ import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
+import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
+import com.linguaframe.operator.service.PrivateDemoRunArchiveService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -26,17 +28,20 @@ public class OperatorDashboardController {
     private final PrivateDemoOperationsService operationsService;
     private final PrivateDemoLaunchRehearsalService launchRehearsalService;
     private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
+    private final PrivateDemoRunArchiveService runArchiveService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
             PrivateDemoOperationsService operationsService,
             PrivateDemoLaunchRehearsalService launchRehearsalService,
-            PrivateDemoEvidenceGalleryService evidenceGalleryService
+            PrivateDemoEvidenceGalleryService evidenceGalleryService,
+            PrivateDemoRunArchiveService runArchiveService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
         this.launchRehearsalService = launchRehearsalService;
         this.evidenceGalleryService = evidenceGalleryService;
+        this.runArchiveService = runArchiveService;
     }
 
     @GetMapping("/dashboard")
@@ -79,5 +84,15 @@ public class OperatorDashboardController {
             @RequestParam(required = false) Integer limit
     ) {
         return evidenceGalleryService.evidenceGallery(limit);
+    }
+
+    @GetMapping("/private-demo/run-archive")
+    @Operation(summary = "Get private demo run archive")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo run archive was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public PrivateDemoRunArchiveVo privateDemoRunArchive() {
+        return runArchiveService.runArchive();
     }
 }

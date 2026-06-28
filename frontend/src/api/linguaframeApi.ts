@@ -18,6 +18,7 @@ import type {
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
+  PrivateDemoRunArchive,
   PublishReviewedSubtitlesRequest,
   PromptTemplate,
   RetentionCleanupResult,
@@ -251,6 +252,12 @@ export async function getPrivateDemoEvidenceGallery(limit?: number): Promise<Pri
   });
 }
 
+export async function getPrivateDemoRunArchive(): Promise<PrivateDemoRunArchive> {
+  return requestJson<PrivateDemoRunArchive>('/api/operator/private-demo/run-archive', {
+    method: 'GET'
+  });
+}
+
 export async function getRuntimeDependencies(): Promise<RuntimeDependencySummary> {
   return requestJson<RuntimeDependencySummary>('/api/runtime/dependencies', {
     method: 'GET'
@@ -457,6 +464,7 @@ export const linguaFrameApi = {
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,
+  getPrivateDemoRunArchive,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getRetentionCleanupPreview,

@@ -1314,6 +1314,14 @@ download_private_demo_evidence_gallery_json() {
   demo_curl -fsS "$base_url/api/operator/private-demo/evidence-gallery?limit=$limit" -o "$output_path"
 }
 
+download_private_demo_run_archive_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/run-archive" -o "$output_path"
+}
+
 print_private_demo_evidence_gallery_summary_file() {
   local gallery_path="$1"
 
@@ -1401,6 +1409,97 @@ for download in gallery.get("galleryDownloads", []):
 
 with open(output_path, "w", encoding="utf-8") as handle:
     handle.write("\n".join(lines) + "\n")
+PY
+}
+
+print_private_demo_run_archive_summary_file() {
+  local archive_path="$1"
+
+  python3 - "$archive_path" <<'PY'
+import json
+import sys
+
+archive = json.load(open(sys.argv[1], encoding="utf-8"))
+print("privateDemoRunArchiveOverall=" + str(archive.get("overallStatus", "UNKNOWN")))
+print("privateDemoRunArchiveRecommendedJobId=" + str(archive.get("recommendedJobId") or ""))
+print("privateDemoRunArchiveCompletedJobCount=" + str(archive.get("galleryCompletedJobCount", 0)))
+print("privateDemoRunArchiveHandoffReadyCount=" + str(archive.get("galleryHandoffReadyCount", 0)))
+for candidate in archive.get("candidates", []):
+    print(
+        "privateDemoRunArchiveCandidate="
+        + str(candidate.get("jobId", ""))
+        + ":"
+        + str(candidate.get("profileId") or "manual")
+        + ":"
+        + str(candidate.get("status", ""))
+        + ":"
+        + str(candidate.get("readiness", ""))
+        + ":quality="
+        + str(candidate.get("qualityScore") if candidate.get("qualityScore") is not None else "none")
+        + ":cost="
+        + str(candidate.get("estimatedCostUsd", 0))
+        + ":modelCalls="
+        + str(candidate.get("modelCallCount", 0))
+        + ":providerCacheHits="
+        + str(candidate.get("providerCacheHitCount", 0))
+        + ":handoffReady="
+        + ("true" if candidate.get("handoffReady") else "false")
+    )
+for link in archive.get("archiveLinks", []):
+    print(
+        "privateDemoRunArchiveLink="
+        + str(link.get("label", ""))
+        + ":"
+        + str(link.get("href", ""))
+    )
+PY
+}
+
+write_private_demo_run_archive_report() {
+  local archive_path="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$archive_path" "$output_path" <<'PY'
+import json
+import sys
+
+archive = json.load(open(sys.argv[1], encoding="utf-8"))
+output_path = sys.argv[2]
+markdown = archive.get("archiveNotesMarkdown") or ""
+if not markdown.strip():
+    lines = [
+        "# LinguaFrame Private Demo Run Archive",
+        "",
+        f"- Overall: {archive.get('overallStatus', 'UNKNOWN')}",
+        f"- Generated at: {archive.get('generatedAt', 'unknown')}",
+        f"- Recommended job: {archive.get('recommendedJobId') or 'none'}",
+        f"- Completed jobs: {archive.get('galleryCompletedJobCount', 0)}",
+        f"- Handoff-ready jobs: {archive.get('galleryHandoffReadyCount', 0)}",
+        "",
+        "## Archive Links",
+    ]
+    for link in archive.get("archiveLinks", []):
+        label = link.get("label")
+        href = link.get("href")
+        if label and href:
+            lines.append(f"- {label}: {href}")
+    markdown = "\n".join(lines)
+
+for forbidden in [
+    "OPENAI_API_KEY",
+    "private-demo-token",
+    "/Users/",
+    "provider payload",
+    "raw transcript text",
+    "raw subtitle text",
+    "corrected subtitle text",
+    "job-artifacts/",
+]:
+    markdown = markdown.replace(forbidden, "[redacted]")
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write(markdown.rstrip() + "\n")
 PY
 }
 

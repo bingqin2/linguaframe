@@ -469,6 +469,45 @@ export interface PrivateDemoEvidenceGalleryDownload {
   description: string;
 }
 
+export interface PrivateDemoRunArchive {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  recommendedJobId: string | null;
+  recommendedVideoId: string | null;
+  recommendedProfileId: string | null;
+  recommendedReadiness: string;
+  operationsOverallStatus: PrivateDemoOperationsStatus;
+  launchOverallStatus: PrivateDemoOperationsStatus;
+  launchRecommendedNextStep: string;
+  galleryCompletedJobCount: number;
+  galleryHandoffReadyCount: number;
+  candidates: PrivateDemoRunArchiveCandidate[];
+  archiveLinks: PrivateDemoRunArchiveLink[];
+  archiveNotesMarkdown: string;
+}
+
+export interface PrivateDemoRunArchiveCandidate {
+  jobId: string;
+  videoId: string;
+  filename: string;
+  profileId: string;
+  status: LocalizationJobStatus;
+  readiness: string;
+  qualityScore: number | null;
+  estimatedCostUsd: string;
+  modelCallCount: number;
+  providerCacheHitCount: number;
+  handoffReady: boolean;
+  roles: string[];
+}
+
+export interface PrivateDemoRunArchiveLink {
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export interface RuntimeDependencySummary {
   runtime: RuntimeContract;
   database: NetworkDependency;

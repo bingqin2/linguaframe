@@ -6,6 +6,29 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the private demo run archive workspace in `docs/plans/103-private-demo-run-archive-workspace.md`.
+- Added `GET /api/operator/private-demo/run-archive` to combine private-demo operations readiness, launch rehearsal, evidence gallery, recommended completed job, candidate rows, and safe package routes.
+- Added a React `Private demo run archive` panel with copy/download archive notes actions.
+- Added `scripts/demo/private-demo-run-archive.sh` plus terminal `privateDemoRunArchive*` summary helpers, and linked it as the next evidence step from launch rehearsal and evidence gallery scripts.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with the metadata-only archive boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoRunArchiveServiceTests test` first failed because archive VO/service types did not exist, then passed as part of the backend task suite.
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoRunArchiveServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests test` passed with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "private demo run archive"` first failed because `getPrivateDemoRunArchive` was missing, then passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_private_demo_run_archive_json` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/private-demo-run-archive.sh scripts/demo/private-demo-launch-rehearsal.sh scripts/demo/private-demo-evidence-gallery.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 512, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 130 passed`.
+- `cd frontend && npm run build` first failed on missing `PrivateDemoRunArchive` test import and a narrow status helper type, then passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the worker topology readiness workspace in `docs/plans/102-worker-topology-readiness-workspace.md`.
 - Extended `/api/runtime/dependencies` worker readiness with active listener queue, RabbitMQ exchange, default/FFmpeg/OpenAI routes, owned stage groups, and safe startup commands.
 - Added a React `Worker topology` subsection to the `Demo readiness` panel.

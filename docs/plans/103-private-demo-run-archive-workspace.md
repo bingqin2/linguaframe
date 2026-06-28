@@ -53,10 +53,10 @@
   - `archiveNotesMarkdown`: metadata-only Markdown suitable for copying.
 - Add the new route to the runtime required route contract.
 
-- [ ] Write failing service tests for a ready archive with a recommended gallery job and safe links.
-- [ ] Write failing service tests that unsafe strings in source service notes are not copied into archive notes.
-- [ ] Implement VO records, service, controller route, and route contract update.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=PrivateDemoRunArchiveServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests test`.
+- [x] Write failing service tests for a ready archive with a recommended gallery job and safe links.
+- [x] Write failing service tests that unsafe strings in source service notes are not copied into archive notes.
+- [x] Implement VO records, service, controller route, and route contract update.
+- [x] Run `mvn -pl LinguaFrame -Dtest=PrivateDemoRunArchiveServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests test`.
 
 ## Task 2: Browser Private Demo Archive Panel
 
@@ -75,10 +75,10 @@
 - Provide `Copy archive notes` and `Download archive notes` actions using `archiveNotesMarkdown`.
 - Keep the panel usable when loading fails; show a concise unavailable message without blocking upload or job detail.
 
-- [ ] Write failing API test proving token-aware fetch and encoded route behavior where applicable.
-- [ ] Write failing App tests proving the panel renders the recommended job, archive links, notes actions, and excludes unsafe text.
-- [ ] Implement frontend types, API helper, panel, copy/download actions, loading, refresh, and error state.
-- [ ] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "private demo run archive"`.
+- [x] Write failing API test proving token-aware fetch and encoded route behavior where applicable.
+- [x] Write failing App tests proving the panel renders the recommended job, archive links, notes actions, and excludes unsafe text.
+- [x] Implement frontend types, API helper, panel, copy/download actions, loading, refresh, and error state.
+- [x] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "private demo run archive"`.
 
 ## Task 3: Terminal Archive Report
 
@@ -102,10 +102,10 @@
 - Add `scripts/demo/private-demo-run-archive.sh` writing JSON and Markdown under `/tmp/linguaframe-demo/private-demo-run-archive/`.
 - Mention the archive command in launch rehearsal and evidence gallery terminal output so the operator sees the next evidence step.
 
-- [ ] Write failing shell tests for route download, metadata-only summary, Markdown report, and unsafe fixture redaction.
-- [ ] Implement helpers and the script.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/private-demo-run-archive.sh scripts/demo/private-demo-launch-rehearsal.sh scripts/demo/private-demo-evidence-gallery.sh`.
+- [x] Write failing shell tests for route download, metadata-only summary, Markdown report, and unsafe fixture redaction.
+- [x] Implement helpers and the script.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/private-demo-run-archive.sh scripts/demo/private-demo-launch-rehearsal.sh scripts/demo/private-demo-evidence-gallery.sh`.
 
 ## Task 4: Documentation, Validation, Commit, And Merge
 
@@ -124,10 +124,10 @@
 - Document that the archive is a metadata-only index, not a backup, not a generated media package, and not a substitute for per-job demo run packages.
 - Record validation commands and post-merge verification.
 
-- [ ] Update docs and execution log.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `cd frontend && npm test -- --run`.
-- [ ] Run `cd frontend && npm run build`.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `git diff --check`.
+- [x] Update docs and execution log.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `cd frontend && npm test -- --run`.
+- [x] Run `cd frontend && npm run build`.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.

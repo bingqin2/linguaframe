@@ -19,3 +19,4 @@ write_private_demo_evidence_gallery_report "$JSON_PATH" "$REPORT_PATH"
 
 echo "Wrote private demo evidence gallery JSON to $JSON_PATH"
 echo "Wrote private demo evidence gallery report to $REPORT_PATH"
+echo "Next archive command: scripts/demo/private-demo-run-archive.sh"

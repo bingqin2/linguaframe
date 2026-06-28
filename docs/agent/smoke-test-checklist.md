@@ -258,6 +258,8 @@ Expected browser behavior:
 - The `Demo readiness` panel shows budget guard state, the configured per-job cost limit, daily demo budget state, daily limit, and safe budget identity without exposing provider credentials.
 - The `Demo readiness` panel shows `Worker topology` with active role, listener queue, job exchange, default route, FFmpeg route, OpenAI route, owned stage groups, and safe startup commands without exposing RabbitMQ credentials or demo tokens.
 - Terminal upload readiness output includes `workerTopologyRole`, `workerTopologyListenerQueue`, `workerTopologyFfmpegRoute`, `workerTopologyOpenaiRoute`, and `workerTopologyCommand` lines before any upload or provider call.
+- The `Private demo run archive` panel shows overall archive status, recommended job/profile/readiness, operations status, launch status, completed/handoff-ready counts, candidate rows, and safe archive links.
+- `scripts/demo/private-demo-run-archive.sh` writes metadata-only `run-archive.json` and `run-archive.md`, and terminal output includes `privateDemoRunArchiveOverall`, `privateDemoRunArchiveRecommendedJobId`, candidate rows, and link rows without tokens, local paths, provider payloads, or raw transcript/subtitle text.
 - The `Live checks` panel shows overall `Ready` or `Blocked`, plus database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI statuses from `GET /api/runtime/live-checks`. OpenAI is `SKIPPED` by default and `UP` or `DOWN` only when the explicit connectivity check is enabled.
 - If live checks fail to load, the `Live checks` panel shows a short unavailable message and leaves upload controls usable.
 
