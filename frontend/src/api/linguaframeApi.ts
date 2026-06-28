@@ -1,6 +1,7 @@
 import type {
   JobArtifact,
   JobComparison,
+  DemoPresenterPack,
   DemoRunMatrix,
   DemoRunProfile,
   DemoSessionStatus,
@@ -152,6 +153,12 @@ export async function getDemoRunMatrix(jobId: string, limit?: number): Promise<D
   }
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return requestJson<DemoRunMatrix>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-matrix${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoPresenterPack(jobId: string): Promise<DemoPresenterPack> {
+  return requestJson<DemoPresenterPack>(`/api/jobs/${encodeURIComponent(jobId)}/demo-presenter-pack`, {
     method: 'GET'
   });
 }
@@ -399,6 +406,7 @@ export const linguaFrameApi = {
   getJob,
   getDeliveryManifest,
   getDemoRunMatrix,
+  getDemoPresenterPack,
   getJobComparison,
   retryJob,
   cancelJob,

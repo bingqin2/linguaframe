@@ -6,6 +6,32 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo presenter pack workspace in `docs/plans/095-demo-presenter-pack-workspace.md`.
+- Added `GET /api/jobs/{jobId}/demo-presenter-pack` for one selected job's presenter-facing evidence checklist.
+- Added presenter pack aggregation from job detail, same-source demo run matrix, delivery manifest readiness, safe download routes, quality/cost/cache evidence, and metadata-only presenter notes.
+- Added a React `Demo presenter pack` panel for readiness, recommended baseline, best quality, lowest cost, run roles, safe package links, and copy/download presenter notes.
+- Added terminal helpers for `demo-presenter-pack.json` download and metadata-only summary printing.
+- Extended the full Tears of Steel script to download and summarize `demo-presenter-pack.json`.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoPresenterPackServiceTests test` first failed because the presenter pack service and VO types did not exist, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoPresenterPackServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` first failed while the controller/runtime route was missing, then passed with `Tests run: 44, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "demo presenter pack"` first failed because `getDemoPresenterPack` did not exist, then passed.
+- `cd frontend && npm test -- --run src/App.test.tsx -t "demo presenter pack"` first failed because the panel did not exist, then passed after adding the panel and scoping duplicate text assertions.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo presenter pack"` passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_demo_presenter_pack_json` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 468, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 115 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo run matrix workspace in `docs/plans/094-demo-run-matrix-workspace.md`.
 - Added `GET /api/jobs/{jobId}/demo-run-matrix` for recent jobs sharing the selected job's source video.
 - Added matrix recommendation logic for recommended baseline, best quality run, and lowest cost run using existing quality, model-call, cache, and delivery manifest evidence.

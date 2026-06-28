@@ -25,6 +25,7 @@ import {
   getDeliveryManifest,
   getJobComparison,
   getDemoRunMatrix,
+  getDemoPresenterPack,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -1179,6 +1180,56 @@ describe('linguaframeApi', () => {
     expect(result.jobs[0].demoProfileId).toBe('tears-showcase');
     expect(result.bestQualityJobId).toBe('job-showcase');
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20matrix%2Fslash/demo-run-matrix?limit=6', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('gets demo presenter pack with encoded id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        anchorJobId: 'job presenter/slash',
+        videoId: 'video-presenter',
+        generatedAt: '2026-06-28T12:00:00Z',
+        headline: 'tears-showcase demo to zh-CN',
+        readinessStatus: 'READY',
+        recommendedBaselineJobId: 'job-baseline',
+        bestQualityJobId: 'job presenter/slash',
+        lowestCostJobId: 'job-baseline',
+        runs: [
+          {
+            jobId: 'job presenter/slash',
+            demoProfileId: 'tears-showcase',
+            status: 'COMPLETED',
+            completedAt: '2026-06-28T11:03:00Z',
+            qualityScore: 91,
+            estimatedCostUsd: 0.000141,
+            modelCallCount: 2,
+            providerCacheHitCount: 1,
+            handoffReady: true,
+            roles: ['ANCHOR', 'BEST_QUALITY']
+          }
+        ],
+        downloads: [
+          {
+            kind: 'DEMO_RUN_PACKAGE',
+            label: 'Demo run package',
+            url: '/api/jobs/job presenter/slash/demo-run-package/download'
+          }
+        ],
+        presenterNotesMarkdown: '# LinguaFrame Demo Presenter Pack\n'
+      })
+    );
+
+    const result = await getDemoPresenterPack('job presenter/slash');
+
+    expect(result.readinessStatus).toBe('READY');
+    expect(result.runs[0].roles).toContain('BEST_QUALITY');
+    expect(result.downloads[0].kind).toBe('DEMO_RUN_PACKAGE');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20presenter%2Fslash/demo-presenter-pack', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

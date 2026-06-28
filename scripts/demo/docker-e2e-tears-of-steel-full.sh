@@ -79,6 +79,11 @@ download_demo_run_matrix_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-matrix
 print_demo_run_matrix_summary_file "$OUTPUT_DIR/demo-run-matrix.json"
 echo "Downloaded demo run matrix to $OUTPUT_DIR/demo-run-matrix.json"
 
+echo "Demo presenter pack:"
+download_demo_presenter_pack_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-presenter-pack.json"
+print_demo_presenter_pack_summary_file "$OUTPUT_DIR/demo-presenter-pack.json"
+echo "Downloaded demo presenter pack to $OUTPUT_DIR/demo-presenter-pack.json"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

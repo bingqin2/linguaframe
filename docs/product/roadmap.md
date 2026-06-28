@@ -282,6 +282,7 @@ Build:
 - Browser cache replay evidence. Status: implemented as a read-only selected-job comparison panel that shows provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe replay evidence exports.
 - Backend-backed demo profile comparison. Status: implemented with job comparison JSON/Markdown endpoints, a browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Same-source demo run matrix. Status: implemented with `GET /api/jobs/{jobId}/demo-run-matrix`, a browser `Demo run matrix` panel, and full Tears terminal `demo-run-matrix.json` output for baseline, quality, cost, cache, and handoff inspection across recent runs.
+- Demo presenter pack workspace. Status: implemented with `GET /api/jobs/{jobId}/demo-presenter-pack`, a browser `Demo presenter pack` panel, and full Tears terminal `demo-presenter-pack.json` output for readiness, recommended runs, presenter notes, and safe evidence links.
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.

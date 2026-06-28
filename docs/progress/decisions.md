@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Derive demo presenter packs on demand from existing evidence APIs instead of storing curated presentation sessions.
+
+Reason: The private demo needs one presenter-facing checklist for a selected job, but job detail, same-source run matrix, delivery manifest, diagnostics, evidence reports, and package routes already provide the durable facts.
+
+Impact: `GET /api/jobs/{jobId}/demo-presenter-pack` builds readiness, recommended run IDs, role labels, safe download routes, and metadata-only presenter notes at request time. Persistent presenter sessions remain later work only if manual ordering, annotations, or multi-presenter collaboration become product requirements.
+
+## 2026-06-28
+
 Decision: Derive the demo run matrix on demand from existing same-source jobs instead of storing a demo-session table.
 
 Reason: The current demo needs a presentation aid that explains recent profile attempts for one source video, while job detail, model calls, quality evaluation, cache evidence, and delivery manifests already hold the durable facts.
