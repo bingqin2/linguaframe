@@ -722,6 +722,16 @@ td {
   gap: 10px;
 }
 
+.upload-readiness-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+}
+
+.upload-readiness-list li span:last-child {
+  grid-column: 1 / -1;
+}
+
 .live-check-list li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

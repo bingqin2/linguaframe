@@ -78,6 +78,18 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void returnsDemoUploadReadiness() throws Exception {
+        mockMvc.perform(get("/api/media/uploads/readiness").param("demoProfileId", "quick-baseline"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.ownerId").value("demo-owner"))
+                .andExpect(jsonPath("$.demoProfileId").value("quick-baseline"))
+                .andExpect(jsonPath("$.checks").isArray())
+                .andExpect(jsonPath("$.requiredActions").isArray())
+                .andExpect(jsonPath("$.evidenceRoutes").isArray());
+    }
+
+    @Test
     void validatesSupportedMultipartVideo() throws Exception {
         when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
         MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});

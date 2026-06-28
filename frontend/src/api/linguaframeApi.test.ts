@@ -28,6 +28,7 @@ import {
   getJobComparison,
   getDemoRunMatrix,
   getDemoPresenterPack,
+  getDemoUploadReadiness,
   getOwnerQuotaPreflight,
   listDemoRunProfiles,
   loginDemoSession,
@@ -482,6 +483,37 @@ describe('linguaframeApi', () => {
     expect(result.allowed).toBe(false);
     expect(result.limits).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledWith('/api/media/uploads/preflight', { method: 'GET' });
+  });
+
+  test('fetches demo upload readiness for selected profile', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        overallStatus: 'ATTENTION',
+        ownerId: 'demo-owner',
+        demoProfileId: 'tears-showcase',
+        generatedAt: '2026-06-28T08:00:00Z',
+        checks: [
+          {
+            id: 'paid-provider-check',
+            label: 'Paid provider check',
+            status: 'ATTENTION',
+            detail: 'OpenAI provider mode is enabled, but the live OpenAI connectivity check is skipped.',
+            nextAction: 'Run the OpenAI preflight before provider-backed uploads.',
+            blocking: false
+          }
+        ],
+        requiredActions: ['Review attention checks before paid or full-video upload.'],
+        evidenceRoutes: ['/api/media/uploads/readiness']
+      })
+    );
+
+    const result = await getDemoUploadReadiness('tears-showcase');
+
+    expect(result.overallStatus).toBe('ATTENTION');
+    expect(result.demoProfileId).toBe('tears-showcase');
+    expect(fetchMock).toHaveBeenCalledWith('/api/media/uploads/readiness?demoProfileId=tears-showcase', {
+      method: 'GET'
+    });
   });
 
   test('validates media upload with demo access token header when stored', async () => {

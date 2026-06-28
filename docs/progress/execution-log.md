@@ -6,6 +6,27 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo upload readiness workspace in `docs/plans/100-demo-upload-readiness-workspace.md`.
+- Added `GET /api/media/uploads/readiness` as a metadata-only aggregate of access-gated API reachability, runtime contract, live dependency checks, owner quota preflight, selected demo profile, and paid-provider warning state.
+- Added a React `Upload readiness` panel that refreshes on page/profile/upload state changes and blocks upload only for backend `BLOCKED` readiness while leaving file validation available.
+- Added `scripts/demo/upload-readiness.sh` plus shared demo-client helpers and startup/preflight guidance.
+- Updated README, private-demo docs, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with upload-readiness behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoUploadReadinessServiceTests,MediaUploadControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 27, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Tests 120 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_upload_readiness_json` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/upload-readiness.sh scripts/demo/start-local-demo.sh scripts/demo/private-demo-preflight.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 499, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 127 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the owner quota and budget preflight workspace in `docs/plans/099-owner-quota-budget-preflight-workspace.md`.
 - Added configurable owner quota settings for active jobs, queued jobs, and owner daily estimated spend.
 - Added owner-scoped active/queued job aggregation and `GET /api/media/uploads/preflight`.

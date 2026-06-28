@@ -145,6 +145,7 @@ Open:
   $FRONTEND_URL
 
 Next commands:
+  scripts/demo/upload-readiness.sh
   scripts/demo/docker-e2e-success.sh
   scripts/demo/docker-e2e-cache-hit.sh
 EOF

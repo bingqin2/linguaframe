@@ -3,9 +3,11 @@ package com.linguaframe.media.controller;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.common.quota.OwnerQuotaPreflightService;
 import com.linguaframe.common.quota.OwnerQuotaPreflightVo;
+import com.linguaframe.media.domain.vo.DemoUploadReadinessVo;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
+import com.linguaframe.media.service.DemoUploadReadinessService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,15 +39,18 @@ public class MediaUploadController {
     private final MediaUploadValidationService validationService;
     private final MediaUploadService uploadService;
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
+    private final DemoUploadReadinessService demoUploadReadinessService;
 
     public MediaUploadController(
             MediaUploadValidationService validationService,
             MediaUploadService uploadService,
-            OwnerQuotaPreflightService ownerQuotaPreflightService
+            OwnerQuotaPreflightService ownerQuotaPreflightService,
+            DemoUploadReadinessService demoUploadReadinessService
     ) {
         this.validationService = validationService;
         this.uploadService = uploadService;
         this.ownerQuotaPreflightService = ownerQuotaPreflightService;
+        this.demoUploadReadinessService = demoUploadReadinessService;
     }
 
     @GetMapping("/preflight")
@@ -56,6 +61,19 @@ public class MediaUploadController {
     })
     public OwnerQuotaPreflightVo preflightUpload() {
         return ownerQuotaPreflightService.getPreflight();
+    }
+
+    @GetMapping("/readiness")
+    @Operation(summary = "Inspect demo upload readiness")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo upload readiness metadata was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoUploadReadinessVo uploadReadiness(
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+    ) {
+        return demoUploadReadinessService.getReadiness(demoProfileId);
     }
 
     @PostMapping(value = "/validate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

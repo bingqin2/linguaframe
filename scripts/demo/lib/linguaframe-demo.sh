@@ -291,6 +291,53 @@ download_owner_quota_preflight_json() {
   demo_curl -fsS "$base_url/api/media/uploads/preflight" -o "$output_path"
 }
 
+download_upload_readiness_json() {
+  local base_url="$1"
+  local demo_profile_id="$2"
+  local output_path="$3"
+  local query=""
+
+  if [[ -n "${demo_profile_id//[[:space:]]/}" ]]; then
+    query="?demoProfileId=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$demo_profile_id")"
+  fi
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/media/uploads/readiness$query" -o "$output_path"
+}
+
+print_upload_readiness_summary_file() {
+  local readiness_path="$1"
+
+  python3 - "$readiness_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    readiness = json.load(handle)
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("uploadReadinessOverall=" + text(readiness.get("overallStatus")))
+print("uploadReadinessOwnerId=" + text(readiness.get("ownerId")))
+print("uploadReadinessDemoProfileId=" + text(readiness.get("demoProfileId")))
+print("uploadReadinessGeneratedAt=" + text(readiness.get("generatedAt")))
+for check in readiness.get("checks", []):
+    print(
+        "uploadReadinessCheck="
+        + text(check.get("status"))
+        + ":"
+        + text(check.get("id"))
+        + ":"
+        + text(check.get("label"))
+    )
+for action in readiness.get("requiredActions", []):
+    print("uploadReadinessRequiredAction=" + text(action))
+for route in readiness.get("evidenceRoutes", []):
+    print("uploadReadinessEvidenceRoute=" + text(route))
+PY
+}
+
 print_owner_quota_preflight_summary_file() {
   local preflight_path="$1"
 

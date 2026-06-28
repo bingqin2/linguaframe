@@ -58,6 +58,7 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-preflight.sh
 - Swagger UI: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/swagger-ui/index.html`
 - Runtime readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/runtime/dependencies`
 - Live checks: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/runtime/live-checks`
+- Upload readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/media/uploads/readiness`
 - Operations readiness: `https://<LINGUAFRAME_PUBLIC_DOMAIN>/api/operator/private-demo/operations`
 
 When a token is configured, `/api/**` requires the demo token. Enter it in the browser `Demo access token` field before uploads, downloads, previews, or SSE.
@@ -85,6 +86,20 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/owner-quota-preflight.sh
 The script calls `GET /api/media/uploads/preflight`, writes `/tmp/linguaframe-demo/owner-quota-preflight.json` by default, and exits non-zero when the configured owner is blocked. Set `LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true` to collect the same metadata without blocking a shell workflow.
 
 This guard rejects new uploads before object storage writes, job rows, dispatch events, FFmpeg stages, or OpenAI calls. It is a private-demo abuse and cost guard tied to `LINGUAFRAME_DEMO_OWNER_ID`; it is not public billing, JWT auth, or multi-tenant account management.
+
+## Upload Readiness
+
+Use upload readiness as the final pre-upload go/no-go check for the selected demo profile:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo \
+  LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+  scripts/demo/upload-readiness.sh
+```
+
+The script calls `GET /api/media/uploads/readiness`, writes `/tmp/linguaframe-demo/upload-readiness.json` by default, and prints metadata-only readiness rows. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero unless `LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true`.
+
+This check combines access-gated API reachability, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warnings. It does not upload media, create jobs, call OpenAI, copy local files, or expose demo tokens, object keys, local paths, provider payloads, transcript text, subtitle text, or media bytes.
 
 ## Launch Rehearsal
 

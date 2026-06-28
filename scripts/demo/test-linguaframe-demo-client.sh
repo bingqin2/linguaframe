@@ -202,6 +202,118 @@ SH
   [[ "$status" -eq 0 ]] || fail "owner quota preflight script failed in report-only mode"
 }
 
+test_upload_readiness_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_upload_readiness_json "http://example.test" "tears-showcase" "$TMPDIR/upload-readiness.json" >"$TMPDIR/upload-readiness-curl.out"
+
+  local curl_output
+  curl_output="$(cat "$TMPDIR/upload-readiness-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/media/uploads/readiness?demoProfileId=tears-showcase"* ]] || fail "upload readiness helper used wrong route"
+
+  cat >"$TMPDIR/upload-readiness.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "ownerId": "demo-owner",
+  "demoProfileId": "tears-showcase",
+  "generatedAt": "2026-06-28T08:00:00Z",
+  "checks": [
+    {
+      "id": "owner-quota",
+      "label": "Owner quota",
+      "status": "BLOCKED",
+      "detail": "Owner active job limit reached.",
+      "nextAction": "Wait for active jobs to finish.",
+      "blocking": true
+    }
+  ],
+  "requiredActions": [
+    "Resolve blocking upload readiness checks before uploading media."
+  ],
+  "evidenceRoutes": [
+    "/api/media/uploads/readiness",
+    "/api/media/uploads/preflight"
+  ],
+  "demoToken": "private-demo-token",
+  "sourceObjectKey": "uploads/video-1/source.mp4",
+  "localPath": "/Users/example/private.mov",
+  "providerPayload": "raw provider payload"
+}
+JSON
+
+  print_upload_readiness_summary_file "$TMPDIR/upload-readiness.json" >"$TMPDIR/upload-readiness.out"
+  local output
+  output="$(cat "$TMPDIR/upload-readiness.out")"
+  [[ "$output" == *"uploadReadinessOverall=BLOCKED"* ]] || fail "upload readiness summary missed overall"
+  [[ "$output" == *"uploadReadinessOwnerId=demo-owner"* ]] || fail "upload readiness summary missed owner"
+  [[ "$output" == *"uploadReadinessDemoProfileId=tears-showcase"* ]] || fail "upload readiness summary missed profile"
+  [[ "$output" == *"uploadReadinessCheck=BLOCKED:owner-quota:Owner quota"* ]] || fail "upload readiness summary missed check"
+  [[ "$output" == *"uploadReadinessRequiredAction=Resolve blocking upload readiness checks before uploading media."* ]] || fail "upload readiness summary missed action"
+  [[ "$output" != *"private-demo-token"* ]] || fail "upload readiness summary exposed demo token"
+  [[ "$output" != *"uploads/video-1/source.mp4"* ]] || fail "upload readiness summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "upload readiness summary exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "upload readiness summary exposed provider payload"
+}
+
+test_upload_readiness_script_exits_on_blocked_state() {
+  local fake_curl="$TMPDIR/fake-upload-readiness-curl"
+  cat >"$fake_curl" <<'SH'
+#!/usr/bin/env bash
+output_path=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o)
+      output_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+cat >"$output_path" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "ownerId": "demo-owner",
+  "demoProfileId": "quick-baseline",
+  "generatedAt": "2026-06-28T08:00:00Z",
+  "checks": [
+    {
+      "id": "owner-quota",
+      "label": "Owner quota",
+      "status": "BLOCKED",
+      "detail": "Owner quota blocked upload.",
+      "nextAction": "Wait for active jobs to finish.",
+      "blocking": true
+    }
+  ],
+  "requiredActions": ["Resolve blocking upload readiness checks before uploading media."],
+  "evidenceRoutes": ["/api/media/uploads/readiness"]
+}
+JSON
+SH
+  chmod +x "$fake_curl"
+
+  local status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_UPLOAD_READINESS_JSON_PATH="$TMPDIR/script-upload-readiness.json" \
+    "$SCRIPT_DIR/upload-readiness.sh" >"$TMPDIR/script-upload-readiness.out" || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "upload readiness script did not fail on blocked status"
+
+  status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true \
+  LINGUAFRAME_UPLOAD_READINESS_JSON_PATH="$TMPDIR/script-upload-readiness-report-only.json" \
+    "$SCRIPT_DIR/upload-readiness.sh" >"$TMPDIR/script-upload-readiness-report-only.out" || status=$?
+
+  [[ "$status" -eq 0 ]] || fail "upload readiness script failed in report-only mode"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1560,6 +1672,8 @@ test_demo_base_url_uses_backend_port_from_env_file
 test_demo_session_owner_summary_is_metadata_only
 test_owner_quota_preflight_helpers_are_metadata_only
 test_owner_quota_preflight_script_exits_on_blocked_state
+test_upload_readiness_helpers_are_metadata_only
+test_upload_readiness_script_exits_on_blocked_state
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

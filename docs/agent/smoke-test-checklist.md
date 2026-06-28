@@ -69,7 +69,7 @@ Expected:
 - If `http://localhost:5173` is unavailable, the script starts `scripts/demo/frontend-local-dev.sh` for the current session and waits for it to respond.
 - `scripts/demo/private-demo-preflight.sh` passes before any media upload.
 - Preflight prints live dependency check lines for database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI. OpenAI is `SKIPPED` unless the explicit connectivity check is enabled.
-- The script prints `http://localhost:5173`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
+- The script prints `http://localhost:5173`, `scripts/demo/upload-readiness.sh`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
 
 Validate Compose configuration and rebuild the backend image:
 
@@ -186,6 +186,9 @@ Expected browser behavior:
 - Swagger and curl API calls to `/api/**` still succeed only after sending the configured token through `X-LinguaFrame-Demo-Token`.
 - Anonymous browser requests to `/api/demo-session` remain reachable so a locked-out owner can log in, while other `/api/**` requests stay protected.
 - Choosing a file and clicking `Validate file` shows an `Upload validation` panel with backend validation code, message, filename, content type, file size versus max size, and duration versus max duration.
+- The upload form shows an `Upload readiness` panel before file selection with `READY`, `ATTENTION`, or `BLOCKED` status plus safe check rows for owner-session access, runtime contract, live dependencies, owner quota, demo profile, and paid-provider checks.
+- Changing `Demo profile` refreshes upload readiness for the selected profile.
+- `BLOCKED` upload readiness disables `Upload` while leaving `Validate file` available; `ATTENTION` does not disable upload.
 - Clicking `Upload` validates the selected file before creating a job.
 - Invalid upload validation responses block `POST /api/media/uploads` and leave the upload controls usable.
 - Upload a short MP4 with a target language.

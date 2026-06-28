@@ -71,6 +71,27 @@ export interface OwnerQuotaPreflight {
   blockingReasons: string[];
 }
 
+export type DemoUploadReadinessStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface DemoUploadReadinessCheck {
+  id: string;
+  label: string;
+  status: DemoUploadReadinessStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoUploadReadiness {
+  overallStatus: DemoUploadReadinessStatus;
+  ownerId: string;
+  demoProfileId: string;
+  generatedAt: string;
+  checks: DemoUploadReadinessCheck[];
+  requiredActions: string[];
+  evidenceRoutes: string[];
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;

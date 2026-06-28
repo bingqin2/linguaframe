@@ -191,6 +191,7 @@ The backend should provide:
 - A private-demo operations readiness workspace that safely aggregates access gate, runtime contract, live dependency, provider, cost, storage/recovery, retention, and demo-evidence checks for browser and terminal handoff.
 - A private-demo evidence gallery that safely aggregates recent completed jobs, handoff readiness, recommended run selection, and package links for browser and terminal handoff.
 - A private-demo owner quota preflight workspace that safely reports configured owner pressure and blocks new uploads before expensive work.
+- A pre-upload readiness workspace that combines access-gated API reachability, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warnings before media upload.
 
 ## Pipeline Target
 
@@ -239,6 +240,7 @@ LinguaFrame must:
 - Track estimated cost per job.
 - Enforce per-job and per-user budget limits before expensive OpenAI stages.
 - Reject new private-demo uploads when configured owner active-job, queued-job, or owner daily-budget limits are exhausted.
+- Explain upload-blocking readiness issues before object storage writes, queue dispatch, FFmpeg work, or OpenAI provider calls.
 - Cache duplicate inputs by content hash when it avoids repeated model calls safely.
 - Record prompt template versions for reproducibility.
 - Allow expensive steps to be disabled for local testing.
