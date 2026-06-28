@@ -26,6 +26,12 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
 
+Post-merge validation on `main`:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunSnapshotServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 52, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed with `Test Files 2 passed` and `Tests 136 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+
 Post-merge verification:
 
 - Merged `live-demo-run-monitor-workspace` back to `main` with merge commit.
