@@ -3201,3 +3201,31 @@ Validation so far:
 - `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 143 passed`.
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo sample media catalog workspace in `docs/plans/109-demo-sample-media-catalog-workspace.md`.
+- Added backend `GET /api/operator/demo-sample-media-catalog` with safe sample metadata, configured-path status, and no full local path exposure.
+- Added a React `Demo sample media` upload-form panel that shows sample choices, attribution, duration guidance, local sample status, and safe commands.
+- Added `scripts/demo/demo-sample-media-catalog.sh` plus shared demo-client helpers and private preflight guidance for checking sample readiness.
+- Updated README, demo references, Docker E2E guide, smoke checklist, and decisions with metadata-only sample catalog behavior.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSampleMediaCatalogServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed with `Test Files 2 passed` and `Tests 138 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/demo-sample-media-catalog.sh scripts/demo/private-demo-preflight.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 568, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 145 passed`.
+- `cd frontend && npm run build` initially failed on a test fixture field mismatch, then passed after aligning the fixture.
+- `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `demo-sample-media-catalog-workspace` back to `main`.
+- `mvn -pl LinguaFrame -Dtest=DemoSampleMediaCatalogServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed on `main` with `Test Files 2 passed` and `Tests 138 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.

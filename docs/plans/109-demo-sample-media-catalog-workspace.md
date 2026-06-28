@@ -117,7 +117,7 @@
 
 - [x] Document when to use each sample source, how to verify local sample availability, and why the catalog does not download media automatically.
 - [x] Record validation evidence in the execution log.
-- [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
+- [x] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
 
 ## Plan Self-Review
 
