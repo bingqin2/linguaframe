@@ -6,6 +6,26 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo run launcher workspace in `docs/plans/110-demo-run-launcher-workspace.md`.
+- Added backend `GET /api/operator/demo-run-launcher` with recommended sample/profile command, readiness gates, expected evidence paths, and metadata-only notes.
+- Added a React `Demo run launcher` upload-form panel beside sample media and upload readiness.
+- Added `scripts/demo/demo-run-launcher.sh`, shared shell helpers, startup guidance, and private preflight guidance.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, and decisions with launcher behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunLauncherServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` first failed because launcher backend types did not exist, then passed with `Tests run: 18, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` first failed because `getDemoRunLauncher` did not exist, then passed with `Test Files 2 passed` and `Tests 140 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_demo_run_launcher_json` did not exist, then passed.
+- `bash -n scripts/demo/demo-run-launcher.sh scripts/demo/start-local-demo.sh scripts/demo/private-demo-preflight.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 574, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 147 passed`.
+- `cd frontend && npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned the live demo run monitor workspace in `docs/plans/107-live-demo-run-monitor-workspace.md`.
 - Added `GET /api/jobs/{jobId}/demo-run-monitor` and `GET /api/jobs/{jobId}/demo-run-monitor/markdown/download` for metadata-only run monitoring.
 - Added backend monitor state derivation for queued, running, stale, completed, failed, and cancelled jobs from existing job detail and pipeline progress.

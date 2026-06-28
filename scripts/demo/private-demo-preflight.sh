@@ -416,6 +416,7 @@ check_sample_paths() {
     warn "No sample path configured. The short demo can generate /tmp/linguaframe-demo/sample.mp4 when ffmpeg exists."
     warn "For the full demo, set LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/tos_casting-720p.mp4."
     warn "Review sample choices with: scripts/demo/demo-sample-media-catalog.sh"
+    warn "Review the next full-demo command with: scripts/demo/demo-run-launcher.sh"
   fi
 }
 
@@ -442,6 +443,7 @@ main() {
 
   pass "Upload readiness can be checked with: scripts/demo/upload-readiness.sh"
   pass "Demo sample media catalog can be checked with: scripts/demo/demo-sample-media-catalog.sh"
+  pass "Demo run launcher can be checked with: scripts/demo/demo-run-launcher.sh"
   pass "Private demo preflight passed"
 }
 

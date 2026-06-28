@@ -93,7 +93,7 @@ Use public, attributable media when testing the end-to-end pipeline:
 - [NASA Image and Video Library](https://images.nasa.gov/) is useful for technology-themed demos, especially space, rocket, and mission explainer videos. Check each asset's metadata and license before using it.
 - [Internet Archive Movies](https://archive.org/details/movies) can provide public-domain or Creative Commons newsreels, documentaries, and speech clips for realistic voice testing. Check the license on each item before download.
 
-The browser `Demo sample media` panel and `scripts/demo/demo-sample-media-catalog.sh` expose the same list with attribution, configured local sample availability, upload duration limit, and safe demo commands. The catalog is read-only: it does not download media, edit `.env`, upload files, start Docker, or call OpenAI.
+The browser `Demo sample media` panel and `scripts/demo/demo-sample-media-catalog.sh` expose the same list with attribution, configured local sample availability, upload duration limit, and safe demo commands. The adjacent browser `Demo run launcher` panel and `scripts/demo/demo-run-launcher.sh` connect that sample choice to the recommended `tears-showcase` full-demo command, readiness gates, and expected evidence files. Both surfaces are read-only: they do not download media, edit `.env`, upload files, start Docker, or call OpenAI.
 
 ## Current Foundation Commands
 
@@ -141,11 +141,12 @@ docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/upload-readiness.sh
 scripts/demo/demo-sample-media-catalog.sh
+scripts/demo/demo-run-launcher.sh
 scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
 
-The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, owner-session login/logout, optional demo-token header behavior, and configured sample video paths before any media upload or paid provider call. Use the sample media catalog when you need to choose a public sample or verify whether `LINGUAFRAME_TEARS_SAMPLE_PATH` / `LINGUAFRAME_DEMO_SAMPLE_PATH` is configured without printing full local paths.
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, owner-session login/logout, optional demo-token header behavior, and configured sample video paths before any media upload or paid provider call. Use the sample media catalog when you need to choose a public sample or verify whether `LINGUAFRAME_TEARS_SAMPLE_PATH` / `LINGUAFRAME_DEMO_SAMPLE_PATH` is configured without printing full local paths. Use the demo run launcher when you need the next full-demo command and the evidence files expected after a successful run.
 
 Owner quota preflight is available before uploads:
 
@@ -237,7 +238,7 @@ LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-run-snapshot.sh
 
 The script writes `demo-run-snapshot.json` and `demo-run-snapshot.zip` under `/tmp/linguaframe-demo/demo-run-snapshot/` by default. Use this snapshot when a reviewer needs one folder with `index.html`, Markdown notes, JSON manifests, and live safe links; use the share sheet for a one-page note, the evidence bundle for compact proof files, the demo run package for detailed safe evidence, and the handoff package for reviewed deliverables.
 
-The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary plus `Worker topology`: active role, listener queue, job exchange, default/FFmpeg/OpenAI routes, owned stage groups, and safe startup commands. Use this before split-worker demos to confirm FFmpeg workers listen to `linguaframe.localization.jobs` and OpenAI workers listen to `linguaframe.localization.openai.jobs`; this is observability only and does not change RabbitMQ routing. The `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
+The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The upload workspace includes `Demo run launcher`, backed by `GET /api/operator/demo-run-launcher`, for the recommended sample/profile command, readiness gates, and expected post-run evidence paths before a full Tears run. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary plus `Worker topology`: active role, listener queue, job exchange, default/FFmpeg/OpenAI routes, owned stage groups, and safe startup commands. Use this before split-worker demos to confirm FFmpeg workers listen to `linguaframe.localization.jobs` and OpenAI workers listen to `linguaframe.localization.openai.jobs`; this is observability only and does not change RabbitMQ routing. The `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
 The upload form also shows an `Upload readiness` panel from `GET /api/media/uploads/readiness`. It combines owner-session access, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warning checks before any media upload. `BLOCKED` disables upload while `Validate file` remains available; `ATTENTION` allows upload but asks the owner to review provider or readiness warnings. The adjacent `Owner quota` panel from `GET /api/media/uploads/preflight` still shows configured owner id, active/queued job counts, same-day estimated cost, limits, and safe blocking reasons.
 

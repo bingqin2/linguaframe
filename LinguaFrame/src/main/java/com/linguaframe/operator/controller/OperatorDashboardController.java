@@ -1,11 +1,13 @@
 package com.linguaframe.operator.controller;
 
+import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
@@ -32,6 +34,7 @@ public class OperatorDashboardController {
     private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
     private final PrivateDemoRunArchiveService runArchiveService;
     private final DemoSampleMediaCatalogService sampleMediaCatalogService;
+    private final DemoRunLauncherService demoRunLauncherService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -39,7 +42,8 @@ public class OperatorDashboardController {
             PrivateDemoLaunchRehearsalService launchRehearsalService,
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
             PrivateDemoRunArchiveService runArchiveService,
-            DemoSampleMediaCatalogService sampleMediaCatalogService
+            DemoSampleMediaCatalogService sampleMediaCatalogService,
+            DemoRunLauncherService demoRunLauncherService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -47,6 +51,7 @@ public class OperatorDashboardController {
         this.evidenceGalleryService = evidenceGalleryService;
         this.runArchiveService = runArchiveService;
         this.sampleMediaCatalogService = sampleMediaCatalogService;
+        this.demoRunLauncherService = demoRunLauncherService;
     }
 
     @GetMapping("/dashboard")
@@ -109,5 +114,15 @@ public class OperatorDashboardController {
     })
     public DemoSampleMediaCatalogVo demoSampleMediaCatalog() {
         return sampleMediaCatalogService.catalog();
+    }
+
+    @GetMapping("/demo-run-launcher")
+    @Operation(summary = "Get demo run launcher")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run launcher was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoRunLauncherVo demoRunLauncher() {
+        return demoRunLauncherService.launcher();
     }
 }

@@ -657,3 +657,11 @@ Decision: Expose demo sample media as a read-only catalog instead of auto-downlo
 Reason: The demo needs repeatable public media choices with attribution and local availability checks, but the app should not mutate local files, fetch remote media, upload samples, or reveal the owner's filesystem.
 
 Impact: `/api/operator/demo-sample-media-catalog`, the browser `Demo sample media` panel, and `scripts/demo/demo-sample-media-catalog.sh` show sample recommendations, source/license guidance, upload duration limits, safe commands, and sanitized configured-path status. The catalog reports basenames, extensions, sizes, and status only; it does not expose full local paths or perform downloads.
+
+## 2026-06-29
+
+Decision: Add a read-only demo run launcher instead of auto-running the full public sample demo.
+
+Reason: The project needs a repeatable bridge from sample selection to full-demo execution, but starting Docker, uploading media, or calling OpenAI from an operator metadata endpoint would hide cost and state changes.
+
+Impact: `/api/operator/demo-run-launcher`, the browser `Demo run launcher` panel, and `scripts/demo/demo-run-launcher.sh` show the recommended sample/profile command, readiness gates, and expected evidence files. The launcher remains metadata-only and does not upload media, start Docker, edit `.env`, call OpenAI, or expose full local paths.

@@ -18,6 +18,7 @@ import {
   listPromptTemplates,
   getOperatorDashboard,
   getDemoSampleMediaCatalog,
+  getDemoRunLauncher,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
   getPrivateDemoLaunchRehearsal,
@@ -938,6 +939,33 @@ describe('linguaframeApi', () => {
     expect(catalog.recommendedSampleId).toBe('tears-of-steel-casting');
     expect(catalog.configuredPaths[0]?.fullPathExposed).toBe(false);
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-sample-media-catalog', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches demo run launcher with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-29T08:05:00Z',
+        overallStatus: 'READY',
+        recommendedSampleId: 'tears-of-steel-casting',
+        recommendedProfileId: 'tears-showcase',
+        recommendedNextCommand: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        gates: [],
+        commands: [],
+        expectedEvidence: [],
+        notesMarkdown: '# Launcher'
+      })
+    );
+
+    const launcher = await getDemoRunLauncher();
+
+    expect(launcher.recommendedProfileId).toBe('tears-showcase');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-run-launcher', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
