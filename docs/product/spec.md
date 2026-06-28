@@ -87,6 +87,7 @@ Hosted usage requires:
 - The current private demo gate is owner-only access control, not user authentication: when `linguaframe.demo.access-token` is non-empty, `/api/**` requires the matching demo token while readiness, OpenAPI, Swagger, and frontend assets remain public.
 - The React demo stores the entered token in browser local storage for fetch requests and a same-site cookie for EventSource progress, artifact downloads, and media previews.
 - The current local account bridge can issue short-lived HMAC JWT bearer tokens for one configured owner account when `linguaframe.auth.*` is enabled and fully configured.
+- Bearer-token and demo-token access must resolve to an owner workspace before returning owner-facing jobs, media metadata/downloads, artifacts, diagnostics, evidence, and operator dashboard recent rows. Cross-owner reads return safe not-found behavior without revealing the other owner.
 - The production-shaped target should support real user authentication beyond the local account bridge.
 - Uploaded videos and generated artifacts must be scoped to the owning user.
 - Admin or operator-only endpoints should not expose secrets.

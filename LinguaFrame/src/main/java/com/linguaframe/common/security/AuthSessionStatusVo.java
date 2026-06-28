@@ -6,6 +6,7 @@ public record AuthSessionStatusVo(
         boolean authenticated,
         String ownerId,
         String username,
+        String ownershipScope,
         String authMode
 ) {
 }

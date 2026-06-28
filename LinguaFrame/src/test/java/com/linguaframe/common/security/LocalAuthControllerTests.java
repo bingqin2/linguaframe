@@ -40,6 +40,7 @@ class LocalAuthControllerTests {
                     .andExpect(jsonPath("$.configured").value(false))
                     .andExpect(jsonPath("$.authenticated").value(false))
                     .andExpect(jsonPath("$.authMode").value("LOCAL_AUTH_DISABLED"))
+                    .andExpect(jsonPath("$.ownershipScope").value("CONFIGURED_DEMO_OWNER"))
                     .andExpect(jsonPath("$.ownerId").value("demo-owner"))
                     .andExpect(jsonPath("$.username").value("owner"));
         }
@@ -83,6 +84,7 @@ class LocalAuthControllerTests {
                     .andExpect(jsonPath("$.configured").value(true))
                     .andExpect(jsonPath("$.authenticated").value(false))
                     .andExpect(jsonPath("$.authMode").value("LOCAL_AUTH_REQUIRED"))
+                    .andExpect(jsonPath("$.ownershipScope").value("CONFIGURED_DEMO_OWNER"))
                     .andExpect(jsonPath("$.ownerId").value("owner-alpha"))
                     .andExpect(jsonPath("$.username").value("owner"))
                     .andExpect(content().string(not(containsString(SECRET))))
@@ -115,6 +117,7 @@ class LocalAuthControllerTests {
                     .andExpect(jsonPath("$.session.configured").value(true))
                     .andExpect(jsonPath("$.session.authenticated").value(true))
                     .andExpect(jsonPath("$.session.authMode").value("LOCAL_AUTH_ACTIVE"))
+                    .andExpect(jsonPath("$.session.ownershipScope").value("LOCAL_AUTH_OWNER"))
                     .andExpect(jsonPath("$.session.ownerId").value("owner-alpha"))
                     .andExpect(jsonPath("$.session.username").value("owner"))
                     .andExpect(content().string(not(containsString(SECRET))))
@@ -128,7 +131,8 @@ class LocalAuthControllerTests {
                     .andExpect(jsonPath("$.enabled").value(true))
                     .andExpect(jsonPath("$.configured").value(true))
                     .andExpect(jsonPath("$.authenticated").value(false))
-                    .andExpect(jsonPath("$.authMode").value("LOCAL_AUTH_REQUIRED"));
+                    .andExpect(jsonPath("$.authMode").value("LOCAL_AUTH_REQUIRED"))
+                    .andExpect(jsonPath("$.ownershipScope").value("CONFIGURED_DEMO_OWNER"));
         }
     }
 }

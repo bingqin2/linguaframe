@@ -31,23 +31,31 @@ public class OperatorDashboardRepository {
     }
 
     public OperatorDashboardVo fetchDashboard() {
+        return fetchDashboard("demo-owner", "CONFIGURED_DEMO_OWNER");
+    }
+
+    public OperatorDashboardVo fetchDashboard(String ownerId, String ownershipScope) {
         return new OperatorDashboardVo(
-                statusCounts(),
-                recentFailures(),
-                modelCallSummary(),
-                cacheSummary(),
-                stageTimings()
+                ownerId,
+                ownershipScope,
+                statusCounts(ownerId),
+                recentFailures(ownerId),
+                modelCallSummary(ownerId),
+                cacheSummary(ownerId),
+                stageTimings(ownerId)
         );
     }
 
-    private List<OperatorJobStatusCountVo> statusCounts() {
+    private List<OperatorJobStatusCountVo> statusCounts(String ownerId) {
         Map<LocalizationJobStatus, Long> counts = new EnumMap<>(LocalizationJobStatus.class);
         Arrays.stream(LocalizationJobStatus.values()).forEach(status -> counts.put(status, 0L));
         jdbcClient.sql("""
                         SELECT status, COUNT(*) AS status_count
                         FROM localization_jobs
+                        WHERE owner_id = :ownerId
                         GROUP BY status
                         """)
+                .param("ownerId", ownerId)
                 .query((rs, rowNum) -> counts.put(
                         LocalizationJobStatus.valueOf(rs.getString("status")),
                         rs.getLong("status_count")
@@ -58,7 +66,7 @@ public class OperatorDashboardRepository {
                 .toList();
     }
 
-    private List<OperatorRecentFailureVo> recentFailures() {
+    private List<OperatorRecentFailureVo> recentFailures(String ownerId) {
         return jdbcClient.sql("""
                         SELECT
                             jobs.id AS job_id,
@@ -71,24 +79,29 @@ public class OperatorDashboardRepository {
                         JOIN videos ON videos.id = jobs.video_id
                         WHERE jobs.status = :failedStatus
                           AND jobs.failed_at IS NOT NULL
+                          AND jobs.owner_id = :ownerId
                         ORDER BY jobs.failed_at DESC, jobs.id DESC
                         LIMIT 5
                         """)
                 .param("failedStatus", LocalizationJobStatus.FAILED.name())
+                .param("ownerId", ownerId)
                 .query(this::mapFailure)
                 .list();
     }
 
-    private OperatorModelCallSummaryVo modelCallSummary() {
+    private OperatorModelCallSummaryVo modelCallSummary(String ownerId) {
         return jdbcClient.sql("""
                         SELECT
                             COUNT(*) AS model_call_count,
-                            COALESCE(SUM(CASE WHEN status = :failedStatus THEN 1 ELSE 0 END), 0) AS failed_model_call_count,
+                            COALESCE(SUM(CASE WHEN model_call_records.status = :failedStatus THEN 1 ELSE 0 END), 0) AS failed_model_call_count,
                             COALESCE(SUM(latency_ms), 0) AS total_latency_ms,
                             COALESCE(SUM(estimated_cost_usd), 0) AS estimated_cost_usd
                         FROM model_call_records
+                        JOIN localization_jobs jobs ON jobs.id = model_call_records.job_id
+                        WHERE jobs.owner_id = :ownerId
                         """)
                 .param("failedStatus", ModelCallStatus.FAILED.name())
+                .param("ownerId", ownerId)
                 .query((rs, rowNum) -> new OperatorModelCallSummaryVo(
                         rs.getLong("model_call_count"),
                         rs.getLong("failed_model_call_count"),
@@ -98,27 +111,36 @@ public class OperatorDashboardRepository {
                 .single();
     }
 
-    private OperatorCacheSummaryVo cacheSummary() {
+    private OperatorCacheSummaryVo cacheSummary(String ownerId) {
         Long artifactCacheHits = jdbcClient.sql("""
                         SELECT COUNT(*)
-                        FROM job_artifacts
+                        FROM job_artifacts artifacts
+                        JOIN localization_jobs jobs ON jobs.id = artifacts.job_id
                         WHERE cache_hit = TRUE
+                          AND jobs.owner_id = :ownerId
                         """)
+                .param("ownerId", ownerId)
                 .query(Long.class)
                 .single();
         Long generatedArtifacts = jdbcClient.sql("""
                         SELECT COUNT(*)
-                        FROM job_artifacts
+                        FROM job_artifacts artifacts
+                        JOIN localization_jobs jobs ON jobs.id = artifacts.job_id
                         WHERE cache_hit = FALSE
+                          AND jobs.owner_id = :ownerId
                         """)
+                .param("ownerId", ownerId)
                 .query(Long.class)
                 .single();
         Long providerCacheHits = jdbcClient.sql("""
                         SELECT COUNT(*)
-                        FROM job_timeline_events
-                        WHERE status = :cacheHitStatus
+                        FROM job_timeline_events events
+                        JOIN localization_jobs jobs ON jobs.id = events.job_id
+                        WHERE events.status = :cacheHitStatus
+                          AND jobs.owner_id = :ownerId
                         """)
                 .param("cacheHitStatus", JobTimelineEventStatus.CACHE_HIT.name())
+                .param("ownerId", ownerId)
                 .query(Long.class)
                 .single();
         return new OperatorCacheSummaryVo(
@@ -128,16 +150,18 @@ public class OperatorDashboardRepository {
         );
     }
 
-    private List<OperatorStageTimingVo> stageTimings() {
+    private List<OperatorStageTimingVo> stageTimings(String ownerId) {
         return jdbcClient.sql("""
                         WITH latest_stage_events AS (
                             SELECT
-                                stage,
-                                duration_ms,
-                                ROW_NUMBER() OVER (PARTITION BY stage ORDER BY occurred_at DESC, id DESC) AS row_num
-                            FROM job_timeline_events
-                            WHERE duration_ms IS NOT NULL
-                              AND status IN (:succeededStatus, :failedStatus)
+                                events.stage,
+                                events.duration_ms,
+                                ROW_NUMBER() OVER (PARTITION BY events.stage ORDER BY events.occurred_at DESC, events.id DESC) AS row_num
+                            FROM job_timeline_events events
+                            JOIN localization_jobs jobs ON jobs.id = events.job_id
+                            WHERE events.duration_ms IS NOT NULL
+                              AND events.status IN (:succeededStatus, :failedStatus)
+                              AND jobs.owner_id = :ownerId
                         )
                         SELECT
                             events.stage,
@@ -147,17 +171,20 @@ public class OperatorDashboardRepository {
                             COALESCE(MAX(events.duration_ms), 0) AS max_duration_ms,
                             COALESCE(MAX(CASE WHEN latest.row_num = 1 THEN latest.duration_ms ELSE NULL END), 0) AS latest_duration_ms
                         FROM job_timeline_events events
+                        JOIN localization_jobs jobs ON jobs.id = events.job_id
                         LEFT JOIN latest_stage_events latest
                             ON latest.stage = events.stage
                            AND latest.row_num = 1
                         WHERE events.duration_ms IS NOT NULL
                           AND events.status IN (:succeededStatus, :failedStatus)
+                          AND jobs.owner_id = :ownerId
                         GROUP BY events.stage
                         ORDER BY max_duration_ms DESC, events.stage ASC
                         LIMIT 6
                         """)
                 .param("succeededStatus", JobTimelineEventStatus.SUCCEEDED.name())
                 .param("failedStatus", JobTimelineEventStatus.FAILED.name())
+                .param("ownerId", ownerId)
                 .query((rs, rowNum) -> new OperatorStageTimingVo(
                         LocalizationJobStage.valueOf(rs.getString("stage")),
                         rs.getLong("completed_event_count"),

@@ -81,6 +81,7 @@ Stage 2 goals:
 - Support controlled uploads from the project owner.
 - Let the owner start and end a browser session with the configured private demo token, while keeping Swagger, curl, and scripts compatible with the demo access header.
 - Persist a configured demo owner id on uploaded videos and localization jobs, and scope owner-facing media/job APIs to that owner before public authentication exists.
+- Expose a configured local owner-account bearer bridge that resolves to the same owner workspace for job history, job detail, media, artifacts, diagnostics, evidence, upload readiness, and operator dashboard metadata.
 - Enforce a private-demo owner quota preflight for active jobs, queued jobs, and same-day estimated spend before new uploads create storage objects, job rows, dispatch events, FFmpeg work, or provider calls.
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
@@ -166,6 +167,7 @@ The backend should provide:
 
 - JWT authentication or a local demo-user mode.
 - A local owner-account JWT bridge that coexists with the private-demo token while public authentication is still out of scope.
+- Owner workspace access boundaries for local bearer auth and demo-token access across media, jobs, artifacts, evidence, upload readiness, and operator dashboard metadata.
 - Video upload APIs.
 - Object storage abstraction.
 - MySQL-backed media, job, transcript, artifact, usage, and failure records.

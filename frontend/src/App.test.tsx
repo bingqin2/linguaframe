@@ -788,7 +788,8 @@ describe('App', () => {
         enabled: true,
         configured: true,
         authenticated: false,
-        authMode: 'LOCAL_AUTH_REQUIRED'
+        authMode: 'LOCAL_AUTH_REQUIRED',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
       })
     );
     const loginAuthSession = vi.spyOn(linguaFrameApi, 'loginAuthSession').mockResolvedValue(
@@ -797,7 +798,10 @@ describe('App', () => {
           enabled: true,
           configured: true,
           authenticated: true,
-          authMode: 'LOCAL_AUTH_ACTIVE'
+          ownerId: 'owner-alpha',
+          username: 'owner',
+          authMode: 'LOCAL_AUTH_ACTIVE',
+          ownershipScope: 'LOCAL_AUTH_OWNER'
         })
       })
     );
@@ -806,7 +810,8 @@ describe('App', () => {
         enabled: true,
         configured: true,
         authenticated: false,
-        authMode: 'LOCAL_AUTH_REQUIRED'
+        authMode: 'LOCAL_AUTH_REQUIRED',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
       })
     );
 
@@ -822,6 +827,9 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getAllByText('Local account active').length).toBeGreaterThan(0);
     });
+    expect(screen.getByText('Account: owner')).toBeInTheDocument();
+    expect(screen.getByText('Auth owner: owner-alpha')).toBeInTheDocument();
+    expect(screen.getByText('Auth scope: LOCAL_AUTH_OWNER')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
 
@@ -829,6 +837,87 @@ describe('App', () => {
     expect(screen.getByLabelText(/account username/i)).toHaveValue('owner');
     expect(screen.getByLabelText(/account password/i)).toHaveValue('');
     expect(getAuthSession).toHaveBeenCalled();
+  });
+
+  test('refreshes owner workspace history after local account login and logout', async () => {
+    vi.spyOn(linguaFrameApi, 'getAuthSession').mockResolvedValue(
+      authSessionStatusFixture({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        authMode: 'LOCAL_AUTH_REQUIRED',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
+      })
+    );
+    const listJobs = vi.spyOn(linguaFrameApi, 'listJobs')
+      .mockResolvedValueOnce(jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'demo-owner-job',
+            videoId: 'demo-owner-video',
+            filename: 'demo-owner.mp4'
+          })
+        ],
+        total: 1
+      }))
+      .mockResolvedValueOnce(jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'local-owner-job',
+            videoId: 'local-owner-video',
+            filename: 'local-owner.mp4'
+          })
+        ],
+        total: 1
+      }))
+      .mockResolvedValueOnce(jobListFixture({
+        jobs: [
+          jobSummaryFixture({
+            jobId: 'demo-owner-job',
+            videoId: 'demo-owner-video',
+            filename: 'demo-owner.mp4'
+          })
+        ],
+        total: 1
+      }));
+    vi.spyOn(linguaFrameApi, 'loginAuthSession').mockResolvedValue(
+      authLoginResponseFixture({
+        session: authSessionStatusFixture({
+          enabled: true,
+          configured: true,
+          authenticated: true,
+          ownerId: 'owner-alpha',
+          username: 'owner',
+          authMode: 'LOCAL_AUTH_ACTIVE',
+          ownershipScope: 'LOCAL_AUTH_OWNER'
+        })
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'logoutAuthSession').mockResolvedValue(
+      authSessionStatusFixture({
+        enabled: true,
+        configured: true,
+        authenticated: false,
+        authMode: 'LOCAL_AUTH_REQUIRED',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
+      })
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText('demo-owner.mp4')).toBeInTheDocument();
+    await userEvent.clear(screen.getByLabelText(/account username/i));
+    await userEvent.type(screen.getByLabelText(/account username/i), 'owner');
+    await userEvent.type(screen.getByLabelText(/account password/i), 'owner-password');
+    await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
+
+    expect(await screen.findByText('local-owner.mp4')).toBeInTheDocument();
+    expect(screen.queryByText('demo-owner.mp4')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /sign out/i }));
+
+    expect(await screen.findByText('demo-owner.mp4')).toBeInTheDocument();
+    expect(listJobs).toHaveBeenCalledTimes(3);
   });
 
   test('shows local account login failures without blocking upload controls', async () => {
@@ -3131,6 +3220,8 @@ function jobListFixture(overrides: Partial<LocalizationJobList> = {}): Localizat
 
 function operatorDashboardFixture(overrides: Partial<OperatorDashboard> = {}): OperatorDashboard {
   return {
+    ownerId: 'demo-owner',
+    ownershipScope: 'CONFIGURED_DEMO_OWNER',
     statusCounts: [
       { status: 'QUEUED', count: 1 },
       { status: 'RETRYING', count: 0 },
@@ -3610,6 +3701,7 @@ function authSessionStatusFixture(overrides: Partial<AuthSessionStatus> = {}): A
     authenticated: false,
     ownerId: 'demo-owner',
     username: 'owner',
+    ownershipScope: 'CONFIGURED_DEMO_OWNER',
     authMode: 'LOCAL_AUTH_DISABLED',
     ...overrides
   };

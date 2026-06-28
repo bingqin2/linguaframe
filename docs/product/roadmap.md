@@ -311,7 +311,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a local owner-account JWT bridge, a configured demo owner boundary persisted on videos and localization jobs, owner quota preflight before upload creation, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, a completed-run evidence gallery, and a private demo run archive with browser and terminal metadata-only reports.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a local owner-account JWT bridge with owner workspace boundaries, a configured demo owner boundary persisted on videos and localization jobs, owner quota preflight before upload creation, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, a completed-run evidence gallery, and a private demo run archive with browser and terminal metadata-only reports.
 
 Build:
 
@@ -332,6 +332,7 @@ Build:
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
 - Owner-only private URL access gate. Status: implemented with optional demo token, React owner-session login/logout, and header-token compatibility for Swagger, curl, and scripts.
 - Local account JWT bridge. Status: implemented with configured owner credentials, short-lived HMAC bearer tokens, React account sign-in/sign-out, Swagger `BearerAuth`, and terminal `auth-smoke.sh` validation while preserving demo-token compatibility.
+- Authenticated owner access workspace. Status: implemented with bearer/demo-token owner scoping for job history/detail, media metadata/source downloads, artifact list/download/archive, diagnostics/evidence, operator dashboard owner metadata, React workspace scope display/history refresh, and terminal `owner-workspace-smoke.sh`.
 - Demo owner data boundary. Status: implemented with `LINGUAFRAME_DEMO_OWNER_ID`, persisted `owner_id` columns for videos/jobs, owner-scoped upload/job/media reads, browser-visible owner metadata, and terminal-safe owner summary output.
 - Owner quota and budget preflight. Status: implemented with configurable active-job, queued-job, and owner daily-budget limits; upload rejection before storage/database/dispatch; browser owner quota panel; runtime readiness metadata; env templates; and terminal `owner-quota-preflight.sh` evidence.
 

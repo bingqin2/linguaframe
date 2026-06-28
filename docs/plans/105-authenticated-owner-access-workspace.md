@@ -47,22 +47,20 @@
 - `GET /api/media/{videoId}` and source-media metadata/download routes use the current owner id and return safe 404 across owners.
 - `/api/auth/session` includes sanitized `ownershipScope` so browser and scripts can distinguish `LOCAL_AUTH_OWNER` from `DEMO_OWNER`.
 
-- [ ] Write failing MockMvc tests for bearer-auth job list filtering, bearer-auth job detail 404 across owners, demo-token compatibility, and session `ownershipScope`.
-- [ ] Write failing media controller tests for bearer-auth source metadata/download ownership and cross-owner safe 404.
-- [ ] Route job and media read services through current owner identity everywhere owner-facing reads occur.
-- [ ] Extend auth session status with `ownershipScope` without adding secrets or token fields.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,MediaUploadControllerTests,LocalAuthControllerTests,LocalAuthInterceptorTests test`.
+- [x] Write failing MockMvc tests for bearer-auth job list filtering, bearer-auth job detail 404 across owners, demo-token compatibility, and session `ownershipScope`.
+- [x] Write failing media controller tests for bearer-auth source metadata/download ownership and cross-owner safe 404.
+- [x] Route job and media read services through current owner identity everywhere owner-facing reads occur.
+- [x] Extend auth session status with `ownershipScope` without adding secrets or token fields.
+- [x] Run `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests,AuthenticatedOwnerMediaAccessTests,LocalAuthControllerTests test`.
 
 ## Task 2: Artifact, Preview, And Report Access Boundaries
 
 **Files:**
-- Modify: `LinguaFrame/src/main/java/com/linguaframe/job/controller/JobArtifactController.java`
+- Modify: `LinguaFrame/src/main/java/com/linguaframe/job/controller/LocalizationJobController.java`
 - Modify: `LinguaFrame/src/main/java/com/linguaframe/job/service/JobArtifactService.java`
 - Modify: `LinguaFrame/src/main/java/com/linguaframe/job/service/impl/JobArtifactServiceImpl.java`
-- Modify: `LinguaFrame/src/main/java/com/linguaframe/job/controller/JobDiagnosticsController.java`
 - Modify: `LinguaFrame/src/main/java/com/linguaframe/operator/controller/OperatorDashboardController.java`
-- Modify: `LinguaFrame/src/test/java/com/linguaframe/job/controller/JobArtifactControllerTests.java`
-- Modify: `LinguaFrame/src/test/java/com/linguaframe/job/controller/JobDiagnosticsControllerTests.java`
+- Create: `LinguaFrame/src/test/java/com/linguaframe/job/controller/AuthenticatedOwnerJobAccessTests.java`
 - Modify: `LinguaFrame/src/test/java/com/linguaframe/operator/controller/OperatorDashboardControllerTests.java`
 
 **Interfaces:**
@@ -70,11 +68,11 @@
 - Operator dashboard remains private-demo/operator scoped but reports the active owner identity in metadata and does not leak cross-owner job details.
 - Safe 404 is used for cross-owner job/artifact/report access; no response says “belongs to another owner”.
 
-- [ ] Write failing tests proving artifact list/download/preview routes return 404 for a valid job id owned by another owner.
-- [ ] Write failing diagnostics/report tests proving cross-owner job evidence routes are safe 404.
-- [ ] Write failing operator dashboard tests proving recent job rows are scoped to current owner when owner identity is authenticated.
-- [ ] Add shared owner-check helper logic in services rather than duplicating controller checks.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=JobArtifactControllerTests,JobDiagnosticsControllerTests,OperatorDashboardControllerTests test`.
+- [x] Write failing tests proving artifact list/download/archive routes return 404 for a valid job id owned by another owner.
+- [x] Write failing diagnostics/report tests proving cross-owner job evidence routes are safe 404.
+- [x] Write failing operator dashboard tests proving recent job rows are scoped to current owner when owner identity is authenticated.
+- [x] Add shared owner-check helper logic in services rather than duplicating controller checks.
+- [x] Run `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests,AuthenticatedOwnerOperatorDashboardTests,OperatorDashboardControllerTests test`.
 
 ## Task 3: Browser Owner Workspace Visibility
 
@@ -92,10 +90,10 @@
 - Job history refreshes after login/logout and uses the bearer header automatically.
 - Cross-owner 404s are rendered as a neutral “not found in this workspace” message, not as a token/secret/config hint.
 
-- [ ] Write failing API type/header tests for `ownershipScope` and bearer-auth job history refresh.
-- [ ] Write failing App tests for login refreshing job history, workspace mode display, and neutral not-found copy.
-- [ ] Implement owner workspace display and refresh flow without duplicating demo-token UI state.
-- [ ] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "owner workspace"`.
+- [x] Write failing API type/header tests for `ownershipScope` and bearer-auth job history refresh.
+- [x] Write failing App tests for login refreshing job history and workspace mode display.
+- [x] Implement owner workspace display and refresh flow without duplicating demo-token UI state.
+- [x] Run `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "local account|owner workspace|bearer token"`.
 
 ## Task 4: Terminal Owner Workspace Smoke
 
@@ -117,11 +115,11 @@
 - The script exits 0 when local auth is disabled or unconfigured and clearly reports it skipped bearer validation.
 - The script never prints credentials, JWTs, demo tokens, object keys, local media paths, or transcript/subtitle text.
 
-- [ ] Write failing shell tests for owner workspace summary redaction, bearer-header request shape, disabled-auth skip behavior, and metadata-only output.
-- [ ] Implement shared helper functions and `owner-workspace-smoke.sh`.
-- [ ] Update README, smoke checklist, and private-demo docs with the owner workspace smoke flow.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/owner-workspace-smoke.sh`.
+- [x] Write failing shell tests for owner workspace summary redaction, bearer-header request shape, disabled-auth skip behavior, and metadata-only output.
+- [x] Implement shared helper functions and `owner-workspace-smoke.sh`.
+- [x] Update README, smoke checklist, and private-demo docs with the owner workspace smoke flow.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/owner-workspace-smoke.sh`.
 
 ## Task 5: Full Validation, Documentation, And Merge
 
@@ -138,10 +136,10 @@
 - Record validation evidence and any red/green failures in the execution log.
 - Merge the verified feature branch back to `main`.
 
-- [ ] Update product docs, decisions, execution log, and this plan.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `cd frontend && npm test -- --run`.
-- [ ] Run `cd frontend && npm run build`.
-- [ ] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
-- [ ] Run `git diff --check`.
+- [x] Update product docs, decisions, execution log, and this plan.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `cd frontend && npm test -- --run`.
+- [x] Run `cd frontend && npm run build`.
+- [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit on the feature branch, merge back to `main`, run post-merge focused validation, and record the merge in the execution log.

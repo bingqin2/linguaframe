@@ -160,6 +160,14 @@ LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/upload-readiness.sh
 
 It fetches `GET /api/media/uploads/readiness`, writes `/tmp/linguaframe-demo/upload-readiness.json`, prints metadata-only `uploadReadiness*` lines, and exits non-zero when backend readiness is `BLOCKED` unless `LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true`. It also downloads `GET /api/runtime/dependencies` to `/tmp/linguaframe-demo/runtime-dependencies.json` and prints `workerTopology*` lines for the active role, listener queue, FFmpeg route, OpenAI route, and safe startup commands. It checks the runtime contract, live dependencies, owner quota, demo profile, paid-provider warning state, and worker topology without uploading media, persisting jobs, or calling OpenAI.
 
+Owner workspace bearer smoke verifies the local-account owner boundary without printing credentials:
+
+```bash
+scripts/demo/owner-workspace-smoke.sh
+```
+
+When local auth is configured, set `LINGUAFRAME_AUTH_PASSWORD` in an ignored env file or shell first. The script logs in, calls job history, upload readiness, and runtime dependencies with `Authorization: Bearer ...`, and prints only `ownerWorkspaceAuthMode`, `ownerWorkspaceOwnerId`, `ownerWorkspaceOwnershipScope`, `ownerWorkspaceJobCount`, and `ownerWorkspaceUploadReadiness`. If local auth is disabled or unconfigured, it exits 0 and reports that bearer validation was skipped.
+
 Private server demo preparation uses a separate Compose overlay so local Docker behavior stays unchanged:
 
 ```bash
@@ -311,7 +319,7 @@ LINGUAFRAME_AUTH_JWT_SECRET=replace-with-at-least-32-random-chars
 scripts/demo/auth-smoke.sh
 ```
 
-The browser header then shows a `Local account` sign-in form and sends `Authorization: Bearer ...` for API calls. Existing demo-token header and cookie flows still work. This is not public registration, password reset, roles, billing, or multi-user account management.
+The browser header then shows a `Local account` sign-in form and sends `Authorization: Bearer ...` for API calls. Existing demo-token header and cookie flows still work. Run `scripts/demo/owner-workspace-smoke.sh` after enabling local auth to verify bearer-auth job history and readiness resolve to the active owner workspace. This is not public registration, password reset, roles, billing, or multi-user account management.
 
 ## Runtime Configuration
 

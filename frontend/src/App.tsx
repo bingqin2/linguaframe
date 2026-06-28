@@ -1271,6 +1271,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setAuthSessionStatus(response.session);
       setAuthPassword('');
       setAuthStatusMessage(response.session.authenticated ? 'Local account active' : 'Local account required');
+      void loadHistory(historyStatusFilter);
       void loadRuntimeDependencies();
       void loadOwnerQuotaPreflight();
       void loadDemoUploadReadiness();
@@ -1289,6 +1290,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setAuthSessionStatus(status);
       setAuthPassword('');
       setAuthStatusMessage('Local account signed out.');
+      void loadHistory(historyStatusFilter);
       void loadRuntimeDependencies();
       void loadOwnerQuotaPreflight();
       void loadDemoUploadReadiness();
@@ -1344,6 +1346,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               <span className="owner-boundary">
                 <span>Account: {authSessionStatus.username}</span>
                 <span>Auth owner: {authSessionStatus.ownerId}</span>
+                <span>Auth scope: {authSessionStatus.ownershipScope}</span>
               </span>
             ) : null}
           </div>
