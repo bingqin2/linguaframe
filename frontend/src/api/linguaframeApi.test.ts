@@ -24,6 +24,7 @@ import {
   getDemoSession,
   getDeliveryManifest,
   getJobComparison,
+  getDemoRunMatrix,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -1128,6 +1129,61 @@ describe('linguaframeApi', () => {
     expect(jobComparisonMarkdownDownloadUrl('job base/slash', 'job compare/slash')).toBe(
       '/api/jobs/job%20base%2Fslash/comparison/job%20compare%2Fslash/markdown/download'
     );
+  });
+
+  test('gets demo run matrix with encoded id and limit', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        anchorJobId: 'job matrix/slash',
+        videoId: 'video-matrix',
+        generatedAt: '2026-06-28T12:00:00Z',
+        recommendedBaselineJobId: 'job-baseline',
+        bestQualityJobId: 'job-showcase',
+        lowestCostJobId: 'job-baseline',
+        jobs: [
+          {
+            jobId: 'job-showcase',
+            videoId: 'video-matrix',
+            filename: 'tears.mp4',
+            targetLanguage: 'zh-CN',
+            demoProfileId: 'tears-showcase',
+            ttsVoice: null,
+            translationStyle: 'FORMAL',
+            subtitleStylePreset: 'HIGH_CONTRAST',
+            translationGlossaryEntryCount: 3,
+            translationGlossaryHash: 'abc123',
+            subtitlePolishingMode: 'BALANCED',
+            status: 'COMPLETED',
+            createdAt: '2026-06-28T11:00:00Z',
+            completedAt: '2026-06-28T11:03:00Z',
+            failureStage: null,
+            failureReason: null,
+            retryCount: 0,
+            qualityScore: 91,
+            qualityVerdict: 'GOOD',
+            modelCallCount: 2,
+            failedModelCallCount: 0,
+            estimatedCostUsd: 0.000141,
+            artifactCacheHitCount: 1,
+            generatedArtifactCount: 4,
+            providerCacheHitCount: 1,
+            handoffReady: true
+          }
+        ]
+      })
+    );
+
+    const result = await getDemoRunMatrix('job matrix/slash', 6);
+
+    expect(result.jobs[0].demoProfileId).toBe('tears-showcase');
+    expect(result.bestQualityJobId).toBe('job-showcase');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20matrix%2Fslash/demo-run-matrix?limit=6', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
   });
 
   test('lists jobs with default paging params', async () => {

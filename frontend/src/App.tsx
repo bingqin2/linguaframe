@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   DeliveryManifest,
+  DemoRunMatrix,
   FailureTriage,
   JobArtifact,
   JobComparison,
@@ -358,6 +359,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoComparison, setDemoComparison] = useState<JobComparison | null>(null);
   const [demoComparisonError, setDemoComparisonError] = useState<string | null>(null);
   const [isLoadingDemoComparison, setIsLoadingDemoComparison] = useState(false);
+  const [demoRunMatrix, setDemoRunMatrix] = useState<DemoRunMatrix | null>(null);
+  const [demoRunMatrixError, setDemoRunMatrixError] = useState<string | null>(null);
+  const [isLoadingDemoRunMatrix, setIsLoadingDemoRunMatrix] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
@@ -397,6 +401,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoComparisonJobId('');
           setDemoComparison(null);
           setDemoComparisonError(null);
+          setDemoRunMatrix(null);
+          setDemoRunMatrixError(null);
         }
         setIsSseUnavailable(false);
         setError(null);
@@ -421,6 +427,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } catch (sourceMediaLoadError) {
       setSourceMedia(null);
       setSourceMediaError(toErrorMessage(sourceMediaLoadError));
+    }
+  }, []);
+
+  const loadDemoRunMatrix = useCallback(async (jobId: string) => {
+    setIsLoadingDemoRunMatrix(true);
+    try {
+      const matrix = await linguaFrameApi.getDemoRunMatrix(jobId, 8);
+      setDemoRunMatrix(matrix);
+      setDemoRunMatrixError(null);
+    } catch (matrixLoadError) {
+      setDemoRunMatrix(null);
+      setDemoRunMatrixError(toErrorMessage(matrixLoadError));
+    } finally {
+      setIsLoadingDemoRunMatrix(false);
     }
   }, []);
 
@@ -675,6 +695,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadSourceMedia(nextJob.videoId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
+          void loadDemoRunMatrix(nextJob.jobId);
           void loadHistory(historyStatusFilter);
           eventSource.close();
         }
@@ -689,7 +710,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoRunMatrix, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -772,6 +793,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const nextJob = await loadJob(upload.jobId);
       await loadSourceMedia(nextJob.videoId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
+      await loadDemoRunMatrix(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -791,6 +813,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const nextJob = await loadJob(jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
+    await loadDemoRunMatrix(jobId);
   }
 
   async function handleRetry() {
@@ -803,6 +826,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const retriedJob = await linguaFrameApi.retryJob(job.jobId);
       setJob(retriedJob);
       await loadSourceMedia(retriedJob.videoId);
+      await loadDemoRunMatrix(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -822,6 +846,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const cancelledJob = await linguaFrameApi.cancelJob(job.jobId);
       setJob(cancelledJob);
       await loadSourceMedia(cancelledJob.videoId);
+      await loadDemoRunMatrix(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -844,6 +869,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const nextJob = await loadJob(recentJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
+    await loadDemoRunMatrix(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -859,6 +885,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const nextJob = await loadJob(historyJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
+    await loadDemoRunMatrix(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -875,6 +902,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTranslationGlossary('');
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
+    await loadDemoRunMatrix(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -1380,11 +1408,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoComparison={demoComparison}
               demoComparisonError={demoComparisonError}
               demoComparisonJobId={demoComparisonJobId}
+              demoRunMatrix={demoRunMatrix}
+              demoRunMatrixError={demoRunMatrixError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
+              isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
+              onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
@@ -2222,11 +2254,15 @@ function JobDetail({
   demoComparison,
   demoComparisonError,
   demoComparisonJobId,
+  demoRunMatrix,
+  demoRunMatrixError,
   isLoadingCacheReplayComparison,
   isLoadingDemoComparison,
+  isLoadingDemoRunMatrix,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
+  onRefreshDemoRunMatrix,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
@@ -2264,11 +2300,15 @@ function JobDetail({
   demoComparison: JobComparison | null;
   demoComparisonError: string | null;
   demoComparisonJobId: string;
+  demoRunMatrix: DemoRunMatrix | null;
+  demoRunMatrixError: string | null;
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
+  isLoadingDemoRunMatrix: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
+  onRefreshDemoRunMatrix: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
@@ -2422,6 +2462,13 @@ function JobDetail({
       <DemoSessionReportPanel report={demoSessionReport} jobId={job.jobId} />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
+
+      <DemoRunMatrixPanel
+        error={demoRunMatrixError}
+        isLoading={isLoadingDemoRunMatrix}
+        matrix={demoRunMatrix}
+        onRefresh={onRefreshDemoRunMatrix}
+      />
 
       <DemoComparisonPanel
         candidates={cacheReplayCandidates}
@@ -3639,6 +3686,109 @@ function DemoComparisonPanel({
         </>
       ) : null}
     </section>
+  );
+}
+
+function DemoRunMatrixPanel({
+  error,
+  isLoading,
+  matrix,
+  onRefresh
+}: {
+  error: string | null;
+  isLoading: boolean;
+  matrix: DemoRunMatrix | null;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="panel demo-run-matrix-panel" aria-label="Demo run matrix">
+      <div className="panel-heading">
+        <h3>Demo run matrix</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+      </div>
+      {isLoading && !matrix ? <p className="muted">Loading demo run matrix...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {matrix ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Source video</dt>
+              <dd>{matrix.videoId}</dd>
+            </div>
+            <div>
+              <dt>Runs</dt>
+              <dd>{matrix.jobs.length}</dd>
+            </div>
+            <div>
+              <dt>Recommended baseline</dt>
+              <dd>{matrix.recommendedBaselineJobId ?? 'N/A'}</dd>
+            </div>
+          </dl>
+          <table>
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Status</th>
+                <th>Quality</th>
+                <th>Cost</th>
+                <th>Calls</th>
+                <th>Cache</th>
+                <th>Handoff</th>
+              </tr>
+            </thead>
+            <tbody>
+              {matrix.jobs.map((job) => (
+                <tr key={job.jobId}>
+                  <td>
+                    <strong>{formatDemoProfileId(job.demoProfileId)}</strong>
+                    <span className="history-meta">{job.jobId}</span>
+                    <RunMatrixBadges matrix={matrix} jobId={job.jobId} />
+                  </td>
+                  <td>{job.status}</td>
+                  <td>{job.qualityScore === null ? 'N/A' : `${job.qualityScore} / 100`}</td>
+                  <td>{formatCost(job.estimatedCostUsd)}</td>
+                  <td>{job.modelCallCount} calls</td>
+                  <td>{job.providerCacheHitCount} provider hits</td>
+                  <td>{job.handoffReady ? 'Ready' : 'Attention'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function RunMatrixBadges({ matrix, jobId }: { matrix: DemoRunMatrix; jobId: string }) {
+  const badges: string[] = [];
+  if (jobId === matrix.anchorJobId) {
+    badges.push('Anchor');
+  }
+  if (jobId === matrix.recommendedBaselineJobId) {
+    badges.push('Baseline');
+  }
+  if (jobId === matrix.bestQualityJobId) {
+    badges.push('Best quality');
+  }
+  if (jobId === matrix.lowestCostJobId) {
+    badges.push('Lowest cost');
+  }
+  if (badges.length === 0) {
+    return null;
+  }
+  return (
+    <span className="badge-row">
+      {badges.map((badge) => (
+        <span className="status-pill" key={badge}>
+          {badge}
+        </span>
+      ))}
+    </span>
   );
 }
 

@@ -9,6 +9,10 @@ public interface LocalizationJobQueryService {
 
     LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset);
 
+    default LocalizationJobListVo listJobsByVideoId(String videoId, Integer limit) {
+        throw new UnsupportedOperationException();
+    }
+
     LocalizationJobVo getJob(String jobId);
 
     JobDiagnosticsReportVo getDiagnosticsReport(String jobId);

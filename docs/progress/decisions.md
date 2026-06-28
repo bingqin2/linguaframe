@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Derive the demo run matrix on demand from existing same-source jobs instead of storing a demo-session table.
+
+Reason: The current demo needs a presentation aid that explains recent profile attempts for one source video, while job detail, model calls, quality evaluation, cache evidence, and delivery manifests already hold the durable facts.
+
+Impact: `GET /api/jobs/{jobId}/demo-run-matrix` groups recent jobs by the anchor job's `videoId`, marks baseline, best-quality, and lowest-cost candidates, and keeps browser and terminal outputs metadata-only. A persistent demo-session model remains later work only if multi-user curated sessions need manual ordering or annotations.
+
+## 2026-06-28
+
 Decision: Keep subtitle review read-only before adding subtitle editing workflows.
 
 Reason: The current demo needs a trustworthy inspection surface that explains generated transcript/subtitle alignment, quality evaluation, and downloadable subtitle artifacts without introducing versioning, re-export, cache invalidation, or media regeneration semantics.

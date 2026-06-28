@@ -15,6 +15,7 @@ import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
+import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
@@ -27,6 +28,7 @@ import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
+import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunPackageService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
@@ -82,6 +84,7 @@ public class LocalizationJobController {
     private final JobHandoffPackageService handoffPackageService;
     private final DemoRunPackageService demoRunPackageService;
     private final AiAuditPackageService aiAuditPackageService;
+    private final DemoRunMatrixService demoRunMatrixService;
     private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
     private final TranscriptService transcriptService;
@@ -103,6 +106,7 @@ public class LocalizationJobController {
             JobHandoffPackageService handoffPackageService,
             DemoRunPackageService demoRunPackageService,
             AiAuditPackageService aiAuditPackageService,
+            DemoRunMatrixService demoRunMatrixService,
             JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
             TranscriptService transcriptService,
@@ -123,6 +127,7 @@ public class LocalizationJobController {
         this.handoffPackageService = handoffPackageService;
         this.demoRunPackageService = demoRunPackageService;
         this.aiAuditPackageService = aiAuditPackageService;
+        this.demoRunMatrixService = demoRunMatrixService;
         this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
         this.transcriptService = transcriptService;
@@ -162,6 +167,22 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return queryService.getJob(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-run-matrix")
+    @Operation(summary = "Build a same-source demo run matrix")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run matrix was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoRunMatrixVo getDemoRunMatrix(
+            @Parameter(in = ParameterIn.PATH, description = "Anchor localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Maximum number of same-source jobs to include.")
+            @RequestParam(required = false) Integer limit
+    ) {
+        return demoRunMatrixService.buildMatrix(jobId, limit);
     }
 
     @GetMapping(value = "/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

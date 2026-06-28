@@ -236,6 +236,17 @@ download_job_comparison_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_baseline_job_id/comparison/$encoded_comparison_job_id/markdown/download" -o "$output_path"
 }
 
+download_demo_run_matrix_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-matrix" -o "$output_path"
+}
+
 print_job_comparison_summary_file() {
   local comparison_path="$1"
 
@@ -280,6 +291,48 @@ for diff in comparison.get("settingDiffs", []):
     baseline_value = setting_value(field, diff.get("baselineValue"))
     comparison_value = setting_value(field, diff.get("comparisonValue"))
     print("comparisonSettingDiff=" + field + ":" + baseline_value + "->" + comparison_value)
+PY
+}
+
+print_demo_run_matrix_summary_file() {
+  local matrix_path="$1"
+
+  python3 - "$matrix_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+matrix = json.load(open(sys.argv[1], encoding="utf-8"), parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return "N/A"
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def flag(value):
+    return str(bool(value)).lower()
+
+jobs = matrix.get("jobs") or []
+
+print("demoRunMatrixAnchorJobId=" + text(matrix.get("anchorJobId")))
+print("demoRunMatrixVideoId=" + text(matrix.get("videoId")))
+print("demoRunMatrixRunCount=" + str(len(jobs)))
+print("demoRunMatrixRecommendedBaselineJobId=" + text(matrix.get("recommendedBaselineJobId")))
+print("demoRunMatrixBestQualityJobId=" + text(matrix.get("bestQualityJobId")))
+print("demoRunMatrixLowestCostJobId=" + text(matrix.get("lowestCostJobId")))
+for job in jobs:
+    print("demoRunMatrixRun=" + ":".join([
+        text(job.get("jobId")),
+        text(job.get("demoProfileId") or "manual"),
+        text(job.get("status")),
+        "quality=" + text(job.get("qualityScore")),
+        "cost=" + text(job.get("estimatedCostUsd")),
+        "modelCalls=" + text(job.get("modelCallCount", 0)),
+        "providerCacheHits=" + text(job.get("providerCacheHitCount", 0)),
+        "handoffReady=" + flag(job.get("handoffReady")),
+    ]))
 PY
 }
 

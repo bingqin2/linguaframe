@@ -281,6 +281,7 @@ Build:
 - One-click demo run package download. Status: implemented as an on-demand metadata-only ZIP workspace with manifest, README, job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report.
 - Browser cache replay evidence. Status: implemented as a read-only selected-job comparison panel that shows provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe replay evidence exports.
 - Backend-backed demo profile comparison. Status: implemented with job comparison JSON/Markdown endpoints, a browser `Demo comparison` panel, and terminal full-video comparison downloads.
+- Same-source demo run matrix. Status: implemented with `GET /api/jobs/{jobId}/demo-run-matrix`, a browser `Demo run matrix` panel, and full Tears terminal `demo-run-matrix.json` output for baseline, quality, cost, cache, and handoff inspection across recent runs.
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.

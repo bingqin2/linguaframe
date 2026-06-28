@@ -1,6 +1,7 @@
 import type {
   JobArtifact,
   JobComparison,
+  DemoRunMatrix,
   DemoRunProfile,
   DemoSessionStatus,
   DeliveryManifest,
@@ -142,6 +143,17 @@ export async function getJobComparison(jobId: string, comparisonJobId: string): 
       method: 'GET'
     }
   );
+}
+
+export async function getDemoRunMatrix(jobId: string, limit?: number): Promise<DemoRunMatrix> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoRunMatrix>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-matrix${suffix}`, {
+    method: 'GET'
+  });
 }
 
 export async function listJobs(params: ListJobsParams = {}): Promise<LocalizationJobList> {
@@ -386,6 +398,7 @@ export const linguaFrameApi = {
   listJobs,
   getJob,
   getDeliveryManifest,
+  getDemoRunMatrix,
   getJobComparison,
   retryJob,
   cancelJob,

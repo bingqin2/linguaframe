@@ -74,6 +74,11 @@ download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/work
 download_artifact_archive "$BASE_URL" "$job_id" "$OUTPUT_DIR/artifacts.zip"
 print_zip_entries "$OUTPUT_DIR/artifacts.zip"
 
+echo "Demo run matrix for source video:"
+download_demo_run_matrix_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-matrix.json"
+print_demo_run_matrix_summary_file "$OUTPUT_DIR/demo-run-matrix.json"
+echo "Downloaded demo run matrix to $OUTPUT_DIR/demo-run-matrix.json"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

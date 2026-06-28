@@ -654,6 +654,45 @@ export interface JobComparison {
   settingDiffs: JobComparisonSettingDiff[];
 }
 
+export interface DemoRunMatrixJob {
+  jobId: string;
+  videoId: string;
+  filename: string;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  ttsVoice: string | null;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
+  subtitlePolishingMode: string;
+  status: LocalizationJobStatus;
+  createdAt: string;
+  completedAt: string | null;
+  failureStage: LocalizationJobStage | null;
+  failureReason: string | null;
+  retryCount: number;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  estimatedCostUsd: number;
+  artifactCacheHitCount: number;
+  generatedArtifactCount: number;
+  providerCacheHitCount: number;
+  handoffReady: boolean;
+}
+
+export interface DemoRunMatrix {
+  anchorJobId: string;
+  videoId: string;
+  generatedAt: string;
+  jobs: DemoRunMatrixJob[];
+  recommendedBaselineJobId: string | null;
+  bestQualityJobId: string | null;
+  lowestCostJobId: string | null;
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;
