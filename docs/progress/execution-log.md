@@ -27,6 +27,14 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `demo-share-sheet` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=DemoShareSheetServiceTests,LocalizationJobControllerTests#returnsDemoShareSheetForSelectedCompletedJob,LocalizationJobControllerTests#downloadsDemoShareSheetMarkdownForSelectedJob test` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts -t "demo share sheet"` passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
 ## 2026-06-28
 
 Work:
