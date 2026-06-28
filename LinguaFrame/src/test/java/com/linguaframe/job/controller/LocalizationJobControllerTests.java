@@ -964,6 +964,136 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsReviewedHandoffPackageForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T12:45:00Z");
+        createJob(
+                "job-controller-video-handoff-package",
+                "job-controller-job-handoff-package",
+                "handoff-package.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+        List<JobArtifactRecord> artifacts = List.of(
+                new JobArtifactRecord(
+                        "job-controller-reviewed-json",
+                        "job-controller-job-handoff-package",
+                        JobArtifactType.REVIEWED_SUBTITLE_JSON,
+                        "job-artifacts/job-controller-job-handoff-package/reviewed-json/reviewed-subtitles.zh-CN.json",
+                        "reviewed-subtitles.zh-CN.json",
+                        "application/json",
+                        15L,
+                        "reviewed-json-hash",
+                        false,
+                        null,
+                        createdAt.plusSeconds(1)
+                ),
+                new JobArtifactRecord(
+                        "job-controller-reviewed-srt",
+                        "job-controller-job-handoff-package",
+                        JobArtifactType.REVIEWED_SUBTITLE_SRT,
+                        "job-artifacts/job-controller-job-handoff-package/reviewed-srt/reviewed-subtitles.zh-CN.srt",
+                        "reviewed-subtitles.zh-CN.srt",
+                        "application/x-subrip",
+                        48L,
+                        "reviewed-srt-hash",
+                        false,
+                        null,
+                        createdAt.plusSeconds(2)
+                ),
+                new JobArtifactRecord(
+                        "job-controller-reviewed-vtt",
+                        "job-controller-job-handoff-package",
+                        JobArtifactType.REVIEWED_SUBTITLE_VTT,
+                        "job-artifacts/job-controller-job-handoff-package/reviewed-vtt/reviewed-subtitles.zh-CN.vtt",
+                        "reviewed-subtitles.zh-CN.vtt",
+                        "text/vtt",
+                        42L,
+                        "reviewed-vtt-hash",
+                        false,
+                        null,
+                        createdAt.plusSeconds(3)
+                ),
+                new JobArtifactRecord(
+                        "job-controller-reviewed-video",
+                        "job-controller-job-handoff-package",
+                        JobArtifactType.REVIEWED_BURNED_VIDEO,
+                        "job-artifacts/job-controller-job-handoff-package/reviewed-video/reviewed-burned-video.mp4",
+                        "reviewed-burned-video.mp4",
+                        "video/mp4",
+                        20L,
+                        "reviewed-video-hash",
+                        false,
+                        null,
+                        createdAt.plusSeconds(4)
+                ),
+                new JobArtifactRecord(
+                        "job-controller-target-json",
+                        "job-controller-job-handoff-package",
+                        JobArtifactType.TARGET_SUBTITLE_JSON,
+                        "job-artifacts/job-controller-job-handoff-package/target-json/target-subtitles.json",
+                        "target-subtitles.json",
+                        "application/json",
+                        22L,
+                        "target-json-hash",
+                        false,
+                        null,
+                        createdAt.plusSeconds(5)
+                )
+        );
+        artifacts.forEach(artifactRepository::save);
+        when(objectStorageService.open("job-artifacts/job-controller-job-handoff-package/reviewed-json/reviewed-subtitles.zh-CN.json"))
+                .thenReturn(new ByteArrayInputStream("{\"segments\":[]}".getBytes(StandardCharsets.UTF_8)));
+        when(objectStorageService.open("job-artifacts/job-controller-job-handoff-package/reviewed-srt/reviewed-subtitles.zh-CN.srt"))
+                .thenReturn(new ByteArrayInputStream("1\n00:00:00,000 --> 00:00:01,000\nReviewed line\n".getBytes(StandardCharsets.UTF_8)));
+        when(objectStorageService.open("job-artifacts/job-controller-job-handoff-package/reviewed-vtt/reviewed-subtitles.zh-CN.vtt"))
+                .thenReturn(new ByteArrayInputStream("WEBVTT\n\n00:00.000 --> 00:01.000\nReviewed line\n".getBytes(StandardCharsets.UTF_8)));
+        when(objectStorageService.open("job-artifacts/job-controller-job-handoff-package/reviewed-video/reviewed-burned-video.mp4"))
+                .thenReturn(new ByteArrayInputStream("reviewed-video-bytes".getBytes(StandardCharsets.UTF_8)));
+
+        byte[] zipBytes = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/handoff-package/download",
+                        "job-controller-job-handoff-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-job-handoff-package-handoff-package.zip\""
+                ))
+                .andExpect(content().contentType("application/zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(zipBytes);
+        assertThat(entries)
+                .containsKeys(
+                        "manifest.json",
+                        "delivery-manifest.md",
+                        "evidence.md",
+                        "diagnostics.json",
+                        "reviewed/REVIEWED_SUBTITLE_JSON/job-controller-reviewed-json-reviewed-subtitles.zh-CN.json",
+                        "reviewed/REVIEWED_SUBTITLE_SRT/job-controller-reviewed-srt-reviewed-subtitles.zh-CN.srt",
+                        "reviewed/REVIEWED_SUBTITLE_VTT/job-controller-reviewed-vtt-reviewed-subtitles.zh-CN.vtt",
+                        "reviewed/REVIEWED_BURNED_VIDEO/job-controller-reviewed-video-reviewed-burned-video.mp4"
+                )
+                .doesNotContainKey("reviewed/TARGET_SUBTITLE_JSON/job-controller-target-json-target-subtitles.json");
+        assertThat(entries.get("manifest.json"))
+                .contains("\"jobId\":\"job-controller-job-handoff-package\"")
+                .contains("\"handoffReady\":true")
+                .contains("\"reviewedArtifactCount\":4");
+        String combined = String.join("\n", entries.values());
+        assertThat(combined)
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("/Users/")
+                .doesNotContain("objectKey")
+                .doesNotContain("provider payload")
+                .doesNotContain("OPENAI_API_KEY")
+                .doesNotContain("private-demo-token")
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw generated subtitle");
+    }
+
+    @Test
     void returnsTranscriptSegmentsForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T00:00:00Z");
         createJob("job-controller-video-transcript", "job-controller-job-transcript", createdAt);

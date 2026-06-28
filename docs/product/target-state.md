@@ -104,8 +104,9 @@ A user should be able to:
 7. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
 8. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
 9. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
-10. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
-11. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
+10. Download a reviewed handoff package that contains the delivery manifest, diagnostics, evidence report, reviewed subtitles, and optional reviewed burned video without internal audit artifacts or secrets.
+11. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
+12. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
 12. Play the generated dubbing audio with visible file metadata and download evidence.
 13. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
 14. Inspect cost and processing time.

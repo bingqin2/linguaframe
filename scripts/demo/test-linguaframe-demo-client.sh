@@ -542,6 +542,53 @@ JSON
   [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "demo handoff checklist exposed token"
 }
 
+test_print_handoff_package_summary_validates_zip_and_secrets() {
+  python3 - "$TMPDIR/handoff-package.zip" "$TMPDIR/unsafe-handoff-package.zip" <<'PY'
+import json
+import sys
+import zipfile
+
+safe_path = sys.argv[1]
+unsafe_path = sys.argv[2]
+manifest = {
+    "jobId": "job-handoff-package",
+    "videoId": "video-handoff-package",
+    "targetLanguage": "zh-CN",
+    "status": "COMPLETED",
+    "handoffReady": True,
+    "reviewedArtifactCount": 3,
+}
+with zipfile.ZipFile(safe_path, "w") as archive:
+    archive.writestr("manifest.json", json.dumps(manifest, separators=(",", ":")))
+    archive.writestr("delivery-manifest.md", "# Delivery manifest\n- Job: job-handoff-package\n")
+    archive.writestr("evidence.md", "# LinguaFrame Demo Evidence\n- Job: job-handoff-package\n")
+    archive.writestr("diagnostics.json", json.dumps({"job": {"jobId": "job-handoff-package"}}))
+    archive.writestr("reviewed/REVIEWED_SUBTITLE_JSON/reviewed-subtitles.zh-CN.json", "{}")
+    archive.writestr("reviewed/REVIEWED_SUBTITLE_SRT/reviewed-subtitles.zh-CN.srt", "1\n00:00:00,000 --> 00:00:01,000\nDemo")
+    archive.writestr("reviewed/REVIEWED_SUBTITLE_VTT/reviewed-subtitles.zh-CN.vtt", "WEBVTT\n")
+
+with zipfile.ZipFile(unsafe_path, "w") as archive:
+    archive.writestr("manifest.json", json.dumps(manifest, separators=(",", ":")))
+    archive.writestr("delivery-manifest.md", "# Delivery manifest\n")
+    archive.writestr("evidence.md", "OPENAI_API_KEY should never appear")
+    archive.writestr("diagnostics.json", "{}")
+    archive.writestr("reviewed/REVIEWED_SUBTITLE_SRT/reviewed-subtitles.zh-CN.srt", "safe")
+PY
+
+  print_handoff_package_summary "$TMPDIR/handoff-package.zip" "job-handoff-package" >"$TMPDIR/handoff-package.out"
+  local output
+  output="$(cat "$TMPDIR/handoff-package.out")"
+
+  [[ "$output" == *"handoffPackageJobId=job-handoff-package"* ]] || fail "handoff package summary missed job id"
+  [[ "$output" == *"handoffPackageEntryCount=7"* ]] || fail "handoff package summary missed entry count"
+  [[ "$output" == *"handoffPackageReviewedArtifactCount=3"* ]] || fail "handoff package summary missed reviewed count"
+
+  if print_handoff_package_summary "$TMPDIR/unsafe-handoff-package.zip" "job-handoff-package" >"$TMPDIR/unsafe-handoff-package.out" 2>&1; then
+    fail "handoff package summary accepted unsafe ZIP"
+  fi
+  [[ "$(cat "$TMPDIR/unsafe-handoff-package.out")" == *"forbidden sensitive string"* ]] || fail "handoff package unsafe failure was not explicit"
+}
+
 test_write_demo_session_report_markdown_is_metadata_only() {
   cat >"$TMPDIR/session-job.json" <<'JSON'
 {
@@ -638,6 +685,7 @@ test_print_reviewed_publish_summary_is_metadata_only
 test_print_delivery_manifest_summary_is_metadata_only
 test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only
+test_print_handoff_package_summary_validates_zip_and_secrets
 test_write_demo_session_report_markdown_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

@@ -211,6 +211,8 @@ Expected browser behavior:
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
 - `Download evidence bundle` points to `/api/jobs/{jobId}/evidence/bundle/download` and returns a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`.
+- `Download handoff package` appears in `Delivery handoff`, `Demo handoff checklist`, and `Demo session report`, and points to `/api/jobs/{jobId}/handoff-package/download`.
+- The handoff package ZIP contains `manifest.json`, `delivery-manifest.md`, `evidence.md`, `diagnostics.json`, reviewed subtitle artifacts, and optional reviewed burned video only.
 - The `Demo handoff checklist` panel appears in the selected job view.
 - The `Demo handoff checklist` panel shows `Ready for demo handoff` when the job is completed, reviewed subtitles are ready, and evidence links are available.
 - Failed or incomplete jobs show `Needs attention`, while still exposing diagnostics and backend evidence links.
@@ -219,6 +221,7 @@ Expected browser behavior:
 - The `Demo session report` panel shows `Session ready` for completed runs with handoff-ready reviewed subtitles, otherwise `Session needs attention`.
 - The report groups safe metadata into `Input and job`, `Generated outputs`, `Handoff evidence`, `Cost and cache`, and `Failure triage` when applicable.
 - `Copy report`, `Download report Markdown`, and terminal `/tmp/linguaframe-demo/demo-session-report.md` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.
+- Terminal `handoffPackage*` summary lines must show the expected job id, entry count, and reviewed artifact count, and fail if the ZIP contains object keys, local paths, provider payloads, API keys, demo tokens, or raw transcript/subtitle markers outside reviewed artifact files.
 - The `Cache replay` panel can pin the selected job as a baseline, compare it with another loaded job, show provider cache-hit stages, artifact reused/generated counts, model-call delta, estimated-cost delta, and export safe replay evidence.
 - `Copy replay evidence` and `Download replay evidence JSON` must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, credentials, or provider payloads.
 - Transcript and subtitle preview panels render when backend preview data exists.
