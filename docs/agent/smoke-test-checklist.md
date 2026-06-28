@@ -200,6 +200,9 @@ Expected browser behavior:
 - The `Result delivery` panel renders expected deliverables with `Ready`, `Preview only`, and `Missing` states.
 - The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
 - The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.
+- The `Media delivery` panel appears when playable media artifacts exist.
+- The `Media delivery` panel renders `DUBBING_AUDIO`, generated `BURNED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs when present.
+- Each `Media delivery` output has a browser player, direct download link, content type, size, short SHA-256 hash, and generated/reused cache state.
 - The read-only `Subtitle review` panel shows segment count, missing target count, timing mismatch count, average/max duration, quality score/verdict when available, and downloadable subtitle artifact count.
 - The `Subtitle review` panel renders source/target comparison rows with timing range, delta, and `Aligned`, `Missing target`, or `Timing mismatch` status.
 - Subtitle-review API failures appear as non-blocking preview errors, while job detail, transcript preview, subtitle preview, and artifacts remain usable.
@@ -214,7 +217,7 @@ Expected browser behavior:
 - Artifact download links appear when artifacts exist.
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.
 - The `Download diagnostics` link appears in the selected job header and points to `/api/jobs/{jobId}/diagnostics/download`.
-- Audio and video previews appear for `DUBBING_AUDIO` and `BURNED_VIDEO` artifacts.
+- Audio and video playback appears in `Media delivery` for `DUBBING_AUDIO`, `BURNED_VIDEO`, and `REVIEWED_BURNED_VIDEO` artifacts.
 - Failed jobs show a retry button.
 - The `Retention cleanup` panel appears in the sidebar.
 - Clicking `Preview cleanup` refreshes aggregate cleanup counts without deleting data.
@@ -273,6 +276,11 @@ Expected:
 - Terminal reviewed-publish output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `deliveryManifestHandoffReady=true`, `deliveryManifestReviewedSubtitleArtifactCount=3`, `deliveryManifestReviewedBurnedVideoAvailable=false`, `deliveryManifestGeneratedArtifactCount`, and `deliveryManifestLinkCount`.
 - Terminal delivery-manifest output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Terminal media-delivery output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Output includes `mediaDeliveryReadyCount`.
+- Output includes `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Generated` or `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Reused`.
+- Output includes `mediaDeliveryArtifact=DUBBING_AUDIO:dubbing-audio.mp3:audio/mpeg:Generated` only when TTS is enabled.
+- Output includes `mediaDeliveryArtifact=REVIEWED_BURNED_VIDEO:reviewed-burned-video.mp4:video/mp4:Generated` only when reviewed burn-in is requested.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.

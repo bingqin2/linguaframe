@@ -45,6 +45,8 @@ get_delivery_manifest "$BASE_URL" "$job_id" | print_delivery_manifest_summary
 echo "Artifacts for job $job_id:"
 artifacts_response="$(list_job_artifacts "$BASE_URL" "$job_id")"
 printf '%s' "$artifacts_response" | print_artifact_summary
+echo "Media delivery summary for job $job_id:"
+printf '%s' "$artifacts_response" | print_media_delivery_summary
 echo "Transcript preview for job $job_id:"
 get_job_transcript "$BASE_URL" "$job_id" | python3 -m json.tool
 echo "Target subtitle preview for job $job_id:"

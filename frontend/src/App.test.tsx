@@ -1223,14 +1223,78 @@ describe('App', () => {
       '/api/jobs/artifact-job/artifacts/archive/download'
     );
 
-    expect(screen.getByLabelText(/dubbing audio preview/i)).toHaveAttribute(
+    const mediaDelivery = screen.getByRole('region', { name: /media delivery/i });
+    expect(within(mediaDelivery).getByText('Media delivery')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Dubbing audio')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Generated burned video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByLabelText(/dubbing audio player/i)).toHaveAttribute(
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-audio/download'
     );
-    expect(screen.getByLabelText(/burned video preview/i)).toHaveAttribute(
+    expect(within(mediaDelivery).getByLabelText(/generated burned video player/i)).toHaveAttribute(
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-video/download'
     );
+    expect(within(mediaDelivery).getByRole('link', { name: /download dubbing audio/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/artifacts/artifact-audio/download'
+    );
+    expect(within(mediaDelivery).getByText('audio/mpeg')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('4.10 KB')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('abcdef012345')).toBeInTheDocument();
+  });
+
+  test('renders generated and reviewed burned video as separate media delivery outputs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'reviewed-media-job', videoId: 'reviewed-media-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'generated-video',
+        jobId: 'reviewed-media-job',
+        type: 'BURNED_VIDEO',
+        filename: 'burned-video.mp4',
+        contentType: 'video/mp4',
+        contentSha256: 'fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210',
+        cacheHit: true,
+        sourceArtifactId: 'original-generated-video'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-video',
+        jobId: 'reviewed-media-job',
+        type: 'REVIEWED_BURNED_VIDEO',
+        filename: 'reviewed-burned-video.mp4',
+        contentType: 'video/mp4',
+        contentSha256: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
+        cacheHit: false,
+        sourceArtifactId: null
+      })
+    ]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'reviewed-media-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const mediaDelivery = await screen.findByRole('region', { name: /media delivery/i });
+    expect(within(mediaDelivery).getByText('Generated burned video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Reviewed burned video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByLabelText(/generated burned video player/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/reviewed-media-job/artifacts/generated-video/download'
+    );
+    expect(within(mediaDelivery).getByLabelText(/reviewed burned video player/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/reviewed-media-job/artifacts/reviewed-video/download'
+    );
+    expect(within(mediaDelivery).getByRole('link', { name: /download reviewed burned video/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/reviewed-media-job/artifacts/reviewed-video/download'
+    );
+    expect(within(mediaDelivery).getByText('fedcba987654')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
   });
 
   test('edits, saves, resets, and clears subtitle draft rows', async () => {

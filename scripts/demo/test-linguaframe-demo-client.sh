@@ -375,6 +375,79 @@ JSON
   [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "delivery manifest summary exposed token"
 }
 
+test_print_media_delivery_summary_is_metadata_only() {
+  cat >"$TMPDIR/media-artifacts.json" <<'JSON'
+[
+  {
+    "artifactId": "dubbing-audio",
+    "jobId": "job-media",
+    "type": "DUBBING_AUDIO",
+    "filename": "dubbing-audio.mp3",
+    "contentType": "audio/mpeg",
+    "sizeBytes": 4200,
+    "contentSha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+    "cacheHit": false,
+    "sourceArtifactId": null,
+    "createdAt": "2026-06-28T11:20:00Z",
+    "unsafeText": "raw transcript text"
+  },
+  {
+    "artifactId": "burned-video",
+    "jobId": "job-media",
+    "type": "BURNED_VIDEO",
+    "filename": "burned-video.mp4",
+    "contentType": "video/mp4",
+    "sizeBytes": 42000,
+    "contentSha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+    "cacheHit": true,
+    "sourceArtifactId": "job-artifacts/private/burned-video.mp4",
+    "createdAt": "2026-06-28T11:21:00Z",
+    "unsafePath": "/Users/example/private.mov"
+  },
+  {
+    "artifactId": "reviewed-video",
+    "jobId": "job-media",
+    "type": "REVIEWED_BURNED_VIDEO",
+    "filename": "reviewed-burned-video.mp4",
+    "contentType": "video/mp4",
+    "sizeBytes": 41000,
+    "contentSha256": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+    "cacheHit": false,
+    "sourceArtifactId": null,
+    "createdAt": "2026-06-28T11:22:00Z",
+    "unsafeToken": "OPENAI_API_KEY"
+  },
+  {
+    "artifactId": "subtitle",
+    "jobId": "job-media",
+    "type": "TARGET_SUBTITLE_SRT",
+    "filename": "target-subtitles.srt",
+    "contentType": "application/x-subrip",
+    "sizeBytes": 256,
+    "contentSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "cacheHit": false,
+    "sourceArtifactId": null,
+    "createdAt": "2026-06-28T11:23:00Z",
+    "unsafeText": "raw subtitle text"
+  }
+]
+JSON
+
+  print_media_delivery_summary <"$TMPDIR/media-artifacts.json" >"$TMPDIR/media-artifacts.out"
+  local output
+  output="$(cat "$TMPDIR/media-artifacts.out")"
+
+  [[ "$output" == *"mediaDeliveryReadyCount=3"* ]] || fail "media delivery summary missed ready count"
+  [[ "$output" == *"mediaDeliveryArtifact=DUBBING_AUDIO:dubbing-audio.mp3:audio/mpeg:Generated"* ]] || fail "media delivery summary missed audio artifact"
+  [[ "$output" == *"mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Reused"* ]] || fail "media delivery summary missed generated video artifact"
+  [[ "$output" == *"mediaDeliveryArtifact=REVIEWED_BURNED_VIDEO:reviewed-burned-video.mp4:video/mp4:Generated"* ]] || fail "media delivery summary missed reviewed video artifact"
+  [[ "$output" != *"raw transcript text"* ]] || fail "media delivery summary exposed transcript"
+  [[ "$output" != *"raw subtitle text"* ]] || fail "media delivery summary exposed subtitle"
+  [[ "$output" != *"job-artifacts/private"* ]] || fail "media delivery summary exposed object key"
+  [[ "$output" != *"/Users/example/private.mov"* ]] || fail "media delivery summary exposed local path"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "media delivery summary exposed token"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -384,5 +457,6 @@ test_print_subtitle_review_summary_is_metadata_only
 test_print_subtitle_draft_summary_is_metadata_only
 test_print_reviewed_publish_summary_is_metadata_only
 test_print_delivery_manifest_summary_is_metadata_only
+test_print_media_delivery_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

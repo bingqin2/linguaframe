@@ -62,6 +62,14 @@ interface ResultDeliverable {
   status: DeliverableStatus;
 }
 
+interface MediaDeliveryItem {
+  key: string;
+  label: string;
+  playerLabel: string;
+  artifact: JobArtifact | null;
+  kind: 'audio' | 'video';
+}
+
 interface DemoEvidence {
   generatedAt: string;
   job: {
@@ -1743,9 +1751,6 @@ function JobDetail({
     ],
     [job, selectedLanguage]
   );
-  const dubbingAudio = artifacts.find((artifact) => artifact.type === 'DUBBING_AUDIO');
-  const burnedVideo = artifacts.find((artifact) => artifact.type === 'BURNED_VIDEO');
-
   return (
     <div className="job-detail">
       <header className="job-header">
@@ -1993,31 +1998,71 @@ function JobDetail({
         )}
       </section>
 
-      {dubbingAudio || burnedVideo ? (
-        <section className="media-grid" aria-label="Media previews">
-          {dubbingAudio ? (
-            <section className="panel">
-              <h3>Dubbing audio</h3>
-              <audio
-                aria-label="Dubbing audio preview"
-                controls
-                src={linguaFrameApi.artifactDownloadUrl(job.jobId, dubbingAudio.artifactId)}
-              />
-            </section>
-          ) : null}
-          {burnedVideo ? (
-            <section className="panel">
-              <h3>Burned video</h3>
-              <video
-                aria-label="Burned video preview"
-                controls
-                src={linguaFrameApi.artifactDownloadUrl(job.jobId, burnedVideo.artifactId)}
-              />
-            </section>
-          ) : null}
-        </section>
-      ) : null}
+      <MediaDeliveryPanel jobId={job.jobId} artifacts={artifacts} />
     </div>
+  );
+}
+
+function MediaDeliveryPanel({ artifacts, jobId }: { artifacts: JobArtifact[]; jobId: string }) {
+  const mediaItems = buildMediaDeliveryItems(artifacts).filter((item) => item.artifact);
+  if (mediaItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="panel media-delivery-panel" aria-label="Media delivery">
+      <div className="panel-heading">
+        <h3>Media delivery</h3>
+        <p className="muted">{mediaItems.length} playable outputs</p>
+      </div>
+      <div className="media-delivery-grid">
+        {mediaItems.map((item) => {
+          const artifact = item.artifact;
+          if (!artifact) {
+            return null;
+          }
+          const downloadUrl = linguaFrameApi.artifactDownloadUrl(jobId, artifact.artifactId);
+          return (
+            <article className="media-card" key={item.key}>
+              <div className="media-card-heading">
+                <h4>{item.label}</h4>
+                <span title={artifact.sourceArtifactId ?? undefined}>
+                  {artifact.cacheHit ? 'Reused' : 'Generated'}
+                </span>
+              </div>
+              {item.kind === 'audio' ? (
+                <audio aria-label={item.playerLabel} controls src={downloadUrl} />
+              ) : (
+                <video aria-label={item.playerLabel} controls src={downloadUrl} />
+              )}
+              <dl className="media-card-meta">
+                <div>
+                  <dt>Filename</dt>
+                  <dd>{artifact.filename}</dd>
+                </div>
+                <div>
+                  <dt>Type</dt>
+                  <dd>{artifact.contentType}</dd>
+                </div>
+                <div>
+                  <dt>Size</dt>
+                  <dd>{formatBytes(artifact.sizeBytes)}</dd>
+                </div>
+                <div>
+                  <dt>SHA-256</dt>
+                  <dd title={artifact.contentSha256 || undefined}>
+                    {formatArtifactHash(artifact.contentSha256)}
+                  </dd>
+                </div>
+              </dl>
+              <div className="media-card-actions">
+                <a href={downloadUrl}>Download {item.label}</a>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -2962,6 +3007,36 @@ function buildResultDeliverables(
     }
     return { definition, artifact, status };
   });
+}
+
+function buildMediaDeliveryItems(artifacts: JobArtifact[]): MediaDeliveryItem[] {
+  return [
+    {
+      key: 'dubbing-audio',
+      label: 'Dubbing audio',
+      playerLabel: 'Dubbing audio player',
+      kind: 'audio',
+      artifact: findFirstArtifact(artifacts, 'DUBBING_AUDIO')
+    },
+    {
+      key: 'generated-burned-video',
+      label: 'Generated burned video',
+      playerLabel: 'Generated burned video player',
+      kind: 'video',
+      artifact: findFirstArtifact(artifacts, 'BURNED_VIDEO')
+    },
+    {
+      key: 'reviewed-burned-video',
+      label: 'Reviewed burned video',
+      playerLabel: 'Reviewed burned video player',
+      kind: 'video',
+      artifact: findFirstArtifact(artifacts, 'REVIEWED_BURNED_VIDEO')
+    }
+  ];
+}
+
+function findFirstArtifact(artifacts: JobArtifact[], type: JobArtifact['type']): JobArtifact | null {
+  return artifacts.find((artifact) => artifact.type === type) ?? null;
 }
 
 function resultStatusClassName(status: DeliverableStatus): string {

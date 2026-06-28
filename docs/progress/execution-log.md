@@ -2354,3 +2354,20 @@ Post-merge verification:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Planned the media preview delivery workspace in `docs/plans/078-media-preview-delivery-workspace.md`.
+- Replaced the ad hoc audio/video preview grid with a `Media delivery` panel for generated dubbing audio, generated burned video, and reviewed burned video outputs.
+- Added browser playback, direct downloads, content type, size, short SHA-256 hash, and generated/reused cache state for playable media artifacts.
+- Added terminal-safe media delivery summary lines to the deterministic demo script.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, and target state with media delivery verification expectations.
+
+Validation so far:
+
+- `cd frontend && npm run test:run -- App -t "renders transcript, subtitles, artifact downloads, and media previews"` first failed because the `Media delivery` panel did not exist, then passed.
+- `cd frontend && npm run test:run -- App -t "renders generated and reviewed burned video as separate media delivery outputs"` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_media_delivery_summary` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
