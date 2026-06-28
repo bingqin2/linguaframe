@@ -1,7 +1,9 @@
 package com.linguaframe.operator.controller;
 
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
+import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.service.OperatorDashboardService;
+import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -16,9 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class OperatorDashboardController {
 
     private final OperatorDashboardService dashboardService;
+    private final PrivateDemoOperationsService operationsService;
 
-    public OperatorDashboardController(OperatorDashboardService dashboardService) {
+    public OperatorDashboardController(
+            OperatorDashboardService dashboardService,
+            PrivateDemoOperationsService operationsService
+    ) {
         this.dashboardService = dashboardService;
+        this.operationsService = operationsService;
     }
 
     @GetMapping("/dashboard")
@@ -29,5 +36,15 @@ public class OperatorDashboardController {
     })
     public OperatorDashboardVo dashboard() {
         return dashboardService.dashboard();
+    }
+
+    @GetMapping("/private-demo/operations")
+    @Operation(summary = "Get private demo operations readiness")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo operations readiness was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public PrivateDemoOperationsVo privateDemoOperations() {
+        return operationsService.operations();
     }
 }

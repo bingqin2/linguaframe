@@ -2284,6 +2284,28 @@ Validation so far:
 
 Work:
 
+- Planned the private demo operations readiness workspace in `docs/plans/083-private-demo-operations-readiness-workspace.md`.
+- Added `GET /api/operator/private-demo/operations` to aggregate safe operations readiness from runtime configuration, live checks, operator dashboard, and retention cleanup preview.
+- Added a React `Private demo operations` sidebar panel with section checks, safe command list, and metadata-only copy/download report actions.
+- Added `scripts/demo/private-demo-operations-report.sh` plus reusable demo-client helpers for terminal operations reports.
+- Updated README, private-demo deployment docs, smoke checklist, roadmap, and target state.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoOperationsServiceTests test` first failed because the operations service/VOs did not exist.
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoOperationsServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 12, Failures: 0, Errors: 0`.
+- `cd frontend && npm run test:run -- linguaframeApi -t "private demo operations"` first failed because `getPrivateDemoOperations` did not exist, then passed with `Tests 1 passed`.
+- `cd frontend && npm run test:run -- App -t "private demo operations"` first failed because the panel was missing, then passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_private_demo_operations_summary` did not exist, then passed.
+- `bash -n scripts/demo/private-demo-operations-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `cd frontend && npm run test:run -- App` passed with `Tests 58 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the guided demo review workspace in `docs/plans/082-guided-demo-review-workspace.md`.
 - Added a React `Demo review guide` panel near the top of selected job detail.
 - The guide derives metadata-only steps for input, pipeline, review, delivery, evidence, handoff, and failure triage when applicable.

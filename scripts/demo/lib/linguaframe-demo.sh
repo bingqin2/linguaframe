@@ -616,6 +616,81 @@ with open(output_path, "w", encoding="utf-8") as handle:
 PY
 }
 
+get_private_demo_operations() {
+  local base_url="$1"
+  demo_curl -fsS "$base_url/api/operator/private-demo/operations"
+}
+
+print_private_demo_operations_summary() {
+  python3 -c '
+import json
+import sys
+
+operations = json.load(sys.stdin)
+print("privateDemoOperationsOverall=" + operations.get("overallStatus", "UNKNOWN"))
+print("privateDemoOperationsReadyCount=" + str(operations.get("readyCount", 0)))
+print("privateDemoOperationsAttentionCount=" + str(operations.get("attentionCount", 0)))
+print("privateDemoOperationsBlockedCount=" + str(operations.get("blockedCount", 0)))
+for section in operations.get("sections", []):
+    print("privateDemoOperationsSection=" + section.get("status", "UNKNOWN") + ":" + section.get("title", "Untitled"))
+for command in operations.get("commands", []):
+    print("privateDemoOperationsCommand=" + command.get("command", ""))
+'
+}
+
+write_private_demo_operations_report() {
+  local operations_path="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$operations_path" "$output_path" <<'PY'
+import json
+import sys
+
+operations = json.load(open(sys.argv[1], encoding="utf-8"))
+output_path = sys.argv[2]
+
+lines = [
+    "# LinguaFrame Private Demo Operations Report",
+    "",
+    f"- Overall: {operations.get('overallStatus', 'UNKNOWN')}",
+    f"- Generated at: {operations.get('generatedAt', 'unknown')}",
+    f"- Ready: {operations.get('readyCount', 0)}",
+    f"- Attention: {operations.get('attentionCount', 0)}",
+    f"- Blocked: {operations.get('blockedCount', 0)}",
+    "",
+    "## Checks",
+]
+
+for section in operations.get("sections", []):
+    section_title = section.get("title", "Untitled")
+    for check in section.get("checks", []):
+        lines.append(
+            f"- {check.get('status', 'UNKNOWN')} {section_title} / "
+            f"{check.get('label', 'check')}: {check.get('detail', '')}"
+        )
+        next_action = check.get("nextAction")
+        if next_action:
+            lines.append(f"  Next: {next_action}")
+
+lines.extend(["", "## Commands"])
+for command in operations.get("commands", []):
+    value = command.get("command")
+    if value:
+        lines.append(f"- {value}")
+
+lines.extend(["", "## Documentation"])
+for link in operations.get("documentationLinks", []):
+    path = link.get("path")
+    if path:
+        detail = link.get("detail", "")
+        lines.append(f"- {path}: {detail}")
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(lines) + "\n")
+PY
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

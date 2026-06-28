@@ -106,6 +106,7 @@ class OpenApiDocumentationTests {
                         "/api/runtime/live-checks",
                         "/api/prompt-templates",
                         "/api/operator/dashboard",
+                        "/api/operator/private-demo/operations",
                         "/api/retention/cleanup/preview",
                         "/api/retention/cleanup/run"
                 );

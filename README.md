@@ -172,6 +172,14 @@ In the browser, open the first completed cache-hit demo job and use `Cache repla
 
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary, and the `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
+The browser also includes a `Private demo operations` panel backed by `GET /api/operator/private-demo/operations`. It combines the access gate, runtime contract, live dependency checks, provider readiness, cost safety, storage/recovery, retention cleanup, and demo evidence into one operator view with metadata-only copy/download report actions. The same report is available from the terminal:
+
+```bash
+scripts/demo/private-demo-operations-report.sh
+```
+
+The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` by default and exits non-zero only when the backend reports `BLOCKED`.
+
 For a selected job, the browser demo includes a `Demo review guide` panel near the top of the job view. It orders the walkthrough into input, pipeline, review, delivery, evidence, and handoff steps, shows whether the run is presentation-ready, links to the existing detailed panels, and exports metadata-only presenter notes. The guide does not replace diagnostics, evidence bundle, demo session report, delivery manifest, or handoff package; it is the browser navigation layer for presenting them in a coherent order.
 
 For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.

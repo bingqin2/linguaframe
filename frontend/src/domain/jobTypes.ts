@@ -284,6 +284,44 @@ export interface RetentionCleanupResult {
   failureCount: number;
 }
 
+export interface PrivateDemoOperations {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  readyCount: number;
+  attentionCount: number;
+  blockedCount: number;
+  sections: PrivateDemoOperationsSection[];
+  commands: PrivateDemoOperationsCommand[];
+  documentationLinks: PrivateDemoOperationsLink[];
+}
+
+export type PrivateDemoOperationsStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface PrivateDemoOperationsSection {
+  title: string;
+  status: PrivateDemoOperationsStatus;
+  checks: PrivateDemoOperationsCheck[];
+}
+
+export interface PrivateDemoOperationsCheck {
+  label: string;
+  status: PrivateDemoOperationsStatus;
+  detail: string;
+  nextAction: string;
+}
+
+export interface PrivateDemoOperationsCommand {
+  label: string;
+  command: string;
+  detail: string;
+}
+
+export interface PrivateDemoOperationsLink {
+  label: string;
+  path: string;
+  detail: string;
+}
+
 export interface RuntimeDependencySummary {
   runtime: RuntimeContract;
   database: NetworkDependency;
