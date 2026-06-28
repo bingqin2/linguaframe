@@ -25,6 +25,9 @@ public class LinguaFrameProperties {
     private final Demo demo = new Demo();
 
     @Valid
+    private final Auth auth = new Auth();
+
+    @Valid
     private final Retention retention = new Retention();
 
     @Valid
@@ -79,6 +82,10 @@ public class LinguaFrameProperties {
 
     public Demo getDemo() {
         return demo;
+    }
+
+    public Auth getAuth() {
+        return auth;
     }
 
     public Retention getRetention() {
@@ -313,6 +320,89 @@ public class LinguaFrameProperties {
 
         public boolean isAccessGateEnabled() {
             return !accessToken.isBlank();
+        }
+    }
+
+    public static class Auth {
+
+        private static final int MIN_JWT_SECRET_LENGTH = 32;
+
+        private boolean enabled = false;
+
+        @NotBlank
+        private String ownerUsername = "owner";
+
+        private String ownerPassword = "";
+
+        private String jwtSecret = "";
+
+        @Min(1)
+        @Max(1440)
+        private int tokenTtlMinutes = 60;
+
+        @NotBlank
+        private String issuer = "linguaframe-local";
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getOwnerUsername() {
+            return ownerUsername;
+        }
+
+        public void setOwnerUsername(String ownerUsername) {
+            if (ownerUsername == null || ownerUsername.isBlank()) {
+                this.ownerUsername = "owner";
+                return;
+            }
+            this.ownerUsername = ownerUsername.trim();
+        }
+
+        public String getOwnerPassword() {
+            return ownerPassword;
+        }
+
+        public void setOwnerPassword(String ownerPassword) {
+            this.ownerPassword = ownerPassword == null ? "" : ownerPassword;
+        }
+
+        public String getJwtSecret() {
+            return jwtSecret;
+        }
+
+        public void setJwtSecret(String jwtSecret) {
+            this.jwtSecret = jwtSecret == null ? "" : jwtSecret;
+        }
+
+        public int getTokenTtlMinutes() {
+            return tokenTtlMinutes;
+        }
+
+        public void setTokenTtlMinutes(int tokenTtlMinutes) {
+            this.tokenTtlMinutes = tokenTtlMinutes;
+        }
+
+        public String getIssuer() {
+            return issuer;
+        }
+
+        public void setIssuer(String issuer) {
+            if (issuer == null || issuer.isBlank()) {
+                this.issuer = "linguaframe-local";
+                return;
+            }
+            this.issuer = issuer.trim();
+        }
+
+        public boolean isLocalAuthConfigured() {
+            return enabled
+                    && !ownerPassword.isBlank()
+                    && jwtSecret.length() >= MIN_JWT_SECRET_LENGTH;
         }
     }
 

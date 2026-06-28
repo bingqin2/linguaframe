@@ -301,6 +301,18 @@ curl -H "X-LinguaFrame-Demo-Token: $LINGUAFRAME_DEMO_ACCESS_TOKEN" \
   http://localhost:8080/api/runtime/dependencies
 ```
 
+Local account auth is an optional Stage 3 bridge, disabled by default. Enable it only with a local password and a JWT secret of at least 32 characters:
+
+```bash
+LINGUAFRAME_AUTH_ENABLED=true
+LINGUAFRAME_AUTH_USERNAME=owner
+LINGUAFRAME_AUTH_PASSWORD=replace-with-local-password
+LINGUAFRAME_AUTH_JWT_SECRET=replace-with-at-least-32-random-chars
+scripts/demo/auth-smoke.sh
+```
+
+The browser header then shows a `Local account` sign-in form and sends `Authorization: Bearer ...` for API calls. Existing demo-token header and cookie flows still work. This is not public registration, password reset, roles, billing, or multi-user account management.
+
 ## Runtime Configuration
 
 Default backend configuration lives in `LinguaFrame/src/main/resources/application.yaml`. Local development overrides live in `LinguaFrame/src/main/resources/application-local.yaml`.
@@ -311,6 +323,12 @@ The current `linguaframe` configuration surface is bound to `LinguaFrameProperti
 - `linguaframe.media.max-duration-seconds` - default `300`, a 5-minute upload duration gate.
 - `linguaframe.demo.access-token` - empty by default; non-empty values require a matching owner-session cookie or demo access header for `/api/**`.
 - `linguaframe.demo.access-header-name` - default `X-LinguaFrame-Demo-Token`.
+- `linguaframe.auth.enabled` - default `false`; enables configured local account bearer auth when password and JWT secret are also configured.
+- `linguaframe.auth.owner-username` - default `owner`.
+- `linguaframe.auth.owner-password` - empty by default; do not commit real values.
+- `linguaframe.auth.jwt-secret` - empty by default; must be at least 32 characters to enable local auth.
+- `linguaframe.auth.token-ttl-minutes` - default `60`.
+- `linguaframe.auth.issuer` - default `linguaframe-local`.
 - `linguaframe.rate-limit.enabled` - default `false`; enables Redis-backed upload rate limiting.
 - `linguaframe.rate-limit.upload-max-requests` - default `20`, counted per client identity per window.
 - `linguaframe.rate-limit.upload-window-seconds` - default `60`.

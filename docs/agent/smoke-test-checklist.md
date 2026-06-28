@@ -182,8 +182,11 @@ http://localhost:8080/swagger-ui/index.html
 Expected browser behavior:
 
 - Swagger UI lists the primary demo API groups and the `DemoAccessToken` authorization option.
+- Swagger UI lists `BearerAuth`, and `/api/auth/session`, `/api/auth/login`, and `/api/auth/logout` appear in the OpenAPI paths.
 - When private demo access is enabled, the React header shows `Owner session required` before login.
 - Entering the configured token in `Owner access token` and choosing `Start session` changes the header to `Owner session active`; choosing `End session` clears the owner session.
+- When local account auth is configured, the React header shows `Local account required`; signing in changes it to `Local account active`, and signing out clears the stored bearer token.
+- `scripts/demo/auth-smoke.sh` writes local auth JSON under `/tmp/linguaframe-demo/local-auth/`, verifies `/api/runtime/dependencies` with a bearer token when configured, and must not print passwords, JWT secrets, bearer tokens, or demo tokens.
 - Swagger and curl API calls to `/api/**` still succeed only after sending the configured token through `X-LinguaFrame-Demo-Token`.
 - Anonymous browser requests to `/api/demo-session` remain reachable so a locked-out owner can log in, while other `/api/**` requests stay protected.
 - Choosing a file and clicking `Validate file` shows an `Upload validation` panel with backend validation code, message, filename, content type, file size versus max size, and duration versus max duration.

@@ -97,6 +97,7 @@ Public hosted usage is a later maturity target and should not drive the first im
 Stage 3 requires:
 
 - Real user authentication.
+- The current bridge is a configured local owner account with JWT bearer tokens; public registration and multi-user account lifecycle remain later work.
 - Per-user storage isolation.
 - Rate limiting and quota checks before expensive processing.
 - Cost budgets.
@@ -164,6 +165,7 @@ The first screen should be the usable upload and job dashboard. A marketing land
 The backend should provide:
 
 - JWT authentication or a local demo-user mode.
+- A local owner-account JWT bridge that coexists with the private-demo token while public authentication is still out of scope.
 - Video upload APIs.
 - Object storage abstraction.
 - MySQL-backed media, job, transcript, artifact, usage, and failure records.

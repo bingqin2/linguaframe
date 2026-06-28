@@ -4,7 +4,6 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -13,19 +12,17 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import java.io.IOException;
 
 @Component
-public class DemoAccessInterceptor implements HandlerInterceptor {
+public class LocalAuthInterceptor implements HandlerInterceptor {
 
-    public static final String ACCESS_COOKIE_NAME = "LinguaFrame-Demo-Token";
-
-    private static final String ACCESS_REQUIRED_BODY = """
-            {"error":"DEMO_ACCESS_REQUIRED","message":"Demo access token is required."}
+    private static final String AUTH_REQUIRED_BODY = """
+            {"error":"LOCAL_AUTH_REQUIRED","message":"Local account authentication is required."}
             """;
 
     private final LinguaFrameProperties properties;
     private final LocalAuthTokenService tokenService;
     private final AuthenticatedOwnerContext ownerContext;
 
-    public DemoAccessInterceptor(
+    public LocalAuthInterceptor(
             LinguaFrameProperties properties,
             LocalAuthTokenService tokenService,
             AuthenticatedOwnerContext ownerContext
@@ -38,39 +35,36 @@ public class DemoAccessInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws IOException {
-        LinguaFrameProperties.Demo demo = properties.getDemo();
-        if (!demo.isAccessGateEnabled()) {
+        ownerContext.clear();
+        if (!properties.getAuth().isLocalAuthConfigured()) {
             return true;
         }
-
-        if (demo.getAccessToken().equals(request.getHeader(demo.getAccessHeaderName()))
-                || demo.getAccessToken().equals(readCookieToken(request))) {
+        if (hasDemoAccess(request)) {
             return true;
         }
-        if (hasBearerAccess(request)) {
-            return true;
+        String authorization = request.getHeader("Authorization");
+        if (StringUtils.hasText(authorization) && authorization.startsWith("Bearer ")) {
+            try {
+                ownerContext.authenticate(tokenService.parse(authorization.substring("Bearer ".length()).trim()));
+                return true;
+            } catch (IllegalArgumentException ignored) {
+                // Fall through to a sanitized 401.
+            }
         }
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.getWriter().write(ACCESS_REQUIRED_BODY);
+        response.getWriter().write(AUTH_REQUIRED_BODY);
         return false;
     }
 
-    private boolean hasBearerAccess(HttpServletRequest request) {
-        if (!properties.getAuth().isLocalAuthConfigured()) {
+    private boolean hasDemoAccess(HttpServletRequest request) {
+        LinguaFrameProperties.Demo demo = properties.getDemo();
+        if (!demo.isAccessGateEnabled()) {
             return false;
         }
-        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (!StringUtils.hasText(authorization) || !authorization.startsWith("Bearer ")) {
-            return false;
-        }
-        try {
-            ownerContext.authenticate(tokenService.parse(authorization.substring("Bearer ".length()).trim()));
-            return true;
-        } catch (IllegalArgumentException ex) {
-            return false;
-        }
+        return demo.getAccessToken().equals(request.getHeader(demo.getAccessHeaderName()))
+                || demo.getAccessToken().equals(readCookieToken(request));
     }
 
     private String readCookieToken(HttpServletRequest request) {
@@ -79,7 +73,7 @@ public class DemoAccessInterceptor implements HandlerInterceptor {
             return null;
         }
         for (Cookie cookie : cookies) {
-            if (ACCESS_COOKIE_NAME.equals(cookie.getName())) {
+            if (DemoAccessInterceptor.ACCESS_COOKIE_NAME.equals(cookie.getName())) {
                 return cookie.getValue();
             }
         }

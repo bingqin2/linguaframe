@@ -113,6 +113,27 @@ export interface DemoSessionStatus {
   ownershipScope: string;
 }
 
+export type AuthSessionMode =
+  | 'LOCAL_AUTH_DISABLED'
+  | 'LOCAL_AUTH_REQUIRED'
+  | 'LOCAL_AUTH_ACTIVE';
+
+export interface AuthSessionStatus {
+  enabled: boolean;
+  configured: boolean;
+  authenticated: boolean;
+  ownerId: string;
+  username: string;
+  authMode: AuthSessionMode;
+}
+
+export interface AuthLoginResponse {
+  token: string;
+  tokenType: 'Bearer';
+  expiresAt: string;
+  session: AuthSessionStatus;
+}
+
 export type LocalizationJobStatus =
   | 'QUEUED'
   | 'RETRYING'

@@ -21,6 +21,14 @@ public class OpenApiConfiguration {
                                         .in(SecurityScheme.In.HEADER)
                                         .name("X-LinguaFrame-Demo-Token")
                                         .description("Private demo access header. Required only when linguaframe.demo.access-token is configured.")
+                        )
+                        .addSecuritySchemes(
+                                "BearerAuth",
+                                new SecurityScheme()
+                                        .type(SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("Local account bearer token from /api/auth/login.")
                         ))
                 .info(new Info()
                         .title("LinguaFrame API")

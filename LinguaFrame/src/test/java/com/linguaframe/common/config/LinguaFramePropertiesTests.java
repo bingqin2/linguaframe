@@ -39,6 +39,13 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getDemo().getAccessHeaderName()).isEqualTo("X-LinguaFrame-Demo-Token");
         assertThat(properties.getDemo().getOwnerId()).isEqualTo("demo-owner");
         assertThat(properties.getDemo().isAccessGateEnabled()).isFalse();
+        assertThat(properties.getAuth().isEnabled()).isFalse();
+        assertThat(properties.getAuth().getOwnerUsername()).isEqualTo("owner");
+        assertThat(properties.getAuth().getOwnerPassword()).isEmpty();
+        assertThat(properties.getAuth().getJwtSecret()).isEmpty();
+        assertThat(properties.getAuth().getTokenTtlMinutes()).isEqualTo(60);
+        assertThat(properties.getAuth().getIssuer()).isEqualTo("linguaframe-local");
+        assertThat(properties.getAuth().isLocalAuthConfigured()).isFalse();
         assertThat(properties.getRetention().isEnabled()).isFalse();
         assertThat(properties.getRetention().isDryRun()).isTrue();
         assertThat(properties.getRetention().getCompletedJobTtlDays()).isEqualTo(7);
@@ -157,6 +164,46 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getDemo().getAccessHeaderName()).isEqualTo("X-Test-Demo-Token");
                     assertThat(boundProperties.getDemo().getOwnerId()).isEqualTo("owner-alpha");
                     assertThat(boundProperties.getDemo().isAccessGateEnabled()).isTrue();
+                });
+    }
+
+    @Test
+    void bindsLocalAuthProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.auth.enabled=true",
+                        "linguaframe.auth.owner-username=alice",
+                        "linguaframe.auth.owner-password=alice-password",
+                        "linguaframe.auth.jwt-secret=0123456789abcdef0123456789abcdef",
+                        "linguaframe.auth.token-ttl-minutes=15",
+                        "linguaframe.auth.issuer=linguaframe-test"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getAuth().isEnabled()).isTrue();
+                    assertThat(boundProperties.getAuth().getOwnerUsername()).isEqualTo("alice");
+                    assertThat(boundProperties.getAuth().getOwnerPassword()).isEqualTo("alice-password");
+                    assertThat(boundProperties.getAuth().getJwtSecret())
+                            .isEqualTo("0123456789abcdef0123456789abcdef");
+                    assertThat(boundProperties.getAuth().getTokenTtlMinutes()).isEqualTo(15);
+                    assertThat(boundProperties.getAuth().getIssuer()).isEqualTo("linguaframe-test");
+                    assertThat(boundProperties.getAuth().isLocalAuthConfigured()).isTrue();
+                });
+    }
+
+    @Test
+    void doesNotConfigureLocalAuthWithShortJwtSecret() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.auth.enabled=true",
+                        "linguaframe.auth.owner-password=owner-password",
+                        "linguaframe.auth.jwt-secret=short"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getAuth().isLocalAuthConfigured()).isFalse();
                 });
     }
 

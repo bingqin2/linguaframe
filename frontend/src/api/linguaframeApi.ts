@@ -1,4 +1,6 @@
 import type {
+  AuthLoginResponse,
+  AuthSessionStatus,
   JobArtifact,
   JobComparison,
   DemoPresenterPack,
@@ -35,6 +37,7 @@ import type {
 export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
 export const DEMO_ACCESS_TOKEN_HEADER = 'X-LinguaFrame-Demo-Token';
 export const DEMO_ACCESS_TOKEN_COOKIE = 'LinguaFrame-Demo-Token';
+export const AUTH_TOKEN_STORAGE_KEY = 'linguaframe.authToken.v1';
 
 export interface ListJobsParams {
   status?: LocalizationJobStatus | 'ALL';
@@ -62,6 +65,35 @@ export async function logoutDemoSession(): Promise<DemoSessionStatus> {
   return requestJson<DemoSessionStatus>('/api/demo-session/logout', {
     method: 'POST'
   });
+}
+
+export async function getAuthSession(): Promise<AuthSessionStatus> {
+  return requestJson<AuthSessionStatus>('/api/auth/session', {
+    method: 'GET'
+  });
+}
+
+export async function loginAuthSession(username: string, password: string): Promise<AuthLoginResponse> {
+  const response = await requestJson<AuthLoginResponse>('/api/auth/login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      username: username.trim(),
+      password: password.trim()
+    })
+  });
+  writeAuthToken(window.localStorage, response.token);
+  return response;
+}
+
+export async function logoutAuthSession(): Promise<AuthSessionStatus> {
+  const status = await requestJson<AuthSessionStatus>('/api/auth/logout', {
+    method: 'POST'
+  });
+  writeAuthToken(window.localStorage, '');
+  return status;
 }
 
 export async function validateUpload(file: File): Promise<MediaUploadValidation> {
@@ -442,9 +474,12 @@ export function jobEventsUrl(jobId: string): string {
 
 export const linguaFrameApi = {
   getDemoSession,
+  getAuthSession,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
+  loginAuthSession,
+  logoutAuthSession,
   validateUpload,
   getOwnerQuotaPreflight,
   getDemoUploadReadiness,
@@ -495,11 +530,26 @@ export const linguaFrameApi = {
 };
 
 async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
-  const response = await fetch(url, withDemoAccessHeader(init));
+  const response = await fetch(url, withAccessHeaders(init));
   if (!response.ok) {
     throw new Error(await readErrorMessage(response));
   }
   return response.json() as Promise<T>;
+}
+
+export function readAuthToken(storage: Storage = window.localStorage): string {
+  return storage.getItem(AUTH_TOKEN_STORAGE_KEY)?.trim() ?? '';
+}
+
+export function writeAuthToken(storage: Storage, token: string): string {
+  const normalizedToken = token.trim();
+  if (normalizedToken.length === 0) {
+    storage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    return '';
+  }
+
+  storage.setItem(AUTH_TOKEN_STORAGE_KEY, normalizedToken);
+  return normalizedToken;
 }
 
 export function readDemoToken(storage: Storage = window.localStorage): string {
@@ -519,18 +569,24 @@ export function writeDemoToken(storage: Storage, token: string): string {
   return normalizedToken;
 }
 
-function withDemoAccessHeader(init: RequestInit): RequestInit {
-  const token = readDemoToken();
-  if (!token) {
+function withAccessHeaders(init: RequestInit): RequestInit {
+  const demoToken = readDemoToken();
+  const authToken = readAuthToken();
+  if (!demoToken && !authToken) {
     return init;
+  }
+
+  const headers = headersToRecord(init.headers);
+  if (authToken) {
+    headers.Authorization = `Bearer ${authToken}`;
+  }
+  if (demoToken) {
+    headers[DEMO_ACCESS_TOKEN_HEADER] = demoToken;
   }
 
   return {
     ...init,
-    headers: {
-      ...headersToRecord(init.headers),
-      [DEMO_ACCESS_TOKEN_HEADER]: token
-    }
+    headers
   };
 }
 

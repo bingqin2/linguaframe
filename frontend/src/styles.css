@@ -141,6 +141,10 @@ td {
   justify-items: end;
 }
 
+.auth-token-form {
+  grid-template-columns: minmax(150px, 200px) minmax(150px, 200px) auto;
+}
+
 .demo-token-form label {
   display: grid;
   gap: 5px;
