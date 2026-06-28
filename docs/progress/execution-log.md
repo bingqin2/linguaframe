@@ -3317,3 +3317,25 @@ Post-merge verification:
 - `npm --prefix frontend test -- --run App.test.tsx` passed on `main` with `Test Files 1 passed` and `Tests 84 passed`.
 - `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo acceptance gate workspace in `docs/plans/113-demo-acceptance-gate-workspace.md`.
+- Added backend `GET /api/jobs/{jobId}/demo-acceptance-gate` with required checks, warning checks, safe evidence metrics, package links, and recommended next action.
+- Added a React `Demo acceptance gate` panel with `READY`, `ATTENTION`, or `BLOCKED` status, required/warning checks, safe evidence, links, safety notes, and refresh.
+- Added `scripts/demo/demo-acceptance-gate.sh`, shared demo-client helpers, and full Tears export of `demo-acceptance-gate.json`.
+- Updated README, Docker E2E guide, target state, decisions, and this execution log with acceptance-gate usage and read-only behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 50, Failures: 0, Errors: 0, Skipped: 0`.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `npm --prefix frontend test -- --run App.test.tsx` passed with `Test Files 1 passed` and `Tests 85 passed`.
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/demo-acceptance-gate.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 586, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 150 passed`.

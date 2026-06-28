@@ -391,6 +391,17 @@ download_demo_completion_certificate_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-completion-certificate" -o "$output_path"
 }
 
+download_demo_acceptance_gate_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-acceptance-gate" -o "$output_path"
+}
+
 download_demo_share_sheet_json() {
   local base_url="$1"
   local job_id="$2"
@@ -965,6 +976,48 @@ for link in certificate.get("links", []):
     print("demoCompletionCertificateLink=" + text(link.get("kind")) + ":" + safe(link.get("url")))
 for note in certificate.get("safetyNotes", []):
     print("demoCompletionCertificateSafetyNote=" + safe(note))
+PY
+}
+
+print_demo_acceptance_gate_summary_file() {
+  local gate_path="$1"
+
+  python3 - "$gate_path" <<'PY'
+import json
+import sys
+
+gate = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "/Users/", "sk-", "provider payload", "OPENAI_API_KEY")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("demoAcceptanceGateJobId=" + text(gate.get("jobId")))
+print("demoAcceptanceGateVideoId=" + text(gate.get("videoId")))
+print("demoAcceptanceGateStatus=" + text(gate.get("gateStatus")))
+print("demoAcceptanceGateJobStatus=" + text(gate.get("jobStatus")))
+print("demoAcceptanceGateProfile=" + text(gate.get("demoProfileId") or "manual"))
+print("demoAcceptanceGateNextAction=" + safe(gate.get("recommendedNextAction")))
+for check in gate.get("checks", []):
+    print("demoAcceptanceGateCheck=" + ":".join([
+        text(check.get("key")),
+        text(check.get("status")),
+        "required=" + str(bool(check.get("required"))).lower(),
+    ]))
+for item in gate.get("evidence", []):
+    print("demoAcceptanceGateEvidence=" + text(item.get("key")) + ":" + safe(item.get("value")) + ":" + text(item.get("status")))
+for link in gate.get("links", []):
+    print("demoAcceptanceGateLink=" + text(link.get("kind")) + ":" + safe(link.get("url")))
+for note in gate.get("safetyNotes", []):
+    print("demoAcceptanceGateSafetyNote=" + safe(note))
 PY
 }
 

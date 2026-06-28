@@ -681,3 +681,11 @@ Decision: Generate demo completion certificates on demand from existing safe evi
 Reason: A completed public demo needs one final proof surface, but persisting another artifact would duplicate state already represented by delivery manifests, presenter packs, replay cards, share sheets, snapshots, run matrices, and package routes.
 
 Impact: `/api/jobs/{jobId}/demo-completion-certificate`, the browser `Demo completion certificate` panel, and `scripts/demo/demo-completion-certificate.sh` aggregate completion status, blocking checks, handoff readiness, reproducibility, evidence links, and safe next action. The certificate is read-only, metadata-only, and does not create artifacts, call providers, expose raw text, reveal local paths, or embed media bytes.
+
+## 2026-06-29
+
+Decision: Generate demo acceptance gates on demand from existing safe evidence surfaces.
+
+Reason: The demo already has proof, replay, presenter, snapshot, matrix, delivery, and evidence surfaces. Before presenting, the owner still needs one concise go/no-go answer without storing another artifact or mutating the job.
+
+Impact: `/api/jobs/{jobId}/demo-acceptance-gate`, the browser `Demo acceptance gate` panel, `scripts/demo/demo-acceptance-gate.sh`, and the full Tears script aggregate required checks, warning checks, evidence metrics, safe links, and recommended next action into `READY`, `ATTENTION`, or `BLOCKED`. The gate is read-only, metadata-only, and does not create artifacts, call providers, expose raw text, reveal local paths, or embed media bytes.

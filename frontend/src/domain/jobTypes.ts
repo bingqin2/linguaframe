@@ -1142,6 +1142,44 @@ export interface DemoCompletionCertificate {
   safetyNotes: string[];
 }
 
+export interface DemoAcceptanceGateCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  required: boolean;
+}
+
+export interface DemoAcceptanceGateEvidence {
+  key: string;
+  label: string;
+  value: string;
+  status: string;
+}
+
+export interface DemoAcceptanceGateLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoAcceptanceGate {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  gateStatus: string;
+  jobStatus: LocalizationJobStatus;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  headline: string;
+  summary: string;
+  recommendedNextAction: string;
+  checks: DemoAcceptanceGateCheck[];
+  evidence: DemoAcceptanceGateEvidence[];
+  links: DemoAcceptanceGateLink[];
+  safetyNotes: string[];
+}
+
 export interface DemoShareSheetLink {
   kind: string;
   label: string;

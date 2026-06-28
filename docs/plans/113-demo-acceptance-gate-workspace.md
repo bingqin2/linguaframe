@@ -107,3 +107,11 @@ Warning checks:
 - The gate clearly says `READY`, `ATTENTION`, or `BLOCKED` with actionable reasons.
 - The full Tears demo exports the gate JSON automatically.
 - The feature branch is verified, committed, merged back to `main`, and post-merge validation is recorded.
+
+## Execution Status
+
+- Backend aggregate, controller route, service tests, and controller tests are implemented.
+- Browser API types, client method, selected-job panel, and App test coverage are implemented.
+- Terminal helper, standalone script, full Tears export, and shell tests are implemented.
+- README, Docker E2E guide, target state, decisions, and execution log are updated.
+- Final full-suite, commit, merge, and post-merge validation remain before closing this feature.
