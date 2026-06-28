@@ -116,4 +116,4 @@
 - [x] Run `cd frontend && npm run build`.
 - [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit on `private-demo-launch-rehearsal`, then merge back to `main` after validation.
+- [x] Commit on `private-demo-launch-rehearsal`, then merge back to `main` after validation.
