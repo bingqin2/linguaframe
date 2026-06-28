@@ -28,6 +28,12 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
+- Feature commit `a3a7268` was merged to `main` with merge commit `a804a73`.
+- Post-merge `mvn -pl LinguaFrame test` passed with `Tests run: 483, Failures: 0, Errors: 0, Skipped: 0`.
+- Post-merge `cd frontend && npm test -- --run` passed with `Tests 121 passed`.
+- Post-merge `cd frontend && npm run build` passed.
+- Post-merge `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- Post-merge `git diff --check` passed.
 
 ## 2026-06-28
 
