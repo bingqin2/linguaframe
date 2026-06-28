@@ -93,6 +93,8 @@ Use public, attributable media when testing the end-to-end pipeline:
 - [NASA Image and Video Library](https://images.nasa.gov/) is useful for technology-themed demos, especially space, rocket, and mission explainer videos. Check each asset's metadata and license before using it.
 - [Internet Archive Movies](https://archive.org/details/movies) can provide public-domain or Creative Commons newsreels, documentaries, and speech clips for realistic voice testing. Check the license on each item before download.
 
+The browser `Demo sample media` panel and `scripts/demo/demo-sample-media-catalog.sh` expose the same list with attribution, configured local sample availability, upload duration limit, and safe demo commands. The catalog is read-only: it does not download media, edit `.env`, upload files, start Docker, or call OpenAI.
+
 ## Current Foundation Commands
 
 Run Maven commands from the repository root:
@@ -138,11 +140,12 @@ Lower-level private demo commands:
 docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/upload-readiness.sh
+scripts/demo/demo-sample-media-catalog.sh
 scripts/demo/docker-e2e-success.sh
 scripts/demo/docker-e2e-cache-hit.sh
 ```
 
-The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, owner-session login/logout, optional demo-token header behavior, and configured sample video paths before any media upload or paid provider call.
+The preflight checks required commands, `.env`, Docker Compose rendering, backend health, backend runtime freshness, live dependency reachability, frontend reachability, owner-session login/logout, optional demo-token header behavior, and configured sample video paths before any media upload or paid provider call. Use the sample media catalog when you need to choose a public sample or verify whether `LINGUAFRAME_TEARS_SAMPLE_PATH` / `LINGUAFRAME_DEMO_SAMPLE_PATH` is configured without printing full local paths.
 
 Owner quota preflight is available before uploads:
 

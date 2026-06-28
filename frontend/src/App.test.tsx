@@ -8,6 +8,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DeliveryManifest,
+  DemoSampleMediaCatalog,
   DemoRunMonitor,
   DemoRunSnapshot,
   DemoPresenterPack,
@@ -89,6 +90,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getPrivateDemoRunArchive').mockResolvedValue(
       privateDemoRunArchiveFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getDemoSampleMediaCatalog').mockResolvedValue(
+      demoSampleMediaCatalogFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -1145,6 +1149,41 @@ describe('App', () => {
     expect(within(readiness).getByText('Owner session')).toBeInTheDocument();
     expect(within(readiness).getByText('Upload can start after file validation passes.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /upload/i })).toBeEnabled();
+  });
+
+  test('shows demo sample media catalog without exposing local paths', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoSampleMediaCatalog').mockResolvedValue(
+      demoSampleMediaCatalogFixture({
+        configuredPaths: [
+          {
+            envVar: 'LINGUAFRAME_TEARS_SAMPLE_PATH',
+            status: 'CONFIGURED',
+            filename: 'tos_casting-720p.mp4',
+            extension: 'mp4',
+            sizeBytes: 1024,
+            message: 'Configured sample exists.',
+            fullPathExposed: false
+          }
+        ]
+      })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', { name: /demo sample media/i });
+    expect(within(panel).getByText('READY')).toBeInTheDocument();
+    expect(within(panel).getByText('tears-of-steel-casting')).toBeInTheDocument();
+    expect(within(panel).getAllByText(/300 seconds/i).length).toBeGreaterThanOrEqual(1);
+    expect(within(panel).getByText('Tears of Steel casting clip')).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: /Blender Studio/i })).toHaveAttribute(
+      'href',
+      'https://studio.blender.org/films/tears-of-steel/'
+    );
+    expect(within(panel).getByText('LINGUAFRAME_TEARS_SAMPLE_PATH')).toBeInTheDocument();
+    expect(within(panel).getByText('tos_casting-720p.mp4')).toBeInTheDocument();
+    expect(within(panel).getByText('scripts/demo/docker-e2e-tears-of-steel-full.sh')).toBeInTheDocument();
+    expect(panel).not.toHaveTextContent('/Users/');
+    expect(panel).not.toHaveTextContent('Downloads');
   });
 
   test('keeps upload enabled when readiness needs attention but is not blocked', async () => {
@@ -3765,6 +3804,70 @@ function demoUploadReadinessFixture(
     ],
     requiredActions: ['Upload can start after file validation passes.'],
     evidenceRoutes: ['/api/media/uploads/readiness', '/api/media/uploads/preflight'],
+    ...overrides
+  };
+}
+
+function demoSampleMediaCatalogFixture(
+  overrides: Partial<DemoSampleMediaCatalog> = {}
+): DemoSampleMediaCatalog {
+  return {
+    generatedAt: '2026-06-29T08:00:00Z',
+    overallStatus: 'READY',
+    uploadDurationLimitSeconds: 300,
+    recommendedSampleId: 'tears-of-steel-casting',
+    items: [
+      {
+        id: 'tears-of-steel-casting',
+        title: 'Tears of Steel casting clip',
+        source: 'Blender Studio',
+        sourceUrl: 'https://studio.blender.org/films/tears-of-steel/',
+        attribution: 'Credit Blender Studio / Tears of Steel.',
+        licenseGuidance: 'Check the Blender Studio page before sharing.',
+        recommendedUse: 'Best full local product demo.',
+        durationGuidance: 'Current local casting sample is intended to stay complete and under 300 seconds.',
+        command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        tags: ['recommended', 'dialogue']
+      },
+      {
+        id: 'big-buck-bunny-w3schools',
+        title: 'Big Buck Bunny / W3Schools sample',
+        source: 'W3Schools sample video',
+        sourceUrl: 'https://www.w3schools.com/html/mov_bbb.mp4',
+        attribution: 'Courtesy of Big Buck Bunny.',
+        licenseGuidance: 'Confirm attribution before external presentation.',
+        recommendedUse: 'Fast upload and pipeline check.',
+        durationGuidance: 'Short sample should fit within 300 seconds.',
+        command: 'LINGUAFRAME_DEMO_SAMPLE_PATH=/path/to/mov_bbb.mp4 scripts/demo/docker-e2e-success.sh',
+        tags: ['quick-smoke']
+      }
+    ],
+    configuredPaths: [
+      {
+        envVar: 'LINGUAFRAME_TEARS_SAMPLE_PATH',
+        status: 'UNCONFIGURED',
+        filename: '',
+        extension: '',
+        sizeBytes: null,
+        message: 'Sample path is not configured.',
+        fullPathExposed: false
+      }
+    ],
+    commands: [
+      {
+        label: 'Run full Tears sample',
+        command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        description: 'Process the configured complete Tears sample.'
+      }
+    ],
+    notesMarkdown: '# LinguaFrame Demo Sample Media Catalog',
+    documentationLinks: [
+      {
+        label: 'Demo references',
+        path: 'docs/product/demo-references.md',
+        detail: 'Public sample sources.'
+      }
+    ],
     ...overrides
   };
 }

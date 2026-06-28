@@ -17,6 +17,7 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getDemoSampleMediaCatalog,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
   getPrivateDemoLaunchRehearsal,
@@ -880,6 +881,63 @@ describe('linguaframeApi', () => {
     expect(rehearsal.recommendedNextStepId).toBe('openai-preflight');
     expect(rehearsal.steps[0]?.id).toBe('deploy-preflight');
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/launch-rehearsal', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches demo sample media catalog with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-29T08:00:00Z',
+        overallStatus: 'READY',
+        uploadDurationLimitSeconds: 300,
+        recommendedSampleId: 'tears-of-steel-casting',
+        items: [
+          {
+            id: 'tears-of-steel-casting',
+            title: 'Tears of Steel casting clip',
+            source: 'Blender Studio',
+            sourceUrl: 'https://studio.blender.org/films/tears-of-steel/',
+            attribution: 'Credit Blender Studio.',
+            licenseGuidance: 'Check the Blender Studio page.',
+            recommendedUse: 'Full local demo.',
+            durationGuidance: 'Under 300 seconds.',
+            command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+            tags: ['recommended']
+          }
+        ],
+        configuredPaths: [
+          {
+            envVar: 'LINGUAFRAME_TEARS_SAMPLE_PATH',
+            status: 'CONFIGURED',
+            filename: 'tos_casting-720p.mp4',
+            extension: 'mp4',
+            sizeBytes: 1024,
+            message: 'Configured sample exists.',
+            fullPathExposed: false
+          }
+        ],
+        commands: [
+          {
+            label: 'Run full Tears sample',
+            command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+            description: 'Run the full demo.'
+          }
+        ],
+        notesMarkdown: '# Catalog',
+        documentationLinks: []
+      })
+    );
+
+    const catalog = await getDemoSampleMediaCatalog();
+
+    expect(catalog.recommendedSampleId).toBe('tears-of-steel-casting');
+    expect(catalog.configuredPaths[0]?.fullPathExposed).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-sample-media-catalog', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

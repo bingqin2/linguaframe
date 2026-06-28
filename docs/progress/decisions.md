@@ -649,3 +649,11 @@ Decision: Generate demo run snapshots on demand as static metadata-only reviewer
 Reason: The demo now has a browser share sheet, run monitor, presenter pack, delivery manifest, diagnostics, and evidence outputs. A reviewer needs one offline folder with an HTML entry point without creating another persisted artifact or exposing source/generated media.
 
 Impact: `/api/jobs/{jobId}/demo-run-snapshot` previews readiness, sections, entries, links, and exclusion policy. `/api/jobs/{jobId}/demo-run-snapshot/download` returns a ZIP with `index.html`, `manifest.json`, `README.md`, share sheet, run monitor, presenter pack JSON, delivery manifest, diagnostics, and evidence. Browser and terminal demos expose the package, while scripts validate required entries and forbidden sensitive markers.
+
+## 2026-06-29
+
+Decision: Expose demo sample media as a read-only catalog instead of auto-downloading public videos.
+
+Reason: The demo needs repeatable public media choices with attribution and local availability checks, but the app should not mutate local files, fetch remote media, upload samples, or reveal the owner's filesystem.
+
+Impact: `/api/operator/demo-sample-media-catalog`, the browser `Demo sample media` panel, and `scripts/demo/demo-sample-media-catalog.sh` show sample recommendations, source/license guidance, upload duration limits, safe commands, and sanitized configured-path status. The catalog reports basenames, extensions, sizes, and status only; it does not expose full local paths or perform downloads.

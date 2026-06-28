@@ -32,6 +32,27 @@ Post-merge validation on `main`:
 - `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed with `Test Files 2 passed` and `Tests 136 passed`.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 
+## 2026-06-29
+
+Work:
+
+- Planned the demo sample media catalog workspace in `docs/plans/109-demo-sample-media-catalog-workspace.md`.
+- Added backend `GET /api/operator/demo-sample-media-catalog` with public sample recommendations, attribution guidance, duration-limit metadata, sanitized configured-path status, and safe commands.
+- Added a React `Demo sample media` panel near upload readiness.
+- Added `scripts/demo/demo-sample-media-catalog.sh`, shared shell helpers, and private-demo preflight guidance.
+- Updated README, demo references, Docker E2E guide, smoke checklist, decisions, and this execution log with sample catalog behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSampleMediaCatalogServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` first failed because catalog types and service did not exist, then passed with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` first failed because `getDemoSampleMediaCatalog` did not exist, then passed with `Test Files 2 passed` and `Tests 138 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_demo_sample_media_catalog_json` did not exist, then passed.
+- `bash -n scripts/demo/demo-sample-media-catalog.sh scripts/demo/private-demo-preflight.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 568, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 145 passed`.
+- `cd frontend && npm run build` first failed on a test fixture field mismatch, then passed.
+- `git diff --check` passed.
+
 Post-merge verification:
 
 - Merged `live-demo-run-monitor-workspace` back to `main` with merge commit.

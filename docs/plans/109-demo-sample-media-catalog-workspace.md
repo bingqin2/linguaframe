@@ -50,10 +50,10 @@
 - Configured paths include `LINGUAFRAME_DEMO_SAMPLE_PATH` and `LINGUAFRAME_TEARS_SAMPLE_PATH`, sanitized as basename/status/size only.
 - Overall status is `READY` when a recommended local sample is configured and exists under the duration-limit guidance, `ATTENTION` when only remote references are available, and `BLOCKED` only when runtime metadata cannot be read.
 
-- [ ] Write failing service tests for ready local Tears sample metadata, unconfigured remote-only attention, missing configured path, duration-limit messaging, and local-path redaction.
-- [ ] Write failing controller/OpenAPI/runtime-contract tests for `GET /api/operator/demo-sample-media-catalog`.
-- [ ] Implement VO records, service composition from runtime properties and safe static catalog metadata, controller route, and runtime required-route entry.
-- [ ] Run focused backend tests for service, controller, OpenAPI, and runtime dependency coverage.
+- [x] Write failing service tests for ready local Tears sample metadata, unconfigured remote-only attention, missing configured path, duration-limit messaging, and local-path redaction.
+- [x] Write failing controller/OpenAPI/runtime-contract tests for `GET /api/operator/demo-sample-media-catalog`.
+- [x] Implement VO records, service composition from runtime properties and safe static catalog metadata, controller route, and runtime required-route entry.
+- [x] Run focused backend tests for service, controller, OpenAPI, and runtime dependency coverage.
 
 ## Task 2: Browser Sample Catalog Workspace
 
@@ -70,10 +70,10 @@
 - Refresh catalog on page load, owner-session changes, upload-readiness refresh, and manual refresh.
 - Keep upload controls independent: catalog `ATTENTION` must not block upload.
 
-- [ ] Write failing API test for `getDemoSampleMediaCatalog()` with stored demo token header.
-- [ ] Write failing App test that renders the panel, recommended sample, attribution links, redacted path status, duration limit, and command copy.
-- [ ] Implement TypeScript interfaces, API client method, and React panel.
-- [ ] Run focused frontend tests.
+- [x] Write failing API test for `getDemoSampleMediaCatalog()` with stored demo token header.
+- [x] Write failing App test that renders the panel, recommended sample, attribution links, redacted path status, duration limit, and command copy.
+- [x] Implement TypeScript interfaces, API client method, and React panel.
+- [x] Run focused frontend tests.
 
 ## Task 3: Terminal Catalog Export Script
 
@@ -89,10 +89,10 @@
 - Summary lines include `sampleCatalogOverall`, `sampleCatalogRecommended`, `sampleCatalogDurationLimitSeconds`, one line per configured path status, and one line per recommended command.
 - `private-demo-preflight.sh` should mention the catalog script alongside upload readiness when sample paths are unconfigured or missing.
 
-- [ ] Add failing shell helper tests for catalog download, summary output, path redaction, command output, and blocked exit behavior.
-- [ ] Implement shared helper functions and the catalog script.
-- [ ] Integrate the catalog command into private-demo preflight guidance without changing upload or Docker behavior.
-- [ ] Run shell tests and syntax checks.
+- [x] Add failing shell helper tests for catalog download, summary output, path redaction, command output, and blocked exit behavior.
+- [x] Implement shared helper functions and the catalog script.
+- [x] Integrate the catalog command into private-demo preflight guidance without changing upload or Docker behavior.
+- [x] Run shell tests and syntax checks.
 
 ## Task 4: Documentation, Validation, And Merge
 
@@ -115,8 +115,8 @@
 - `cd frontend && npm run build`
 - `git diff --check`
 
-- [ ] Document when to use each sample source, how to verify local sample availability, and why the catalog does not download media automatically.
-- [ ] Record validation evidence in the execution log.
+- [x] Document when to use each sample source, how to verify local sample availability, and why the catalog does not download media automatically.
+- [x] Record validation evidence in the execution log.
 - [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
 
 ## Plan Self-Review

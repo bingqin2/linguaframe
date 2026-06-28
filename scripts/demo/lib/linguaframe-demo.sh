@@ -435,6 +435,14 @@ download_upload_readiness_json() {
   demo_curl -fsS "$base_url/api/media/uploads/readiness$query" -o "$output_path"
 }
 
+download_demo_sample_media_catalog_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-sample-media-catalog" -o "$output_path"
+}
+
 download_runtime_dependencies_json() {
   local base_url="$1"
   local output_path="$2"
@@ -535,6 +543,51 @@ for action in readiness.get("requiredActions", []):
     print("uploadReadinessRequiredAction=" + text(action))
 for route in readiness.get("evidenceRoutes", []):
     print("uploadReadinessEvidenceRoute=" + text(route))
+PY
+}
+
+print_demo_sample_media_catalog_summary_file() {
+  local catalog_path="$1"
+
+  python3 - "$catalog_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    catalog = json.load(handle)
+
+def text(value):
+    return "" if value is None else str(value)
+
+def safe(value):
+    return text(value).replace("\n", " ").replace("\r", " ").strip()
+
+print("sampleCatalogOverall=" + text(catalog.get("overallStatus")))
+print("sampleCatalogRecommended=" + text(catalog.get("recommendedSampleId")))
+print("sampleCatalogDurationLimitSeconds=" + text(catalog.get("uploadDurationLimitSeconds")))
+print("sampleCatalogGeneratedAt=" + text(catalog.get("generatedAt")))
+for path in catalog.get("configuredPaths", []):
+    print(
+        "sampleCatalogPath="
+        + safe(path.get("envVar"))
+        + ":"
+        + safe(path.get("status"))
+        + ":"
+        + safe(path.get("filename"))
+        + ":"
+        + text(path.get("sizeBytes"))
+    )
+for item in catalog.get("items", []):
+    print(
+        "sampleCatalogItem="
+        + safe(item.get("id"))
+        + ":"
+        + safe(item.get("source"))
+        + ":"
+        + safe(item.get("title"))
+    )
+for command in catalog.get("commands", []):
+    print("sampleCatalogCommand=" + safe(command.get("command")))
 PY
 }
 

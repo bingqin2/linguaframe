@@ -92,6 +92,47 @@ export interface DemoUploadReadiness {
   evidenceRoutes: string[];
 }
 
+export interface DemoSampleMediaCatalog {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  uploadDurationLimitSeconds: number;
+  recommendedSampleId: string;
+  items: DemoSampleMediaItem[];
+  configuredPaths: DemoSampleMediaConfiguredPath[];
+  commands: DemoSampleMediaCommand[];
+  notesMarkdown: string;
+  documentationLinks: PrivateDemoOperationsLink[];
+}
+
+export interface DemoSampleMediaItem {
+  id: string;
+  title: string;
+  source: string;
+  sourceUrl: string;
+  attribution: string;
+  licenseGuidance: string;
+  recommendedUse: string;
+  durationGuidance: string;
+  command: string;
+  tags: string[];
+}
+
+export interface DemoSampleMediaConfiguredPath {
+  envVar: string;
+  status: 'CONFIGURED' | 'MISSING' | 'UNCONFIGURED';
+  filename: string;
+  extension: string;
+  sizeBytes: number | null;
+  message: string;
+  fullPathExposed: boolean;
+}
+
+export interface DemoSampleMediaCommand {
+  label: string;
+  command: string;
+  description: string;
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;
