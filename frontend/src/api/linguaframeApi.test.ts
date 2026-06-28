@@ -5,6 +5,7 @@ import {
   artifactArchiveDownloadUrl,
   artifactDownloadUrl,
   getJob,
+  getSubtitleReview,
   jobDiagnosticsDownloadUrl,
   jobEvidenceBundleDownloadUrl,
   jobEvidenceMarkdownDownloadUrl,
@@ -580,6 +581,46 @@ describe('linguaframeApi', () => {
     expect(artifacts[0]?.sourceArtifactId).toBe('source-artifact-1');
     expect(artifactDownloadUrl('job-1', 'artifact-1')).toBe(
       '/api/jobs/job-1/artifacts/artifact-1/download'
+    );
+  });
+
+  test('fetches subtitle review summary with encoded job id and language query', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-1',
+        targetLanguage: 'zh-CN',
+        segmentCount: 2,
+        missingTargetCount: 0,
+        timingMismatchCount: 1,
+        averageDurationMs: 1200,
+        maxDurationMs: 1600,
+        qualityScore: 88,
+        qualityVerdict: 'NEEDS_REVIEW',
+        qualityIssueCount: 1,
+        qualitySuggestedFixCount: 1,
+        downloadableSubtitleArtifactCount: 3,
+        segments: [
+          {
+            index: 0,
+            startMs: 0,
+            endMs: 1000,
+            sourceText: 'Hello.',
+            targetText: '你好。',
+            durationMs: 1000,
+            timingDeltaMs: 0,
+            status: 'ALIGNED'
+          }
+        ]
+      })
+    );
+
+    const review = await getSubtitleReview('job with/slash', 'zh-CN');
+
+    expect(review.segmentCount).toBe(2);
+    expect(review.segments[0]?.status).toBe('ALIGNED');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%2Fslash/subtitle-review?language=zh-CN',
+      { method: 'GET' }
     );
   });
 

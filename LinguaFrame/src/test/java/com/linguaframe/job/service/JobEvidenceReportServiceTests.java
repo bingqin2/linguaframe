@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.enums.FailureTriageCategory;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.SubtitleReviewSegmentStatus;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -11,6 +12,8 @@ import com.linguaframe.job.domain.vo.JobPipelineProgressVo;
 import com.linguaframe.job.domain.vo.JobStageProgressVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewSegmentVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.service.impl.JobEvidenceReportServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -25,7 +28,11 @@ import static org.mockito.Mockito.when;
 class JobEvidenceReportServiceTests {
 
     private final LocalizationJobQueryService queryService = mock(LocalizationJobQueryService.class);
-    private final JobEvidenceReportServiceImpl service = new JobEvidenceReportServiceImpl(queryService);
+    private final SubtitleReviewService subtitleReviewService = mock(SubtitleReviewService.class);
+    private final JobEvidenceReportServiceImpl service = new JobEvidenceReportServiceImpl(
+            queryService,
+            subtitleReviewService
+    );
 
     @Test
     void markdownReportIncludesFailureTriageWhenPresent() {
@@ -37,6 +44,8 @@ class JobEvidenceReportServiceTests {
                 "scripts/demo/openai-demo-preflight.sh",
                 List.of("failureStage=TARGET_SUBTITLE_EXPORT")
         )));
+        when(subtitleReviewService.buildReview("job-evidence-triage", "zh-CN"))
+                .thenReturn(subtitleReview());
 
         String markdown = service.buildMarkdownReport("job-evidence-triage");
 
@@ -47,6 +56,13 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Pipeline completed: 2 / 10");
         assertThat(markdown).contains("- Pipeline measured time: 1700 ms");
         assertThat(markdown).contains("- Pipeline slowest stage: TARGET_SUBTITLE_EXPORT / 1500 ms");
+        assertThat(markdown).contains("- Subtitle review segments: 2");
+        assertThat(markdown).contains("- Subtitle review missing targets: 1");
+        assertThat(markdown).contains("- Subtitle review timing mismatches: 1");
+        assertThat(markdown).contains("- Subtitle review quality: 88 / 100, NEEDS_REVIEW");
+        assertThat(markdown).contains("- Subtitle review downloadable subtitle artifacts: 3");
+        assertThat(markdown).doesNotContain("raw source text");
+        assertThat(markdown).doesNotContain("raw target text");
         assertThat(markdown).doesNotContain("sk-");
         assertThat(markdown).doesNotContain("/Users/");
         assertThat(markdown).doesNotContain("provider request payload");
@@ -55,11 +71,40 @@ class JobEvidenceReportServiceTests {
     @Test
     void markdownReportOmitsFailureTriageWhenAbsent() {
         when(queryService.getDiagnosticsReport("job-evidence-complete")).thenReturn(report(null));
+        when(subtitleReviewService.buildReview("job-evidence-triage", "zh-CN"))
+                .thenReturn(subtitleReview());
 
         String markdown = service.buildMarkdownReport("job-evidence-complete");
 
         assertThat(markdown).doesNotContain("Failure triage");
         assertThat(markdown).doesNotContain("Failure runbook");
+    }
+
+    private SubtitleReviewSummaryVo subtitleReview() {
+        return new SubtitleReviewSummaryVo(
+                "job-evidence-triage",
+                "zh-CN",
+                2,
+                1,
+                1,
+                1000,
+                1000,
+                88,
+                "NEEDS_REVIEW",
+                1,
+                1,
+                3,
+                List.of(new SubtitleReviewSegmentVo(
+                        0,
+                        0,
+                        1000,
+                        "raw source text",
+                        "raw target text",
+                        1000,
+                        0,
+                        SubtitleReviewSegmentStatus.ALIGNED
+                ))
+        );
     }
 
     private JobDiagnosticsReportVo report(FailureTriageVo triage) {

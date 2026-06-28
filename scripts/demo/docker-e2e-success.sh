@@ -42,6 +42,8 @@ echo "Transcript preview for job $job_id:"
 get_job_transcript "$BASE_URL" "$job_id" | python3 -m json.tool
 echo "Target subtitle preview for job $job_id:"
 get_job_subtitles "$BASE_URL" "$job_id" "zh-CN" | python3 -m json.tool
+echo "Subtitle review summary for job $job_id:"
+get_job_subtitle_review "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_review_summary
 download_artifact_by_type "$BASE_URL" "$job_id" EXTRACTED_AUDIO "$AUDIO_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" TRANSCRIPT_JSON "$TRANSCRIPT_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" SUBTITLE_SRT "$SRT_PATH"

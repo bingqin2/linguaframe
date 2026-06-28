@@ -425,3 +425,32 @@ export interface SubtitleSegment {
   endMs: number;
   text: string;
 }
+
+export type SubtitleReviewSegmentStatus = 'ALIGNED' | 'MISSING_TARGET' | 'TIMING_MISMATCH';
+
+export interface SubtitleReviewSummary {
+  jobId: string;
+  targetLanguage: string;
+  segmentCount: number;
+  missingTargetCount: number;
+  timingMismatchCount: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  qualityIssueCount: number;
+  qualitySuggestedFixCount: number;
+  downloadableSubtitleArtifactCount: number;
+  segments: SubtitleReviewSegment[];
+}
+
+export interface SubtitleReviewSegment {
+  index: number;
+  startMs: number;
+  endMs: number;
+  sourceText: string;
+  targetText: string | null;
+  durationMs: number;
+  timingDeltaMs: number;
+  status: SubtitleReviewSegmentStatus;
+}

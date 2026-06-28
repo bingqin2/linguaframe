@@ -173,10 +173,56 @@ JSON
   [[ "$output" == *"diagnosticsPipelineTotalMeasuredDurationMs=2400"* ]] || fail "diagnostics summary missed pipeline measured duration"
 }
 
+test_print_subtitle_review_summary_is_metadata_only() {
+  cat >"$TMPDIR/subtitle-review.json" <<'JSON'
+{
+  "jobId": "job-review",
+  "targetLanguage": "zh-CN",
+  "segmentCount": 2,
+  "missingTargetCount": 1,
+  "timingMismatchCount": 1,
+  "averageDurationMs": 1000,
+  "maxDurationMs": 1400,
+  "qualityScore": 88,
+  "qualityVerdict": "NEEDS_REVIEW",
+  "qualityIssueCount": 1,
+  "qualitySuggestedFixCount": 1,
+  "downloadableSubtitleArtifactCount": 3,
+  "segments": [
+    {
+      "index": 0,
+      "startMs": 0,
+      "endMs": 1000,
+      "sourceText": "raw transcript text",
+      "targetText": "raw subtitle text",
+      "durationMs": 1000,
+      "timingDeltaMs": 0,
+      "status": "ALIGNED"
+    }
+  ]
+}
+JSON
+
+  print_subtitle_review_summary <"$TMPDIR/subtitle-review.json" >"$TMPDIR/subtitle-review.out"
+  local output
+  output="$(cat "$TMPDIR/subtitle-review.out")"
+
+  [[ "$output" == *"subtitleReviewJobId=job-review"* ]] || fail "subtitle review summary missed job id"
+  [[ "$output" == *"subtitleReviewLanguage=zh-CN"* ]] || fail "subtitle review summary missed language"
+  [[ "$output" == *"subtitleReviewSegmentCount=2"* ]] || fail "subtitle review summary missed segment count"
+  [[ "$output" == *"subtitleReviewMissingTargetCount=1"* ]] || fail "subtitle review summary missed missing count"
+  [[ "$output" == *"subtitleReviewTimingMismatchCount=1"* ]] || fail "subtitle review summary missed timing count"
+  [[ "$output" == *"subtitleReviewQuality=88 / 100, NEEDS_REVIEW"* ]] || fail "subtitle review summary missed quality"
+  [[ "$output" == *"subtitleReviewSubtitleArtifactCount=3"* ]] || fail "subtitle review summary missed artifact count"
+  [[ "$output" != *"raw transcript text"* ]] || fail "subtitle review summary exposed raw transcript text"
+  [[ "$output" != *"raw subtitle text"* ]] || fail "subtitle review summary exposed raw subtitle text"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
+test_print_subtitle_review_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

@@ -46,11 +46,13 @@ http://localhost:8080/swagger-ui/index.html
 
 The OpenAPI document at `http://localhost:8080/v3/api-docs` should include the upload, job, progress event, retry/cancel, artifact, diagnostics, transcript, subtitle, demo-session, runtime, prompt-template, operator, and retention cleanup APIs. When `LINGUAFRAME_DEMO_ACCESS_TOKEN` is configured, use the React header `Owner access token` form to start a browser owner session. For Swagger and curl, use Swagger UI's `Authorize` action with the `DemoAccessToken` API key value; Swagger and `/v3/api-docs` stay public, while `/api/**` calls require the owner-session cookie or `X-LinguaFrame-Demo-Token`.
 
-The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, failure triage, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
+The React demo validates selected videos through `/api/media/uploads/validate` before upload, uploads valid videos to `/api/media/uploads`, stores recent uploaded job ids in browser local storage, polls `GET /api/jobs/{jobId}`, and renders timeline events, usage summary, result delivery, subtitle review, failure triage, model-call records, transcript/subtitle previews, artifacts, media previews, downloads, and failed-job retry.
 
 Before uploading, check the browser `Demo runbook`, `Live checks`, and upload form `Validate file` result. The runbook shows the one-command startup path, short/cache/full E2E commands, local frontend and backend health URLs, sample-media guidance, and current runtime constraints such as upload duration, provider modes, budget guard, and subtitle burn-in state. The live-check panel should show database, Redis, RabbitMQ, MinIO, and FFmpeg as `UP`, `DOWN`, or `SKIPPED`. The upload validation panel should show the selected file's validation code, message, size, duration, and configured limits before any job is created.
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
+
+Check the read-only `Subtitle review` panel after transcript and target subtitles load. It should show segment count, missing target count, timing mismatch count, average and max duration, quality score/verdict, downloadable subtitle artifact count, and source/target comparison rows. Evidence exports and terminal summaries should include only subtitle-review metadata, not raw transcript or subtitle text.
 
 Check the `Pipeline progress` panel during short, full-video, cache-hit, and OpenAI smoke runs. It is derived from `job_timeline_events` and does not change worker execution. It should show current stage, completed stage count, terminal state, total measured stage duration, slowest stage, and compact per-stage status/duration rows. Use the detailed `Timeline` panel when you need event-level evidence.
 
@@ -137,6 +139,11 @@ pipelineSlowestStage=...
 modelCallCount=2
 failedModelCallCount=0
 estimatedCostUsd=0E-8
+subtitleReviewSegmentCount=...
+subtitleReviewMissingTargetCount=...
+subtitleReviewTimingMismatchCount=...
+subtitleReviewQuality=...
+subtitleReviewSubtitleArtifactCount=...
 - MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED
 - MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED
 - WORKER_RECEIVED STARTED

@@ -15,7 +15,8 @@ import type {
   PromptTemplate,
   RetentionCleanupResult,
   RuntimeDependencySummary,
-  RuntimeLiveCheckSummary
+  RuntimeLiveCheckSummary,
+  SubtitleReviewSummary
 } from './domain/jobTypes';
 
 class FakeEventSource {
@@ -51,6 +52,7 @@ describe('App', () => {
       retentionCleanupResultFixture()
     );
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
+    vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
   });
 
   test('shows demo readiness configuration in the sidebar', async () => {
@@ -952,7 +954,7 @@ describe('App', () => {
     const selectedJob = screen.getByRole('region', { name: /selected job/i });
     expect(within(selectedJob).getByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
     expect(within(selectedJob).getByText('FAILED')).toBeInTheDocument();
-    expect(within(selectedJob).getByText('1')).toBeInTheDocument();
+    expect(within(selectedJob).getByText('Retries').nextElementSibling).toHaveTextContent('1');
   });
 
   test('cancels active jobs and refreshes server history', async () => {
@@ -1160,6 +1162,15 @@ describe('App', () => {
     expect(within(subtitles).getByText('第一行字幕')).toBeInTheDocument();
     expect(within(subtitles).getByText('zh-CN')).toBeInTheDocument();
 
+    const review = screen.getByRole('region', { name: /subtitle review/i });
+    expect(within(review).getByText('First source line')).toBeInTheDocument();
+    expect(within(review).getByText('第一行字幕')).toBeInTheDocument();
+    expect(within(review).getByText('Second source line')).toBeInTheDocument();
+    expect(within(review).getByText('Timing mismatch')).toBeInTheDocument();
+    expect(within(review).getByText('400 ms')).toBeInTheDocument();
+    expect(within(review).getByText('88 / 100 · NEEDS_REVIEW')).toBeInTheDocument();
+    expect(within(review).getByText('3 files')).toBeInTheDocument();
+
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('3 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('1 reused')).toBeInTheDocument();
@@ -1261,6 +1272,23 @@ describe('App', () => {
         createdAt: '2026-06-26T10:00:05Z'
       }
     ]);
+    vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(
+      subtitleReviewFixture({
+        jobId: 'evidence-job',
+        segments: [
+          {
+            index: 0,
+            startMs: 0,
+            endMs: 1200,
+            sourceText: 'Sensitive review source line that must not be exported',
+            targetText: '敏感审核字幕不能导出',
+            durationMs: 1200,
+            timingDeltaMs: 0,
+            status: 'ALIGNED'
+          }
+        ]
+      })
+    );
 
     render(<App />);
 
@@ -1276,6 +1304,9 @@ describe('App', () => {
     expect(evidenceText).toContain('Artifacts: 1');
     expect(evidenceText).toContain('Transcript preview segments: 1');
     expect(evidenceText).toContain('Subtitle preview segments: 1');
+    expect(evidenceText).toContain('Subtitle review segments: 2');
+    expect(evidenceText).toContain('Subtitle review timing mismatches: 1');
+    expect(evidenceText).toContain('Subtitle review quality: 88 / 100, NEEDS_REVIEW');
     expect(evidenceText).toContain('Pipeline current stage: TARGET_SUBTITLE_EXPORT');
     expect(evidenceText).toContain('Pipeline completed: 2 / 10');
     expect(evidenceText).toContain('Pipeline slowest stage: TARGET_SUBTITLE_EXPORT (1.5 s)');
@@ -1291,18 +1322,43 @@ describe('App', () => {
     );
     expect(evidenceText).not.toContain('Sensitive source line');
     expect(evidenceText).not.toContain('敏感字幕');
+    expect(evidenceText).not.toContain('Sensitive review source line');
+    expect(evidenceText).not.toContain('敏感审核字幕');
     expect(evidenceText).not.toContain('source-vtt-artifact');
 
     await userEvent.click(within(evidence).getByRole('button', { name: /copy evidence/i }));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('# LinguaFrame Demo Evidence'));
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('- Job: evidence-job'));
     expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive source line'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive review source line'));
     expect(await within(evidence).findByText('Evidence copied.')).toBeInTheDocument();
 
     await userEvent.click(within(evidence).getByRole('button', { name: /download evidence json/i }));
     expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(anchorClick).toHaveBeenCalled();
     expect(await within(evidence).findByText('Evidence JSON downloaded.')).toBeInTheDocument();
+  });
+
+  test('keeps selected job usable when subtitle review fails to load', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'review-error-job', videoId: 'review-error-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockRejectedValue(new Error('Review unavailable'));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'review-error-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    expect(await screen.findByRole('heading', { name: /job review-error-job/i })).toBeInTheDocument();
+    const errors = screen.getByRole('region', { name: /artifacts/i });
+    expect(within(errors).getByText('Subtitle review: Review unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: /subtitle review/i })).toHaveTextContent(
+      'No subtitle review summary loaded yet.'
+    );
   });
 
   test('shows clipboard unavailable state for browser demo evidence', async () => {
@@ -1924,6 +1980,48 @@ function promptTemplateFixtures(): PromptTemplate[] {
       active: true
     }
   ];
+}
+
+function subtitleReviewFixture(
+  overrides: Partial<SubtitleReviewSummary> = {}
+): SubtitleReviewSummary {
+  return {
+    jobId: 'job-1',
+    targetLanguage: 'zh-CN',
+    segmentCount: 2,
+    missingTargetCount: 0,
+    timingMismatchCount: 1,
+    averageDurationMs: 1400,
+    maxDurationMs: 1600,
+    qualityScore: 88,
+    qualityVerdict: 'NEEDS_REVIEW',
+    qualityIssueCount: 1,
+    qualitySuggestedFixCount: 1,
+    downloadableSubtitleArtifactCount: 3,
+    segments: [
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        sourceText: 'First source line',
+        targetText: '第一行字幕',
+        durationMs: 1200,
+        timingDeltaMs: 0,
+        status: 'ALIGNED'
+      },
+      {
+        index: 1,
+        startMs: 1200,
+        endMs: 2800,
+        sourceText: 'Second source line',
+        targetText: '第二行字幕',
+        durationMs: 1600,
+        timingDeltaMs: 400,
+        status: 'TIMING_MISMATCH'
+      }
+    ],
+    ...overrides
+  };
 }
 
 function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {

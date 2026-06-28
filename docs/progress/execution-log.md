@@ -6,6 +6,26 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added a read-only subtitle review summary API at `GET /api/jobs/{jobId}/subtitle-review?language=zh-CN`.
+- Derived review rows from persisted transcript and target subtitle segments, marked `ALIGNED`, `MISSING_TARGET`, and `TIMING_MISMATCH` with a 250 ms timing threshold, and counted target subtitle artifacts.
+- Rendered a React `Subtitle review` panel with source/target comparison rows, quality score/verdict, timing deltas, missing target counts, and subtitle artifact count.
+- Added subtitle-review metadata to backend Markdown evidence, browser evidence Markdown/JSON, and the Docker success terminal summary without exporting raw transcript or subtitle text.
+- Documented browser review checks, terminal review evidence, and the decision to keep review read-only before editing workflows.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=SubtitleReviewServiceTests,LocalizationJobControllerTests,JobEvidenceReportServiceTests test` passed with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` first failed because two frontend assertions matched the new review panel too broadly, then passed with `Tests 77 passed`.
+- `cd frontend && npm run build` passed and produced the production Vite bundle.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=OpenApiDocumentationTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Added timeline-derived `pipelineProgress` to localization job detail and diagnostics.
 - Added backend progress summarization for current stage, completed/failed/skipped/cache-hit counts, terminal state, measured stage duration, slowest stage, and per-stage rows.
 - Added operator dashboard stage timing aggregates for slow recent stages.

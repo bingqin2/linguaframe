@@ -174,9 +174,11 @@ The browser demo also shows a `Demo runbook` panel with the startup command, E2E
 
 For a completed or partially completed job, the selected job view includes a `Result delivery` panel. It summarizes expected deliverables, marks each as `Ready`, `Preview only`, or `Missing`, shows generated/reused artifact counts, model-call count, estimated cost, short SHA-256 evidence, and links for the result bundle, diagnostics, and each ready artifact.
 
+The selected job view also includes a read-only `Subtitle review` panel. It derives source/target rows from persisted transcript and subtitle segments, flags missing target rows and timing mismatches over 250 ms, shows quality score/verdict when available, and counts downloadable target subtitle artifacts. It does not edit subtitles or change generated media.
+
 The selected job view also includes a `Pipeline progress` panel derived from durable timeline events. It shows current stage, completed stage count, failed/skipped/cache-hit counts, terminal state, total measured stage duration, slowest stage, and per-stage status/duration rows. The existing `Timeline` panel remains the event-level source of truth. The operator dashboard also shows compact stage timing rows for the slowest recent stages.
 
-The selected job view also includes a `Demo evidence` panel. Use `Copy evidence` for a browser-generated Markdown summary, `Download evidence JSON` for a local metadata file, `Download backend evidence` for a backend-generated Markdown report, or `Download evidence bundle` for a metadata-only ZIP containing the backend report, diagnostics JSON, and manifest. These exports record job status, pipeline progress, timeline stages, usage, cache counts, artifact hashes, and safe download routes without raw transcript text, raw subtitles, object keys, local paths, tokens, provider payloads, or media bytes.
+The selected job view also includes a `Demo evidence` panel. Use `Copy evidence` for a browser-generated Markdown summary, `Download evidence JSON` for a local metadata file, `Download backend evidence` for a backend-generated Markdown report, or `Download evidence bundle` for a metadata-only ZIP containing the backend report, diagnostics JSON, and manifest. These exports record job status, pipeline progress, subtitle-review counts, timeline stages, usage, cache counts, artifact hashes, and safe download routes without raw transcript text, raw subtitles, object keys, local paths, tokens, provider payloads, or media bytes.
 
 React demo frontend commands:
 
@@ -553,9 +555,11 @@ Job detail reads use an optional Redis cache-aside layer. MySQL remains the sour
 
 `GET /api/jobs/{jobId}/artifacts/archive/download` returns a ZIP bundle for the job's generated artifacts. The archive is generated on demand, is not persisted to object storage, excludes the source video, and includes a `manifest.json` with safe artifact metadata. The React demo exposes this as `Download result bundle` in the `Artifacts` panel.
 
+`GET /api/jobs/{jobId}/subtitle-review?language=zh-CN` returns a read-only subtitle review summary derived from persisted transcript segments, target subtitle segments, the latest quality evaluation, and generated target subtitle artifacts. The response includes source and target text for the selected job viewer, but browser evidence, backend Markdown evidence, and terminal script summaries only export metadata counts.
+
 `GET /api/jobs/{jobId}/diagnostics/download` returns a metadata-only JSON diagnostics report for the job. It includes sanitized job detail, pipeline progress, timeline events, model-call summaries, quality evaluation, failure triage, and artifact hashes/counts, but excludes object storage keys, local media paths, raw transcript or subtitle text, provider payloads, credentials, and uploaded bytes. The React demo exposes this as `Download diagnostics` in the selected job header.
 
-`GET /api/jobs/{jobId}/evidence/markdown/download` returns a backend-generated Markdown evidence report for the same sanitized job surface, including the timeline-derived pipeline current stage, completed count, total measured duration, and slowest stage. It is designed for readable demo notes and interview walkthroughs, while the diagnostics JSON remains the fuller machine-readable source for job debugging.
+`GET /api/jobs/{jobId}/evidence/markdown/download` returns a backend-generated Markdown evidence report for the same sanitized job surface, including the timeline-derived pipeline current stage, completed count, total measured duration, slowest stage, and subtitle-review metadata. It is designed for readable demo notes and interview walkthroughs, while the diagnostics JSON remains the fuller machine-readable source for job debugging.
 
 `GET /api/jobs/{jobId}/evidence/bundle/download` returns a metadata-only ZIP evidence bundle. It includes `manifest.json`, `evidence.md`, and `diagnostics.json`; it does not include generated media artifacts, uploaded media, object keys, local paths, raw transcript or subtitle text, provider payloads, credentials, or tokens. Use the result bundle for generated deliverables and the evidence bundle for shareable demo proof.
 

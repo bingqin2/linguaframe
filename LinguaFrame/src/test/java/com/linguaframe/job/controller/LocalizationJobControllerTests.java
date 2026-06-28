@@ -999,6 +999,101 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsSubtitleReviewSummaryForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T00:45:00Z");
+        createJob("job-controller-video-review", "job-controller-job-review", createdAt);
+        transcriptService.replaceTranscript("job-controller-job-review", new TranscriptionResultBo(List.of(
+                new TranscriptionSegmentBo(0, 0L, 1_000L, "First line"),
+                new TranscriptionSegmentBo(1, 1_000L, 2_000L, "Second line"),
+                new TranscriptionSegmentBo(2, 2_000L, 3_000L, "Missing target")
+        )));
+        subtitleService.replaceSubtitles("job-controller-job-review", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行"),
+                new TranslationSegmentBo(1, 1_400L, 2_400L, "第二行")
+        )));
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "job-controller-review-quality",
+                "job-controller-job-review",
+                "zh-CN",
+                88,
+                "NEEDS_REVIEW",
+                90,
+                85,
+                70,
+                86,
+                List.of("Second line timing drift."),
+                List.of("Adjust subtitle timing."),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-review-target-json",
+                "job-controller-job-review",
+                JobArtifactType.TARGET_SUBTITLE_JSON,
+                "job-artifacts/job-controller-job-review/target-subtitles.json",
+                "target-subtitles.json",
+                "application/json",
+                10L,
+                "review-json-hash",
+                false,
+                null,
+                createdAt.plusSeconds(4)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-review-target-vtt",
+                "job-controller-job-review",
+                JobArtifactType.TARGET_SUBTITLE_VTT,
+                "job-artifacts/job-controller-job-review/target-subtitles.vtt",
+                "target-subtitles.vtt",
+                "text/vtt",
+                10L,
+                "review-vtt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(5)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-review-video",
+                "job-controller-job-review",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-job-review/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                20L,
+                "review-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(6)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/subtitle-review", "job-controller-job-review")
+                        .param("language", "zh-CN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-review"))
+                .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.segmentCount").value(3))
+                .andExpect(jsonPath("$.missingTargetCount").value(1))
+                .andExpect(jsonPath("$.timingMismatchCount").value(1))
+                .andExpect(jsonPath("$.averageDurationMs").value(1000))
+                .andExpect(jsonPath("$.maxDurationMs").value(1000))
+                .andExpect(jsonPath("$.qualityScore").value(88))
+                .andExpect(jsonPath("$.qualityVerdict").value("NEEDS_REVIEW"))
+                .andExpect(jsonPath("$.qualityIssueCount").value(1))
+                .andExpect(jsonPath("$.qualitySuggestedFixCount").value(1))
+                .andExpect(jsonPath("$.downloadableSubtitleArtifactCount").value(2))
+                .andExpect(jsonPath("$.segments[0].index").value(0))
+                .andExpect(jsonPath("$.segments[0].sourceText").value("First line"))
+                .andExpect(jsonPath("$.segments[0].targetText").value("第一行"))
+                .andExpect(jsonPath("$.segments[0].timingDeltaMs").value(0))
+                .andExpect(jsonPath("$.segments[0].status").value("ALIGNED"))
+                .andExpect(jsonPath("$.segments[1].timingDeltaMs").value(400))
+                .andExpect(jsonPath("$.segments[1].status").value("TIMING_MISMATCH"))
+                .andExpect(jsonPath("$.segments[2].targetText").doesNotExist())
+                .andExpect(jsonPath("$.segments[2].status").value("MISSING_TARGET"));
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);

@@ -8,8 +8,10 @@ import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.SubtitleReviewService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,9 +22,14 @@ import java.util.List;
 public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
 
     private final LocalizationJobQueryService queryService;
+    private final SubtitleReviewService subtitleReviewService;
 
-    public JobEvidenceReportServiceImpl(LocalizationJobQueryService queryService) {
+    public JobEvidenceReportServiceImpl(
+            LocalizationJobQueryService queryService,
+            SubtitleReviewService subtitleReviewService
+    ) {
         this.queryService = queryService;
+        this.subtitleReviewService = subtitleReviewService;
     }
 
     @Override
@@ -80,6 +87,16 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
             lines.add("- Quality: " + quality.score() + " / 100, "
                     + quality.verdict() + ", " + quality.status());
         }
+        SubtitleReviewSummaryVo subtitleReview = subtitleReviewService.buildReview(
+                job.jobId(),
+                job.targetLanguage()
+        );
+        lines.add("- Subtitle review segments: " + subtitleReview.segmentCount());
+        lines.add("- Subtitle review missing targets: " + subtitleReview.missingTargetCount());
+        lines.add("- Subtitle review timing mismatches: " + subtitleReview.timingMismatchCount());
+        lines.add("- Subtitle review quality: " + formatSubtitleReviewQuality(subtitleReview));
+        lines.add("- Subtitle review downloadable subtitle artifacts: "
+                + subtitleReview.downloadableSubtitleArtifactCount());
 
         if (!job.timelineEvents().isEmpty()) {
             lines.add("");
@@ -125,6 +142,14 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
             return "sha256 unavailable";
         }
         return value.length() <= 16 ? value : value.substring(0, 16);
+    }
+
+    private String formatSubtitleReviewQuality(SubtitleReviewSummaryVo subtitleReview) {
+        if (subtitleReview.qualityScore() == null) {
+            return "Not evaluated";
+        }
+        return subtitleReview.qualityScore() + " / 100, "
+                + valueOrDefault(subtitleReview.qualityVerdict(), "No verdict");
     }
 
     private boolean hasText(String value) {
