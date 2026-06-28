@@ -22,6 +22,13 @@ Validation so far:
 - `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 147 passed`.
 - `cd frontend && npm run build` passed.
 
+Post-merge verification:
+
+- Merged `demo-run-launcher-workspace` back to `main`.
+- `mvn -pl LinguaFrame -Dtest=DemoRunLauncherServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 18, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed on `main` with `Test Files 2 passed` and `Tests 140 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-29
 
 Work:

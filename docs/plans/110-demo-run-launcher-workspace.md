@@ -121,7 +121,7 @@ bash -n scripts/demo/demo-run-launcher.sh scripts/demo/start-local-demo.sh scrip
 
 - [x] Document where the launcher appears, how to use it before a full Tears run, and why it remains read-only.
 - [x] Record validation evidence in the execution log.
-- [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
+- [x] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
 
 ## Plan Self-Review
 
