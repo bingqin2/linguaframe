@@ -109,13 +109,14 @@ A user should be able to:
 12. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
 13. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
 14. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
-15. Play the generated dubbing audio with visible file metadata and download evidence.
-16. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-17. Inspect cost and processing time.
-18. Retry the job if a step fails.
-19. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-20. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-21. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+15. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
+16. Play the generated dubbing audio with visible file metadata and download evidence.
+17. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+18. Inspect cost and processing time.
+19. Retry the job if a step fails.
+20. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+21. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+22. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 

@@ -606,6 +606,124 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsAiAuditPackageForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:40:00Z");
+        videoRepository.save(new VideoRecord(
+                "job-video-ai-audit-package",
+                "ai-audit-package.mp4",
+                "video/mp4",
+                123L,
+                "source-videos/job-video-ai-audit-package/sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-ai-audit-package",
+                "job-video-ai-audit-package",
+                "zh-CN",
+                "verse",
+                LocalizationJobStatus.COMPLETED,
+                createdAt,
+                createdAt.plusSeconds(1),
+                createdAt.plusSeconds(20),
+                null,
+                null,
+                "provider request payload raw transcript text raw subtitle text sk-test /Users/example/job-artifacts/raw.json",
+                0,
+                createdAt.plusSeconds(20)
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-ai-audit-package",
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSCRIPTION,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini-transcribe",
+                "openai-audio-transcriptions-v1",
+                250L,
+                null,
+                null,
+                new BigDecimal("32.5"),
+                null,
+                "audioSeconds=32.5",
+                "segments=8"
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-ai-audit-package",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4.1-mini",
+                "openai-subtitle-translation-v1",
+                550L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=8",
+                "translatedSegmentCount=8"
+        ));
+        modelCallAuditService.recordFailure(new CreateModelCallRecordCommand(
+                "job-controller-ai-audit-package",
+                LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
+                ModelCallOperation.EVALUATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4.1-mini",
+                "openai-translation-quality-evaluation-v1",
+                700L,
+                900,
+                300,
+                null,
+                null,
+                "provider request payload raw transcript text",
+                "sk-test /Users/example/job-artifacts/raw.json"
+        ), "provider request payload OPENAI_API_KEY");
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/ai-audit-package/download",
+                        "job-controller-ai-audit-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-ai-audit-package-ai-audit-package.zip\""
+                ))
+                .andExpect(content().contentType("application/zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries)
+                .containsKeys(
+                        "manifest.json",
+                        "README.md",
+                        "model-calls.json",
+                        "prompt-templates.json",
+                        "ai-usage-summary.json",
+                        "ai-audit-report.md"
+                );
+        assertThat(entries.get("README.md"))
+                .contains("# LinguaFrame AI Audit Package")
+                .contains("/api/jobs/job-controller-ai-audit-package/ai-audit-package/download");
+        assertThat(entries.get("model-calls.json"))
+                .contains("openai-audio-transcriptions-v1")
+                .contains("openai-subtitle-translation-v1")
+                .contains("openai-translation-quality-evaluation-v1")
+                .contains("omitted because it contained fields outside the AI audit safety contract");
+        assertThat(entries.get("ai-audit-report.md"))
+                .contains("- Model calls: 3")
+                .contains("- Failed model calls: 1");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw subtitle text")
+                .doesNotContain("provider request payload")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("/Users/")
+                .doesNotContain("OPENAI_API_KEY")
+                .doesNotContain("sk-test");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(

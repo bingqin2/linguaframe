@@ -304,6 +304,10 @@ export function demoRunPackageDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-package/download`;
 }
 
+export function aiAuditPackageDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/ai-audit-package/download`;
+}
+
 export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
 }
@@ -347,6 +351,7 @@ export const linguaFrameApi = {
   qualityEvaluationEvidenceMarkdownDownloadUrl,
   jobHandoffPackageDownloadUrl,
   demoRunPackageDownloadUrl,
+  aiAuditPackageDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,

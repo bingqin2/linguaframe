@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.bo.StoredAiAuditPackageBo;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunPackageBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
@@ -23,6 +24,7 @@ import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoRunPackageService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
@@ -77,6 +79,7 @@ public class LocalizationJobController {
     private final JobEvidenceReportService evidenceReportService;
     private final JobHandoffPackageService handoffPackageService;
     private final DemoRunPackageService demoRunPackageService;
+    private final AiAuditPackageService aiAuditPackageService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
@@ -96,6 +99,7 @@ public class LocalizationJobController {
             JobEvidenceReportService evidenceReportService,
             JobHandoffPackageService handoffPackageService,
             DemoRunPackageService demoRunPackageService,
+            AiAuditPackageService aiAuditPackageService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
@@ -114,6 +118,7 @@ public class LocalizationJobController {
         this.evidenceReportService = evidenceReportService;
         this.handoffPackageService = handoffPackageService;
         this.demoRunPackageService = demoRunPackageService;
+        this.aiAuditPackageService = aiAuditPackageService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
@@ -311,6 +316,31 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(demoRunPackage.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/ai-audit-package/download")
+    @Operation(summary = "Download a safe AI audit package for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "AI audit package bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadAiAuditPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredAiAuditPackageBo aiAuditPackage = aiAuditPackageService.openAiAuditPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(aiAuditPackage.contentType()))
+                .contentLength(aiAuditPackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(aiAuditPackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(aiAuditPackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/delivery-manifest")

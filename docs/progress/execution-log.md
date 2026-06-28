@@ -2480,6 +2480,27 @@ Post-merge verification:
 
 Work:
 
+- Planned the AI audit evidence workspace in `docs/plans/086-ai-audit-evidence-workspace.md`.
+- Added `GET /api/jobs/{jobId}/ai-audit-package/download` for a metadata-only ZIP containing manifest, README, model calls, active prompt templates, AI usage summary, and a Markdown audit report.
+- Added OpenAPI and runtime required-route coverage for the AI audit package endpoint.
+- Added `Download AI audit package` to the browser `Model calls` panel.
+- Extended deterministic and OpenAI smoke demo scripts to download and validate `ai-audit-package.zip`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with AI audit package behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=AiAuditPackageServiceTests test` first failed because the service and BO did not exist, then passed.
+- `mvn -pl LinguaFrame -Dtest=AiAuditPackageServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 40, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App -t "AI audit package"` first failed because the browser link was missing, then passed.
+- `cd frontend && npm run test:run -- App` passed with `Tests 58 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_ai_audit_package_summary` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo run evidence package workspace in `docs/plans/085-demo-run-evidence-package-workspace.md`.
 - Added `GET /api/jobs/{jobId}/demo-run-package/download` for a safe metadata-only ZIP workspace containing manifest, README, job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report.
 - Added OpenAPI and runtime required-route coverage for the demo run package endpoint.

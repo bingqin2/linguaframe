@@ -498,6 +498,15 @@ download_demo_run_package() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/demo-run-package/download" -o "$output_path"
 }
 
+download_ai_audit_package() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/ai-audit-package/download" -o "$output_path"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -1210,5 +1219,69 @@ with zipfile.ZipFile(package_path) as archive:
 
 print("demoRunPackageJobId=" + expected_job_id)
 print("demoRunPackageEntryCount=" + str(len(required_entries)))
+PY
+}
+
+print_ai_audit_package_summary() {
+  local package_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$package_path" "$expected_job_id" <<'PY'
+import json
+import sys
+import zipfile
+
+package_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+required_entries = {
+    "manifest.json",
+    "README.md",
+    "model-calls.json",
+    "prompt-templates.json",
+    "ai-usage-summary.json",
+    "ai-audit-report.md",
+}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+
+with zipfile.ZipFile(package_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("AI audit package is missing entries: " + ", ".join(missing))
+
+    combined = ""
+    for name in sorted(required_entries):
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+    for value in forbidden:
+        if value in combined:
+            raise SystemExit("AI audit package contains forbidden sensitive string: " + value)
+
+    manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    if manifest.get("jobId") != expected_job_id:
+        raise SystemExit("AI audit package manifest job id mismatch: " + str(manifest.get("jobId")))
+
+    model_calls = json.loads(archive.read("model-calls.json").decode("utf-8"))
+    prompt_templates = json.loads(archive.read("prompt-templates.json").decode("utf-8"))
+
+print("aiAuditPackageJobId=" + expected_job_id)
+print("aiAuditPackageEntryCount=" + str(len(required_entries)))
+print("aiAuditPackageModelCallCount=" + str(len(model_calls)))
+print("aiAuditPackagePromptTemplateCount=" + str(len(prompt_templates)))
 PY
 }

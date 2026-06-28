@@ -86,6 +86,7 @@ if ! download_quality_evaluation_evidence_markdown "$BASE_URL" "$job_id" "$OUTPU
 fi
 download_job_evidence_bundle "$BASE_URL" "$job_id" "$OUTPUT_DIR/job-evidence.zip"
 download_demo_run_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-package.zip"
+download_ai_audit_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/ai-audit-package.zip"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
@@ -101,6 +102,7 @@ print_evidence_markdown_summary "$OUTPUT_DIR/job-evidence.md" "$job_id"
 print_quality_evidence_markdown_summary "$OUTPUT_DIR/quality-evidence.md" "$job_id"
 print_evidence_bundle_summary "$OUTPUT_DIR/job-evidence.zip" "$job_id"
 print_demo_run_package_summary "$OUTPUT_DIR/demo-run-package.zip" "$job_id"
+print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
 
 cat <<EOF
 
