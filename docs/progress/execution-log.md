@@ -2344,3 +2344,13 @@ Validation so far:
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed.
 - `mvn -pl LinguaFrame -Dtest=DeliveryManifestServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 38, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `delivery-handoff-manifest` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=DeliveryManifestServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 38, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed on `main` with `Tests 82 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/private-demo-preflight.sh` passed on `main`.
+- `git diff --check` passed on `main`.
