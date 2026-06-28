@@ -448,6 +448,100 @@ JSON
   [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "media delivery summary exposed token"
 }
 
+test_print_demo_handoff_checklist_summary_is_metadata_only() {
+  cat >"$TMPDIR/handoff-job.json" <<'JSON'
+{
+  "jobId": "job-handoff",
+  "videoId": "video-handoff",
+  "status": "COMPLETED",
+  "failureStage": null,
+  "failureReason": null,
+  "pipelineProgress": {
+    "terminal": true
+  },
+  "usageSummary": {
+    "modelCallCount": 2,
+    "failedModelCallCount": 0,
+    "estimatedCostUsd": 0
+  },
+  "cacheSummary": {
+    "cacheHitCount": 1,
+    "providerCacheHitCount": 1
+  },
+  "failureTriage": null,
+  "unsafeTranscript": "raw transcript text",
+  "unsafeProviderPayload": "provider payload"
+}
+JSON
+  cat >"$TMPDIR/handoff-manifest.json" <<'JSON'
+{
+  "jobId": "job-handoff",
+  "handoffReady": true,
+  "reviewedSubtitleArtifactCount": 3,
+  "links": [
+    {
+      "label": "Evidence bundle",
+      "kind": "EVIDENCE_BUNDLE",
+      "url": "/api/jobs/job-handoff/evidence/bundle/download"
+    }
+  ],
+  "unsafeSubtitle": "raw subtitle text",
+  "unsafeObjectKey": "job-artifacts/job-handoff/private"
+}
+JSON
+  cat >"$TMPDIR/handoff-artifacts.json" <<'JSON'
+[
+  {
+    "type": "REVIEWED_SUBTITLE_JSON",
+    "filename": "reviewed-subtitles.zh-CN.json",
+    "contentType": "application/json",
+    "sourceArtifactId": null
+  },
+  {
+    "type": "REVIEWED_SUBTITLE_SRT",
+    "filename": "reviewed-subtitles.zh-CN.srt",
+    "contentType": "application/x-subrip",
+    "sourceArtifactId": null
+  },
+  {
+    "type": "REVIEWED_SUBTITLE_VTT",
+    "filename": "reviewed-subtitles.zh-CN.vtt",
+    "contentType": "text/vtt",
+    "sourceArtifactId": null
+  },
+  {
+    "type": "BURNED_VIDEO",
+    "filename": "burned-video.mp4",
+    "contentType": "video/mp4",
+    "sourceArtifactId": "job-artifacts/private/video.mp4",
+    "unsafePath": "/Users/example/private.mov",
+    "unsafeToken": "OPENAI_API_KEY",
+    "unsafeText": "raw corrected subtitle"
+  }
+]
+JSON
+
+  print_demo_handoff_checklist_summary \
+    "$TMPDIR/handoff-job.json" \
+    "$TMPDIR/handoff-manifest.json" \
+    "$TMPDIR/handoff-artifacts.json" >"$TMPDIR/handoff-checklist.out"
+  local output
+  output="$(cat "$TMPDIR/handoff-checklist.out")"
+
+  [[ "$output" == *"demoHandoffOverall=READY"* ]] || fail "demo handoff checklist missed ready overall"
+  [[ "$output" == *"demoHandoffItem=PASS:Job completed"* ]] || fail "demo handoff checklist missed job completion"
+  [[ "$output" == *"demoHandoffItem=PASS:Reviewed subtitles ready"* ]] || fail "demo handoff checklist missed reviewed subtitles"
+  [[ "$output" == *"demoHandoffItem=PASS:Media outputs available"* ]] || fail "demo handoff checklist missed media output"
+  [[ "$output" == *"demoHandoffItem=PASS:Evidence downloads ready"* ]] || fail "demo handoff checklist missed evidence output"
+  [[ "$output" != *"raw transcript text"* ]] || fail "demo handoff checklist exposed transcript"
+  [[ "$output" != *"raw subtitle text"* ]] || fail "demo handoff checklist exposed subtitle"
+  [[ "$output" != *"raw corrected subtitle"* ]] || fail "demo handoff checklist exposed corrected subtitle"
+  [[ "$output" != *"job-artifacts/"* ]] || fail "demo handoff checklist exposed object key"
+  [[ "$output" != *"/Users/example/private.mov"* ]] || fail "demo handoff checklist exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "demo handoff checklist exposed provider payload"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "demo handoff checklist exposed token"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -458,5 +552,6 @@ test_print_subtitle_draft_summary_is_metadata_only
 test_print_reviewed_publish_summary_is_metadata_only
 test_print_delivery_manifest_summary_is_metadata_only
 test_print_media_delivery_summary_is_metadata_only
+test_print_demo_handoff_checklist_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

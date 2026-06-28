@@ -140,6 +140,22 @@ interface DemoEvidence {
   };
 }
 
+type ChecklistStatus = 'PASS' | 'WARN' | 'FAIL';
+
+interface DemoHandoffChecklistItem {
+  key: string;
+  label: string;
+  status: ChecklistStatus;
+  detail: string;
+}
+
+interface DemoHandoffChecklist {
+  overallStatus: 'READY' | 'ATTENTION';
+  summary: string;
+  items: DemoHandoffChecklistItem[];
+  links: DemoEvidence['links'];
+}
+
 interface CacheReplayCandidate {
   jobId: string;
   filename: string;
@@ -1740,6 +1756,10 @@ function JobDetail({
     () => formatDemoEvidenceMarkdown(demoEvidence),
     [demoEvidence]
   );
+  const demoHandoffChecklist = useMemo(
+    () => buildDemoHandoffChecklist(job, artifacts, deliveryManifest, subtitleReview, subtitleDraft, demoEvidence),
+    [artifacts, deliveryManifest, demoEvidence, job, subtitleDraft, subtitleReview]
+  );
 
   const statusItems = useMemo(
     () => [
@@ -1824,6 +1844,8 @@ function JobDetail({
         jobId={job.jobId}
         manifest={deliveryManifest}
       />
+
+      <DemoHandoffChecklistPanel checklist={demoHandoffChecklist} jobId={job.jobId} />
 
       <PipelineProgressPanel progress={job.pipelineProgress} />
 
@@ -2356,6 +2378,111 @@ function FailureTriagePanel({ triage }: { triage: FailureTriage | null }) {
           ))}
         </ul>
       ) : null}
+    </section>
+  );
+}
+
+function DemoHandoffChecklistPanel({
+  checklist,
+  jobId
+}: {
+  checklist: DemoHandoffChecklist;
+  jobId: string;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+  const passCount = checklist.items.filter((item) => item.status === 'PASS').length;
+  const warnCount = checklist.items.filter((item) => item.status === 'WARN').length;
+  const failCount = checklist.items.filter((item) => item.status === 'FAIL').length;
+  const markdown = formatDemoHandoffChecklistMarkdown(checklist, jobId);
+
+  const handleCopyChecklist = useCallback(async () => {
+    if (!canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Checklist copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownloadChecklist = useCallback(() => {
+    const blob = new Blob([JSON.stringify({ jobId, ...checklist }, null, 2)], {
+      type: 'application/json'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-demo-handoff-${sanitizeFilename(jobId)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Checklist JSON downloaded.');
+  }, [checklist, jobId]);
+
+  return (
+    <section className="panel handoff-checklist-panel" aria-label="Demo handoff checklist">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo handoff checklist</h3>
+          <p className="muted">{checklist.summary}</p>
+        </div>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!canCopy}
+            onClick={handleCopyChecklist}
+          >
+            Copy checklist
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadChecklist}>
+            Download checklist JSON
+          </button>
+        </div>
+      </div>
+      <p className={checklist.overallStatus === 'READY' ? 'status-pill success' : 'status-pill warning'}>
+        {checklist.overallStatus === 'READY' ? 'Ready for demo handoff' : 'Needs attention'}
+      </p>
+      {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      <dl className="metrics-grid checklist-summary">
+        <div>
+          <dt>Passed</dt>
+          <dd>{passCount}</dd>
+        </div>
+        <div>
+          <dt>Warnings</dt>
+          <dd>{warnCount}</dd>
+        </div>
+        <div>
+          <dt>Failures</dt>
+          <dd>{failCount}</dd>
+        </div>
+      </dl>
+      <ul className="checklist-list">
+        {checklist.items.map((item) => (
+          <li key={item.key}>
+            <span className={checklistStatusClassName(item.status)}>{item.status}</span>
+            <strong>{item.label}</strong>
+            <p>{item.detail}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="panel-actions checklist-links">
+        <a className="secondary-link" href={checklist.links.resultBundle}>
+          Download result bundle
+        </a>
+        <a className="secondary-link" href={checklist.links.diagnostics}>
+          Download diagnostics
+        </a>
+        <a className="secondary-link" href={checklist.links.evidenceMarkdown}>
+          Download backend evidence
+        </a>
+        <a className="secondary-link" href={checklist.links.evidenceBundle}>
+          Download evidence bundle
+        </a>
+      </div>
     </section>
   );
 }
@@ -3039,6 +3166,137 @@ function findFirstArtifact(artifacts: JobArtifact[], type: JobArtifact['type']):
   return artifacts.find((artifact) => artifact.type === type) ?? null;
 }
 
+function buildDemoHandoffChecklist(
+  job: LocalizationJob,
+  artifacts: JobArtifact[],
+  manifest: DeliveryManifest | null,
+  subtitleReview: SubtitleReviewSummary | null,
+  subtitleDraft: SubtitleDraftSummary | null,
+  evidence: DemoEvidence
+): DemoHandoffChecklist {
+  const reviewedSubtitleCount = countArtifacts(artifacts, [
+    'REVIEWED_SUBTITLE_JSON',
+    'REVIEWED_SUBTITLE_SRT',
+    'REVIEWED_SUBTITLE_VTT'
+  ]);
+  const mediaOutputCount = countArtifacts(artifacts, [
+    'DUBBING_AUDIO',
+    'BURNED_VIDEO',
+    'REVIEWED_BURNED_VIDEO'
+  ]);
+  const hasEvidenceLinks = Boolean(
+    evidence.links.resultBundle &&
+      evidence.links.diagnostics &&
+      evidence.links.evidenceMarkdown &&
+      evidence.links.evidenceBundle
+  );
+  const pipelineTerminal = job.pipelineProgress?.terminal ?? ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.status);
+
+  const items: DemoHandoffChecklistItem[] = [
+    {
+      key: 'job-completed',
+      label: 'Job completed',
+      status: job.status === 'COMPLETED' ? 'PASS' : 'FAIL',
+      detail:
+        job.status === 'COMPLETED'
+          ? 'The selected job reached COMPLETED.'
+          : `The selected job is ${job.status}${job.failureReason ? `: ${job.failureReason}` : '.'}`
+    },
+    {
+      key: 'pipeline-terminal',
+      label: 'Pipeline terminal',
+      status: pipelineTerminal ? 'PASS' : 'WARN',
+      detail: pipelineTerminal
+        ? 'Pipeline progress is terminal or the job is in a terminal status.'
+        : 'Pipeline progress is still active or not fully measured.'
+    },
+    {
+      key: 'reviewed-subtitles',
+      label: 'Reviewed subtitles ready',
+      status: (manifest?.handoffReady ?? false) || reviewedSubtitleCount >= 3 ? 'PASS' : 'FAIL',
+      detail:
+        (manifest?.handoffReady ?? false) || reviewedSubtitleCount >= 3
+          ? `${manifest?.reviewedSubtitleArtifactCount ?? reviewedSubtitleCount} reviewed subtitle artifacts are ready.`
+          : 'Reviewed JSON/SRT/VTT artifacts are not all available yet.'
+    },
+    {
+      key: 'media-outputs',
+      label: 'Media outputs available',
+      status: mediaOutputCount > 0 ? 'PASS' : 'WARN',
+      detail:
+        mediaOutputCount > 0
+          ? `${mediaOutputCount} playable media outputs are available.`
+          : 'No playable media output artifact is available yet.'
+    },
+    {
+      key: 'evidence-downloads',
+      label: 'Evidence downloads ready',
+      status: hasEvidenceLinks ? 'PASS' : 'FAIL',
+      detail: hasEvidenceLinks
+        ? 'Result bundle, diagnostics, backend evidence, and evidence bundle links are available.'
+        : 'One or more evidence download links are unavailable.'
+    },
+    {
+      key: 'quality-signal',
+      label: 'Quality signal available',
+      status: subtitleReview?.qualityScore !== null && subtitleReview?.qualityScore !== undefined ? 'PASS' : 'WARN',
+      detail:
+        subtitleReview?.qualityScore !== null && subtitleReview?.qualityScore !== undefined
+          ? `Quality score ${subtitleReview.qualityScore} / 100 · ${subtitleReview.qualityVerdict ?? 'No verdict'}.`
+          : 'No quality score is available for this job.'
+    },
+    {
+      key: 'cost-model-evidence',
+      label: 'Cost and model-call evidence available',
+      status: evidence.usage.modelCallCount > 0 ? 'PASS' : 'WARN',
+      detail: `${evidence.usage.modelCallCount} model calls, ${evidence.usage.failedModelCallCount} failed, ${formatCost(evidence.usage.estimatedCostUsd)} estimated.`
+    },
+    {
+      key: 'cache-evidence',
+      label: 'Cache evidence available',
+      status:
+        evidence.cache.artifactCacheHitCount > 0 || evidence.cache.providerCacheHitCount > 0 ? 'PASS' : 'WARN',
+      detail: `${evidence.cache.artifactCacheHitCount} artifact cache hits and ${evidence.cache.providerCacheHitCount} provider cache hits.`
+    }
+  ];
+
+  if (subtitleDraft) {
+    items.push({
+      key: 'subtitle-draft',
+      label: 'Subtitle draft state recorded',
+      status: subtitleDraft.editedSegmentCount > 0 ? 'PASS' : 'WARN',
+      detail: `${subtitleDraft.editedSegmentCount} edited draft segments out of ${subtitleDraft.segmentCount}.`
+    });
+  }
+  if (job.failureTriage) {
+    items.push({
+      key: 'failure-triage',
+      label: 'Failure triage available',
+      status: job.status === 'FAILED' ? 'PASS' : 'WARN',
+      detail: `${job.failureTriage.category}: ${job.failureTriage.summary}`
+    });
+  }
+
+  const requiredItems = items.filter((item) =>
+    ['job-completed', 'reviewed-subtitles', 'evidence-downloads'].includes(item.key)
+  );
+  const overallStatus = requiredItems.every((item) => item.status === 'PASS') ? 'READY' : 'ATTENTION';
+  return {
+    overallStatus,
+    summary:
+      overallStatus === 'READY'
+        ? 'Required demo handoff signals are ready.'
+        : 'One or more required demo handoff signals need attention.',
+    items,
+    links: evidence.links
+  };
+}
+
+function countArtifacts(artifacts: JobArtifact[], types: JobArtifact['type'][]): number {
+  const accepted = new Set<JobArtifact['type']>(types);
+  return artifacts.filter((artifact) => accepted.has(artifact.type)).length;
+}
+
 function resultStatusClassName(status: DeliverableStatus): string {
   if (status === 'Ready') {
     return 'status-pill success';
@@ -3047,6 +3305,16 @@ function resultStatusClassName(status: DeliverableStatus): string {
     return 'status-pill warning';
   }
   return 'status-pill';
+}
+
+function checklistStatusClassName(status: ChecklistStatus): string {
+  if (status === 'PASS') {
+    return 'checklist-status-pass';
+  }
+  if (status === 'WARN') {
+    return 'checklist-status-warn';
+  }
+  return 'checklist-status-fail';
 }
 
 function buildDemoEvidence(
@@ -3234,6 +3502,30 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
       );
     });
   }
+  return lines.join('\n');
+}
+
+function formatDemoHandoffChecklistMarkdown(checklist: DemoHandoffChecklist, jobId: string): string {
+  const lines = [
+    '# LinguaFrame Demo Handoff Checklist',
+    '',
+    `- Job: ${jobId}`,
+    `- Overall: ${checklist.overallStatus}`,
+    `- Summary: ${checklist.summary}`,
+    '',
+    'Checklist:'
+  ];
+  checklist.items.forEach((item) => {
+    lines.push(`- ${item.status}: ${item.label} - ${item.detail}`);
+  });
+  lines.push(
+    '',
+    'Links:',
+    `- Result bundle: ${checklist.links.resultBundle}`,
+    `- Diagnostics: ${checklist.links.diagnostics}`,
+    `- Backend evidence: ${checklist.links.evidenceMarkdown}`,
+    `- Evidence bundle: ${checklist.links.evidenceBundle}`
+  );
   return lines.join('\n');
 }
 

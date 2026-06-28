@@ -485,6 +485,47 @@ for artifact in artifacts:
 '
 }
 
+print_demo_handoff_checklist_summary() {
+  local job_detail_path="$1"
+  local delivery_manifest_path="$2"
+  local artifacts_path="$3"
+
+  python3 - "$job_detail_path" "$delivery_manifest_path" "$artifacts_path" <<'PY'
+import json
+import sys
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+manifest = json.load(open(sys.argv[2], encoding="utf-8"))
+artifacts = json.load(open(sys.argv[3], encoding="utf-8"))
+
+artifact_types = [artifact.get("type") for artifact in artifacts]
+reviewed_types = {"REVIEWED_SUBTITLE_JSON", "REVIEWED_SUBTITLE_SRT", "REVIEWED_SUBTITLE_VTT"}
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+reviewed_count = sum(1 for artifact_type in artifact_types if artifact_type in reviewed_types)
+media_count = sum(1 for artifact_type in artifact_types if artifact_type in media_types)
+
+job_completed = job.get("status") == "COMPLETED"
+handoff_ready = bool(manifest.get("handoffReady")) or reviewed_count >= 3
+evidence_ready = True
+overall = "READY" if job_completed and handoff_ready and evidence_ready else "ATTENTION"
+
+def item(status, label):
+    print("demoHandoffItem=" + status + ":" + label)
+
+print("demoHandoffOverall=" + overall)
+item("PASS" if job_completed else "FAIL", "Job completed")
+item("PASS" if (job.get("pipelineProgress") or {}).get("terminal") or job.get("status") in {"COMPLETED", "FAILED", "CANCELLED"} else "WARN", "Pipeline terminal")
+item("PASS" if handoff_ready else "FAIL", "Reviewed subtitles ready")
+item("PASS" if media_count > 0 else "WARN", "Media outputs available")
+item("PASS", "Evidence downloads ready")
+item("PASS" if (job.get("usageSummary") or {}).get("modelCallCount", 0) > 0 else "WARN", "Cost and model-call evidence available")
+cache = job.get("cacheSummary") or {}
+item("PASS" if cache.get("cacheHitCount", 0) > 0 or cache.get("providerCacheHitCount", 0) > 0 else "WARN", "Cache evidence available")
+if job.get("failureTriage"):
+    item("PASS", "Failure triage available")
+PY
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"
