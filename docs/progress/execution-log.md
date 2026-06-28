@@ -27,6 +27,13 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `owner-quota-budget-preflight` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=OwnerQuotaPreflightServiceTests,MediaUploadControllerTests,MediaUploadServiceTests,RuntimeDependencyControllerTests test` passed with `Tests run: 46, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Tests 116 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+
 ## 2026-06-28
 
 Work:

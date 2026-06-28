@@ -144,4 +144,4 @@
 - [x] Run `cd frontend && npm test -- --run`.
 - [x] Run `cd frontend && npm run build`.
 - [x] Run `git diff --check`.
-- [ ] Commit on `owner-quota-budget-preflight`, merge back to `main`, and record the merge in the execution log.
+- [x] Commit on `owner-quota-budget-preflight`, merge back to `main`, and record the merge in the execution log.
