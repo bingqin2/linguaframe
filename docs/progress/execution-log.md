@@ -28,6 +28,14 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
 
+Post-merge verification:
+
+- Merged `authenticated-owner-access-workspace` back to `main` with a merge commit.
+- `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests,AuthenticatedOwnerMediaAccessTests,AuthenticatedOwnerOperatorDashboardTests,LocalAuthControllerTests,OperatorDashboardControllerTests test` passed on `main`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "local account|owner workspace|bearer token"` passed on `main` with `Tests 6 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `git diff --check` passed on `main`.
+
 ## 2026-06-28
 
 Work:
