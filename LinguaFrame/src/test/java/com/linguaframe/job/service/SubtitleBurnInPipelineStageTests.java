@@ -94,6 +94,7 @@ class SubtitleBurnInPipelineStageTests {
                 .isEqualTo(workDirectoryService.workDirectory.resolve("target-subtitles.srt"));
         assertThat(burnInService.command.outputVideoPath())
                 .isEqualTo(workDirectoryService.workDirectory.resolve("burned-video.mp4"));
+        assertThat(burnInService.command.subtitleStylePreset()).isEqualTo("HIGH_CONTRAST");
         assertThat(artifactService.commands).hasSize(1);
         CreateJobArtifactCommand command = artifactService.commands.getFirst();
         assertThat(command.jobId()).isEqualTo("burn-in-job-1");
@@ -176,12 +177,24 @@ class SubtitleBurnInPipelineStageTests {
     private LocalizationJobExecutionContextBo context() {
         Instant now = Instant.parse("2026-06-26T23:30:00Z");
         return new LocalizationJobExecutionContextBo(
-                new LocalizationJobRecord("burn-in-job-1", "burn-in-video-1", "zh-CN", LocalizationJobStatus.PROCESSING, now),
+                new LocalizationJobRecord(
+                        "burn-in-job-1",
+                        "burn-in-video-1",
+                        "zh-CN",
+                        null,
+                        "NATURAL",
+                        "HIGH_CONTRAST",
+                        LocalizationJobStatus.PROCESSING,
+                        now
+                ),
                 new QueuedLocalizationJobMessage(
                         "burn-in-job-1",
                         "burn-in-video-1",
                         "source-videos/burn-in-video-1/sample.mp4",
                         "zh-CN",
+                        null,
+                        "NATURAL",
+                        "HIGH_CONTRAST",
                         now
                 ),
                 now

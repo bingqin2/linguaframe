@@ -407,7 +407,7 @@ The backend can validate and accept a source video upload:
 
 ```bash
 curl -F "file=@sample.mp4" http://localhost:8080/api/media/uploads/validate
-curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" http://localhost:8080/api/media/uploads
+curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" -F "subtitleStylePreset=HIGH_CONTRAST" http://localhost:8080/api/media/uploads
 ```
 
 The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
@@ -415,6 +415,8 @@ The default upload duration limit is 300 seconds, or 5 minutes. Videos above the
 Files with supported content types must also be inspectable by FFprobe. If LinguaFrame cannot inspect duration, the upload is rejected as `UNREADABLE_MEDIA` before storage or queue dispatch.
 
 Uploads may include `translationStyle=NATURAL`, `FORMAL`, or `CONCISE`. Blank values default to `NATURAL`; invalid styles are rejected before storage. The selected style is stored on the job, shown in the browser demo, included in safe evidence, sent to the OpenAI translation request, and included in the translation provider cache key.
+
+Uploads may also include `subtitleStylePreset=STANDARD`, `LARGE`, or `HIGH_CONTRAST`. Blank values default to `STANDARD`; invalid presets are rejected before storage. The selected preset is stored on the job, shown in the browser demo and safe evidence, applied to FFmpeg subtitle burn-in, and included in `BURNED_VIDEO` artifact cache reuse so different visual outputs are not mixed.
 
 The React demo exposes the same validation as browser upload preflight. Choose a file and use `Validate file` to inspect filename, content type, size, duration, limits, validation code, and message before upload. The `Upload` button also runs validation first and only creates a job after a `READY` response.
 
@@ -597,7 +599,7 @@ Job detail reads use an optional Redis cache-aside layer. MySQL remains the sour
 
 The browser-only `Demo evidence` export is a convenience summary built from already-loaded safe frontend state. It includes the same safe pipeline progress summary when available. Use the backend Markdown evidence report or ZIP evidence bundle when you need a reproducible report generated directly by the API.
 
-LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP artifact cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp.
+LinguaFrame can now reuse stable generated artifacts for repeat jobs from the same source video and target language. Artifact cache hits create a new job artifact row that points at the original object with `cacheHit=true` and `sourceArtifactId`; object storage bytes are not rewritten. The MVP artifact cache applies to extracted audio, dubbing audio, and subtitle-burned video artifacts. `BURNED_VIDEO` reuse also requires the same subtitle style preset. `WORKER_SUMMARY` is always regenerated because it contains the current `jobId` and generation timestamp.
 
 Subtitle translation provider results are cached when the ordered transcript text, target language, provider, model, and prompt version match. A translation provider cache hit skips the translation provider call, reuses the stored translated segments, writes fresh subtitle artifacts for the current job, and records a `CACHE_HIT` timeline event.
 
@@ -668,9 +670,11 @@ When subtitle burn-in is enabled, the worker uses FFmpeg and target subtitles to
 
 - `BURNED_VIDEO` as `burned-video.mp4`
 
+Generated burned videos use the job's subtitle style preset. `STANDARD` is the default readable white subtitle style, `LARGE` increases subtitle size for presentation demos, and `HIGH_CONTRAST` adds stronger outline/background contrast for busy footage.
+
 When quality evaluation is enabled with `LINGUAFRAME_EVALUATION_PROVIDER=demo`, the worker stores a deterministic quality score after target subtitle export. Evaluation is disabled by default and non-blocking: provider failures create a failed evaluation record but do not fail the localization job.
 
-This MVP generates one continuous dubbing audio artifact and one subtitle-burned video artifact. It does not do segment-level lip sync, mix TTS audio into the original video, or provide a subtitle style editor.
+This MVP generates one continuous dubbing audio artifact and one subtitle-burned video artifact. It does not do segment-level lip sync, mix TTS audio into the original video, or provide a free-form subtitle style editor.
 
 Transcript preview is available without downloading artifacts:
 
@@ -735,6 +739,7 @@ Run the paid smoke only with a real short speech sample:
 LINGUAFRAME_ENV_FILE=.env.openai-demo \
 LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
 LINGUAFRAME_DEMO_TRANSLATION_STYLE=FORMAL \
+LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET=HIGH_CONTRAST \
 scripts/demo/docker-e2e-openai-smoke.sh
 ```
 

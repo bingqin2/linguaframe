@@ -36,6 +36,7 @@ public class LocalizationJobRepository {
                             target_language,
                             tts_voice,
                             translation_style,
+                            subtitle_style_preset,
                             status,
                             created_at,
                             started_at,
@@ -52,6 +53,7 @@ public class LocalizationJobRepository {
                             :targetLanguage,
                             :ttsVoice,
                             :translationStyle,
+                            :subtitleStylePreset,
                             :status,
                             :createdAt,
                             :startedAt,
@@ -68,6 +70,7 @@ public class LocalizationJobRepository {
                 .param("targetLanguage", record.targetLanguage())
                 .param("ttsVoice", record.ttsVoice())
                 .param("translationStyle", record.translationStyle())
+                .param("subtitleStylePreset", record.subtitleStylePreset())
                 .param("status", record.status().name())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("startedAt", timestampOrNull(record.startedAt()))
@@ -88,6 +91,7 @@ public class LocalizationJobRepository {
                             target_language,
                             tts_voice,
                             translation_style,
+                            subtitle_style_preset,
                             status,
                             created_at,
                             started_at,
@@ -119,6 +123,7 @@ public class LocalizationJobRepository {
                             jobs.target_language,
                             jobs.tts_voice,
                             jobs.translation_style,
+                            jobs.subtitle_style_preset,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -139,6 +144,7 @@ public class LocalizationJobRepository {
                             jobs.target_language,
                             jobs.tts_voice,
                             jobs.translation_style,
+                            jobs.subtitle_style_preset,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -349,6 +355,7 @@ public class LocalizationJobRepository {
                 rs.getString("target_language"),
                 rs.getString("tts_voice"),
                 rs.getString("translation_style"),
+                rs.getString("subtitle_style_preset"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),
@@ -371,6 +378,7 @@ public class LocalizationJobRepository {
                 rs.getString("target_language"),
                 rs.getString("tts_voice"),
                 rs.getString("translation_style"),
+                rs.getString("subtitle_style_preset"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),

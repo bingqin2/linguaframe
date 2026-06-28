@@ -144,6 +144,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                 "jobId", job.jobId(),
                 "videoId", job.videoId(),
                 "targetLanguage", job.targetLanguage(),
+                "subtitleStylePreset", job.subtitleStylePreset(),
                 "status", job.status().name(),
                 "artifactCount", diagnostics.artifactCount(),
                 "entries", entries,
@@ -165,6 +166,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         value.put("jobId", job.jobId());
         value.put("videoId", job.videoId());
         value.put("targetLanguage", job.targetLanguage());
+        value.put("subtitleStylePreset", job.subtitleStylePreset());
         value.put("ttsVoice", job.ttsVoice());
         value.put("status", job.status().name());
         value.put("createdAt", job.createdAt());
@@ -202,6 +204,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                 "- Job: " + job.jobId(),
                 "- Video: " + job.videoId(),
                 "- Target language: " + job.targetLanguage(),
+                "- Subtitle style: " + job.subtitleStylePreset(),
                 "- Status: " + job.status(),
                 "- Generated at: " + Instant.now(),
                 "",
@@ -267,6 +270,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         lines.add("- Overall: " + (ready ? "READY" : "ATTENTION"));
         lines.add("- Video: " + job.videoId());
         lines.add("- Target language: " + job.targetLanguage());
+        lines.add("- Subtitle style: " + job.subtitleStylePreset());
         lines.add("- Status: " + job.status());
         lines.add("- Artifacts: " + diagnostics.artifactCount());
         lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleCount);

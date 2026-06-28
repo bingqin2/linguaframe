@@ -9,6 +9,7 @@ public record DeliveryManifestVo(
         String jobId,
         String videoId,
         String targetLanguage,
+        String subtitleStylePreset,
         LocalizationJobStatus status,
         Instant generatedAt,
         boolean handoffReady,

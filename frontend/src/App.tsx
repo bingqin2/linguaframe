@@ -53,6 +53,11 @@ const TRANSLATION_STYLE_OPTIONS = [
   { value: 'FORMAL', label: 'Formal' },
   { value: 'CONCISE', label: 'Concise' }
 ];
+const SUBTITLE_STYLE_PRESET_OPTIONS = [
+  { value: 'STANDARD', label: 'Standard subtitles' },
+  { value: 'LARGE', label: 'Large subtitles' },
+  { value: 'HIGH_CONTRAST', label: 'High contrast' }
+];
 
 type DeliverableStatus = 'Ready' | 'Preview only' | 'Missing';
 
@@ -84,6 +89,7 @@ interface DemoEvidence {
     videoId: string;
     targetLanguage: string;
     translationStyle: string;
+    subtitleStylePreset: string;
     status: LocalizationJobStatus;
     retryCount: number;
     failureStage: string | null;
@@ -191,6 +197,7 @@ interface CacheReplayCandidate {
   targetLanguage: string;
   ttsVoice: string | null;
   translationStyle: string;
+  subtitleStylePreset: string;
 }
 
 interface CacheReplayBaseline {
@@ -204,6 +211,7 @@ interface CacheReplayEvidenceJob {
   targetLanguage: string;
   ttsVoice: string;
   translationStyle: string;
+  subtitleStylePreset: string;
   modelCallCount: number;
   estimatedCostUsd: number;
   artifactCacheHitCount: number;
@@ -253,6 +261,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [ttsVoice, setTtsVoice] = useState('');
   const [translationStyle, setTranslationStyle] = useState('NATURAL');
+  const [subtitleStylePreset, setSubtitleStylePreset] = useState('STANDARD');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
@@ -674,7 +683,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     setIsUploading(true);
     try {
-      const upload = await linguaFrameApi.uploadMedia(file, targetLanguage.trim(), ttsVoice, translationStyle);
+      const upload = await linguaFrameApi.uploadMedia(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset
+      );
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
       setSelectedRecentJob(recentJob);
@@ -746,6 +761,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTargetLanguage(recentJob.targetLanguage);
     setTtsVoice(recentJob.ttsVoice ?? '');
     setTranslationStyle(recentJob.translationStyle);
+    setSubtitleStylePreset(recentJob.subtitleStylePreset);
     const nextJob = await loadJob(recentJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
@@ -757,6 +773,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTargetLanguage(historyJob.targetLanguage);
     setTtsVoice(historyJob.ttsVoice ?? '');
     setTranslationStyle(historyJob.translationStyle);
+    setSubtitleStylePreset(historyJob.subtitleStylePreset);
     const nextJob = await loadJob(historyJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
@@ -770,6 +787,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTargetLanguage(language);
     setTtsVoice(nextJob.ttsVoice ?? '');
     setTranslationStyle(nextJob.translationStyle ?? 'NATURAL');
+    setSubtitleStylePreset(nextJob.subtitleStylePreset ?? 'STANDARD');
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
   }
@@ -1038,6 +1056,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 ))}
               </select>
             </label>
+            <label>
+              Subtitle style
+              <select
+                value={subtitleStylePreset}
+                onChange={(event) => setSubtitleStylePreset(event.target.value)}
+              >
+                {SUBTITLE_STYLE_PRESET_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="panel-actions upload-actions">
               <button
                 type="button"
@@ -1116,6 +1147,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       <span className="history-meta">
                         {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
                         {formatTranslationStyle(historyJob.translationStyle)} ·
+                        {formatSubtitleStylePreset(historyJob.subtitleStylePreset)} ·
                         {formatCost(historyJob.estimatedCostUsd)} ·
                         retry {historyJob.retryCount}
                       </span>
@@ -1163,7 +1195,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       <span>{recentJob.filename}</span>
                       <span className="history-meta">
                         {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)} ·
-                        {formatTranslationStyle(recentJob.translationStyle)}
+                        {formatTranslationStyle(recentJob.translationStyle)} ·
+                        {formatSubtitleStylePreset(recentJob.subtitleStylePreset)}
                       </span>
                       <small>{recentJob.jobId}</small>
                     </button>
@@ -1324,6 +1357,10 @@ function SourceMediaPanel({
           <div>
             <dt>Translation style</dt>
             <dd>{formatTranslationStyle(job.translationStyle)}</dd>
+          </div>
+          <div>
+            <dt>Subtitle style</dt>
+            <dd>{formatSubtitleStylePreset(job.subtitleStylePreset)}</dd>
           </div>
         </dl>
       ) : sourceMediaError ? null : (
@@ -3717,6 +3754,7 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     targetLanguage: upload.targetLanguage,
     ttsVoice: upload.ttsVoice,
     translationStyle: upload.translationStyle,
+    subtitleStylePreset: upload.subtitleStylePreset,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -4150,6 +4188,7 @@ function buildDemoEvidence(
       videoId: job.videoId,
       targetLanguage: job.targetLanguage,
       translationStyle: job.translationStyle,
+      subtitleStylePreset: job.subtitleStylePreset,
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
@@ -4231,6 +4270,7 @@ function formatQualityEvaluationEvidence(job: LocalizationJob): string {
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
+    `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
     `- Job status: ${job.status}`,
     `- Created at: ${job.createdAt}`,
     ''
@@ -4443,6 +4483,7 @@ function formatDemoReviewPresenterNotes(
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
+    `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
     `- Overall: ${ready ? 'READY' : 'ATTENTION'}`,
     '',
     '## Walkthrough'
@@ -4474,7 +4515,8 @@ function buildCacheReplayCandidates(
         status: job.status,
         targetLanguage: job.targetLanguage,
         ttsVoice: job.ttsVoice,
-        translationStyle: job.translationStyle
+        translationStyle: job.translationStyle,
+        subtitleStylePreset: job.subtitleStylePreset
       });
     }
   });
@@ -4486,7 +4528,8 @@ function buildCacheReplayCandidates(
         status: 'COMPLETED',
         targetLanguage: job.targetLanguage,
         ttsVoice: job.ttsVoice,
-        translationStyle: job.translationStyle
+        translationStyle: job.translationStyle,
+        subtitleStylePreset: job.subtitleStylePreset
       });
     }
   });
@@ -4530,6 +4573,7 @@ function cacheReplayEvidenceJob(
     targetLanguage: job.targetLanguage,
     ttsVoice: formatVoice(job.ttsVoice),
     translationStyle: formatTranslationStyle(job.translationStyle),
+    subtitleStylePreset: formatSubtitleStylePreset(job.subtitleStylePreset),
     modelCallCount: modelCallCount(job),
     estimatedCostUsd: jobEstimatedCost(job),
     artifactCacheHitCount,
@@ -4554,6 +4598,8 @@ function formatCacheReplayEvidenceMarkdown(evidence: CacheReplayEvidence): strin
     `- Estimated cost delta: ${formatSignedCost(evidence.delta.estimatedCostUsd)}`,
     `- Comparison artifact cache: ${evidence.comparison.artifactCacheHitCount} reused / ${evidence.comparison.generatedArtifactCount} generated`,
     `- Comparison provider cache hits: ${evidence.comparison.providerCacheHitCount}`,
+    `- Baseline subtitle style: ${evidence.baseline.subtitleStylePreset}`,
+    `- Comparison subtitle style: ${evidence.comparison.subtitleStylePreset}`,
     `- Baseline result bundle: ${evidence.links.baselineResultBundle}`,
     `- Comparison result bundle: ${evidence.links.comparisonResultBundle}`,
     `- Baseline diagnostics: ${evidence.links.baselineDiagnostics}`,
@@ -4621,6 +4667,12 @@ function formatVoice(value: string | null | undefined): string {
 function formatTranslationStyle(value: string | null | undefined): string {
   const normalized = value?.trim().toUpperCase() || 'NATURAL';
   const option = TRANSLATION_STYLE_OPTIONS.find((candidate) => candidate.value === normalized);
+  return option?.label ?? normalized;
+}
+
+function formatSubtitleStylePreset(value: string | null | undefined): string {
+  const normalized = value?.trim().toUpperCase() || 'STANDARD';
+  const option = SUBTITLE_STYLE_PRESET_OPTIONS.find((candidate) => candidate.value === normalized);
   return option?.label ?? normalized;
 }
 

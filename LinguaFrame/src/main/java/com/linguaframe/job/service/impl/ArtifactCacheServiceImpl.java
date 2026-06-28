@@ -24,9 +24,10 @@ public class ArtifactCacheServiceImpl implements ArtifactCacheService {
     @Override
     public Optional<JobArtifactVo> tryReuseArtifact(LocalizationJobExecutionContextBo context, JobArtifactType type) {
         return artifactRepository.findReusableArtifact(
-                        context.job().videoId(),
-                        context.job().targetLanguage(),
-                        type
+                context.job().videoId(),
+                context.job().targetLanguage(),
+                type,
+                context.job().subtitleStylePreset()
                 )
                 .map(source -> artifactService.createReusedArtifact(context.job().id(), source));
     }

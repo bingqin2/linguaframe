@@ -112,7 +112,8 @@ public class SubtitleBurnInPipelineStage implements LocalizationPipelineStage {
                     jobId,
                     inputVideoPath,
                     subtitlePath,
-                    outputVideoPath
+                    outputVideoPath,
+                    context.job().subtitleStylePreset()
             ));
             artifactService.createArtifact(new CreateJobArtifactCommand(
                     jobId,

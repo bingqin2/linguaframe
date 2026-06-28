@@ -153,6 +153,7 @@ The backend should provide:
 - RabbitMQ-backed async job processing.
 - Redis-backed job status cache for job detail snapshots, rate-limit hooks, and lightweight coordination.
 - FFmpeg integration for audio extraction and subtitle burn-in.
+- Preset-based subtitle burn-in styling that is persisted per job and applied to generated preview videos.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.
 - Translation style metadata that is persisted per job and included in provider prompts, safe summaries, and translation cache keys.

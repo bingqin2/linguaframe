@@ -18,6 +18,7 @@ public record MediaUploadVo(
         String targetLanguage,
         String ttsVoice,
         String translationStyle,
+        String subtitleStylePreset,
         Instant createdAt
 ) {
 }

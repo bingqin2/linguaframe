@@ -1,6 +1,7 @@
 package com.linguaframe.media.service;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.media.domain.bo.BurnInSubtitlesCommand;
 import com.linguaframe.media.service.impl.FfmpegSubtitleBurnInServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -37,7 +38,7 @@ class FfmpegSubtitleBurnInServiceTests {
                 "-i",
                 input.toString(),
                 "-vf",
-                "subtitles=" + subtitle.toAbsolutePath(),
+                "subtitles='" + subtitle.toAbsolutePath() + "':force_style='Fontsize=20\\,Outline=2\\,Shadow=0\\,PrimaryColour=&H00FFFFFF\\,OutlineColour=&H00000000'",
                 "-c:v",
                 "libx264",
                 "-preset",
@@ -51,6 +52,28 @@ class FfmpegSubtitleBurnInServiceTests {
         assertThat(result.filename()).isEqualTo("burned-video.mp4");
         assertThat(result.contentType()).isEqualTo("video/mp4");
         assertThat(result.content()).containsExactly(4, 5, 6);
+    }
+
+    @Test
+    void appliesSubtitleStylePresetToFfmpegFilter() throws IOException {
+        Path input = tempDir.resolve("source.mp4");
+        Path subtitle = tempDir.resolve("target subtitles.srt");
+        Path output = tempDir.resolve("burned-video.mp4");
+        Files.write(input, new byte[] {1, 2, 3});
+        Files.writeString(subtitle, "1\n00:00:00,000 --> 00:00:01,000\nHello\n");
+        RecordingCommandRunner runner = new RecordingCommandRunner(0, "", false);
+        FfmpegSubtitleBurnInService service = new FfmpegSubtitleBurnInServiceImpl(properties(), runner);
+
+        service.burnInSubtitles(new BurnInSubtitlesCommand(
+                "job-contrast",
+                input,
+                subtitle,
+                output,
+                SubtitleStylePreset.HIGH_CONTRAST.name()
+        ));
+
+        assertThat(runner.lastCommand)
+                .containsSubsequence("-vf", "subtitles='" + subtitle.toAbsolutePath() + "':force_style='Fontsize=24\\,Outline=3\\,Shadow=1\\,PrimaryColour=&H00FFFFFF\\,OutlineColour=&H00000000\\,BackColour=&H80000000'");
     }
 
     @Test

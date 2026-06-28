@@ -683,7 +683,10 @@ describe('App', () => {
     const validateUpload = vi
       .spyOn(linguaFrameApi, 'validateUpload')
       .mockResolvedValue(mediaUploadValidationFixture());
-    vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({ translationStyle: 'FORMAL' }));
+    vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({
+      translationStyle: 'FORMAL',
+      subtitleStylePreset: 'HIGH_CONTRAST'
+    }));
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
@@ -699,6 +702,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/target language/i), 'zh-CN');
     await userEvent.selectOptions(screen.getByLabelText(/tts voice/i), 'verse');
     await userEvent.selectOptions(screen.getByLabelText(/translation style/i), 'FORMAL');
+    await userEvent.selectOptions(screen.getByLabelText(/subtitle style/i), 'HIGH_CONTRAST');
     await userEvent.click(screen.getByRole('button', { name: /upload/i }));
 
     expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
@@ -711,14 +715,16 @@ describe('App', () => {
         filename: 'sample.mp4',
         targetLanguage: 'zh-CN',
         ttsVoice: 'verse',
-        translationStyle: 'FORMAL'
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST'
       })
     ]);
     expect(linguaFrameApi.uploadMedia).toHaveBeenCalledWith(
       expect.any(File),
       'zh-CN',
       'verse',
-      'FORMAL'
+      'FORMAL',
+      'HIGH_CONTRAST'
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
@@ -2791,6 +2797,7 @@ function jobSummaryFixture(
     targetLanguage: 'zh-CN',
     ttsVoice: null,
     translationStyle: 'NATURAL',
+    subtitleStylePreset: 'STANDARD',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
@@ -2817,6 +2824,7 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
     translationStyle: 'NATURAL',
+    subtitleStylePreset: 'STANDARD',
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
@@ -2840,6 +2848,7 @@ function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): Del
     jobId: 'job-1',
     videoId: 'video-1',
     targetLanguage: 'zh-CN',
+    subtitleStylePreset: 'STANDARD',
     status: 'COMPLETED',
     generatedAt: '2026-06-28T11:00:00Z',
     handoffReady: true,
@@ -3001,6 +3010,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
     translationStyle: 'NATURAL',
+    subtitleStylePreset: 'STANDARD',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,

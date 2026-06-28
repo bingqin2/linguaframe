@@ -285,7 +285,8 @@ class JobArtifactServiceTests {
         public Optional<com.linguaframe.job.domain.entity.JobArtifactRecord> findReusableArtifact(
                 String videoId,
                 String targetLanguage,
-                JobArtifactType type
+                JobArtifactType type,
+                String subtitleStylePreset
         ) {
             return Optional.empty();
         }

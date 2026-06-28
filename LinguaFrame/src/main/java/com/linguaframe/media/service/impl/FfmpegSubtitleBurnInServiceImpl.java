@@ -1,6 +1,7 @@
 package com.linguaframe.media.service.impl;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.media.domain.bo.BurnInSubtitlesCommand;
 import com.linguaframe.media.domain.bo.BurnedVideoBo;
 import com.linguaframe.media.service.FfmpegSubtitleBurnInService;
@@ -41,7 +42,7 @@ public class FfmpegSubtitleBurnInServiceImpl implements FfmpegSubtitleBurnInServ
                 "-i",
                 command.inputVideoPath().toString(),
                 "-vf",
-                "subtitles=" + command.subtitlePath().toAbsolutePath(),
+                subtitleFilter(command),
                 "-c:v",
                 "libx264",
                 "-preset",
@@ -93,6 +94,21 @@ public class FfmpegSubtitleBurnInServiceImpl implements FfmpegSubtitleBurnInServ
             return normalized;
         }
         return normalized.substring(0, MAX_ERROR_SUMMARY_LENGTH);
+    }
+
+    private String subtitleFilter(BurnInSubtitlesCommand command) {
+        SubtitleStylePreset preset = SubtitleStylePreset.parse(command.subtitleStylePreset());
+        return "subtitles=" + quoteFilterValue(command.subtitlePath().toAbsolutePath().toString())
+                + ":force_style=" + quoteFilterValue(preset.ffmpegForceStyle());
+    }
+
+    private String quoteFilterValue(String value) {
+        return "'" + value
+                .replace("\\", "\\\\")
+                .replace("'", "\\'")
+                .replace(":", "\\:")
+                .replace(",", "\\,")
+                + "'";
     }
 
     public interface CommandRunner {

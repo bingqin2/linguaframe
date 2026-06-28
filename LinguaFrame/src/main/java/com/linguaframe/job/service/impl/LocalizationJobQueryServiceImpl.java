@@ -98,6 +98,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 record.targetLanguage(),
                 record.ttsVoice(),
                 record.translationStyle(),
+                record.subtitleStylePreset(),
                 record.status(),
                 record.createdAt(),
                 record.startedAt(),

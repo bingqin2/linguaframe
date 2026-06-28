@@ -28,6 +28,7 @@ describe('recentJobs', () => {
         targetLanguage: 'ja',
         ttsVoice: null,
         translationStyle: 'NATURAL',
+        subtitleStylePreset: 'STANDARD',
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -83,6 +84,7 @@ describe('recentJobs', () => {
         targetLanguage: 'zh-CN',
         ttsVoice: null,
         translationStyle: 'NATURAL',
+        subtitleStylePreset: 'STANDARD',
         filename: 'legacy.mp4',
         createdAt: '2026-06-26T10:00:00Z'
       }

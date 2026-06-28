@@ -15,7 +15,22 @@ public interface MediaUploadService {
         return createUpload(file, targetLanguage, ttsVoice, null);
     }
 
-    MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice, String translationStyle);
+    default MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle
+    ) {
+        return createUpload(file, targetLanguage, ttsVoice, translationStyle, null);
+    }
+
+    MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset
+    );
 
     MediaUploadDetailVo getUpload(String videoId);
 

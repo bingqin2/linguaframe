@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the subtitle burn-in style preset workspace in `docs/plans/089-subtitle-burn-in-style-preset-workspace.md`.
+- Added upload-time `subtitleStylePreset` support with `STANDARD`, `LARGE`, and `HIGH_CONTRAST` values.
+- Persisted the preset on localization jobs and carried it through job detail/list APIs, dispatch messages, worker summary, diagnostics/evidence metadata, delivery manifests, and demo run package metadata.
+- Applied the preset to FFmpeg subtitle burn-in through `force_style`.
+- Scoped `BURNED_VIDEO` artifact cache reuse by subtitle style preset so visually different burned videos cannot be reused across presets.
+- Added React upload, recent job, history, selected-job, evidence, and cache replay support.
+- Added `LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET` to demo upload helpers.
+- Updated README, roadmap, target state, and decisions with preset behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=MediaUploadServiceTests,FfmpegSubtitleBurnInServiceTests,ArtifactCacheServiceTests,SubtitleBurnInPipelineStageTests test` passed with `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests,JobArtifactRepositoryTests,LocalizationJobQueryServiceTests,RedisLocalizationJobStatusCacheServiceTests test` passed with `Tests run: 33, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/domain/recentJobs.test.ts src/App.test.tsx` passed with `Tests 102 passed`.
+- `mvn -pl LinguaFrame test` first failed because `RuntimeDependencyControllerTests` still expected Flyway version 20, then passed with `Tests run: 436, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 102 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the translation style control workspace in `docs/plans/088-translation-style-control-workspace.md`.
 - Added upload-time `translationStyle` support with `NATURAL`, `FORMAL`, and `CONCISE` values.
 - Added `localization_jobs.translation_style` with default `NATURAL`.
