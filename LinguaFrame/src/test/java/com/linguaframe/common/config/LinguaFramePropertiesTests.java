@@ -54,6 +54,11 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("0");
         assertThat(properties.getCost().isBudgetGuardEnabled()).isFalse();
         assertThat(properties.getCost().getMaxJobCostUsd()).isEqualByComparingTo("0");
+        assertThat(properties.getOwnerQuota().isEnabled()).isFalse();
+        assertThat(properties.getOwnerQuota().getMaxActiveJobs()).isEqualTo(0);
+        assertThat(properties.getOwnerQuota().getMaxQueuedJobs()).isEqualTo(0);
+        assertThat(properties.getOwnerQuota().isDailyBudgetGuardEnabled()).isFalse();
+        assertThat(properties.getOwnerQuota().getMaxDailyCostUsd()).isEqualByComparingTo("0");
         assertThat(properties.getDatabase().getHost()).isEqualTo("localhost");
         assertThat(properties.getDatabase().getPort()).isEqualTo(3306);
         assertThat(properties.getDatabase().getName()).isEqualTo("linguaframe");
@@ -248,6 +253,27 @@ class LinguaFramePropertiesTests {
                     assertThat(boundProperties.getCost().getTtsUsdPerMillionCharacters()).isEqualByComparingTo("15.00");
                     assertThat(boundProperties.getCost().isBudgetGuardEnabled()).isTrue();
                     assertThat(boundProperties.getCost().getMaxJobCostUsd()).isEqualByComparingTo("0.01");
+                });
+    }
+
+    @Test
+    void bindsOwnerQuotaRuntimeProperties() {
+        contextRunner
+                .withPropertyValues(
+                        "linguaframe.owner-quota.enabled=true",
+                        "linguaframe.owner-quota.max-active-jobs=3",
+                        "linguaframe.owner-quota.max-queued-jobs=2",
+                        "linguaframe.owner-quota.daily-budget-guard-enabled=true",
+                        "linguaframe.owner-quota.max-daily-cost-usd=0.25"
+                )
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
+                    assertThat(boundProperties.getOwnerQuota().isEnabled()).isTrue();
+                    assertThat(boundProperties.getOwnerQuota().getMaxActiveJobs()).isEqualTo(3);
+                    assertThat(boundProperties.getOwnerQuota().getMaxQueuedJobs()).isEqualTo(2);
+                    assertThat(boundProperties.getOwnerQuota().isDailyBudgetGuardEnabled()).isTrue();
+                    assertThat(boundProperties.getOwnerQuota().getMaxDailyCostUsd()).isEqualByComparingTo("0.25");
                 });
     }
 

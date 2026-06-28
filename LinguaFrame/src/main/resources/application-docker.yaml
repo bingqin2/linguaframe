@@ -37,6 +37,12 @@ linguaframe:
     daily-budget-guard-enabled: ${LINGUAFRAME_COST_DAILY_BUDGET_GUARD_ENABLED:false}
     max-daily-cost-usd: ${LINGUAFRAME_COST_MAX_DAILY_COST_USD:0}
     budget-identity: ${LINGUAFRAME_COST_BUDGET_IDENTITY:demo-owner}
+  owner-quota:
+    enabled: ${LINGUAFRAME_OWNER_QUOTA_ENABLED:false}
+    max-active-jobs: ${LINGUAFRAME_OWNER_QUOTA_MAX_ACTIVE_JOBS:0}
+    max-queued-jobs: ${LINGUAFRAME_OWNER_QUOTA_MAX_QUEUED_JOBS:0}
+    daily-budget-guard-enabled: ${LINGUAFRAME_OWNER_QUOTA_DAILY_BUDGET_GUARD_ENABLED:false}
+    max-daily-cost-usd: ${LINGUAFRAME_OWNER_QUOTA_MAX_DAILY_COST_USD:0}
   worker:
     max-retries: ${LINGUAFRAME_WORKER_MAX_RETRIES:2}
     stage-timeout-seconds: ${LINGUAFRAME_WORKER_STAGE_TIMEOUT_SECONDS:600}

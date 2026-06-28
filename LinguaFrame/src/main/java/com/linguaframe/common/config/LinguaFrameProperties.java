@@ -31,6 +31,9 @@ public class LinguaFrameProperties {
     private final Cost cost = new Cost();
 
     @Valid
+    private final OwnerQuota ownerQuota = new OwnerQuota();
+
+    @Valid
     private final Database database = new Database();
 
     @Valid
@@ -84,6 +87,10 @@ public class LinguaFrameProperties {
 
     public Cost getCost() {
         return cost;
+    }
+
+    public OwnerQuota getOwnerQuota() {
+        return ownerQuota;
     }
 
     public Database getDatabase() {
@@ -509,6 +516,62 @@ public class LinguaFrameProperties {
 
         public void setBudgetIdentity(String budgetIdentity) {
             this.budgetIdentity = budgetIdentity;
+        }
+    }
+
+    public static class OwnerQuota {
+
+        private boolean enabled = false;
+
+        @Min(0)
+        private int maxActiveJobs = 0;
+
+        @Min(0)
+        private int maxQueuedJobs = 0;
+
+        private boolean dailyBudgetGuardEnabled = false;
+
+        @DecimalMin("0.0")
+        private BigDecimal maxDailyCostUsd = BigDecimal.ZERO;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public int getMaxActiveJobs() {
+            return maxActiveJobs;
+        }
+
+        public void setMaxActiveJobs(int maxActiveJobs) {
+            this.maxActiveJobs = maxActiveJobs;
+        }
+
+        public int getMaxQueuedJobs() {
+            return maxQueuedJobs;
+        }
+
+        public void setMaxQueuedJobs(int maxQueuedJobs) {
+            this.maxQueuedJobs = maxQueuedJobs;
+        }
+
+        public boolean isDailyBudgetGuardEnabled() {
+            return dailyBudgetGuardEnabled;
+        }
+
+        public void setDailyBudgetGuardEnabled(boolean dailyBudgetGuardEnabled) {
+            this.dailyBudgetGuardEnabled = dailyBudgetGuardEnabled;
+        }
+
+        public BigDecimal getMaxDailyCostUsd() {
+            return maxDailyCostUsd;
+        }
+
+        public void setMaxDailyCostUsd(BigDecimal maxDailyCostUsd) {
+            this.maxDailyCostUsd = maxDailyCostUsd == null ? BigDecimal.ZERO : maxDailyCostUsd;
         }
     }
 

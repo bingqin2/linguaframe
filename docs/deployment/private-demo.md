@@ -25,6 +25,7 @@ Edit `.env.private-demo`:
 - Set `LINGUAFRAME_PUBLIC_DOMAIN` to the demo domain that points at the server.
 - Set `LINGUAFRAME_DEMO_ACCESS_TOKEN` to a long random value.
 - Set `LINGUAFRAME_DEMO_OWNER_ID` to a stable non-secret owner label such as `demo-owner`; uploads, jobs, and owner-facing media/job APIs are scoped to this value.
+- Keep `LINGUAFRAME_OWNER_QUOTA_ENABLED=true` for hosted demos and set conservative `LINGUAFRAME_OWNER_QUOTA_MAX_ACTIVE_JOBS`, `LINGUAFRAME_OWNER_QUOTA_MAX_QUEUED_JOBS`, and `LINGUAFRAME_OWNER_QUOTA_MAX_DAILY_COST_USD` values.
 - Replace database, RabbitMQ, and MinIO placeholder passwords.
 - Keep upload limits conservative, for example `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS=300`.
 - Enable OpenAI providers only when you are ready to spend API credits.
@@ -73,6 +74,18 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-operations-repo
 
 The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` unless `LINGUAFRAME_PRIVATE_DEMO_OPERATIONS_REPORT_PATH` is set. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero so deployment scripts can stop before upload or provider spend.
 
+## Owner Quota Preflight
+
+Use owner quota preflight immediately before uploading a real demo video or enabling paid providers:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/owner-quota-preflight.sh
+```
+
+The script calls `GET /api/media/uploads/preflight`, writes `/tmp/linguaframe-demo/owner-quota-preflight.json` by default, and exits non-zero when the configured owner is blocked. Set `LINGUAFRAME_OWNER_QUOTA_REPORT_ONLY=true` to collect the same metadata without blocking a shell workflow.
+
+This guard rejects new uploads before object storage writes, job rows, dispatch events, FFmpeg stages, or OpenAI calls. It is a private-demo abuse and cost guard tied to `LINGUAFRAME_DEMO_OWNER_ID`; it is not public billing, JWT auth, or multi-tenant account management.
+
 ## Launch Rehearsal
 
 Use the browser `Private demo launch rehearsal` panel as the ordered go/no-go checklist for a real presentation. It sits above operations readiness: operations explains current health, while launch rehearsal explains the next manual step and expected evidence.
@@ -102,6 +115,7 @@ The script writes `evidence-gallery.json` and `evidence-gallery.md` under `/tmp/
 - Backend and frontend host ports are removed in the private overlay; traffic enters through Caddy.
 - MySQL, Redis, RabbitMQ, and MinIO are internal Docker services, not public internet endpoints.
 - Retention cleanup remains disabled and dry-run by default.
+- Owner quota is enabled in `.env.private-demo.example` with conservative active, queued, and same-day cost limits.
 - OpenAI connectivity checks are disabled by default.
 - Deployment preflight validates shape and required env values without printing secrets.
 

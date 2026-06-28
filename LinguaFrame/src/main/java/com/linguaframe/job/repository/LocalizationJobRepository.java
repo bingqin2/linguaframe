@@ -272,6 +272,32 @@ public class LocalizationJobRepository {
         return count == null ? 0 : count;
     }
 
+    public int countActiveJobsByOwnerId(String ownerId) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs
+                        WHERE owner_id = :ownerId
+                          AND status IN ('QUEUED', 'PROCESSING', 'RETRYING')
+                        """)
+                .param("ownerId", ownerId)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
+    public int countQueuedJobsByOwnerId(String ownerId) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs
+                        WHERE owner_id = :ownerId
+                          AND status IN ('QUEUED', 'RETRYING')
+                        """)
+                .param("ownerId", ownerId)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
     public List<LocalizationJobSummaryVo> findSummariesByVideoId(String videoId, int limit) {
         return jdbcClient.sql("""
                         SELECT

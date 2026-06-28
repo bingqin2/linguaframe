@@ -2,6 +2,10 @@ package com.linguaframe.media.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.common.quota.OwnerQuotaExceededException;
+import com.linguaframe.common.quota.OwnerQuotaLimitVo;
+import com.linguaframe.common.quota.OwnerQuotaPreflightService;
+import com.linguaframe.common.quota.OwnerQuotaPreflightVo;
 import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
@@ -21,13 +25,18 @@ import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -50,6 +59,21 @@ class MediaUploadServiceTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private JdbcClient jdbcClient;
+
+    @BeforeEach
+    void cleanDatabase() {
+        jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM subtitle_segments").update();
+        jdbcClient.sql("DELETE FROM transcript_segments").update();
+        jdbcClient.sql("DELETE FROM job_artifacts").update();
+        jdbcClient.sql("DELETE FROM job_timeline_events").update();
+        jdbcClient.sql("DELETE FROM job_dispatch_events").update();
+        jdbcClient.sql("DELETE FROM localization_jobs").update();
+        jdbcClient.sql("DELETE FROM videos").update();
+    }
 
     @Test
     void createsDurableVideoAndQueuedJob() {
@@ -118,6 +142,27 @@ class MediaUploadServiceTests {
         assertThat(jobRepository.findByIdAndOwnerId(result.jobId(), "owner-alpha")).isPresent();
         assertThat(videoRepository.findByIdAndOwnerId(result.videoId(), "owner-beta")).isEmpty();
         assertThat(jobRepository.findByIdAndOwnerId(result.jobId(), "owner-beta")).isEmpty();
+    }
+
+    @Test
+    void rejectsOverQuotaOwnerBeforeStorageDatabaseAndDispatch() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper),
+                new BlockingOwnerQuotaPreflightService()
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "quota.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN"))
+                .isInstanceOf(OwnerQuotaExceededException.class)
+                .hasMessageContaining("Active job limit reached");
+        assertThat(storageService.lastCommand).isNull();
+        assertThat(jobRepository.countSummariesByOwnerId("demo-owner", null)).isZero();
+        assertThat(dispatchEventRepository.findLatestByJobId("missing")).isEmpty();
     }
 
     @Test
@@ -594,6 +639,33 @@ class MediaUploadServiceTests {
         @Override
         public String currentOwnerId() {
             return ownerId;
+        }
+    }
+
+    private static class BlockingOwnerQuotaPreflightService implements OwnerQuotaPreflightService {
+
+        @Override
+        public OwnerQuotaPreflightVo getPreflight() {
+            return preflight();
+        }
+
+        @Override
+        public void requireUploadAllowed() {
+            throw new OwnerQuotaExceededException(preflight());
+        }
+
+        private OwnerQuotaPreflightVo preflight() {
+            return new OwnerQuotaPreflightVo(
+                    "demo-owner",
+                    true,
+                    false,
+                    1,
+                    1,
+                    BigDecimal.ZERO,
+                    LocalDate.parse("2026-06-28"),
+                    List.of(new OwnerQuotaLimitVo("activeJobs", true, BigDecimal.ONE, BigDecimal.ONE)),
+                    List.of("Active job limit reached for owner demo-owner: current 1, limit 1.")
+            );
         }
     }
 }

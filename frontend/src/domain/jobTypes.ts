@@ -52,6 +52,25 @@ export interface MediaUploadValidation {
   supportedContentTypes: string[];
 }
 
+export interface OwnerQuotaLimit {
+  name: string;
+  enabled: boolean;
+  limit: number;
+  current: number;
+}
+
+export interface OwnerQuotaPreflight {
+  ownerId: string;
+  enabled: boolean;
+  allowed: boolean;
+  activeJobs: number;
+  queuedJobs: number;
+  dailyEstimatedCostUsd: number;
+  dailyBudgetDate: string;
+  limits: OwnerQuotaLimit[];
+  blockingReasons: string[];
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;
@@ -478,6 +497,7 @@ export interface DemoReadiness {
   media: MediaReadiness;
   ffmpeg: FfmpegReadiness;
   budget: BudgetReadiness;
+  ownerQuota: OwnerQuotaReadiness;
   providers: Record<'transcription' | 'translation' | 'tts' | 'evaluation', ProviderReadiness>;
   features: Record<
     | 'jobStatusCache'
@@ -485,7 +505,8 @@ export interface DemoReadiness {
     | 'retentionCleanup'
     | 'costTracking'
     | 'budgetGuard'
-    | 'dailyBudgetGuard',
+    | 'dailyBudgetGuard'
+    | 'ownerQuota',
     RuntimeFeatureFlag
   >;
 }
@@ -520,6 +541,14 @@ export interface BudgetReadiness {
   maxDailyCostUsd: number;
   budgetIdentity: string;
   estimatedCostTrackingEnabled: boolean;
+}
+
+export interface OwnerQuotaReadiness {
+  enabled: boolean;
+  maxActiveJobs: number;
+  maxQueuedJobs: number;
+  dailyBudgetGuardEnabled: boolean;
+  maxDailyCostUsd: number;
 }
 
 export interface ProviderReadiness {

@@ -28,6 +28,7 @@ import {
   getJobComparison,
   getDemoRunMatrix,
   getDemoPresenterPack,
+  getOwnerQuotaPreflight,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -453,6 +454,34 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('file')).toBe(file);
+  });
+
+  test('fetches owner quota preflight before upload', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        ownerId: 'demo-owner',
+        enabled: true,
+        allowed: false,
+        activeJobs: 2,
+        queuedJobs: 1,
+        dailyEstimatedCostUsd: 0.25,
+        dailyBudgetDate: '2026-06-28',
+        limits: [
+          { name: 'activeJobs', enabled: true, limit: 2, current: 2 },
+          { name: 'dailyCostUsd', enabled: true, limit: 0.25, current: 0.25 }
+        ],
+        blockingReasons: [
+          'Owner active job limit reached: 2 / 2',
+          'Owner daily budget limit reached: $0.25000000 / $0.25000000'
+        ]
+      })
+    );
+
+    const result = await getOwnerQuotaPreflight();
+
+    expect(result.allowed).toBe(false);
+    expect(result.limits).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledWith('/api/media/uploads/preflight', { method: 'GET' });
   });
 
   test('validates media upload with demo access token header when stored', async () => {

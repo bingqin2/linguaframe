@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the owner quota and budget preflight workspace in `docs/plans/099-owner-quota-budget-preflight-workspace.md`.
+- Added configurable owner quota settings for active jobs, queued jobs, and owner daily estimated spend.
+- Added owner-scoped active/queued job aggregation and `GET /api/media/uploads/preflight`.
+- Wired upload creation to reject over-quota owners before object storage writes, video/job inserts, dispatch events, FFmpeg work, or OpenAI calls.
+- Exposed sanitized owner quota readiness metadata and the `/api/media/uploads/preflight` runtime route contract.
+- Added a React upload-adjacent `Owner quota` panel and disabled upload when preflight is blocked while leaving file validation available.
+- Added `scripts/demo/owner-quota-preflight.sh` and metadata-only demo helper summaries.
+- Updated env templates, README, private-demo docs, Docker E2E docs, roadmap, target state, and decisions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,LocalizationJobRepositoryTests,OwnerQuotaPreflightServiceTests test` passed with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests,MediaUploadServiceTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 43, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Tests 116 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/owner-quota-preflight.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 493, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 123 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo user ownership boundary workspace in `docs/plans/098-demo-user-ownership-boundary-workspace.md`.
 - Added `LINGUAFRAME_DEMO_OWNER_ID` and a configured `DemoOwnerIdentityService` separate from the private demo access token.
 - Added `owner_id` columns and indexes for uploaded videos and localization jobs.

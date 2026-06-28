@@ -6,6 +6,7 @@ import com.linguaframe.common.runtime.domain.vo.DemoReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.FfmpegReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.MediaReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.NetworkDependencyVo;
+import com.linguaframe.common.runtime.domain.vo.OwnerQuotaReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.ProviderReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeContractVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeDependencySummaryVo;
@@ -33,6 +34,7 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
             "/api/runtime/dependencies",
             "/api/runtime/live-checks",
             "/api/demo-run-profiles",
+            "/api/media/uploads/preflight",
             "/api/media/uploads",
             "/api/media/uploads/{videoId}/source/download",
             "/api/jobs/{jobId}",
@@ -153,6 +155,13 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         properties.getCost().getBudgetIdentity(),
                         properties.getCost().isEnabled()
                 ),
+                new OwnerQuotaReadinessVo(
+                        properties.getOwnerQuota().isEnabled(),
+                        properties.getOwnerQuota().getMaxActiveJobs(),
+                        properties.getOwnerQuota().getMaxQueuedJobs(),
+                        properties.getOwnerQuota().isDailyBudgetGuardEnabled(),
+                        properties.getOwnerQuota().getMaxDailyCostUsd()
+                ),
                 Map.of(
                         "transcription", new ProviderReadinessVo(
                                 properties.getTranscription().isEnabled(),
@@ -185,7 +194,8 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         "retentionCleanup", new RuntimeFeatureFlagVo(properties.getRetention().isEnabled()),
                         "costTracking", new RuntimeFeatureFlagVo(properties.getCost().isEnabled()),
                         "budgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isBudgetGuardEnabled()),
-                        "dailyBudgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isDailyBudgetGuardEnabled())
+                        "dailyBudgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isDailyBudgetGuardEnabled()),
+                        "ownerQuota", new RuntimeFeatureFlagVo(properties.getOwnerQuota().isEnabled())
                 )
         );
     }

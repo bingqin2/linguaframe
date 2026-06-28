@@ -80,6 +80,7 @@ class OpenApiDocumentationTests {
         assertThat(pathNames)
                 .contains(
                         "/api/media/uploads/validate",
+                        "/api/media/uploads/preflight",
                         "/api/media/uploads",
                         "/api/media/uploads/{videoId}",
                         "/api/media/uploads/{videoId}/source/download",

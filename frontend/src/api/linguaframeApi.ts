@@ -13,6 +13,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
@@ -68,6 +69,12 @@ export async function validateUpload(file: File): Promise<MediaUploadValidation>
   return requestJson<MediaUploadValidation>('/api/media/uploads/validate', {
     method: 'POST',
     body
+  });
+}
+
+export async function getOwnerQuotaPreflight(): Promise<OwnerQuotaPreflight> {
+  return requestJson<OwnerQuotaPreflight>('/api/media/uploads/preflight', {
+    method: 'GET'
   });
 }
 
@@ -419,6 +426,7 @@ export const linguaFrameApi = {
   loginDemoSession,
   logoutDemoSession,
   validateUpload,
+  getOwnerQuotaPreflight,
   uploadMedia,
   getMediaUpload,
   listJobs,

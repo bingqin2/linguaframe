@@ -283,6 +283,57 @@ download_demo_presenter_pack_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-presenter-pack" -o "$output_path"
 }
 
+download_owner_quota_preflight_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/media/uploads/preflight" -o "$output_path"
+}
+
+print_owner_quota_preflight_summary_file() {
+  local preflight_path="$1"
+
+  python3 - "$preflight_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+preflight = json.load(open(sys.argv[1], encoding="utf-8"), parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return ""
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def bool_text(value):
+    return str(bool(value)).lower()
+
+print("ownerQuotaOwnerId=" + text(preflight.get("ownerId")))
+print("ownerQuotaEnabled=" + bool_text(preflight.get("enabled")))
+print("ownerQuotaAllowed=" + bool_text(preflight.get("allowed")))
+print("ownerQuotaActiveJobs=" + text(preflight.get("activeJobs", 0)))
+print("ownerQuotaQueuedJobs=" + text(preflight.get("queuedJobs", 0)))
+print("ownerQuotaDailyEstimatedCostUsd=" + text(preflight.get("dailyEstimatedCostUsd", 0)))
+print("ownerQuotaDailyBudgetDate=" + text(preflight.get("dailyBudgetDate")))
+for limit in preflight.get("limits", []):
+    print(
+        "ownerQuotaLimit="
+        + text(limit.get("name"))
+        + ":enabled="
+        + bool_text(limit.get("enabled"))
+        + ":current="
+        + text(limit.get("current", 0))
+        + ":limit="
+        + text(limit.get("limit", 0))
+    )
+for reason in preflight.get("blockingReasons", []):
+    print("ownerQuotaBlockingReason=" + text(reason))
+PY
+}
+
 print_job_comparison_summary_file() {
   local comparison_path="$1"
 

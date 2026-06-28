@@ -492,6 +492,14 @@ Impact: `LINGUAFRAME_DEMO_OWNER_ID` defaults to `demo-owner` and is persisted on
 
 ## 2026-06-28
 
+Decision: Use configured owner quota preflight as a private-demo guard, not as real billing or account management.
+
+Reason: LinguaFrame needs a credible way to stop runaway hosted demos before storage, queue, FFmpeg, or OpenAI work, but public authentication, tenant administration, and authoritative billing are later-stage product work. Reusing the configured demo owner keeps the guard simple and consistent with existing owner-scoped media/job APIs.
+
+Impact: `GET /api/media/uploads/preflight` reports safe owner pressure, `POST /api/media/uploads` rejects over-quota uploads before side effects, runtime readiness exposes sanitized quota settings, the React upload form shows the current owner quota state, and `scripts/demo/owner-quota-preflight.sh` provides a terminal stop before paid or full-video demos.
+
+## 2026-06-28
+
 Decision: Use a separate OpenAI demo profile instead of making `.env.example` provider-backed.
 
 Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.

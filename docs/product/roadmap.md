@@ -252,12 +252,13 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, reusable demo run profiles, server-backed job history, manual job opening, guided demo review, source media evidence, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, demo session report, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, owner quota preflight, reusable demo run profiles, server-backed job history, manual job opening, guided demo review, source media evidence, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, demo session report, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 
 - React + Vite + TypeScript frontend.
 - Upload page.
+- Owner quota preflight workspace. Status: implemented with `GET /api/media/uploads/preflight`, an upload-adjacent React panel, upload blocking when quota is exhausted, runtime readiness metadata, and terminal `scripts/demo/owner-quota-preflight.sh` evidence.
 - Demo run profile selector. Status: implemented with read-only built-in profiles that populate upload fields, persist selected profile metadata, and keep manual field overrides available.
 - Job list.
 - Job detail.
@@ -310,7 +311,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a configured demo owner boundary persisted on videos and localization jobs, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, and a completed-run evidence gallery with browser and terminal metadata-only reports.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a configured demo owner boundary persisted on videos and localization jobs, owner quota preflight before upload creation, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, and a completed-run evidence gallery with browser and terminal metadata-only reports.
 
 Build:
 
@@ -330,6 +331,7 @@ Build:
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
 - Owner-only private URL access gate. Status: implemented with optional demo token, React owner-session login/logout, and header-token compatibility for Swagger, curl, and scripts.
 - Demo owner data boundary. Status: implemented with `LINGUAFRAME_DEMO_OWNER_ID`, persisted `owner_id` columns for videos/jobs, owner-scoped upload/job/media reads, browser-visible owner metadata, and terminal-safe owner summary output.
+- Owner quota and budget preflight. Status: implemented with configurable active-job, queued-job, and owner daily-budget limits; upload rejection before storage/database/dispatch; browser owner quota panel; runtime readiness metadata; env templates; and terminal `owner-quota-preflight.sh` evidence.
 
 Do not build yet:
 
@@ -343,6 +345,7 @@ Exit criteria:
 - Secrets stay server-side.
 - Job history and artifacts survive restarts.
 - A preflight command verifies demo readiness before media upload or paid provider-backed runs.
+- Owner quota preflight can stop new uploads before storage, queue, FFmpeg, or provider spend.
 
 Suggested ExecPlan:
 

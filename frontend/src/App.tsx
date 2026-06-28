@@ -17,6 +17,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
@@ -311,6 +312,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isValidatingUpload, setIsValidatingUpload] = useState(false);
   const [uploadValidation, setUploadValidation] = useState<MediaUploadValidation | null>(null);
   const [uploadValidationError, setUploadValidationError] = useState<string | null>(null);
+  const [ownerQuotaPreflight, setOwnerQuotaPreflight] = useState<OwnerQuotaPreflight | null>(null);
+  const [ownerQuotaPreflightError, setOwnerQuotaPreflightError] = useState<string | null>(null);
+  const [isLoadingOwnerQuotaPreflight, setIsLoadingOwnerQuotaPreflight] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -578,6 +582,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setIsLoadingRuntimeDependencies(false);
   }, []);
 
+  const loadOwnerQuotaPreflight = useCallback(async () => {
+    setIsLoadingOwnerQuotaPreflight(true);
+    try {
+      const preflight = await linguaFrameApi.getOwnerQuotaPreflight();
+      setOwnerQuotaPreflight(preflight);
+      setOwnerQuotaPreflightError(null);
+      return preflight;
+    } catch (preflightError) {
+      setOwnerQuotaPreflight(null);
+      setOwnerQuotaPreflightError(toErrorMessage(preflightError));
+      return null;
+    } finally {
+      setIsLoadingOwnerQuotaPreflight(false);
+    }
+  }, []);
+
   const loadRetentionCleanupPreview = useCallback(async () => {
     setIsLoadingRetentionCleanup(true);
     try {
@@ -680,6 +700,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
+
+  useEffect(() => {
+    void loadOwnerQuotaPreflight();
+  }, [loadOwnerQuotaPreflight]);
 
   useEffect(() => {
     void loadRetentionCleanupPreview();
@@ -801,6 +825,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       return null;
     } finally {
       setIsValidatingUpload(false);
+      void loadOwnerQuotaPreflight();
     }
   }
 
@@ -834,6 +859,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const file = getSelectedUploadFile(form);
     if (!file) {
       setError('Choose an MP4 file before uploading.');
+      return;
+    }
+    if (ownerQuotaPreflight?.allowed === false) {
+      setError(ownerQuotaPreflight.blockingReasons[0] ?? 'Owner quota preflight blocked upload.');
       return;
     }
 
@@ -871,6 +900,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setError(toErrorMessage(uploadError));
     } finally {
       setIsUploading(false);
+      void loadOwnerQuotaPreflight();
     }
   }
 
@@ -1330,10 +1360,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               >
                 {isValidatingUpload ? 'Validating...' : 'Validate file'}
               </button>
-              <button type="submit" disabled={isUploading || isValidatingUpload}>
+              <button
+                type="submit"
+                disabled={isUploading || isValidatingUpload || ownerQuotaPreflight?.allowed === false}
+              >
                 {isUploading ? 'Uploading...' : 'Upload'}
               </button>
             </div>
+            <OwnerQuotaPreflightPanel
+              preflight={ownerQuotaPreflight}
+              error={ownerQuotaPreflightError}
+              isLoading={isLoadingOwnerQuotaPreflight}
+              onRefresh={() => void loadOwnerQuotaPreflight()}
+            />
             <UploadValidationPanel
               validation={uploadValidation}
               error={uploadValidationError}
@@ -1761,6 +1800,21 @@ function DemoReadinessPanel({
               <dt>Budget identity</dt>
               <dd>{readiness.budget.budgetIdentity}</dd>
             </div>
+            <div>
+              <dt>Owner quota</dt>
+              <dd>
+                {formatEnabled(readiness.ownerQuota.enabled)} / active{' '}
+                {formatLimitValue(readiness.ownerQuota.maxActiveJobs)} / queued{' '}
+                {formatLimitValue(readiness.ownerQuota.maxQueuedJobs)}
+              </dd>
+            </div>
+            <div>
+              <dt>Owner daily budget</dt>
+              <dd>
+                {formatEnabled(readiness.ownerQuota.dailyBudgetGuardEnabled)} /{' '}
+                {formatCost(readiness.ownerQuota.maxDailyCostUsd)}
+              </dd>
+            </div>
           </dl>
           <ul className="readiness-list" aria-label="Provider readiness">
             {providerEntries.map(([name, provider]) => (
@@ -1928,6 +1982,73 @@ function DemoRunbookPanel({
           Full sample: set LINGUAFRAME_TEARS_SAMPLE_PATH before running the Tears of Steel script.
         </li>
       </ul>
+    </section>
+  );
+}
+
+function OwnerQuotaPreflightPanel({
+  preflight,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  preflight: OwnerQuotaPreflight | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="upload-validation-panel" aria-label="Owner quota">
+      <div className="panel-heading">
+        <h3>Owner quota</h3>
+        {preflight ? (
+          <span className={preflight.allowed ? 'status-pill' : 'status-pill danger'}>
+            {preflight.allowed ? 'Allowed' : 'Blocked'}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !preflight ? <p className="muted">Loading owner quota...</p> : null}
+      {preflight ? (
+        <>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Owner</dt>
+              <dd>{preflight.ownerId}</dd>
+            </div>
+            <div>
+              <dt>Mode</dt>
+              <dd>{formatEnabled(preflight.enabled)}</dd>
+            </div>
+            <div>
+              <dt>Active jobs</dt>
+              <dd>{formatQuotaLimit(preflight, 'activeJobs', preflight.activeJobs)}</dd>
+            </div>
+            <div>
+              <dt>Queued jobs</dt>
+              <dd>{formatQuotaLimit(preflight, 'queuedJobs', preflight.queuedJobs)}</dd>
+            </div>
+            <div>
+              <dt>Daily spend</dt>
+              <dd>{formatCostQuotaLimit(preflight, 'dailyCostUsd', preflight.dailyEstimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Budget date</dt>
+              <dd>{preflight.dailyBudgetDate}</dd>
+            </div>
+          </dl>
+          {preflight.blockingReasons.length > 0 ? (
+            <ul className="error-list" aria-label="Owner quota blocking reasons">
+              {preflight.blockingReasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }
@@ -5705,6 +5826,34 @@ function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
 }
 
+function formatLimitValue(value: number): string {
+  return value > 0 ? String(value) : 'unlimited';
+}
+
+function formatQuotaLimit(
+  preflight: OwnerQuotaPreflight,
+  name: string,
+  fallbackCurrent: number
+): string {
+  const limit = preflight.limits.find((candidate) => candidate.name === name);
+  if (!limit || !limit.enabled) {
+    return `${fallbackCurrent} / unlimited`;
+  }
+  return `${limit.current} / ${limit.limit}`;
+}
+
+function formatCostQuotaLimit(
+  preflight: OwnerQuotaPreflight,
+  name: string,
+  fallbackCurrent: number
+): string {
+  const limit = preflight.limits.find((candidate) => candidate.name === name);
+  if (!limit || !limit.enabled) {
+    return `${formatCost(fallbackCurrent)} / unlimited`;
+  }
+  return `${formatCost(limit.current)} / ${formatCost(limit.limit)}`;
+}
+
 function formatGalleryCost(value: string): string {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -5848,7 +5997,9 @@ function formatFeatureName(name: string): string {
     uploadRateLimit: 'Upload rate limit',
     retentionCleanup: 'Retention cleanup',
     costTracking: 'Cost tracking',
-    budgetGuard: 'Budget guard'
+    budgetGuard: 'Budget guard',
+    dailyBudgetGuard: 'Daily budget guard',
+    ownerQuota: 'Owner quota'
   };
   return labels[name] ?? name;
 }

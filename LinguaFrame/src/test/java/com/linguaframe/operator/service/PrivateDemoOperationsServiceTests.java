@@ -7,6 +7,7 @@ import com.linguaframe.common.runtime.domain.vo.DemoReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.FfmpegReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.MediaReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.NetworkDependencyVo;
+import com.linguaframe.common.runtime.domain.vo.OwnerQuotaReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.ProviderReadinessVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeContractVo;
 import com.linguaframe.common.runtime.domain.vo.RuntimeDependencySummaryVo;
@@ -173,6 +174,7 @@ class PrivateDemoOperationsServiceTests {
                         new FfmpegReadinessVo(true, true, true, true, 120, 180),
                         new BudgetReadinessVo(true, new BigDecimal("0.50000000"), true,
                                 new BigDecimal("2.00000000"), "demo-owner", true),
+                        new OwnerQuotaReadinessVo(false, 0, 0, false, BigDecimal.ZERO),
                         providers,
                         features
                 )
