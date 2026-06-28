@@ -305,6 +305,14 @@ download_upload_readiness_json() {
   demo_curl -fsS "$base_url/api/media/uploads/readiness$query" -o "$output_path"
 }
 
+download_runtime_dependencies_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/runtime/dependencies" -o "$output_path"
+}
+
 print_upload_readiness_summary_file() {
   local readiness_path="$1"
 
@@ -335,6 +343,40 @@ for action in readiness.get("requiredActions", []):
     print("uploadReadinessRequiredAction=" + text(action))
 for route in readiness.get("evidenceRoutes", []):
     print("uploadReadinessEvidenceRoute=" + text(route))
+PY
+}
+
+print_worker_topology_summary_file() {
+  local runtime_dependencies_path="$1"
+
+  python3 - "$runtime_dependencies_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    body = json.load(handle)
+
+worker = ((body.get("readiness") or {}).get("worker") or {})
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("workerTopologyRole=" + text(worker.get("role")))
+print("workerTopologyListenerQueue=" + text(worker.get("listenerQueue")))
+print(
+    "workerTopologyFfmpegRoute="
+    + text(worker.get("ffmpegJobQueue"))
+    + ":"
+    + text(worker.get("ffmpegRoutingKey"))
+)
+print(
+    "workerTopologyOpenaiRoute="
+    + text(worker.get("openaiJobQueue"))
+    + ":"
+    + text(worker.get("openaiRoutingKey"))
+)
+for command in worker.get("recommendedCommands", []):
+    print("workerTopologyCommand=" + text(command))
 PY
 }
 

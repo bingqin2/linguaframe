@@ -1870,6 +1870,49 @@ function DemoReadinessPanel({
               <li key={name}>{formatProviderReadiness(name, provider)}</li>
             ))}
           </ul>
+          <section className="readiness-subsection" aria-label="Worker topology">
+            <h3>Worker topology</h3>
+            <dl className="status-grid readiness-grid">
+              <div>
+                <dt>Listener queue</dt>
+                <dd>{readiness.worker.listenerQueue}</dd>
+              </div>
+              <div>
+                <dt>Job exchange</dt>
+                <dd>{readiness.worker.jobExchange}</dd>
+              </div>
+              <div>
+                <dt>Default route</dt>
+                <dd>
+                  {readiness.worker.defaultJobQueue} / {readiness.worker.defaultRoutingKey}
+                </dd>
+              </div>
+              <div>
+                <dt>FFmpeg route</dt>
+                <dd>
+                  {readiness.worker.ffmpegJobQueue} / {readiness.worker.ffmpegRoutingKey}
+                </dd>
+              </div>
+              <div>
+                <dt>OpenAI route</dt>
+                <dd>
+                  {readiness.worker.openaiJobQueue} / {readiness.worker.openaiRoutingKey}
+                </dd>
+              </div>
+            </dl>
+            <ul className="readiness-list" aria-label="Worker owned stages">
+              {readiness.worker.ownedStageGroups.map((stageGroup) => (
+                <li key={stageGroup}>{stageGroup}</li>
+              ))}
+            </ul>
+            <ul className="readiness-list" aria-label="Worker startup commands">
+              {readiness.worker.recommendedCommands.map((command) => (
+                <li key={command}>
+                  <code>{command}</code>
+                </li>
+              ))}
+            </ul>
+          </section>
           <ul className="feature-list" aria-label="Runtime feature flags">
             {featureEntries.map(([name, feature]) => (
               <li key={name}>

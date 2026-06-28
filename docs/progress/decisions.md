@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Expose worker topology through read-only runtime readiness instead of changing queue routing or Docker topology.
+
+Reason: Split-worker demos need to verify the active role, listener queue, and FFmpeg/OpenAI routes before upload, but the existing worker role and RabbitMQ configuration already control execution behavior.
+
+Impact: `GET /api/runtime/dependencies`, the browser `Demo readiness` panel, `scripts/demo/upload-readiness.sh`, and `scripts/demo/private-demo-preflight.sh` now show metadata-only worker topology, owned stages, and safe startup commands without exposing credentials, tokens, local paths, provider payloads, transcript text, subtitle text, or media bytes.
+
+## 2026-06-28
+
 Decision: Add pre-upload readiness as a safe aggregate workspace instead of folding all checks into file validation or upload creation.
 
 Reason: The owner needs one go/no-go view before a real demo upload, but runtime health, owner quota, profile selection, and provider warnings have different sources of truth. Keeping readiness read-only avoids creating jobs, writing storage objects, or spending provider credits while still explaining whether upload should proceed.

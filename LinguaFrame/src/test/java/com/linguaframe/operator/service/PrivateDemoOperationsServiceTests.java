@@ -169,7 +169,7 @@ class PrivateDemoOperationsServiceTests {
                 new StorageDependencyVo("minio", "http://localhost:9000", "linguaframe-artifacts"),
                 new DemoReadinessVo(
                         true,
-                        new WorkerReadinessVo(true, true, WorkerRole.COMBINED, 2, 10, 5000L),
+                        workerReadiness(),
                         new MediaReadinessVo(100, 300),
                         new FfmpegReadinessVo(true, true, true, true, 120, 180),
                         new BudgetReadinessVo(true, new BigDecimal("0.50000000"), true,
@@ -178,6 +178,27 @@ class PrivateDemoOperationsServiceTests {
                         providers,
                         features
                 )
+        );
+    }
+
+    private static WorkerReadinessVo workerReadiness() {
+        return new WorkerReadinessVo(
+                true,
+                true,
+                WorkerRole.COMBINED,
+                2,
+                10,
+                5000L,
+                "linguaframe.localization.jobs",
+                "linguaframe.jobs",
+                "linguaframe.localization.jobs",
+                "localization.queued",
+                "linguaframe.localization.jobs",
+                "localization.queued",
+                "linguaframe.localization.openai.jobs",
+                "localization.openai",
+                List.of("COMBINED:ALL"),
+                List.of("LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend")
         );
     }
 

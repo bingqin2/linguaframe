@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the worker topology readiness workspace in `docs/plans/102-worker-topology-readiness-workspace.md`.
+- Extended `/api/runtime/dependencies` worker readiness with active listener queue, RabbitMQ exchange, default/FFmpeg/OpenAI routes, owned stage groups, and safe startup commands.
+- Added a React `Worker topology` subsection to the `Demo readiness` panel.
+- Added terminal `workerTopology*` summary lines to upload readiness and a private-demo preflight pass line for worker topology visibility.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with read-only worker topology readiness guidance.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=RuntimeDependencyControllerTests test` first failed because `listenerQueue` was missing, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx` first failed because `Worker topology` was absent, then passed with `Tests 72 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_worker_topology_summary_file` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/upload-readiness.sh scripts/demo/private-demo-preflight.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 508, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 127 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the TTS dubbed video delivery workspace in `docs/plans/101-tts-dubbed-video-delivery-workspace.md`.
 - Added `DUBBED_VIDEO` and `DUBBED_VIDEO_DELIVERY` as the separate generated-media output for TTS audio plus generated subtitle-burned video.
 - Added an FFmpeg audio replacement service that maps video from `BURNED_VIDEO`, audio from `DUBBING_AUDIO`, writes `dubbed-video.mp4`, and preserves safe bounded failure summaries.

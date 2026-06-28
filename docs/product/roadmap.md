@@ -475,6 +475,7 @@ Build:
 - [x] OpenAI worker role for speech, translation, evaluation, and TTS.
 - [x] Queue names or routing keys per workload type.
 - [x] Documentation for when to run one combined worker versus split workers.
+- [x] Browser and terminal readiness evidence for active role, listener queue, split-worker routes, owned stages, and safe startup commands.
 
 Do not build yet:
 
@@ -487,6 +488,7 @@ Exit criteria:
 - [x] The same codebase can run a combined worker locally.
 - [x] The same codebase can run separate FFmpeg and OpenAI worker roles when configured.
 - [x] The roadmap and README explain why the split exists and when to use it.
+- [x] Operators can verify the active combined or split-worker topology before upload without changing RabbitMQ routing.
 
 Suggested ExecPlan:
 

@@ -257,6 +257,42 @@ JSON
   [[ "$output" != *"provider payload"* ]] || fail "upload readiness summary exposed provider payload"
 }
 
+test_worker_topology_summary_is_metadata_only() {
+  cat >"$TMPDIR/runtime-dependencies.json" <<'JSON'
+{
+  "readiness": {
+    "worker": {
+      "role": "OPENAI",
+      "listenerQueue": "linguaframe.localization.openai.jobs",
+      "ffmpegJobQueue": "linguaframe.localization.jobs",
+      "ffmpegRoutingKey": "localization.queued",
+      "openaiJobQueue": "linguaframe.localization.openai.jobs",
+      "openaiRoutingKey": "localization.openai",
+      "recommendedCommands": [
+        "LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend",
+        "LINGUAFRAME_WORKER_ROLE=OPENAI LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=linguaframe.localization.openai.jobs docker compose --env-file .env up -d linguaframe-backend"
+      ],
+      "unsafePassword": "linguaframe_dev_password",
+      "unsafeToken": "private-demo-token",
+      "unsafePath": "/Users/example/private.mov"
+    }
+  }
+}
+JSON
+
+  print_worker_topology_summary_file "$TMPDIR/runtime-dependencies.json" >"$TMPDIR/worker-topology.out"
+  local output
+  output="$(cat "$TMPDIR/worker-topology.out")"
+  [[ "$output" == *"workerTopologyRole=OPENAI"* ]] || fail "worker topology summary missed role"
+  [[ "$output" == *"workerTopologyListenerQueue=linguaframe.localization.openai.jobs"* ]] || fail "worker topology summary missed listener queue"
+  [[ "$output" == *"workerTopologyFfmpegRoute=linguaframe.localization.jobs:localization.queued"* ]] || fail "worker topology summary missed ffmpeg route"
+  [[ "$output" == *"workerTopologyOpenaiRoute=linguaframe.localization.openai.jobs:localization.openai"* ]] || fail "worker topology summary missed openai route"
+  [[ "$output" == *"workerTopologyCommand=LINGUAFRAME_WORKER_ROLE=OPENAI"* ]] || fail "worker topology summary missed command"
+  [[ "$output" != *"linguaframe_dev_password"* ]] || fail "worker topology summary exposed password"
+  [[ "$output" != *"private-demo-token"* ]] || fail "worker topology summary exposed token"
+  [[ "$output" != *"/Users/example"* ]] || fail "worker topology summary exposed local path"
+}
+
 test_upload_readiness_script_exits_on_blocked_state() {
   local fake_curl="$TMPDIR/fake-upload-readiness-curl"
   cat >"$fake_curl" <<'SH'
@@ -1689,6 +1725,7 @@ test_demo_session_owner_summary_is_metadata_only
 test_owner_quota_preflight_helpers_are_metadata_only
 test_owner_quota_preflight_script_exits_on_blocked_state
 test_upload_readiness_helpers_are_metadata_only
+test_worker_topology_summary_is_metadata_only
 test_upload_readiness_script_exits_on_blocked_state
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile

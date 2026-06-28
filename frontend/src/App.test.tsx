@@ -142,6 +142,20 @@ describe('App', () => {
     expect(within(readiness).getByText('V19')).toBeInTheDocument();
     expect(within(readiness).getByText('300 seconds')).toBeInTheDocument();
     expect(within(readiness).getByText('COMBINED')).toBeInTheDocument();
+    expect(within(readiness).getByText('Worker topology')).toBeInTheDocument();
+    expect(within(readiness).getByText('linguaframe.localization.jobs')).toBeInTheDocument();
+    expect(within(readiness).getByText('linguaframe.jobs')).toBeInTheDocument();
+    expect(within(readiness).getByText('FFmpeg route')).toBeInTheDocument();
+    expect(within(readiness).getAllByText('linguaframe.localization.jobs / localization.queued').length)
+      .toBeGreaterThanOrEqual(1);
+    expect(within(readiness).getByText('OpenAI route')).toBeInTheDocument();
+    expect(within(readiness).getByText('linguaframe.localization.openai.jobs / localization.openai'))
+      .toBeInTheDocument();
+    expect(within(readiness).getByText('COMBINED:ALL')).toBeInTheDocument();
+    expect(within(readiness).getByText(/FFMPEG:WORKER_SMOKE,AUDIO_EXTRACTION/)).toBeInTheDocument();
+    expect(within(readiness).getByText(/OPENAI:TRANSCRIPT_SUBTITLE_EXPORT,TARGET_SUBTITLE_EXPORT/))
+      .toBeInTheDocument();
+    expect(within(readiness).getByText(/LINGUAFRAME_WORKER_ROLE=OPENAI/)).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg audio')).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg burn-in')).toBeInTheDocument();
     expect(within(readiness).getAllByText('Budget guard')).toHaveLength(2);
@@ -3272,7 +3286,25 @@ function runtimeDependenciesFixture(
         role: 'COMBINED',
         maxRetries: 2,
         dispatchBatchSize: 10,
-        dispatchIntervalMs: 5000
+        dispatchIntervalMs: 5000,
+        listenerQueue: 'linguaframe.localization.jobs',
+        jobExchange: 'linguaframe.jobs',
+        defaultJobQueue: 'linguaframe.localization.jobs',
+        defaultRoutingKey: 'localization.queued',
+        ffmpegJobQueue: 'linguaframe.localization.jobs',
+        ffmpegRoutingKey: 'localization.queued',
+        openaiJobQueue: 'linguaframe.localization.openai.jobs',
+        openaiRoutingKey: 'localization.openai',
+        ownedStageGroups: [
+          'COMBINED:ALL',
+          'FFMPEG:WORKER_SMOKE,AUDIO_EXTRACTION,SUBTITLE_BURN_IN,DUBBED_VIDEO_DELIVERY,ARTIFACT_SUMMARY',
+          'OPENAI:TRANSCRIPT_SUBTITLE_EXPORT,TARGET_SUBTITLE_EXPORT,SUBTITLE_POLISHING,QUALITY_EVALUATION,DUBBING_AUDIO_GENERATION'
+        ],
+        recommendedCommands: [
+          'LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend',
+          'LINGUAFRAME_WORKER_ROLE=FFMPEG LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=linguaframe.localization.jobs docker compose --env-file .env up -d linguaframe-backend',
+          'LINGUAFRAME_WORKER_ROLE=OPENAI LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=linguaframe.localization.openai.jobs docker compose --env-file .env up -d linguaframe-backend'
+        ]
       },
       media: { maxFileSizeMb: 100, maxDurationSeconds: 300 },
       ffmpeg: {

@@ -134,7 +134,17 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         properties.getWorker().getRole(),
                         properties.getWorker().getMaxRetries(),
                         properties.getWorker().getDispatchBatchSize(),
-                        properties.getWorker().getDispatchIntervalMs()
+                        properties.getWorker().getDispatchIntervalMs(),
+                        properties.getRabbitmq().getListenerQueue(),
+                        properties.getRabbitmq().getJobExchange(),
+                        properties.getRabbitmq().getJobQueue(),
+                        properties.getRabbitmq().getJobRoutingKey(),
+                        properties.getRabbitmq().getFfmpegJobQueue(),
+                        properties.getRabbitmq().getFfmpegJobRoutingKey(),
+                        properties.getRabbitmq().getOpenaiJobQueue(),
+                        properties.getRabbitmq().getOpenaiJobRoutingKey(),
+                        workerStageGroups(),
+                        workerStartupCommands()
                 ),
                 new MediaReadinessVo(
                         properties.getMedia().getMaxFileSizeMb(),
@@ -198,6 +208,24 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
                         "dailyBudgetGuard", new RuntimeFeatureFlagVo(properties.getCost().isDailyBudgetGuardEnabled()),
                         "ownerQuota", new RuntimeFeatureFlagVo(properties.getOwnerQuota().isEnabled())
                 )
+        );
+    }
+
+    private List<String> workerStageGroups() {
+        return List.of(
+                "COMBINED:ALL",
+                "FFMPEG:WORKER_SMOKE,AUDIO_EXTRACTION,SUBTITLE_BURN_IN,DUBBED_VIDEO_DELIVERY,ARTIFACT_SUMMARY",
+                "OPENAI:TRANSCRIPT_SUBTITLE_EXPORT,TARGET_SUBTITLE_EXPORT,SUBTITLE_POLISHING,QUALITY_EVALUATION,DUBBING_AUDIO_GENERATION"
+        );
+    }
+
+    private List<String> workerStartupCommands() {
+        return List.of(
+                "LINGUAFRAME_WORKER_ROLE=COMBINED docker compose --env-file .env up -d linguaframe-backend",
+                "LINGUAFRAME_WORKER_ROLE=FFMPEG LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=%s docker compose --env-file .env up -d linguaframe-backend"
+                        .formatted(properties.getRabbitmq().getFfmpegJobQueue()),
+                "LINGUAFRAME_WORKER_ROLE=OPENAI LINGUAFRAME_RABBITMQ_LISTENER_QUEUE=%s docker compose --env-file .env up -d linguaframe-backend"
+                        .formatted(properties.getRabbitmq().getOpenaiJobQueue())
         );
     }
 
