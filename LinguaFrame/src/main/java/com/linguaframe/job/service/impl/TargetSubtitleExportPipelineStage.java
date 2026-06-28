@@ -3,6 +3,7 @@ package com.linguaframe.job.service.impl;
 import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.LocalizationJobExecutionContextBo;
+import com.linguaframe.job.domain.bo.TranslationGlossaryBo;
 import com.linguaframe.job.domain.bo.TranslationCacheLookupBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.enums.JobArtifactType;
@@ -42,6 +43,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
     private final TranslationCacheKeyService translationCacheKeyService;
     private final TranslationCacheService translationCacheService;
     private final PromptTemplateRegistry promptTemplateRegistry;
+    private final TranslationGlossaryParser translationGlossaryParser = new TranslationGlossaryParser();
 
     public TargetSubtitleExportPipelineStage(
             LinguaFrameProperties properties,
@@ -130,12 +132,17 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
         String jobId = context.job().id();
         String targetLanguage = context.job().targetLanguage();
         String translationStyle = context.job().translationStyle();
+        TranslationGlossaryBo translationGlossary = translationGlossaryParser.fromStoredJson(
+                context.job().translationGlossaryJson(),
+                context.job().translationGlossaryHash(),
+                context.job().translationGlossaryEntryCount()
+        );
         List<TranscriptSegmentVo> transcriptSegments = transcriptService.listTranscript(jobId);
         if (transcriptSegments.isEmpty()) {
             throw new IllegalStateException("Transcript segments not found.");
         }
 
-        TranslationCacheLookupBo lookup = buildCacheLookup(targetLanguage, translationStyle, transcriptSegments);
+        TranslationCacheLookupBo lookup = buildCacheLookup(targetLanguage, translationStyle, translationGlossary.hash(), transcriptSegments);
         Optional<com.linguaframe.job.domain.vo.TranslationCacheHitVo> cacheHit = lookup == null || translationCacheService == null
                 ? Optional.empty()
                 : translationCacheService.findCachedTranslation(lookup);
@@ -149,7 +156,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
             ));
         } else {
             costBudgetGuardService.assertWithinBudget(jobId, stage());
-            result = translationProvider.translate(jobId, targetLanguage, translationStyle, transcriptSegments);
+            result = translationProvider.translate(jobId, targetLanguage, translationStyle, translationGlossary.entries(), transcriptSegments);
         }
         List<SubtitleSegmentVo> subtitles = subtitleService.replaceSubtitles(jobId, targetLanguage, result);
         if (cacheHit.isEmpty() && lookup != null && translationCacheService != null) {
@@ -182,6 +189,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
     private TranslationCacheLookupBo buildCacheLookup(
             String targetLanguage,
             String translationStyle,
+            String translationGlossaryHash,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
         if (translationCacheKeyService == null) {
@@ -193,6 +201,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
                 cacheModel(),
                 cachePromptVersion(),
                 translationStyle,
+                translationGlossaryHash,
                 transcriptSegments
         );
     }

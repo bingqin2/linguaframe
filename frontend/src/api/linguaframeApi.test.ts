@@ -154,6 +154,60 @@ describe('linguaframeApi', () => {
     expect((body as FormData).get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
   });
 
+  test('uploads media with translation glossary only when non blank', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        translationGlossaryEntryCount: 1,
+        translationGlossaryHash: 'abc123',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' }),
+      'zh',
+      'verse',
+      'formal',
+      'high_contrast',
+      ' Maya => 玛雅 '
+    );
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('translationGlossary')).toBe('Maya => 玛雅');
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        videoId: 'video-2',
+        jobId: 'job-2',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-2/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        createdAt: '2026-06-26T10:01:00Z'
+      })
+    );
+    fetchMock.mockClear();
+    await uploadMedia(new File(['demo'], 'sample.mp4', { type: 'video/mp4' }), 'zh', undefined, undefined, undefined, '   ');
+    const blankBody = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(blankBody).toBeInstanceOf(FormData);
+    expect((blankBody as FormData).has('translationGlossary')).toBe(false);
+  });
+
   test('fetches uploaded source media metadata without object keys', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({

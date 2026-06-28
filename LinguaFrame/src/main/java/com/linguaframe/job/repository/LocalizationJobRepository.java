@@ -37,6 +37,9 @@ public class LocalizationJobRepository {
                             tts_voice,
                             translation_style,
                             subtitle_style_preset,
+                            translation_glossary_json,
+                            translation_glossary_hash,
+                            translation_glossary_entry_count,
                             status,
                             created_at,
                             started_at,
@@ -54,6 +57,9 @@ public class LocalizationJobRepository {
                             :ttsVoice,
                             :translationStyle,
                             :subtitleStylePreset,
+                            :translationGlossaryJson,
+                            :translationGlossaryHash,
+                            :translationGlossaryEntryCount,
                             :status,
                             :createdAt,
                             :startedAt,
@@ -71,6 +77,9 @@ public class LocalizationJobRepository {
                 .param("ttsVoice", record.ttsVoice())
                 .param("translationStyle", record.translationStyle())
                 .param("subtitleStylePreset", record.subtitleStylePreset())
+                .param("translationGlossaryJson", record.translationGlossaryJson())
+                .param("translationGlossaryHash", record.translationGlossaryHash())
+                .param("translationGlossaryEntryCount", record.translationGlossaryEntryCount())
                 .param("status", record.status().name())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("startedAt", timestampOrNull(record.startedAt()))
@@ -92,6 +101,9 @@ public class LocalizationJobRepository {
                             tts_voice,
                             translation_style,
                             subtitle_style_preset,
+                            translation_glossary_json,
+                            translation_glossary_hash,
+                            translation_glossary_entry_count,
                             status,
                             created_at,
                             started_at,
@@ -124,6 +136,8 @@ public class LocalizationJobRepository {
                             jobs.tts_voice,
                             jobs.translation_style,
                             jobs.subtitle_style_preset,
+                            jobs.translation_glossary_hash,
+                            jobs.translation_glossary_entry_count,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -145,6 +159,8 @@ public class LocalizationJobRepository {
                             jobs.tts_voice,
                             jobs.translation_style,
                             jobs.subtitle_style_preset,
+                            jobs.translation_glossary_hash,
+                            jobs.translation_glossary_entry_count,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -356,6 +372,9 @@ public class LocalizationJobRepository {
                 rs.getString("tts_voice"),
                 rs.getString("translation_style"),
                 rs.getString("subtitle_style_preset"),
+                rs.getString("translation_glossary_json"),
+                rs.getString("translation_glossary_hash"),
+                rs.getInt("translation_glossary_entry_count"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),
@@ -379,6 +398,8 @@ public class LocalizationJobRepository {
                 rs.getString("tts_voice"),
                 rs.getString("translation_style"),
                 rs.getString("subtitle_style_preset"),
+                rs.getInt("translation_glossary_entry_count"),
+                rs.getString("translation_glossary_hash"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),

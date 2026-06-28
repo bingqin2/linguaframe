@@ -11,6 +11,8 @@ export interface MediaUpload {
   ttsVoice: string | null;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   createdAt: string;
 }
 
@@ -70,6 +72,8 @@ export interface LocalizationJob {
   ttsVoice: string | null;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -141,6 +145,8 @@ export interface LocalizationJobSummary {
   ttsVoice: string | null;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -565,6 +571,8 @@ export interface DeliveryManifest {
   videoId: string;
   targetLanguage: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   status: LocalizationJobStatus;
   generatedAt: string;
   handoffReady: boolean;

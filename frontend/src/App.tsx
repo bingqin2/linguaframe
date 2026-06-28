@@ -90,6 +90,8 @@ interface DemoEvidence {
     targetLanguage: string;
     translationStyle: string;
     subtitleStylePreset: string;
+    translationGlossaryEntryCount: number;
+    translationGlossaryHash: string;
     status: LocalizationJobStatus;
     retryCount: number;
     failureStage: string | null;
@@ -198,6 +200,8 @@ interface CacheReplayCandidate {
   ttsVoice: string | null;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
 }
 
 interface CacheReplayBaseline {
@@ -212,6 +216,8 @@ interface CacheReplayEvidenceJob {
   ttsVoice: string;
   translationStyle: string;
   subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
   modelCallCount: number;
   estimatedCostUsd: number;
   artifactCacheHitCount: number;
@@ -262,6 +268,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [ttsVoice, setTtsVoice] = useState('');
   const [translationStyle, setTranslationStyle] = useState('NATURAL');
   const [subtitleStylePreset, setSubtitleStylePreset] = useState('STANDARD');
+  const [translationGlossary, setTranslationGlossary] = useState('');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
@@ -688,7 +695,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         targetLanguage.trim(),
         ttsVoice,
         translationStyle,
-        subtitleStylePreset
+        subtitleStylePreset,
+        translationGlossary
       );
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
@@ -762,6 +770,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(recentJob.ttsVoice ?? '');
     setTranslationStyle(recentJob.translationStyle);
     setSubtitleStylePreset(recentJob.subtitleStylePreset);
+    setTranslationGlossary('');
     const nextJob = await loadJob(recentJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
@@ -774,6 +783,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(historyJob.ttsVoice ?? '');
     setTranslationStyle(historyJob.translationStyle);
     setSubtitleStylePreset(historyJob.subtitleStylePreset);
+    setTranslationGlossary('');
     const nextJob = await loadJob(historyJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
@@ -788,6 +798,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(nextJob.ttsVoice ?? '');
     setTranslationStyle(nextJob.translationStyle ?? 'NATURAL');
     setSubtitleStylePreset(nextJob.subtitleStylePreset ?? 'STANDARD');
+    setTranslationGlossary('');
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
   }
@@ -1057,6 +1068,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               </select>
             </label>
             <label>
+              Translation glossary
+              <textarea
+                value={translationGlossary}
+                onChange={(event) => setTranslationGlossary(event.target.value)}
+                placeholder={'Maya => 玛雅\nTears of Steel = 钢铁之泪'}
+                rows={4}
+              />
+            </label>
+            <label>
               Subtitle style
               <select
                 value={subtitleStylePreset}
@@ -1148,6 +1168,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                         {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
                         {formatTranslationStyle(historyJob.translationStyle)} ·
                         {formatSubtitleStylePreset(historyJob.subtitleStylePreset)} ·
+                        {formatGlossaryMetadata(historyJob.translationGlossaryEntryCount, historyJob.translationGlossaryHash)} ·
                         {formatCost(historyJob.estimatedCostUsd)} ·
                         retry {historyJob.retryCount}
                       </span>
@@ -1196,7 +1217,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       <span className="history-meta">
                         {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)} ·
                         {formatTranslationStyle(recentJob.translationStyle)} ·
-                        {formatSubtitleStylePreset(recentJob.subtitleStylePreset)}
+                        {formatSubtitleStylePreset(recentJob.subtitleStylePreset)} ·
+                        {formatGlossaryMetadata(recentJob.translationGlossaryEntryCount, recentJob.translationGlossaryHash)}
                       </span>
                       <small>{recentJob.jobId}</small>
                     </button>
@@ -1361,6 +1383,10 @@ function SourceMediaPanel({
           <div>
             <dt>Subtitle style</dt>
             <dd>{formatSubtitleStylePreset(job.subtitleStylePreset)}</dd>
+          </div>
+          <div>
+            <dt>Translation glossary</dt>
+            <dd>{formatGlossaryMetadata(job.translationGlossaryEntryCount, job.translationGlossaryHash)}</dd>
           </div>
         </dl>
       ) : sourceMediaError ? null : (
@@ -3755,6 +3781,8 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     ttsVoice: upload.ttsVoice,
     translationStyle: upload.translationStyle,
     subtitleStylePreset: upload.subtitleStylePreset,
+    translationGlossaryEntryCount: upload.translationGlossaryEntryCount,
+    translationGlossaryHash: upload.translationGlossaryHash,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -4189,6 +4217,8 @@ function buildDemoEvidence(
       targetLanguage: job.targetLanguage,
       translationStyle: job.translationStyle,
       subtitleStylePreset: job.subtitleStylePreset,
+      translationGlossaryEntryCount: job.translationGlossaryEntryCount,
+      translationGlossaryHash: job.translationGlossaryHash,
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
@@ -4271,6 +4301,7 @@ function formatQualityEvaluationEvidence(job: LocalizationJob): string {
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
+    `- Translation glossary: ${formatGlossaryMetadata(job.translationGlossaryEntryCount, job.translationGlossaryHash)}`,
     `- Job status: ${job.status}`,
     `- Created at: ${job.createdAt}`,
     ''
@@ -4484,6 +4515,7 @@ function formatDemoReviewPresenterNotes(
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
+    `- Translation glossary: ${formatGlossaryMetadata(job.translationGlossaryEntryCount, job.translationGlossaryHash)}`,
     `- Overall: ${ready ? 'READY' : 'ATTENTION'}`,
     '',
     '## Walkthrough'
@@ -4516,7 +4548,9 @@ function buildCacheReplayCandidates(
         targetLanguage: job.targetLanguage,
         ttsVoice: job.ttsVoice,
         translationStyle: job.translationStyle,
-        subtitleStylePreset: job.subtitleStylePreset
+        subtitleStylePreset: job.subtitleStylePreset,
+        translationGlossaryEntryCount: job.translationGlossaryEntryCount,
+        translationGlossaryHash: job.translationGlossaryHash
       });
     }
   });
@@ -4529,7 +4563,9 @@ function buildCacheReplayCandidates(
         targetLanguage: job.targetLanguage,
         ttsVoice: job.ttsVoice,
         translationStyle: job.translationStyle,
-        subtitleStylePreset: job.subtitleStylePreset
+        subtitleStylePreset: job.subtitleStylePreset,
+        translationGlossaryEntryCount: job.translationGlossaryEntryCount,
+        translationGlossaryHash: job.translationGlossaryHash
       });
     }
   });
@@ -4574,6 +4610,8 @@ function cacheReplayEvidenceJob(
     ttsVoice: formatVoice(job.ttsVoice),
     translationStyle: formatTranslationStyle(job.translationStyle),
     subtitleStylePreset: formatSubtitleStylePreset(job.subtitleStylePreset),
+    translationGlossaryEntryCount: job.translationGlossaryEntryCount,
+    translationGlossaryHash: job.translationGlossaryHash,
     modelCallCount: modelCallCount(job),
     estimatedCostUsd: jobEstimatedCost(job),
     artifactCacheHitCount,
@@ -4600,6 +4638,8 @@ function formatCacheReplayEvidenceMarkdown(evidence: CacheReplayEvidence): strin
     `- Comparison provider cache hits: ${evidence.comparison.providerCacheHitCount}`,
     `- Baseline subtitle style: ${evidence.baseline.subtitleStylePreset}`,
     `- Comparison subtitle style: ${evidence.comparison.subtitleStylePreset}`,
+    `- Baseline translation glossary: ${formatGlossaryMetadata(evidence.baseline.translationGlossaryEntryCount, evidence.baseline.translationGlossaryHash)}`,
+    `- Comparison translation glossary: ${formatGlossaryMetadata(evidence.comparison.translationGlossaryEntryCount, evidence.comparison.translationGlossaryHash)}`,
     `- Baseline result bundle: ${evidence.links.baselineResultBundle}`,
     `- Comparison result bundle: ${evidence.links.comparisonResultBundle}`,
     `- Baseline diagnostics: ${evidence.links.baselineDiagnostics}`,
@@ -4674,6 +4714,15 @@ function formatSubtitleStylePreset(value: string | null | undefined): string {
   const normalized = value?.trim().toUpperCase() || 'STANDARD';
   const option = SUBTITLE_STYLE_PRESET_OPTIONS.find((candidate) => candidate.value === normalized);
   return option?.label ?? normalized;
+}
+
+function formatGlossaryMetadata(entryCount: number | null | undefined, hash: string | null | undefined): string {
+  const count = entryCount ?? 0;
+  if (count <= 0) {
+    return 'No glossary';
+  }
+  const normalizedHash = hash?.trim();
+  return `Glossary ${count} · ${normalizedHash ? normalizedHash.slice(0, 8) : 'no hash'}`;
 }
 
 function formatEnabled(value: boolean): string {

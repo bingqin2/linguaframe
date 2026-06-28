@@ -130,6 +130,8 @@ class TargetSubtitleExportPipelineStageTests {
                 String provider,
                 String model,
                 String promptVersion,
+                String translationStyle,
+                String translationGlossaryHash,
                 List<TranscriptSegmentVo> segments
         ) {
             this.provider = provider;
@@ -141,7 +143,9 @@ class TargetSubtitleExportPipelineStageTests {
                     targetLanguage.trim(),
                     provider,
                     model,
-                    promptVersion
+                    promptVersion,
+                    translationStyle,
+                    translationGlossaryHash
             );
         }
     }

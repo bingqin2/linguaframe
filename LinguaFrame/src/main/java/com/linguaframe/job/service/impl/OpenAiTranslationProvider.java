@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
+import com.linguaframe.job.domain.bo.TranslationGlossaryEntryBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
@@ -120,9 +121,20 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             String translationStyle,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
+        return translate(jobId, targetLanguage, translationStyle, List.of(), transcriptSegments);
+    }
+
+    @Override
+    public TranslationResultBo translate(
+            String jobId,
+            String targetLanguage,
+            String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
         long started = System.nanoTime();
         try {
-            String responseBody = sendRequest(buildRequestBody(jobId, targetLanguage, translationStyle, transcriptSegments));
+            String responseBody = sendRequest(buildRequestBody(jobId, targetLanguage, translationStyle, glossaryEntries, transcriptSegments));
             OpenAiTranslationResponse response = extractResponse(responseBody);
             TranslatedSegmentsResponse translatedResponse = parseTranslatedSegments(response.outputText());
             TranslationResultBo result = toTranslationResult(transcriptSegments, translatedResponse);
@@ -131,7 +143,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
                     elapsedMillis(started),
                     response.inputTokens(),
                     response.outputTokens(),
-                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, glossaryEntries, transcriptSegments),
                     outputSummary(result)
             ));
             return result;
@@ -141,7 +153,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
                     elapsedMillis(started),
                     null,
                     null,
-                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, glossaryEntries, transcriptSegments),
                     null
             ), ex.getMessage());
             throw ex;
@@ -166,6 +178,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             String jobId,
             String targetLanguage,
             String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
         PromptTemplateVo template = promptTemplateRegistry.activeTemplate(PromptTemplatePurpose.SUBTITLE_TRANSLATION);
@@ -173,7 +186,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
         request.put("model", openai.getModel());
         request.put("input", List.of(
                 inputMessage("system", template.systemPrompt()),
-                inputMessage("user", userPayload(jobId, targetLanguage, translationStyle, transcriptSegments))
+                inputMessage("user", userPayload(jobId, targetLanguage, translationStyle, glossaryEntries, transcriptSegments))
         ));
         request.put("text", Map.of(
                 "format", Map.of(
@@ -200,6 +213,7 @@ public class OpenAiTranslationProvider implements TranslationProvider {
             String jobId,
             String targetLanguage,
             String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
         List<Map<String, Object>> segments = transcriptSegments.stream()
@@ -214,6 +228,8 @@ public class OpenAiTranslationProvider implements TranslationProvider {
         payload.put("jobId", jobId);
         payload.put("targetLanguage", targetLanguage);
         payload.put("translationStyle", translationStyle);
+        payload.put("instruction", "Preserve glossary mappings when a source term appears in the segment text.");
+        payload.put("glossary", glossaryEntries == null ? List.of() : glossaryEntries);
         payload.put("segments", segments);
         return writeJson(payload);
     }
@@ -364,12 +380,18 @@ public class OpenAiTranslationProvider implements TranslationProvider {
         );
     }
 
-    private String inputSummary(String targetLanguage, String translationStyle, List<TranscriptSegmentVo> transcriptSegments) {
+    private String inputSummary(
+            String targetLanguage,
+            String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
         return summaryService.translationInput(
                 targetLanguage,
                 translationStyle,
                 transcriptSegments.size(),
-                characterCount(transcriptSegments)
+                characterCount(transcriptSegments),
+                glossaryEntries == null ? 0 : glossaryEntries.size()
         );
     }
 

@@ -70,7 +70,8 @@ export async function uploadMedia(
   targetLanguage: string,
   ttsVoice?: string,
   translationStyle?: string,
-  subtitleStylePreset?: string
+  subtitleStylePreset?: string,
+  translationGlossary?: string
 ): Promise<MediaUpload> {
   const body = new FormData();
   body.set('file', file);
@@ -86,6 +87,10 @@ export async function uploadMedia(
   const normalizedSubtitleStylePreset = subtitleStylePreset?.trim().toUpperCase();
   if (normalizedSubtitleStylePreset) {
     body.set('subtitleStylePreset', normalizedSubtitleStylePreset);
+  }
+  const normalizedTranslationGlossary = translationGlossary?.trim();
+  if (normalizedTranslationGlossary) {
+    body.set('translationGlossary', normalizedTranslationGlossary);
   }
 
   return requestJson<MediaUpload>('/api/media/uploads', {

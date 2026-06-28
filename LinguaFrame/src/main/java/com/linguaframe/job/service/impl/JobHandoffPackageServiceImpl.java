@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.Instant;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -101,24 +102,26 @@ public class JobHandoffPackageServiceImpl implements JobHandoffPackageService {
     }
 
     private Map<String, Object> manifest(JobDiagnosticsReportVo diagnostics, List<JobArtifactRecord> reviewedArtifacts) {
-        return Map.of(
-                "generatedAt", Instant.now(),
-                "jobId", diagnostics.job().jobId(),
-                "videoId", diagnostics.job().videoId(),
-                "targetLanguage", diagnostics.job().targetLanguage(),
-                "subtitleStylePreset", diagnostics.job().subtitleStylePreset(),
-                "status", diagnostics.job().status().name(),
-                "handoffReady", handoffReady(reviewedArtifacts),
-                "reviewedArtifactCount", reviewedArtifacts.size(),
-                "entries", packageEntries(reviewedArtifacts),
-                "safety", Map.of(
+        Map<String, Object> manifest = new LinkedHashMap<>();
+        manifest.put("generatedAt", Instant.now());
+        manifest.put("jobId", diagnostics.job().jobId());
+        manifest.put("videoId", diagnostics.job().videoId());
+        manifest.put("targetLanguage", diagnostics.job().targetLanguage());
+        manifest.put("subtitleStylePreset", diagnostics.job().subtitleStylePreset());
+        manifest.put("translationGlossaryEntryCount", diagnostics.job().translationGlossaryEntryCount());
+        manifest.put("translationGlossaryHash", diagnostics.job().translationGlossaryHash());
+        manifest.put("status", diagnostics.job().status().name());
+        manifest.put("handoffReady", handoffReady(reviewedArtifacts));
+        manifest.put("reviewedArtifactCount", reviewedArtifacts.size());
+        manifest.put("entries", packageEntries(reviewedArtifacts));
+        manifest.put("safety", Map.of(
                         "includesUploadedSourceVideo", false,
                         "includesGeneratedAuditArtifacts", false,
                         "includesRawTranscriptText", false,
                         "includesObjectKeys", false,
                         "includesProviderPayloads", false
-                )
-        );
+                ));
+        return manifest;
     }
 
     private boolean handoffReady(List<JobArtifactRecord> reviewedArtifacts) {

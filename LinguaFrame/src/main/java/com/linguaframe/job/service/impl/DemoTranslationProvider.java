@@ -1,6 +1,7 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
+import com.linguaframe.job.domain.bo.TranslationGlossaryEntryBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
@@ -46,6 +47,17 @@ public class DemoTranslationProvider implements TranslationProvider {
             String translationStyle,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
+        return translate(jobId, targetLanguage, translationStyle, List.of(), transcriptSegments);
+    }
+
+    @Override
+    public TranslationResultBo translate(
+            String jobId,
+            String targetLanguage,
+            String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
         long started = System.nanoTime();
         try {
             List<TranslationSegmentBo> segments = transcriptSegments.stream()
@@ -60,7 +72,7 @@ public class DemoTranslationProvider implements TranslationProvider {
             auditService.recordSuccess(command(
                     jobId,
                     elapsedMillis(started),
-                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, glossaryEntries, transcriptSegments),
                     outputSummary(result)
             ));
             return result;
@@ -68,7 +80,7 @@ public class DemoTranslationProvider implements TranslationProvider {
             auditService.recordFailure(command(
                     jobId,
                     elapsedMillis(started),
-                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, glossaryEntries, transcriptSegments),
                     null
             ), ex.getMessage());
             throw ex;
@@ -98,7 +110,12 @@ public class DemoTranslationProvider implements TranslationProvider {
         );
     }
 
-    private String inputSummary(String targetLanguage, String translationStyle, List<TranscriptSegmentVo> transcriptSegments) {
+    private String inputSummary(
+            String targetLanguage,
+            String translationStyle,
+            List<TranslationGlossaryEntryBo> glossaryEntries,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
         return summaryService.translationInput(
                 targetLanguage,
                 translationStyle,
@@ -106,7 +123,8 @@ public class DemoTranslationProvider implements TranslationProvider {
                 transcriptSegments.stream()
                         .map(TranscriptSegmentVo::text)
                         .mapToInt(this::length)
-                        .sum()
+                        .sum(),
+                glossaryEntries == null ? 0 : glossaryEntries.size()
         );
     }
 

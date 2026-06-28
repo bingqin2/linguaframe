@@ -41,6 +41,7 @@ public class TranslationCacheRepository {
                             provider,
                             model,
                             prompt_version,
+                            translation_glossary_hash,
                             response_json,
                             source_job_id,
                             created_at
@@ -66,6 +67,7 @@ public class TranslationCacheRepository {
                 command.provider(),
                 command.model(),
                 command.promptVersion(),
+                command.translationGlossaryHash(),
                 command.responseJson(),
                 command.sourceJobId(),
                 Instant.now(clock)
@@ -80,6 +82,7 @@ public class TranslationCacheRepository {
                                 provider,
                                 model,
                                 prompt_version,
+                                translation_glossary_hash,
                                 response_json,
                                 source_job_id,
                                 created_at
@@ -92,6 +95,7 @@ public class TranslationCacheRepository {
                                 :provider,
                                 :model,
                                 :promptVersion,
+                                :translationGlossaryHash,
                                 :responseJson,
                                 :sourceJobId,
                                 :createdAt
@@ -104,6 +108,7 @@ public class TranslationCacheRepository {
                     .param("provider", record.provider())
                     .param("model", record.model())
                     .param("promptVersion", record.promptVersion())
+                    .param("translationGlossaryHash", record.translationGlossaryHash())
                     .param("responseJson", record.responseJson())
                     .param("sourceJobId", record.sourceJobId())
                     .param("createdAt", Timestamp.from(record.createdAt()))
@@ -124,6 +129,7 @@ public class TranslationCacheRepository {
                 rs.getString("provider"),
                 rs.getString("model"),
                 rs.getString("prompt_version"),
+                rs.getString("translation_glossary_hash"),
                 rs.getString("response_json"),
                 rs.getString("source_job_id"),
                 rs.getTimestamp("created_at").toInstant()

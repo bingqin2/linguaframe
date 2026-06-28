@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the translation glossary control workspace in `docs/plans/090-translation-glossary-control-workspace.md`.
+- Added strict backend glossary parsing for `source => target` and `source = target` mappings with max-entry, max-term, and raw-input limits.
+- Persisted normalized glossary JSON, hash, and count on localization jobs and dispatch payloads.
+- Sent glossary entries to translation providers, included them in the OpenAI request payload, and added glossary count/hash to safe model-call summaries and evidence metadata.
+- Included glossary hash in translation cache identity so jobs with different terminology cannot reuse each other's provider translation result.
+- Added React upload textarea, API multipart wiring, recent/history/detail/cache replay/evidence metadata, and demo script support for inline or file-based glossary input.
+- Updated README, target state, roadmap, decisions, and this execution log.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=TranslationGlossaryParserTests,MediaUploadServiceTests,TranslationCacheKeyServiceTests,OpenAiTranslationProviderTests test` first failed on missing glossary APIs, then passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 446, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` first failed on the new upload argument and response reuse in the new API test, then passed with `Tests 104 passed`.
+- `cd frontend && npm run build` first failed on missing fixture defaults and demo evidence type fields, then passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the subtitle burn-in style preset workspace in `docs/plans/089-subtitle-burn-in-style-preset-workspace.md`.
 - Added upload-time `subtitleStylePreset` support with `STANDARD`, `LARGE`, and `HIGH_CONTRAST` values.
 - Persisted the preset on localization jobs and carried it through job detail/list APIs, dispatch messages, worker summary, diagnostics/evidence metadata, delivery manifests, and demo run package metadata.

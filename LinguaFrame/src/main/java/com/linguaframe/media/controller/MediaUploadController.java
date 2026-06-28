@@ -78,9 +78,11 @@ public class MediaUploadController {
             @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
             @RequestParam(value = "translationStyle", required = false) String translationStyle,
             @Parameter(description = "Optional subtitle burn-in style preset: STANDARD, LARGE, or HIGH_CONTRAST.")
-            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset
+            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset,
+            @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
+            @RequestParam(value = "translationGlossary", required = false) String translationGlossary
     ) {
-        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset);
+        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary);
         return ResponseEntity.status(HttpStatus.CREATED).body(upload);
     }
 

@@ -29,6 +29,8 @@ describe('recentJobs', () => {
         ttsVoice: null,
         translationStyle: 'NATURAL',
         subtitleStylePreset: 'STANDARD',
+        translationGlossaryEntryCount: 0,
+        translationGlossaryHash: '',
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -85,10 +87,32 @@ describe('recentJobs', () => {
         ttsVoice: null,
         translationStyle: 'NATURAL',
         subtitleStylePreset: 'STANDARD',
+        translationGlossaryEntryCount: 0,
+        translationGlossaryHash: '',
         filename: 'legacy.mp4',
         createdAt: '2026-06-26T10:00:00Z'
       }
     ]);
+  });
+
+  test('persists glossary metadata without raw glossary text', () => {
+    const storage = new MemoryStorage();
+
+    const jobs = saveRecentJob(storage, {
+      jobId: 'job-glossary',
+      videoId: 'video-glossary',
+      targetLanguage: 'zh-CN',
+      filename: 'glossary.mp4',
+      translationGlossaryEntryCount: 2,
+      translationGlossaryHash: 'abc123',
+      createdAt: '2026-06-26T10:00:00Z'
+    });
+
+    expect(jobs[0]).toMatchObject({
+      translationGlossaryEntryCount: 2,
+      translationGlossaryHash: 'abc123'
+    });
+    expect(storage.getItem('linguaframe.recentJobs.v1')).not.toContain('Maya');
   });
 
   test('removes a recent job by id', () => {

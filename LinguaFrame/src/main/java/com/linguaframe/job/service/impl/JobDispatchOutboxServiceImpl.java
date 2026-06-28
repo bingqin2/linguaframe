@@ -38,6 +38,9 @@ public class JobDispatchOutboxServiceImpl implements JobDispatchOutboxService {
                 job.ttsVoice(),
                 job.translationStyle(),
                 job.subtitleStylePreset(),
+                job.translationGlossaryJson(),
+                job.translationGlossaryHash(),
+                job.translationGlossaryEntryCount(),
                 job.createdAt(),
                 LocalizationJobStage.WORKER_SMOKE
         );
