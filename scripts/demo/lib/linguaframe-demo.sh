@@ -217,6 +217,15 @@ download_job_detail() {
   demo_curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
 }
 
+download_reviewed_subtitle_workflow_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/reviewed-subtitle-workflow" -o "$output_path"
+}
+
 download_demo_session_json() {
   local base_url="$1"
   local output_path="$2"
@@ -2785,5 +2794,46 @@ print("aiAuditPackageJobId=" + expected_job_id)
 print("aiAuditPackageEntryCount=" + str(len(required_entries)))
 print("aiAuditPackageModelCallCount=" + str(len(model_calls)))
 print("aiAuditPackagePromptTemplateCount=" + str(len(prompt_templates)))
+PY
+}
+
+print_reviewed_subtitle_workflow_summary_file() {
+  local workflow_json_path="$1"
+
+  python3 - "$workflow_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    workflow = json.load(handle)
+
+combined = json.dumps(workflow, ensure_ascii=False)
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+for value in forbidden:
+    if value in combined:
+        raise SystemExit("Reviewed subtitle workflow contains forbidden sensitive string: " + value)
+
+print("reviewedSubtitleWorkflowJobId=" + str(workflow.get("jobId", "")))
+print("reviewedSubtitleWorkflowStatus=" + str(workflow.get("overallStatus", "")))
+print("reviewedSubtitleWorkflowPhase=" + str(workflow.get("phase", "")))
+print("reviewedSubtitleWorkflowNextAction=" + str(workflow.get("recommendedNextAction", "")))
+print("reviewedSubtitleWorkflowGeneratedSubtitleArtifactCount=" + str(workflow.get("generatedSubtitleArtifactCount", 0)))
+print("reviewedSubtitleWorkflowReviewedSubtitleArtifactCount=" + str(workflow.get("reviewedSubtitleArtifactCount", 0)))
+print("reviewedSubtitleWorkflowHandoffReady=" + str(bool(workflow.get("handoffReady", False))).lower())
 PY
 }

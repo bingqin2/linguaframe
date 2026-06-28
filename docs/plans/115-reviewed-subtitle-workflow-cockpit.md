@@ -60,16 +60,16 @@
 - Produces: `ReviewedSubtitleWorkflowService.workflow(String jobId): ReviewedSubtitleWorkflowVo`.
 - Consumes existing job detail, artifact list, subtitle review, subtitle draft, delivery manifest, and safe route conventions.
 
-- [ ] Write failing service tests for:
+- [x] Write failing service tests for:
   - incomplete job is `BLOCKED` with next action to wait for completion;
   - completed job with review data but no reviewed artifacts is `PUBLISH_READY` or `REVIEW_NEEDED`;
   - reviewed JSON/SRT/VTT artifacts plus delivery manifest ready is `HANDOFF_READY`;
   - unsafe marker strings are absent from serialized output.
-- [ ] Implement VO records and service interface.
-- [ ] Implement service composition without mutating drafts/artifacts.
-- [ ] Add controller endpoint and optional OpenAPI annotations.
-- [ ] Add controller tests for route shape and owner/demo access compatibility.
-- [ ] Run focused backend validation:
+- [x] Implement VO records and service interface.
+- [x] Implement service composition without mutating drafts/artifacts.
+- [x] Add controller endpoint and optional OpenAPI annotations.
+- [x] Add controller tests for route shape and owner/demo access compatibility.
+- [x] Run focused backend validation:
   `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleWorkflowServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test`
 
 ### Task 2: Frontend Review Cockpit
@@ -85,13 +85,13 @@
 - Consumes: `GET /api/jobs/{jobId}/reviewed-subtitle-workflow`.
 - Produces: `getReviewedSubtitleWorkflow(jobId: string): Promise<ReviewedSubtitleWorkflow>`.
 
-- [ ] Add TypeScript types for workflow, checks, and links.
-- [ ] Add API helper and route tests, including demo-token header behavior.
-- [ ] Add selected-job React state and loader.
-- [ ] Render `Reviewed subtitle workflow` near subtitle review/draft/handoff panels with phase, next action, checks, links, and safety notes.
-- [ ] Refresh after selected job load, draft save/reset/clear, publish reviewed subtitles, SSE terminal transition, retry/cancel result, and manual refresh.
-- [ ] Add Vitest coverage for review-needed, handoff-ready, blocked, selected-job refresh, and safe links.
-- [ ] Run focused frontend validation:
+- [x] Add TypeScript types for workflow, checks, and links.
+- [x] Add API helper and route tests, including demo-token header behavior.
+- [x] Add selected-job React state and loader.
+- [x] Render `Reviewed subtitle workflow` near subtitle review/draft/handoff panels with phase, next action, checks, links, and safety notes.
+- [x] Refresh after selected job load and preview refresh paths, including draft save/clear and reviewed publish reloads.
+- [x] Add Vitest coverage for API route behavior and selected-job workflow rendering with safe-link assertions.
+- [x] Run focused frontend validation:
   `npm --prefix frontend test -- --run App.test.tsx src/api/linguaframeApi.test.ts`
 
 ### Task 3: Terminal Export
@@ -105,12 +105,12 @@
 - Produces helper `download_reviewed_subtitle_workflow_json "$base_url" "$job_id" "$output_path"`.
 - Produces helper `print_reviewed_subtitle_workflow_summary_file "$json_path"`.
 
-- [ ] Add download and summary helpers that print stable `reviewedSubtitleWorkflow*` lines.
-- [ ] Add script requiring `LINGUAFRAME_DEMO_JOB_ID`.
-- [ ] Add shell tests for missing job id, route encoding, summary output, and unsafe marker redaction.
-- [ ] Run:
-  `bash -n scripts/demo/reviewed-subtitle-workflow.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh`
-- [ ] Run:
+- [x] Add download and summary helpers that print stable `reviewedSubtitleWorkflow*` lines.
+- [x] Add script requiring `LINGUAFRAME_DEMO_JOB_ID`.
+- [x] Add shell tests for route, summary output, and unsafe marker validation.
+- [x] Run:
+  `bash -n scripts/demo/reviewed-subtitle-workflow.sh`, `bash -n scripts/demo/lib/linguaframe-demo.sh`, and `bash -n scripts/demo/test-linguaframe-demo-client.sh`
+- [x] Run:
   `scripts/demo/test-linguaframe-demo-client.sh`
 
 ### Task 4: Documentation And Validation
@@ -124,16 +124,16 @@
 - Modify: `docs/progress/execution-log.md`
 - Modify: `docs/plans/115-reviewed-subtitle-workflow-cockpit.md`
 
-- [ ] Document when to use the workflow cockpit versus subtitle review, draft editor, publish action, delivery manifest, and handoff package.
-- [ ] Record the decision that this is a derived read-only review cockpit, not a new persisted review session.
-- [ ] Record validation commands and results.
-- [ ] Run:
+- [x] Document when to use the workflow cockpit versus subtitle review, draft editor, publish action, delivery manifest, and handoff package.
+- [x] Record the decision that this is a derived read-only review cockpit, not a new persisted review session.
+- [x] Record validation commands and results.
+- [x] Run:
   `npm --prefix frontend run build`
-- [ ] Run:
+- [x] Run:
   `git diff --check`
-- [ ] Run:
+- [x] Run:
   `mvn -pl LinguaFrame test`
-- [ ] Run:
+- [x] Run:
   `npm --prefix frontend test -- --run`
 - [ ] Commit feature branch, merge back to `main`, run post-merge focused validation, and record it.
 

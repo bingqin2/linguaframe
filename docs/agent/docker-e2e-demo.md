@@ -511,6 +511,16 @@ scripts/demo/docker-e2e-success.sh
 
 Expected output still includes `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, `TARGET_SUBTITLE_VTT`, and target subtitle preview JSON. This path can call OpenAI and may consume credits; never commit `.env`.
 
+## Reviewed Subtitle Workflow Export
+
+After any successful or partially reviewed job, export the metadata-only reviewed subtitle workflow cockpit:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/reviewed-subtitle-workflow.sh
+```
+
+The script downloads `/api/jobs/{jobId}/reviewed-subtitle-workflow` to `/tmp/linguaframe-demo/reviewed-subtitle-workflow-<job-id>.json` and prints status, phase, next action, subtitle artifact counts, and handoff readiness. Use it to decide whether to review subtitles, export a draft, publish reviewed JSON/SRT/VTT, request a reviewed burned video, or download the handoff package. The JSON and summary must stay metadata-only: no transcript text, subtitle text, corrected draft text, object keys, local paths, provider payloads, tokens, credentials, or media bytes.
+
 ## Optional OpenAI TTS Demo
 
 Use this path only with a local `.env` file that contains real OpenAI credentials:

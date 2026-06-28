@@ -33,6 +33,7 @@ import type {
   PublishReviewedSubtitlesRequest,
   PromptTemplate,
   RetentionCleanupResult,
+  ReviewedSubtitleWorkflow,
   ReviewedSubtitlePublish,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
@@ -430,6 +431,15 @@ export async function getSubtitleDraft(
   );
 }
 
+export async function getReviewedSubtitleWorkflow(jobId: string): Promise<ReviewedSubtitleWorkflow> {
+  return requestJson<ReviewedSubtitleWorkflow>(
+    `/api/jobs/${encodeURIComponent(jobId)}/reviewed-subtitle-workflow`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function updateSubtitleDraft(
   jobId: string,
   language: string,
@@ -601,6 +611,7 @@ export const linguaFrameApi = {
   listSubtitles,
   getSubtitleReview,
   getSubtitleDraft,
+  getReviewedSubtitleWorkflow,
   updateSubtitleDraft,
   clearSubtitleDraft,
   publishReviewedSubtitles,

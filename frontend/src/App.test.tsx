@@ -37,6 +37,7 @@ import type {
   PrivateDemoRunArchive,
   PromptTemplate,
   RetentionCleanupResult,
+  ReviewedSubtitleWorkflow,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
   SubtitleDraftSummary,
@@ -118,6 +119,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
+    vi.spyOn(linguaFrameApi, 'getReviewedSubtitleWorkflow').mockResolvedValue(
+      reviewedSubtitleWorkflowFixture()
+    );
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
@@ -1960,6 +1964,17 @@ describe('App', () => {
       'href',
       '/api/jobs/artifact-job/subtitle-draft/export?language=zh-CN&format=srt'
     );
+
+    const workflow = screen.getByRole('region', { name: /reviewed subtitle workflow/i });
+    expect(within(workflow).getByText(/PUBLISH_READY/)).toBeInTheDocument();
+    expect(within(workflow).getAllByText('Publish reviewed subtitles.').length).toBeGreaterThan(0);
+    expect(within(workflow).getByText('Reviewed subtitle artifacts')).toBeInTheDocument();
+    expect(within(workflow).getByRole('link', { name: /Publish reviewed subtitles/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/subtitle-draft/publish'
+    );
+    expect(workflow).not.toHaveTextContent('First source line');
+    expect(workflow).not.toHaveTextContent('修正后的第二行字幕');
 
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('4 generated')).toBeInTheDocument();
@@ -5064,6 +5079,72 @@ function subtitleDraftFixture(
         edited: true,
         updatedAt: '2026-06-28T10:00:00Z'
       }
+    ],
+    ...overrides
+  };
+}
+
+function reviewedSubtitleWorkflowFixture(
+  overrides: Partial<ReviewedSubtitleWorkflow> = {}
+): ReviewedSubtitleWorkflow {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    targetLanguage: 'zh-CN',
+    generatedAt: '2026-06-29T14:00:00Z',
+    overallStatus: 'ATTENTION',
+    phase: 'PUBLISH_READY',
+    recommendedNextAction: 'Publish reviewed subtitles.',
+    segmentCount: 2,
+    missingTargetCount: 0,
+    timingMismatchCount: 0,
+    qualityScore: 88,
+    qualityVerdict: 'NEEDS_REVIEW',
+    qualityIssueCount: 1,
+    qualitySuggestedFixCount: 1,
+    editedSegmentCount: 1,
+    draftLastUpdatedAt: '2026-06-28T10:00:00Z',
+    generatedSubtitleArtifactCount: 3,
+    reviewedSubtitleArtifactCount: 0,
+    reviewedBurnedVideoAvailable: false,
+    handoffReady: false,
+    checks: [
+      {
+        key: 'JOB_COMPLETED',
+        label: 'Job completed',
+        status: 'READY',
+        detail: 'The job is completed and can enter subtitle review.',
+        nextAction: 'Review generated subtitles.',
+        blocking: false
+      },
+      {
+        key: 'REVIEWED_SUBTITLE_ARTIFACTS',
+        label: 'Reviewed subtitle artifacts',
+        status: 'ATTENTION',
+        detail: 'Reviewed subtitle artifacts: 0 of 3.',
+        nextAction: 'Publish reviewed subtitles.',
+        blocking: false
+      }
+    ],
+    links: [
+      {
+        kind: 'SUBTITLE_REVIEW',
+        label: 'Subtitle review',
+        url: '/api/jobs/job-1/subtitle-review?language=zh-CN'
+      },
+      {
+        kind: 'PUBLISH_REVIEWED_SUBTITLES',
+        label: 'Publish reviewed subtitles',
+        url: '/api/jobs/job-1/subtitle-draft/publish'
+      },
+      {
+        kind: 'DELIVERY_MANIFEST',
+        label: 'Delivery manifest',
+        url: '/api/jobs/job-1/delivery-manifest'
+      }
+    ],
+    safetyNotes: [
+      'Metadata-only workflow: IDs, counts, statuses, timestamps, and safe routes are included.'
     ],
     ...overrides
   };

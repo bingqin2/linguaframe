@@ -39,6 +39,7 @@ import type {
   RuntimeDependencySummary,
   RuntimeLiveCheckName,
   RuntimeLiveCheckSummary,
+  ReviewedSubtitleWorkflow,
   SubtitleDraftSummary,
   SubtitleReviewSummary,
   SubtitleSegment,
@@ -365,6 +366,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
   const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
+  const [reviewedSubtitleWorkflow, setReviewedSubtitleWorkflow] = useState<ReviewedSubtitleWorkflow | null>(null);
+  const [reviewedSubtitleWorkflowError, setReviewedSubtitleWorkflowError] = useState<string | null>(null);
   const [subtitleDraft, setSubtitleDraft] = useState<SubtitleDraftSummary | null>(null);
   const [subtitleDraftError, setSubtitleDraftError] = useState<string | null>(null);
   const [subtitleDraftStatus, setSubtitleDraftStatus] = useState<string | null>(null);
@@ -860,12 +863,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, draftResult] = await Promise.allSettled([
+    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, workflowResult, draftResult] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.getDeliveryManifest(jobId),
       linguaFrameApi.listTranscript(jobId),
       linguaFrameApi.listSubtitles(jobId, language),
       linguaFrameApi.getSubtitleReview(jobId, language),
+      linguaFrameApi.getReviewedSubtitleWorkflow(jobId),
       linguaFrameApi.getSubtitleDraft(jobId, language)
     ]);
 
@@ -904,6 +908,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setSubtitleReview(null);
       errors.push(`Subtitle review: ${toErrorMessage(reviewResult.reason)}`);
+    }
+
+    if (workflowResult.status === 'fulfilled') {
+      setReviewedSubtitleWorkflow(workflowResult.value);
+      setReviewedSubtitleWorkflowError(null);
+    } else {
+      setReviewedSubtitleWorkflow(null);
+      setReviewedSubtitleWorkflowError(toErrorMessage(workflowResult.reason));
+      errors.push(`Reviewed subtitle workflow: ${toErrorMessage(workflowResult.reason)}`);
     }
 
     if (draftResult.status === 'fulfilled') {
@@ -2065,6 +2078,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               subtitleDraftError={subtitleDraftError}
               subtitleDraftStatus={subtitleDraftStatus}
               subtitleReview={subtitleReview}
+              reviewedSubtitleWorkflow={reviewedSubtitleWorkflow}
+              reviewedSubtitleWorkflowError={reviewedSubtitleWorkflowError}
               subtitles={subtitles}
               transcript={transcript}
             />
@@ -4001,6 +4016,8 @@ function JobDetail({
   subtitleDraftError,
   subtitleDraftStatus,
   subtitleReview,
+  reviewedSubtitleWorkflow,
+  reviewedSubtitleWorkflowError,
   subtitles,
   transcript
 }: {
@@ -4075,6 +4092,8 @@ function JobDetail({
   subtitleDraftError: string | null;
   subtitleDraftStatus: string | null;
   subtitleReview: SubtitleReviewSummary | null;
+  reviewedSubtitleWorkflow: ReviewedSubtitleWorkflow | null;
+  reviewedSubtitleWorkflowError: string | null;
   subtitles: SubtitleSegment[];
   transcript: TranscriptSegment[];
 }) {
@@ -4300,6 +4319,11 @@ function JobDetail({
       <QualityEvaluationPanel job={job} />
 
       <SubtitleReviewPanel review={subtitleReview} />
+
+      <ReviewedSubtitleWorkflowPanel
+        error={reviewedSubtitleWorkflowError}
+        workflow={reviewedSubtitleWorkflow}
+      />
 
       <SubtitleDraftEditorPanel
         draft={subtitleDraft}
@@ -6528,6 +6552,84 @@ function SubtitleReviewPanel({ review }: { review: SubtitleReviewSummary | null 
           </tbody>
         </table>
       )}
+    </section>
+  );
+}
+
+function ReviewedSubtitleWorkflowPanel({
+  error,
+  workflow
+}: {
+  error: string | null;
+  workflow: ReviewedSubtitleWorkflow | null;
+}) {
+  if (!workflow) {
+    return (
+      <section id="reviewed-subtitle-workflow" className="panel" aria-label="Reviewed subtitle workflow">
+        <h3>Reviewed subtitle workflow</h3>
+        {error ? <p className="muted">{error}</p> : <p className="muted">No reviewed subtitle workflow loaded yet.</p>}
+      </section>
+    );
+  }
+
+  return (
+    <section id="reviewed-subtitle-workflow" className="panel" aria-label="Reviewed subtitle workflow">
+      <div className="panel-heading">
+        <div>
+          <h3>Reviewed subtitle workflow</h3>
+          <p className="muted">{workflow.recommendedNextAction}</p>
+        </div>
+        <span className={`status-pill ${workflow.overallStatus === 'BLOCKED' ? 'warning' : ''}`}>
+          {workflow.overallStatus} · {workflow.phase}
+        </span>
+      </div>
+      <dl className="status-grid compact-status-grid">
+        <div>
+          <dt>Review issues</dt>
+          <dd>{workflow.missingTargetCount} missing / {workflow.timingMismatchCount} timing</dd>
+        </div>
+        <div>
+          <dt>Draft edits</dt>
+          <dd>{workflow.editedSegmentCount} / {workflow.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Generated subtitles</dt>
+          <dd>{workflow.generatedSubtitleArtifactCount} files</dd>
+        </div>
+        <div>
+          <dt>Reviewed subtitles</dt>
+          <dd>{workflow.reviewedSubtitleArtifactCount} files</dd>
+        </div>
+        <div>
+          <dt>Reviewed video</dt>
+          <dd>{workflow.reviewedBurnedVideoAvailable ? 'Available' : 'Not available'}</dd>
+        </div>
+        <div>
+          <dt>Handoff</dt>
+          <dd>{workflow.handoffReady ? 'Ready' : 'Pending'}</dd>
+        </div>
+      </dl>
+      <ul className="checklist">
+        {workflow.checks.map((check) => (
+          <li key={check.key}>
+            <strong>{check.label}</strong>
+            <span className="muted">{check.status} · {check.detail}</span>
+            <small>{check.nextAction}</small>
+          </li>
+        ))}
+      </ul>
+      <div className="panel-actions">
+        {workflow.links.map((link) => (
+          <a key={link.kind} className="secondary-link" href={link.url}>
+            {link.label}
+          </a>
+        ))}
+      </div>
+      <ul className="compact-list">
+        {workflow.safetyNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
     </section>
   );
 }

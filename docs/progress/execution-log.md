@@ -3376,3 +3376,25 @@ Post-merge verification:
 - `npm --prefix frontend test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed on `main` with `Test Files 2 passed` and `Tests 146 passed`.
 - `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned the reviewed subtitle workflow cockpit in `docs/plans/115-reviewed-subtitle-workflow-cockpit.md`.
+- Added backend `GET /api/jobs/{jobId}/reviewed-subtitle-workflow` with status, phase, next action, subtitle review metrics, draft edit counts, reviewed artifact readiness, reviewed burned-video availability, handoff readiness, safe links, and safety notes.
+- Added a React `Reviewed subtitle workflow` panel near subtitle review and draft editing.
+- Added `scripts/demo/reviewed-subtitle-workflow.sh` plus shared demo-client helpers for metadata-only terminal export.
+- Updated README, Docker E2E guide, target state, roadmap, and decisions with workflow cockpit usage and read-only behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleWorkflowServiceTests test` first failed on a sensitive-marker wording issue, then passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleWorkflowServiceTests,LocalizationJobControllerTests test` first failed because the test tried to edit a missing generated subtitle row, then passed with `Tests run: 52, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleWorkflowServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 57, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed on an ambiguous duplicate `Publish reviewed subtitles.` assertion, then passed with `Test Files 2 passed` and `Tests 147 passed`.
+- `bash -n scripts/demo/reviewed-subtitle-workflow.sh`, `bash -n scripts/demo/lib/linguaframe-demo.sh`, and `scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 598, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 154 passed`.

@@ -276,6 +276,7 @@ The codebase should remain understandable to a Java backend interviewer:
 - Tests for validation, status transitions, retry behavior, and subtitle export formatting.
 - Local reproducible Docker Compose runtime.
 - Browser and terminal readiness evidence for combined and split-worker topology.
+- Browser, backend, and terminal reviewed-subtitle workflow cockpit for deciding whether a completed job still needs subtitle review, draft publishing, reviewed burned-video generation, or handoff package export.
 
 ## Resume Target
 

@@ -7,6 +7,7 @@ import {
   clearSubtitleDraft,
   getJob,
   getMediaUpload,
+  getReviewedSubtitleWorkflow,
   getSubtitleDraft,
   getSubtitleReview,
   jobDiagnosticsDownloadUrl,
@@ -1368,6 +1369,50 @@ describe('linguaframeApi', () => {
     );
     expect(subtitleDraftExportUrl('job with/slash', 'zh-CN', 'srt')).toBe(
       '/api/jobs/job%20with%2Fslash/subtitle-draft/export?language=zh-CN&format=srt'
+    );
+  });
+
+  test('fetches reviewed subtitle workflow cockpit with encoded job id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job workflow/slash',
+        videoId: 'video-workflow',
+        targetLanguage: 'zh-CN',
+        generatedAt: '2026-06-29T14:00:00Z',
+        overallStatus: 'ATTENTION',
+        phase: 'PUBLISH_READY',
+        recommendedNextAction: 'Publish reviewed subtitles.',
+        segmentCount: 2,
+        missingTargetCount: 0,
+        timingMismatchCount: 0,
+        qualityScore: 91,
+        qualityVerdict: 'GOOD',
+        qualityIssueCount: 0,
+        qualitySuggestedFixCount: 0,
+        editedSegmentCount: 1,
+        draftLastUpdatedAt: '2026-06-29T13:50:00Z',
+        generatedSubtitleArtifactCount: 3,
+        reviewedSubtitleArtifactCount: 0,
+        reviewedBurnedVideoAvailable: false,
+        handoffReady: false,
+        checks: [],
+        links: [],
+        safetyNotes: []
+      })
+    );
+
+    const workflow = await getReviewedSubtitleWorkflow('job workflow/slash');
+
+    expect(workflow.phase).toBe('PUBLISH_READY');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20workflow%2Fslash/reviewed-subtitle-workflow',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
     );
   });
 
