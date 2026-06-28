@@ -1688,6 +1688,20 @@ describe('App', () => {
       'href',
       '/api/jobs/draft-job/delivery-manifest/markdown/download'
     );
+    expect(within(handoff).getByRole('link', { name: /download handoff package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/draft-job/handoff-package/download'
+    );
+    const checklist = await screen.findByRole('region', { name: /demo handoff checklist/i });
+    expect(within(checklist).getByRole('link', { name: /download handoff package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/draft-job/handoff-package/download'
+    );
+    const sessionReport = await screen.findByRole('region', { name: /demo session report/i });
+    expect(within(sessionReport).getByRole('link', { name: /download handoff package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/draft-job/handoff-package/download'
+    );
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('Reviewed SRT')).toBeInTheDocument();
     expect(within(delivery).getByText('reviewed-subtitles.zh-CN.srt')).toBeInTheDocument();

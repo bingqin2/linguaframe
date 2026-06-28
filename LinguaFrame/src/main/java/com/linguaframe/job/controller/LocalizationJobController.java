@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
+import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
@@ -23,6 +24,7 @@ import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
+import com.linguaframe.job.service.JobHandoffPackageService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -69,6 +71,7 @@ public class LocalizationJobController {
     private final DeliveryManifestService deliveryManifestService;
     private final JobEvidenceBundleService evidenceBundleService;
     private final JobEvidenceReportService evidenceReportService;
+    private final JobHandoffPackageService handoffPackageService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
     private final SubtitleDraftService subtitleDraftService;
@@ -85,6 +88,7 @@ public class LocalizationJobController {
             DeliveryManifestService deliveryManifestService,
             JobEvidenceBundleService evidenceBundleService,
             JobEvidenceReportService evidenceReportService,
+            JobHandoffPackageService handoffPackageService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
             SubtitleDraftService subtitleDraftService,
@@ -100,6 +104,7 @@ public class LocalizationJobController {
         this.deliveryManifestService = deliveryManifestService;
         this.evidenceBundleService = evidenceBundleService;
         this.evidenceReportService = evidenceReportService;
+        this.handoffPackageService = handoffPackageService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
         this.subtitleDraftService = subtitleDraftService;
@@ -311,6 +316,31 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(bundle.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/handoff-package/download")
+    @Operation(summary = "Download a safe reviewed handoff package for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reviewed handoff package bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadHandoffPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredHandoffPackageBo handoffPackage = handoffPackageService.openHandoffPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(handoffPackage.contentType()))
+                .contentLength(handoffPackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(handoffPackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(handoffPackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/transcript")

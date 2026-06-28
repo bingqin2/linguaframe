@@ -449,3 +449,11 @@ Decision: Derive delivery handoff manifests on demand from durable job and artif
 Reason: A demo handoff needs one readable checklist, but persisting another artifact would duplicate state already represented by jobs, reviewed artifacts, result bundles, diagnostics, and evidence bundles.
 
 Impact: `/api/jobs/{jobId}/delivery-manifest` and `/api/jobs/{jobId}/delivery-manifest/markdown/download` report handoff readiness, reviewed artifacts, audit artifacts, hashes, and safe verification links without storing new media, embedding raw subtitles, or exposing object keys and local paths.
+
+## 2026-06-28
+
+Decision: Generate reviewed handoff packages on demand from existing safe demo surfaces.
+
+Reason: The final demo handoff needs one downloadable package for reviewed deliverables, but it should not persist another artifact row or mix internal generated audit outputs with reviewer-facing files.
+
+Impact: `/api/jobs/{jobId}/handoff-package/download` returns a ZIP with a package manifest, delivery manifest, diagnostics, evidence report, reviewed subtitle artifacts, and optional reviewed burned video. It excludes source uploads, generated transcript/target subtitle artifacts, generated burned video, worker summaries, object keys, local paths, provider payloads, demo tokens, and credentials.

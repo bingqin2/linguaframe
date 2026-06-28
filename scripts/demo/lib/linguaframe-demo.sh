@@ -391,6 +391,15 @@ download_delivery_manifest_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/delivery-manifest/markdown/download" -o "$output_path"
 }
 
+download_handoff_package() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/handoff-package/download" -o "$output_path"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -858,5 +867,66 @@ if '"jobId":"' + expected_job_id + '"' not in combined:
 
 print("evidenceBundleJobId=" + expected_job_id)
 print("evidenceBundleEntryCount=" + str(len(required_entries)))
+PY
+}
+
+print_handoff_package_summary() {
+  local package_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$package_path" "$expected_job_id" <<'PY'
+import json
+import sys
+import zipfile
+
+package_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+required_entries = {"manifest.json", "delivery-manifest.md", "evidence.md", "diagnostics.json"}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+
+with zipfile.ZipFile(package_path) as archive:
+    names = archive.namelist()
+    missing = sorted(required_entries - set(names))
+    if missing:
+        raise SystemExit("Handoff package is missing entries: " + ", ".join(missing))
+
+    reviewed_entries = [name for name in names if name.startswith("reviewed/")]
+    if not reviewed_entries:
+        raise SystemExit("Handoff package has no reviewed artifact entries")
+
+    combined = ""
+    for name in names:
+        data = archive.read(name)
+        try:
+            combined += data.decode("utf-8") + "\n"
+        except UnicodeDecodeError:
+            continue
+
+    for value in forbidden:
+        if value in combined:
+            raise SystemExit("Handoff package contains forbidden sensitive string: " + value)
+
+    manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    if manifest.get("jobId") != expected_job_id:
+        raise SystemExit("Handoff package manifest job id mismatch: " + str(manifest.get("jobId")))
+
+print("handoffPackageJobId=" + expected_job_id)
+print("handoffPackageEntryCount=" + str(len(names)))
+print("handoffPackageReviewedArtifactCount=" + str(len(reviewed_entries)))
 PY
 }

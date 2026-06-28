@@ -2280,6 +2280,25 @@ Validation so far:
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
 - `git diff --check` passed.
 
+## 2026-06-28
+
+Work:
+
+- Planned the demo handoff package download MVP in `docs/plans/081-demo-handoff-package-download-mvp.md`.
+- Added `GET /api/jobs/{jobId}/handoff-package/download`, backed by an on-demand ZIP service that packages reviewed handoff artifacts with manifest, delivery manifest, diagnostics, and backend evidence.
+- Added OpenAPI and runtime required-route coverage for the handoff package endpoint.
+- Added `Download handoff package` links to the browser `Delivery handoff`, `Demo handoff checklist`, and `Demo session report` panels.
+- Added deterministic demo script download and validation for `/tmp/linguaframe-demo/handoff-package.zip`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with handoff package behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=JobHandoffPackageServiceTests test` first failed because the handoff package service did not exist, then passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#downloadsReviewedHandoffPackageForLocalizationJob test` first failed because the route was missing, then passed.
+- `mvn -pl LinguaFrame -Dtest=JobHandoffPackageServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 37, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 54 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+
 Post-merge verification:
 
 - Merged `demo-session-report-workspace` back to `main` with merge commit.

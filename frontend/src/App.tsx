@@ -2229,9 +2229,14 @@ function DeliveryHandoffPanel({
             {manifest.handoffReady ? 'Ready for handoff' : 'Needs reviewed subtitle publish'}
           </p>
         </div>
-        <a className="secondary-link" href={linguaFrameApi.deliveryManifestMarkdownDownloadUrl(jobId)}>
-          Download delivery manifest
-        </a>
+        <div className="panel-actions">
+          <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
+            Download handoff package
+          </a>
+          <a className="secondary-link" href={linguaFrameApi.deliveryManifestMarkdownDownloadUrl(jobId)}>
+            Download delivery manifest
+          </a>
+        </div>
       </div>
 
       <dl className="metrics-grid result-delivery-metrics">
@@ -2499,6 +2504,9 @@ function DemoHandoffChecklistPanel({
         <a className="secondary-link" href={checklist.links.evidenceBundle}>
           Download evidence bundle
         </a>
+        <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
+          Download handoff package
+        </a>
       </div>
     </section>
   );
@@ -2589,6 +2597,9 @@ function DemoSessionReportPanel({
         </a>
         <a className="secondary-link" href={report.links.evidenceBundle}>
           Download evidence bundle
+        </a>
+        <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
+          Download handoff package
         </a>
       </div>
     </section>
