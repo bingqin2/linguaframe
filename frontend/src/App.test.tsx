@@ -10,6 +10,7 @@ import type {
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
+  DemoShareSheet,
   JobArtifact,
   JobComparison,
   LocalizationJob,
@@ -104,6 +105,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
   });
 
@@ -2857,6 +2859,39 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoPresenterPack).toHaveBeenCalledWith('presenter-showcase-job');
   });
 
+  test('shows a demo share sheet for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'share-showcase-job',
+        videoId: 'share-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'share-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const shareSheet = await screen.findByRole('region', { name: /demo share sheet/i });
+    expect(within(shareSheet).getByText('READY')).toBeInTheDocument();
+    expect(within(shareSheet).getByText('tears-showcase demo to zh-CN')).toBeInTheDocument();
+    expect(within(shareSheet).getByText('Open the demo run package.')).toBeInTheDocument();
+    expect(within(shareSheet).getByText('Status: COMPLETED')).toBeInTheDocument();
+    expect(within(shareSheet).getByRole('link', { name: /download backend markdown/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/share-showcase-job/demo-share-sheet/markdown/download'
+    );
+    await userEvent.click(within(shareSheet).getByRole('button', { name: /copy share sheet/i }));
+    await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('# tears-showcase demo to zh-CN\n'));
+    expect(linguaFrameApi.getDemoShareSheet).toHaveBeenCalledWith('share-showcase-job');
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -4048,6 +4083,32 @@ function demoPresenterPackFixture(overrides: Partial<DemoPresenterPack> = {}): D
       }
     ],
     presenterNotesMarkdown: '# LinguaFrame Demo Presenter Pack\n- Anchor job: presenter-showcase-job\n',
+    ...overrides
+  };
+}
+
+function demoShareSheetFixture(overrides: Partial<DemoShareSheet> = {}): DemoShareSheet {
+  return {
+    jobId: 'share-showcase-job',
+    videoId: 'share-video',
+    generatedAt: '2026-06-28T12:00:00Z',
+    readiness: 'READY',
+    headline: 'tears-showcase demo to zh-CN',
+    summary: 'Completed demo share sheet.',
+    outcomeBullets: [
+      'Status: COMPLETED',
+      'Quality score: 91 (GOOD)',
+      'Model calls: 2, estimated cost: 0.00014100 USD'
+    ],
+    recommendedNextAction: 'Open the demo run package.',
+    links: [
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        url: '/api/jobs/share-showcase-job/demo-run-package/download'
+      }
+    ],
+    markdown: '# tears-showcase demo to zh-CN\n',
     ...overrides
   };
 }

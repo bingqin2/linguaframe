@@ -548,6 +548,14 @@ Impact: Bearer auth and demo-token compatibility now scope job history/detail, m
 
 ## 2026-06-28
 
+Decision: Keep demo share sheets as generated metadata views instead of another persisted artifact or package.
+
+Reason: Reviewers need one compact link-and-outcome note for a selected run, while the existing demo run package, handoff package, evidence bundle, and presenter pack already own detailed files and ZIP workspaces.
+
+Impact: `/api/jobs/{jobId}/demo-share-sheet` and `/api/jobs/{jobId}/demo-share-sheet/markdown/download` derive readiness, summary, outcome bullets, next action, and curated links on demand. Browser and terminal exports stay metadata-only and exclude raw transcript text, subtitle text, object keys, local paths, provider payloads, tokens, credentials, and media bytes.
+
+## 2026-06-28
+
 Decision: Keep failed-job triage advisory instead of changing retry semantics.
 
 Reason: Retry transitions already have backend ownership, bounded retry counts, cache eviction, and dispatch side effects. The next demo gap is explaining likely causes and next actions safely across browser, diagnostics, evidence, and terminal scripts, not adding another automatic recovery path.

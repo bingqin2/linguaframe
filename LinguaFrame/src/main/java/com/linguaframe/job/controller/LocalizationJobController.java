@@ -17,6 +17,7 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
+import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
@@ -32,6 +33,7 @@ import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunPackageService;
+import com.linguaframe.job.service.DemoShareSheetService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.JobHandoffPackageService;
@@ -88,6 +90,7 @@ public class LocalizationJobController {
     private final AiAuditPackageService aiAuditPackageService;
     private final DemoRunMatrixService demoRunMatrixService;
     private final DemoPresenterPackService demoPresenterPackService;
+    private final DemoShareSheetService demoShareSheetService;
     private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
     private final TranscriptService transcriptService;
@@ -111,6 +114,7 @@ public class LocalizationJobController {
             AiAuditPackageService aiAuditPackageService,
             DemoRunMatrixService demoRunMatrixService,
             DemoPresenterPackService demoPresenterPackService,
+            DemoShareSheetService demoShareSheetService,
             JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
             TranscriptService transcriptService,
@@ -133,6 +137,7 @@ public class LocalizationJobController {
         this.aiAuditPackageService = aiAuditPackageService;
         this.demoRunMatrixService = demoRunMatrixService;
         this.demoPresenterPackService = demoPresenterPackService;
+        this.demoShareSheetService = demoShareSheetService;
         this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
         this.transcriptService = transcriptService;
@@ -202,6 +207,46 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return demoPresenterPackService.buildPresenterPack(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-share-sheet")
+    @Operation(summary = "Build a reviewer-facing demo share sheet")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo share sheet was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoShareSheetVo getDemoShareSheet(
+            @Parameter(in = ParameterIn.PATH, description = "Anchor localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoShareSheetService.buildShareSheet(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-share-sheet/markdown/download")
+    @Operation(summary = "Download a safe Markdown demo share sheet")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo share sheet Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoShareSheetMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Anchor localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = demoShareSheetService.buildMarkdownShareSheet(jobId)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-demo-share-sheet.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping(value = "/{jobId}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

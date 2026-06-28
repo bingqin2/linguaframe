@@ -6,6 +6,7 @@ import type {
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
+  DemoShareSheet,
   FailureTriage,
   DemoUploadReadiness,
   JobArtifact,
@@ -406,6 +407,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoPresenterPack, setDemoPresenterPack] = useState<DemoPresenterPack | null>(null);
   const [demoPresenterPackError, setDemoPresenterPackError] = useState<string | null>(null);
   const [isLoadingDemoPresenterPack, setIsLoadingDemoPresenterPack] = useState(false);
+  const [demoShareSheet, setDemoShareSheet] = useState<DemoShareSheet | null>(null);
+  const [demoShareSheetError, setDemoShareSheetError] = useState<string | null>(null);
+  const [isLoadingDemoShareSheet, setIsLoadingDemoShareSheet] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
@@ -465,6 +469,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoRunMatrixError(null);
           setDemoPresenterPack(null);
           setDemoPresenterPackError(null);
+          setDemoShareSheet(null);
+          setDemoShareSheetError(null);
         }
         setIsSseUnavailable(false);
         setError(null);
@@ -517,6 +523,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoPresenterPackError(toErrorMessage(packLoadError));
     } finally {
       setIsLoadingDemoPresenterPack(false);
+    }
+  }, []);
+
+  const loadDemoShareSheet = useCallback(async (jobId: string) => {
+    setIsLoadingDemoShareSheet(true);
+    try {
+      const sheet = await linguaFrameApi.getDemoShareSheet(jobId);
+      setDemoShareSheet(sheet);
+      setDemoShareSheetError(null);
+    } catch (sheetLoadError) {
+      setDemoShareSheet(null);
+      setDemoShareSheetError(toErrorMessage(sheetLoadError));
+    } finally {
+      setIsLoadingDemoShareSheet(false);
     }
   }, []);
 
@@ -871,6 +891,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
           void loadDemoPresenterPack(nextJob.jobId);
+          void loadDemoShareSheet(nextJob.jobId);
           void loadHistory(historyStatusFilter);
           eventSource.close();
         }
@@ -885,7 +906,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -980,6 +1001,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
       await loadDemoRunMatrix(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
+      await loadDemoShareSheet(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -1003,6 +1025,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
     await loadDemoRunMatrix(jobId);
     await loadDemoPresenterPack(jobId);
+    await loadDemoShareSheet(jobId);
   }
 
   async function handleRetry() {
@@ -1017,6 +1040,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(retriedJob.videoId);
       await loadDemoRunMatrix(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
+      await loadDemoShareSheet(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -1038,6 +1062,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(cancelledJob.videoId);
       await loadDemoRunMatrix(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
+      await loadDemoShareSheet(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -1062,6 +1087,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
     await loadDemoRunMatrix(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
+    await loadDemoShareSheet(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -1079,6 +1105,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
     await loadDemoRunMatrix(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
+    await loadDemoShareSheet(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -1097,6 +1124,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(failure.jobId, language);
     await loadDemoRunMatrix(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
+    await loadDemoShareSheet(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -1751,15 +1779,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoRunMatrixError={demoRunMatrixError}
               demoPresenterPack={demoPresenterPack}
               demoPresenterPackError={demoPresenterPackError}
+              demoShareSheet={demoShareSheet}
+              demoShareSheetError={demoShareSheetError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
+              isLoadingDemoShareSheet={isLoadingDemoShareSheet}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
+              onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
@@ -3305,15 +3337,19 @@ function JobDetail({
   demoRunMatrixError,
   demoPresenterPack,
   demoPresenterPackError,
+  demoShareSheet,
+  demoShareSheetError,
   isLoadingCacheReplayComparison,
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
   isLoadingDemoPresenterPack,
+  isLoadingDemoShareSheet,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoPresenterPack,
+  onRefreshDemoShareSheet,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
@@ -3355,15 +3391,19 @@ function JobDetail({
   demoRunMatrixError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
   demoPresenterPackError: string | null;
+  demoShareSheet: DemoShareSheet | null;
+  demoShareSheetError: string | null;
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
   isLoadingDemoPresenterPack: boolean;
+  isLoadingDemoShareSheet: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoPresenterPack: () => void;
+  onRefreshDemoShareSheet: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
@@ -3515,6 +3555,14 @@ function JobDetail({
       <FailureTriagePanel triage={job.failureTriage} />
 
       <DemoSessionReportPanel report={demoSessionReport} jobId={job.jobId} />
+
+      <DemoShareSheetPanel
+        error={demoShareSheetError}
+        isLoading={isLoadingDemoShareSheet}
+        jobId={job.jobId}
+        onRefresh={onRefreshDemoShareSheet}
+        sheet={demoShareSheet}
+      />
 
       <DemoPresenterPackPanel
         error={demoPresenterPackError}
@@ -4940,6 +4988,91 @@ function DemoPresenterPackPanel({
             {pack.downloads.map((download) => (
               <a key={download.kind} href={download.url}>
                 {download.label}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoShareSheetPanel({
+  error,
+  isLoading,
+  jobId,
+  onRefresh,
+  sheet
+}: {
+  error: string | null;
+  isLoading: boolean;
+  jobId: string;
+  onRefresh: () => void;
+  sheet: DemoShareSheet | null;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  async function copyShareSheet() {
+    if (!sheet) {
+      return;
+    }
+    await navigator.clipboard.writeText(sheet.markdown);
+    setStatus('Share sheet copied.');
+  }
+
+  return (
+    <section className="panel demo-share-sheet-panel" aria-label="Demo share sheet">
+      <div className="panel-heading">
+        <h3>Demo share sheet</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button type="button" className="secondary-button" onClick={copyShareSheet} disabled={!sheet}>
+            Copy share sheet
+          </button>
+          <a className="secondary-link" href={linguaFrameApi.demoShareSheetMarkdownDownloadUrl(jobId)}>
+            Download backend Markdown
+          </a>
+        </div>
+      </div>
+      {isLoading && !sheet ? <p className="muted">Loading demo share sheet...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="success-text">{status}</p> : null}
+      {sheet ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Readiness</dt>
+              <dd>{sheet.readiness}</dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(sheet.generatedAt)}</dd>
+            </div>
+            <div>
+              <dt>Job</dt>
+              <dd>{sheet.jobId}</dd>
+            </div>
+            <div>
+              <dt>Video</dt>
+              <dd>{sheet.videoId}</dd>
+            </div>
+          </dl>
+          <h4>{sheet.headline}</h4>
+          <p>{sheet.summary}</p>
+          <p>
+            <strong>Next action:</strong> {sheet.recommendedNextAction}
+          </p>
+          <ul className="checklist compact-list">
+            {sheet.outcomeBullets.map((bullet) => (
+              <li key={bullet}>{bullet}</li>
+            ))}
+          </ul>
+          <div className="link-list">
+            {sheet.links.map((link) => (
+              <a key={link.kind} href={link.url}>
+                {link.label}
               </a>
             ))}
           </div>
