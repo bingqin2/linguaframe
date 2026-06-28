@@ -640,6 +640,55 @@ PY
   [[ "$(cat "$TMPDIR/unsafe-handoff-package.out")" == *"forbidden sensitive string"* ]] || fail "handoff package unsafe failure was not explicit"
 }
 
+test_print_demo_run_package_summary_validates_zip_and_secrets() {
+  python3 - "$TMPDIR/demo-run-package.zip" "$TMPDIR/unsafe-demo-run-package.zip" <<'PY'
+import json
+import sys
+import zipfile
+
+safe_path = sys.argv[1]
+unsafe_path = sys.argv[2]
+manifest = {
+    "jobId": "job-demo-run-package",
+    "videoId": "video-demo-run-package",
+    "targetLanguage": "zh-CN",
+    "status": "COMPLETED",
+}
+entries = {
+    "manifest.json": json.dumps(manifest, separators=(",", ":")),
+    "README.md": "# LinguaFrame Demo Run Package\n- Job: job-demo-run-package\n",
+    "job-detail.json": json.dumps({"jobId": "job-demo-run-package"}),
+    "diagnostics.json": json.dumps({"job": {"jobId": "job-demo-run-package"}}),
+    "evidence.md": "# Evidence\n- Job: job-demo-run-package\n",
+    "quality-evidence.md": "# Quality evidence\n- Job: job-demo-run-package\n",
+    "delivery-manifest.md": "# Delivery manifest\n- Job: job-demo-run-package\n",
+    "demo-handoff-checklist.md": "# Checklist\n- Job: job-demo-run-package\n",
+    "demo-session-report.md": "# Session report\n- Job: job-demo-run-package\n",
+}
+with zipfile.ZipFile(safe_path, "w") as archive:
+    for name, content in entries.items():
+        archive.writestr(name, content)
+
+unsafe_entries = dict(entries)
+unsafe_entries["evidence.md"] = "provider request payload sk-test /Users/example/job-artifacts/raw.json"
+with zipfile.ZipFile(unsafe_path, "w") as archive:
+    for name, content in unsafe_entries.items():
+        archive.writestr(name, content)
+PY
+
+  print_demo_run_package_summary "$TMPDIR/demo-run-package.zip" "job-demo-run-package" >"$TMPDIR/demo-run-package.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-package.out")"
+
+  [[ "$output" == *"demoRunPackageJobId=job-demo-run-package"* ]] || fail "demo run package summary missed job id"
+  [[ "$output" == *"demoRunPackageEntryCount=9"* ]] || fail "demo run package summary missed entry count"
+
+  if print_demo_run_package_summary "$TMPDIR/unsafe-demo-run-package.zip" "job-demo-run-package" >"$TMPDIR/unsafe-demo-run-package.out" 2>&1; then
+    fail "demo run package summary accepted unsafe ZIP"
+  fi
+  [[ "$(cat "$TMPDIR/unsafe-demo-run-package.out")" == *"forbidden sensitive string"* ]] || fail "demo run package unsafe failure was not explicit"
+}
+
 test_write_demo_session_report_markdown_is_metadata_only() {
   cat >"$TMPDIR/session-job.json" <<'JSON'
 {
@@ -825,6 +874,7 @@ test_print_delivery_manifest_summary_is_metadata_only
 test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only
 test_print_handoff_package_summary_validates_zip_and_secrets
+test_print_demo_run_package_summary_validates_zip_and_secrets
 test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
 

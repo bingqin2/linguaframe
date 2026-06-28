@@ -300,6 +300,10 @@ export function jobHandoffPackageDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/handoff-package/download`;
 }
 
+export function demoRunPackageDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-package/download`;
+}
+
 export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
 }
@@ -342,6 +346,7 @@ export const linguaFrameApi = {
   jobEvidenceBundleDownloadUrl,
   qualityEvaluationEvidenceMarkdownDownloadUrl,
   jobHandoffPackageDownloadUrl,
+  demoRunPackageDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,

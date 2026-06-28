@@ -481,6 +481,131 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsDemoRunPackageForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:20:00Z");
+        videoRepository.save(new VideoRecord(
+                "job-video-demo-run-package",
+                "demo-run-package.mp4",
+                "video/mp4",
+                123L,
+                "source-videos/job-video-demo-run-package/sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-demo-run-package",
+                "job-video-demo-run-package",
+                "zh-CN",
+                "verse",
+                LocalizationJobStatus.COMPLETED,
+                createdAt,
+                createdAt.plusSeconds(1),
+                createdAt.plusSeconds(20),
+                null,
+                null,
+                "provider request payload raw transcript text raw subtitle text sk-test /Users/example/job-artifacts/raw.json",
+                0,
+                createdAt.plusSeconds(20)
+        ));
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "quality-controller-demo-run-package",
+                "job-controller-demo-run-package",
+                "zh-CN",
+                92,
+                "GOOD",
+                95,
+                92,
+                94,
+                88,
+                List.of("No blocking issue."),
+                List.of("Review terminology."),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "demo-run-reviewed-json",
+                "job-controller-demo-run-package",
+                JobArtifactType.REVIEWED_SUBTITLE_JSON,
+                "job-artifacts/job-controller-demo-run-package/reviewed-json/reviewed-subtitles.zh-CN.json",
+                "reviewed-subtitles.zh-CN.json",
+                "application/json",
+                15L,
+                "reviewed-json-hash",
+                false,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "demo-run-reviewed-srt",
+                "job-controller-demo-run-package",
+                JobArtifactType.REVIEWED_SUBTITLE_SRT,
+                "job-artifacts/job-controller-demo-run-package/reviewed-srt/reviewed-subtitles.zh-CN.srt",
+                "reviewed-subtitles.zh-CN.srt",
+                "application/x-subrip",
+                48L,
+                "reviewed-srt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(4)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "demo-run-reviewed-vtt",
+                "job-controller-demo-run-package",
+                JobArtifactType.REVIEWED_SUBTITLE_VTT,
+                "job-artifacts/job-controller-demo-run-package/reviewed-vtt/reviewed-subtitles.zh-CN.vtt",
+                "reviewed-subtitles.zh-CN.vtt",
+                "text/vtt",
+                42L,
+                "reviewed-vtt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(5)
+        ));
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-package/download",
+                        "job-controller-demo-run-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-demo-run-package-demo-run-package.zip\""
+                ))
+                .andExpect(content().contentType("application/zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries)
+                .containsKeys(
+                        "manifest.json",
+                        "README.md",
+                        "job-detail.json",
+                        "diagnostics.json",
+                        "evidence.md",
+                        "quality-evidence.md",
+                        "delivery-manifest.md",
+                        "demo-handoff-checklist.md",
+                        "demo-session-report.md"
+                );
+        assertThat(entries.get("README.md"))
+                .contains("# LinguaFrame Demo Run Package")
+                .contains("/api/jobs/job-controller-demo-run-package/demo-run-package/download");
+        assertThat(entries.get("demo-session-report.md"))
+                .contains("- Overall: READY")
+                .contains("- Quality: 92 / 100, GOOD, SUCCEEDED");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw subtitle text")
+                .doesNotContain("provider request payload")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-test");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(

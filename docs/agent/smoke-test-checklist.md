@@ -220,6 +220,9 @@ Expected browser behavior:
 - Quality evidence must include score, verdict, dimensions, issue/fix counts, and safe routes without raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, credentials, or media bytes.
 - `Download handoff package` appears in `Delivery handoff`, `Demo handoff checklist`, and `Demo session report`, and points to `/api/jobs/{jobId}/handoff-package/download`.
 - The handoff package ZIP contains `manifest.json`, `delivery-manifest.md`, `evidence.md`, `diagnostics.json`, reviewed subtitle artifacts, and optional reviewed burned video only.
+- `Download demo run package` appears in `Delivery handoff`, `Demo handoff checklist`, and `Demo session report`, and points to `/api/jobs/{jobId}/demo-run-package/download`.
+- The demo run package ZIP contains `manifest.json`, `README.md`, `job-detail.json`, `diagnostics.json`, `evidence.md`, `quality-evidence.md`, `delivery-manifest.md`, `demo-handoff-checklist.md`, and `demo-session-report.md`.
+- Terminal `demoRunPackage*` summary lines must show the expected job id and entry count, and fail if the ZIP contains object keys, local paths, provider payloads, API keys, demo tokens, or raw transcript/subtitle markers.
 - The `Demo handoff checklist` panel appears in the selected job view.
 - The `Demo handoff checklist` panel shows `Ready for demo handoff` when the job is completed, reviewed subtitles are ready, and evidence links are available.
 - Failed or incomplete jobs show `Needs attention`, while still exposing diagnostics and backend evidence links.

@@ -276,6 +276,7 @@ Build:
 - One-click backend evidence Markdown download. Status: implemented as an on-demand sanitized Markdown report for readable demo evidence.
 - One-click demo evidence bundle download. Status: implemented as an on-demand metadata-only ZIP with manifest, Markdown evidence, and diagnostics JSON.
 - One-click reviewed handoff package download. Status: implemented as an on-demand ZIP with reviewed subtitle artifacts, optional reviewed burned video, delivery manifest, diagnostics, evidence, and a package manifest, excluding internal audit artifacts and secrets.
+- One-click demo run package download. Status: implemented as an on-demand metadata-only ZIP workspace with manifest, README, job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report.
 - Browser cache replay evidence. Status: implemented as a read-only selected-job comparison panel that shows provider cache-hit stages, artifact reuse, model-call delta, estimated-cost delta, and safe replay evidence exports.
 - Retry button.
 - Cost summary.
