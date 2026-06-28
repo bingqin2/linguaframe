@@ -1981,6 +1981,54 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoReplayCardForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T10:30:00Z");
+        createJob("job-controller-video-replay", "job-controller-replay-baseline", "replay.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-replay-showcase",
+                "job-controller-video-replay",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings("job-controller-replay-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-replay-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-replay-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-replay-showcase", "job-controller-replay-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("replay-showcase-json", "job-controller-replay-showcase", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("replay-showcase-srt", "job-controller-replay-showcase", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("replay-showcase-vtt", "job-controller-replay-showcase", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-replay-card",
+                        "job-controller-replay-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-replay-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-replay"))
+                .andExpect(jsonPath("$.readiness").value("READY"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.recommendedBaselineJobId").value("job-controller-replay-baseline"))
+                .andExpect(jsonPath("$.settings[?(@.key == 'translationGlossary')].value").value("3 entries / abc123"))
+                .andExpect(jsonPath("$.commands[?(@.kind == 'EXPORT_REPLAY_CARD')].command")
+                        .value("LINGUAFRAME_DEMO_JOB_ID=job-controller-replay-showcase scripts/demo/demo-replay-card.sh"))
+                .andExpect(jsonPath("$.commands[?(@.kind == 'COMPARE_WITH_BASELINE')].command").value(
+                        org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.containsString(
+                                "LINGUAFRAME_COMPARISON_BASELINE_JOB_ID=job-controller-replay-baseline"
+                        ))
+                ))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-replay-showcase/demo-run-package/download"))
+                .andExpect(jsonPath("$.safetyNotes").value(org.hamcrest.Matchers.hasItem(
+                        "Local source paths are intentionally omitted; choose the source file again before replaying."
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
     void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
         createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",

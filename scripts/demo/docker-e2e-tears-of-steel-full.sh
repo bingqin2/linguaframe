@@ -84,6 +84,11 @@ download_demo_presenter_pack_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-presen
 print_demo_presenter_pack_summary_file "$OUTPUT_DIR/demo-presenter-pack.json"
 echo "Downloaded demo presenter pack to $OUTPUT_DIR/demo-presenter-pack.json"
 
+echo "Demo replay card:"
+download_demo_replay_card_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-replay-card.json"
+print_demo_replay_card_summary_file "$OUTPUT_DIR/demo-replay-card.json"
+echo "Downloaded demo replay card to $OUTPUT_DIR/demo-replay-card.json"
+
 echo "Demo run monitor:"
 download_demo_run_monitor_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.json"
 download_demo_run_monitor_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.md"

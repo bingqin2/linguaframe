@@ -369,6 +369,17 @@ download_demo_run_monitor_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-monitor/markdown/download" -o "$output_path"
 }
 
+download_demo_replay_card_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-replay-card" -o "$output_path"
+}
+
 download_demo_share_sheet_json() {
   local base_url="$1"
   local job_id="$2"
@@ -852,6 +863,52 @@ for run in runs:
     ]))
 for download in downloads:
     print("demoPresenterPackDownload=" + text(download.get("kind")) + ":" + text(download.get("url")))
+PY
+}
+
+print_demo_replay_card_summary_file() {
+  local card_path="$1"
+
+  python3 - "$card_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+card = json.load(open(sys.argv[1], encoding="utf-8"), parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return "N/A"
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "/Users/", "sk-", "provider payload", "OPENAI_API_KEY")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("demoReplayCardJobId=" + text(card.get("jobId")))
+print("demoReplayCardVideoId=" + text(card.get("videoId")))
+print("demoReplayCardReadiness=" + text(card.get("readiness")))
+print("demoReplayCardProfile=" + text(card.get("demoProfileId") or "manual"))
+print("demoReplayCardRecommendedBaselineJobId=" + text(card.get("recommendedBaselineJobId")))
+print("demoReplayCardBestQualityJobId=" + text(card.get("bestQualityJobId")))
+print("demoReplayCardLowestCostJobId=" + text(card.get("lowestCostJobId")))
+print("demoReplayCardQualityScore=" + text(card.get("qualityScore")))
+print("demoReplayCardEstimatedCostUsd=" + text(card.get("estimatedCostUsd")))
+print("demoReplayCardModelCallCount=" + text(card.get("modelCallCount", 0)))
+print("demoReplayCardProviderCacheHitCount=" + text(card.get("providerCacheHitCount", 0)))
+for setting in card.get("settings", []):
+    print("demoReplayCardSetting=" + text(setting.get("key")) + ":" + safe(setting.get("value")))
+for command in card.get("commands", []):
+    print("demoReplayCardCommand=" + text(command.get("kind")) + ":" + safe(command.get("command")))
+for link in card.get("links", []):
+    print("demoReplayCardLink=" + text(link.get("kind")) + ":" + safe(link.get("url")))
+for note in card.get("safetyNotes", []):
+    print("demoReplayCardSafetyNote=" + safe(note))
 PY
 }
 

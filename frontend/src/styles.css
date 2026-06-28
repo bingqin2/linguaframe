@@ -829,6 +829,40 @@ td {
   overflow-wrap: anywhere;
 }
 
+.demo-replay-card-panel code {
+  display: block;
+  margin: 6px 0;
+  color: #16384a;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.compact-definition-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.compact-definition-list div {
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  min-width: 0;
+}
+
+.compact-definition-list dt {
+  color: #657482;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.compact-definition-list dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
 .upload-validation-panel {
   margin-top: 14px;
   border-top: 1px solid #d7e0e6;

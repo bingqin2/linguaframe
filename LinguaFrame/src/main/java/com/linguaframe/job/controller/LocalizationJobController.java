@@ -19,6 +19,7 @@ import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
+import com.linguaframe.job.domain.vo.DemoReplayCardVo;
 import com.linguaframe.job.domain.vo.DemoRunSnapshotVo;
 import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.JobComparisonVo;
@@ -37,6 +38,7 @@ import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunMonitorService;
 import com.linguaframe.job.service.DemoRunPackageService;
+import com.linguaframe.job.service.DemoReplayCardService;
 import com.linguaframe.job.service.DemoRunSnapshotService;
 import com.linguaframe.job.service.DemoShareSheetService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
@@ -96,6 +98,7 @@ public class LocalizationJobController {
     private final DemoRunMatrixService demoRunMatrixService;
     private final DemoPresenterPackService demoPresenterPackService;
     private final DemoRunMonitorService demoRunMonitorService;
+    private final DemoReplayCardService demoReplayCardService;
     private final DemoRunSnapshotService demoRunSnapshotService;
     private final DemoShareSheetService demoShareSheetService;
     private final JobComparisonService jobComparisonService;
@@ -122,6 +125,7 @@ public class LocalizationJobController {
             DemoRunMatrixService demoRunMatrixService,
             DemoPresenterPackService demoPresenterPackService,
             DemoRunMonitorService demoRunMonitorService,
+            DemoReplayCardService demoReplayCardService,
             DemoRunSnapshotService demoRunSnapshotService,
             DemoShareSheetService demoShareSheetService,
             JobComparisonService jobComparisonService,
@@ -147,6 +151,7 @@ public class LocalizationJobController {
         this.demoRunMatrixService = demoRunMatrixService;
         this.demoPresenterPackService = demoPresenterPackService;
         this.demoRunMonitorService = demoRunMonitorService;
+        this.demoReplayCardService = demoReplayCardService;
         this.demoRunSnapshotService = demoRunSnapshotService;
         this.demoShareSheetService = demoShareSheetService;
         this.jobComparisonService = jobComparisonService;
@@ -232,6 +237,20 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return demoRunMonitorService.buildMonitor(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-replay-card")
+    @Operation(summary = "Build a metadata-only demo replay card")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo replay card was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoReplayCardVo getDemoReplayCard(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoReplayCardService.buildReplayCard(jobId);
     }
 
     @GetMapping("/{jobId}/demo-run-monitor/markdown/download")
