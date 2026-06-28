@@ -347,6 +347,45 @@ td {
   gap: 12px;
 }
 
+.demo-session-report-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.session-report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.session-report-section {
+  min-width: 0;
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fbfc;
+}
+
+.session-report-section h4 {
+  margin: 0 0 8px;
+}
+
+.session-report-section ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: #52616d;
+}
+
+.session-report-section li {
+  overflow-wrap: anywhere;
+}
+
+.session-report-links {
+  justify-content: flex-start;
+}
+
 .checklist-summary {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -845,6 +884,7 @@ video {
   .quality-overview,
   .quality-dimensions,
   .quality-lists,
+  .session-report-grid,
   .media-delivery-grid,
   .preview-grid,
   .media-grid {

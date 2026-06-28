@@ -156,6 +156,17 @@ interface DemoHandoffChecklist {
   links: DemoEvidence['links'];
 }
 
+interface DemoSessionReport {
+  generatedAt: string;
+  status: 'READY' | 'ATTENTION';
+  title: string;
+  sections: Array<{
+    title: string;
+    lines: string[];
+  }>;
+  links: DemoEvidence['links'];
+}
+
 interface CacheReplayCandidate {
   jobId: string;
   filename: string;
@@ -1760,6 +1771,10 @@ function JobDetail({
     () => buildDemoHandoffChecklist(job, artifacts, deliveryManifest, subtitleReview, subtitleDraft, demoEvidence),
     [artifacts, deliveryManifest, demoEvidence, job, subtitleDraft, subtitleReview]
   );
+  const demoSessionReport = useMemo(
+    () => buildDemoSessionReport(job, artifacts, deliveryManifest, demoEvidence, demoHandoffChecklist),
+    [artifacts, deliveryManifest, demoEvidence, demoHandoffChecklist, job]
+  );
 
   const statusItems = useMemo(
     () => [
@@ -1850,6 +1865,8 @@ function JobDetail({
       <PipelineProgressPanel progress={job.pipelineProgress} />
 
       <FailureTriagePanel triage={job.failureTriage} />
+
+      <DemoSessionReportPanel report={demoSessionReport} jobId={job.jobId} />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
 
@@ -2480,6 +2497,97 @@ function DemoHandoffChecklistPanel({
           Download backend evidence
         </a>
         <a className="secondary-link" href={checklist.links.evidenceBundle}>
+          Download evidence bundle
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function DemoSessionReportPanel({
+  jobId,
+  report
+}: {
+  jobId: string;
+  report: DemoSessionReport;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+  const markdown = formatDemoSessionReportMarkdown(report, jobId);
+
+  const handleCopyReport = useCallback(async () => {
+    if (!canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Report copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownloadReport = useCallback(() => {
+    const blob = new Blob([markdown], {
+      type: 'text/markdown'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-demo-session-${sanitizeFilename(jobId)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Report Markdown downloaded.');
+  }, [jobId, markdown]);
+
+  return (
+    <section className="panel demo-session-report-panel" aria-label="Demo session report">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo session report</h3>
+          <p className="muted">{report.title}</p>
+        </div>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!canCopy}
+            onClick={handleCopyReport}
+          >
+            Copy report
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadReport}>
+            Download report Markdown
+          </button>
+        </div>
+      </div>
+      <p className={report.status === 'READY' ? 'status-pill success' : 'status-pill warning'}>
+        {report.status === 'READY' ? 'Session ready' : 'Session needs attention'}
+      </p>
+      {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      <div className="session-report-grid">
+        {report.sections.map((section) => (
+          <article className="session-report-section" key={section.title}>
+            <h4>{section.title}</h4>
+            <ul>
+              {section.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+      <div className="panel-actions session-report-links">
+        <a className="secondary-link" href={report.links.resultBundle}>
+          Download result bundle
+        </a>
+        <a className="secondary-link" href={report.links.diagnostics}>
+          Download diagnostics
+        </a>
+        <a className="secondary-link" href={report.links.evidenceMarkdown}>
+          Download backend evidence
+        </a>
+        <a className="secondary-link" href={report.links.evidenceBundle}>
           Download evidence bundle
         </a>
       </div>
@@ -3297,6 +3405,89 @@ function countArtifacts(artifacts: JobArtifact[], types: JobArtifact['type'][]):
   return artifacts.filter((artifact) => accepted.has(artifact.type)).length;
 }
 
+function buildDemoSessionReport(
+  job: LocalizationJob,
+  artifacts: JobArtifact[],
+  manifest: DeliveryManifest | null,
+  evidence: DemoEvidence,
+  checklist: DemoHandoffChecklist
+): DemoSessionReport {
+  const reviewedSubtitleCount = countArtifacts(artifacts, [
+    'REVIEWED_SUBTITLE_JSON',
+    'REVIEWED_SUBTITLE_SRT',
+    'REVIEWED_SUBTITLE_VTT'
+  ]);
+  const mediaOutputCount = countArtifacts(artifacts, [
+    'DUBBING_AUDIO',
+    'BURNED_VIDEO',
+    'REVIEWED_BURNED_VIDEO'
+  ]);
+  const terminalState = job.pipelineProgress?.terminal ?? ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.status);
+  const sections: DemoSessionReport['sections'] = [
+    {
+      title: 'Input and job',
+      lines: [
+        `Job ${job.jobId}`,
+        `Video ${job.videoId}`,
+        `Target language ${job.targetLanguage}`,
+        `Status ${job.status}`,
+        `Retries ${job.retryCount}`,
+        `Terminal ${terminalState ? 'yes' : 'no'}`
+      ]
+    },
+    {
+      title: 'Generated outputs',
+      lines: [
+        `${artifacts.length} artifacts recorded`,
+        `${reviewedSubtitleCount} reviewed subtitle artifacts`,
+        `${mediaOutputCount} playable media outputs`,
+        `Result bundle ${evidence.links.resultBundle}`
+      ]
+    },
+    {
+      title: 'Handoff evidence',
+      lines: [
+        `Checklist ${checklist.overallStatus}`,
+        `Delivery manifest ${manifest?.handoffReady ? 'ready' : 'needs attention'}`,
+        `Evidence bundle ${evidence.links.evidenceBundle}`,
+        `Diagnostics ${evidence.links.diagnostics}`
+      ]
+    },
+    {
+      title: 'Cost and cache',
+      lines: [
+        `${evidence.usage.modelCallCount} model calls`,
+        `${evidence.usage.failedModelCallCount} failed model calls`,
+        `${formatCost(evidence.usage.estimatedCostUsd)} estimated cost`,
+        `${evidence.cache.artifactCacheHitCount} artifact cache hits`,
+        `${evidence.cache.providerCacheHitCount} provider cache hits`
+      ]
+    }
+  ];
+
+  if (job.failureTriage) {
+    sections.push({
+      title: 'Failure triage',
+      lines: [
+        `${job.failureTriage.category}: ${job.failureTriage.summary}`,
+        `Retryable ${job.failureTriage.retryable ? 'yes' : 'no'}`,
+        job.failureTriage.recommendedAction
+      ]
+    });
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    status: checklist.overallStatus,
+    title:
+      checklist.overallStatus === 'READY'
+        ? 'This demo run has the required handoff evidence.'
+        : 'This demo run still needs attention before handoff.',
+    sections,
+    links: evidence.links
+  };
+}
+
 function resultStatusClassName(status: DeliverableStatus): string {
   if (status === 'Ready') {
     return 'status-pill success';
@@ -3527,6 +3718,32 @@ function formatDemoHandoffChecklistMarkdown(checklist: DemoHandoffChecklist, job
     `- Evidence bundle: ${checklist.links.evidenceBundle}`
   );
   return lines.join('\n');
+}
+
+function formatDemoSessionReportMarkdown(report: DemoSessionReport, jobId: string): string {
+  const lines = [
+    '# LinguaFrame Demo Session Report',
+    '',
+    `- Job: ${jobId}`,
+    `- Overall: ${report.status}`,
+    `- Generated at: ${report.generatedAt}`,
+    ''
+  ];
+  report.sections.forEach((section) => {
+    lines.push(`## ${section.title}`);
+    section.lines.forEach((line) => {
+      lines.push(`- ${line}`);
+    });
+    lines.push('');
+  });
+  lines.push(
+    '## Links',
+    `- Result bundle: ${report.links.resultBundle}`,
+    `- Diagnostics: ${report.links.diagnostics}`,
+    `- Backend evidence: ${report.links.evidenceMarkdown}`,
+    `- Evidence bundle: ${report.links.evidenceBundle}`
+  );
+  return lines.join('\n').trimEnd();
 }
 
 function buildCacheReplayCandidates(

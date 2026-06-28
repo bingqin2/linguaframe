@@ -252,7 +252,7 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, demo session report, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 
@@ -268,6 +268,7 @@ Build:
 - Delivery handoff manifest. Status: implemented as a selected-job browser panel plus JSON and Markdown backend endpoints that separate reviewed handoff artifacts from generated audit artifacts and link safe verification evidence.
 - Media delivery workspace. Status: implemented for generated dubbing audio, generated burned video, and reviewed burned video with browser playback, direct downloads, content type, size, hash evidence, and generated/reused cache state.
 - Demo handoff checklist. Status: implemented as a selected-job browser checklist plus terminal summary that combines job completion, reviewed output readiness, media output availability, evidence links, quality, cost/model-call, cache, and failure-triage metadata.
+- Demo session report. Status: implemented as a selected-job browser panel plus terminal Markdown output that summarizes one run's input/job, generated outputs, handoff evidence, cost/cache, and failure triage using metadata only.
 - Artifact downloads.
 - One-click result bundle download. Status: implemented as an on-demand ZIP archive for generated job artifacts.
 - One-click diagnostics report download. Status: implemented as metadata-only JSON for safe job debugging evidence, including advisory failure triage when a job fails.

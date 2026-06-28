@@ -542,6 +542,91 @@ JSON
   [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "demo handoff checklist exposed token"
 }
 
+test_write_demo_session_report_markdown_is_metadata_only() {
+  cat >"$TMPDIR/session-job.json" <<'JSON'
+{
+  "jobId": "job-session",
+  "videoId": "video-session",
+  "targetLanguage": "zh-CN",
+  "status": "COMPLETED",
+  "retryCount": 0,
+  "pipelineProgress": {
+    "terminal": true
+  },
+  "usageSummary": {
+    "modelCallCount": 3,
+    "failedModelCallCount": 0,
+    "estimatedCostUsd": 0.0012
+  },
+  "cacheSummary": {
+    "cacheHitCount": 1,
+    "providerCacheHitCount": 2
+  },
+  "failureTriage": null,
+  "unsafeTranscript": "raw transcript text",
+  "unsafeProviderPayload": "provider payload"
+}
+JSON
+  cat >"$TMPDIR/session-manifest.json" <<'JSON'
+{
+  "jobId": "job-session",
+  "handoffReady": true,
+  "reviewedSubtitleArtifactCount": 3,
+  "reviewedBurnedVideoAvailable": true,
+  "unsafeSubtitle": "raw subtitle text",
+  "unsafeObjectKey": "job-artifacts/job-session/private"
+}
+JSON
+  cat >"$TMPDIR/session-artifacts.json" <<'JSON'
+[
+  {
+    "type": "REVIEWED_SUBTITLE_JSON",
+    "filename": "reviewed-subtitles.zh-CN.json",
+    "unsafeText": "raw corrected subtitle"
+  },
+  {
+    "type": "REVIEWED_SUBTITLE_SRT",
+    "filename": "reviewed-subtitles.zh-CN.srt"
+  },
+  {
+    "type": "REVIEWED_SUBTITLE_VTT",
+    "filename": "reviewed-subtitles.zh-CN.vtt"
+  },
+  {
+    "type": "DUBBING_AUDIO",
+    "filename": "dubbing-audio.mp3",
+    "sourceArtifactId": "job-artifacts/private/audio.mp3",
+    "unsafePath": "/Users/example/private.mov",
+    "unsafeToken": "OPENAI_API_KEY",
+    "unsafeDemoToken": "private-demo-token"
+  }
+]
+JSON
+
+  write_demo_session_report_markdown \
+    "$TMPDIR/session-job.json" \
+    "$TMPDIR/session-manifest.json" \
+    "$TMPDIR/session-artifacts.json" \
+    "$TMPDIR/demo-session-report.md"
+  local output
+  output="$(cat "$TMPDIR/demo-session-report.md")"
+
+  [[ "$output" == *"# LinguaFrame Demo Session Report"* ]] || fail "demo session report missed title"
+  [[ "$output" == *"- Overall: READY"* ]] || fail "demo session report missed ready overall"
+  [[ "$output" == *"## Input and job"* ]] || fail "demo session report missed input section"
+  [[ "$output" == *"## Generated outputs"* ]] || fail "demo session report missed outputs section"
+  [[ "$output" == *"## Handoff evidence"* ]] || fail "demo session report missed handoff section"
+  [[ "$output" == *"## Cost and cache"* ]] || fail "demo session report missed cost section"
+  [[ "$output" != *"raw transcript text"* ]] || fail "demo session report exposed transcript"
+  [[ "$output" != *"raw subtitle text"* ]] || fail "demo session report exposed subtitle"
+  [[ "$output" != *"raw corrected subtitle"* ]] || fail "demo session report exposed corrected subtitle"
+  [[ "$output" != *"job-artifacts/"* ]] || fail "demo session report exposed object key"
+  [[ "$output" != *"/Users/example/private.mov"* ]] || fail "demo session report exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "demo session report exposed provider payload"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "demo session report exposed API key"
+  [[ "$output" != *"private-demo-token"* ]] || fail "demo session report exposed demo token"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -553,5 +638,6 @@ test_print_reviewed_publish_summary_is_metadata_only
 test_print_delivery_manifest_summary_is_metadata_only
 test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only
+test_write_demo_session_report_markdown_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

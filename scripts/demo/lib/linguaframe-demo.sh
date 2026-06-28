@@ -526,6 +526,87 @@ if job.get("failureTriage"):
 PY
 }
 
+write_demo_session_report_markdown() {
+  local job_detail_path="$1"
+  local delivery_manifest_path="$2"
+  local artifacts_path="$3"
+  local output_path="$4"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$job_detail_path" "$delivery_manifest_path" "$artifacts_path" "$output_path" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+manifest = json.load(open(sys.argv[2], encoding="utf-8"))
+artifacts = json.load(open(sys.argv[3], encoding="utf-8"))
+output_path = sys.argv[4]
+
+artifact_types = [artifact.get("type") for artifact in artifacts]
+reviewed_types = {"REVIEWED_SUBTITLE_JSON", "REVIEWED_SUBTITLE_SRT", "REVIEWED_SUBTITLE_VTT"}
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+reviewed_count = sum(1 for artifact_type in artifact_types if artifact_type in reviewed_types)
+media_count = sum(1 for artifact_type in artifact_types if artifact_type in media_types)
+job_id = job.get("jobId", "unknown")
+video_id = job.get("videoId", "unknown")
+target_language = job.get("targetLanguage", "unknown")
+status = job.get("status", "UNKNOWN")
+pipeline = job.get("pipelineProgress") or {}
+usage = job.get("usageSummary") or {}
+cache = job.get("cacheSummary") or {}
+handoff_ready = bool(manifest.get("handoffReady")) and reviewed_count >= 3
+overall = "READY" if status == "COMPLETED" and handoff_ready else "ATTENTION"
+
+lines = [
+    "# LinguaFrame Demo Session Report",
+    "",
+    f"- Job: {job_id}",
+    f"- Overall: {overall}",
+    f"- Generated at: {datetime.now(timezone.utc).isoformat()}",
+    "",
+    "## Input and job",
+    f"- Video: {video_id}",
+    f"- Target language: {target_language}",
+    f"- Status: {status}",
+    f"- Retries: {job.get('retryCount', 0)}",
+    f"- Terminal: {'yes' if pipeline.get('terminal') or status in {'COMPLETED', 'FAILED', 'CANCELLED'} else 'no'}",
+    "",
+    "## Generated outputs",
+    f"- Artifacts: {len(artifacts)}",
+    f"- Reviewed subtitle artifacts: {reviewed_count}",
+    f"- Media outputs: {media_count}",
+    f"- Result bundle: /api/jobs/{job_id}/artifacts/archive/download",
+    "",
+    "## Handoff evidence",
+    f"- Delivery manifest ready: {'yes' if manifest.get('handoffReady') else 'no'}",
+    f"- Reviewed burned video: {'yes' if manifest.get('reviewedBurnedVideoAvailable') else 'no'}",
+    f"- Diagnostics: /api/jobs/{job_id}/diagnostics/download",
+    f"- Evidence bundle: /api/jobs/{job_id}/evidence/bundle/download",
+    "",
+    "## Cost and cache",
+    f"- Model calls: {usage.get('modelCallCount', 0)}",
+    f"- Failed model calls: {usage.get('failedModelCallCount', 0)}",
+    f"- Estimated cost USD: {usage.get('estimatedCostUsd', 0)}",
+    f"- Artifact cache hits: {cache.get('cacheHitCount', 0)}",
+    f"- Provider cache hits: {cache.get('providerCacheHitCount', 0)}",
+]
+
+triage = job.get("failureTriage")
+if triage:
+    lines.extend([
+        "",
+        "## Failure triage",
+        f"- Category: {triage.get('category', 'UNKNOWN')}",
+        f"- Retryable: {'yes' if triage.get('retryable') else 'no'}",
+        f"- Recommended action: {triage.get('recommendedAction', 'Inspect diagnostics before retrying.')}",
+    ])
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(lines) + "\n")
+PY
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

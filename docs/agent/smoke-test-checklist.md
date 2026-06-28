@@ -215,6 +215,10 @@ Expected browser behavior:
 - The `Demo handoff checklist` panel shows `Ready for demo handoff` when the job is completed, reviewed subtitles are ready, and evidence links are available.
 - Failed or incomplete jobs show `Needs attention`, while still exposing diagnostics and backend evidence links.
 - `Copy checklist` and `Download checklist JSON` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, or media bytes.
+- The `Demo session report` panel appears in the selected job view.
+- The `Demo session report` panel shows `Session ready` for completed runs with handoff-ready reviewed subtitles, otherwise `Session needs attention`.
+- The report groups safe metadata into `Input and job`, `Generated outputs`, `Handoff evidence`, `Cost and cache`, and `Failure triage` when applicable.
+- `Copy report`, `Download report Markdown`, and terminal `/tmp/linguaframe-demo/demo-session-report.md` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.
 - The `Cache replay` panel can pin the selected job as a baseline, compare it with another loaded job, show provider cache-hit stages, artifact reused/generated counts, model-call delta, estimated-cost delta, and export safe replay evidence.
 - `Copy replay evidence` and `Download replay evidence JSON` must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, credentials, or provider payloads.
 - Transcript and subtitle preview panels render when backend preview data exists.

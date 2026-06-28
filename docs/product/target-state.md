@@ -105,12 +105,13 @@ A user should be able to:
 8. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
 9. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
 10. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
-11. Play the generated dubbing audio with visible file metadata and download evidence.
-12. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-13. Inspect cost and processing time.
-14. Retry the job if a step fails.
-15. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-16. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+11. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
+12. Play the generated dubbing audio with visible file metadata and download evidence.
+13. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+14. Inspect cost and processing time.
+15. Retry the job if a step fails.
+16. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+17. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 

@@ -28,6 +28,7 @@ DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_P
 DELIVERY_MANIFEST_JSON_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_JSON_PATH:-/tmp/linguaframe-demo/delivery-manifest.json}"
 ARTIFACTS_JSON_PATH="${LINGUAFRAME_DEMO_ARTIFACTS_JSON_PATH:-/tmp/linguaframe-demo/artifacts.json}"
 JOB_DETAIL_PATH="${LINGUAFRAME_DEMO_JOB_DETAIL_PATH:-/tmp/linguaframe-demo/job-detail.json}"
+DEMO_SESSION_REPORT_PATH="${LINGUAFRAME_DEMO_SESSION_REPORT_PATH:-/tmp/linguaframe-demo/demo-session-report.md}"
 
 wait_for_backend "$BASE_URL"
 ensure_demo_sample "$SAMPLE_PATH"
@@ -59,6 +60,12 @@ echo "Media delivery summary for job $job_id:"
 printf '%s' "$artifacts_response" | print_media_delivery_summary
 echo "Demo handoff checklist for job $job_id:"
 print_demo_handoff_checklist_summary "$JOB_DETAIL_PATH" "$DELIVERY_MANIFEST_JSON_PATH" "$ARTIFACTS_JSON_PATH"
+write_demo_session_report_markdown \
+  "$JOB_DETAIL_PATH" \
+  "$DELIVERY_MANIFEST_JSON_PATH" \
+  "$ARTIFACTS_JSON_PATH" \
+  "$DEMO_SESSION_REPORT_PATH"
+echo "Wrote demo session report to $DEMO_SESSION_REPORT_PATH"
 echo "Transcript preview for job $job_id:"
 get_job_transcript "$BASE_URL" "$job_id" | python3 -m json.tool
 echo "Target subtitle preview for job $job_id:"
