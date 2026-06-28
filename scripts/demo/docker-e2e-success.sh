@@ -20,6 +20,7 @@ TARGET_SRT_PATH="${LINGUAFRAME_DEMO_TARGET_SRT_PATH:-/tmp/linguaframe-demo/targe
 TARGET_VTT_PATH="${LINGUAFRAME_DEMO_TARGET_VTT_PATH:-/tmp/linguaframe-demo/target-subtitles.vtt}"
 DUBBING_AUDIO_PATH="${LINGUAFRAME_DEMO_DUBBING_AUDIO_PATH:-/tmp/linguaframe-demo/dubbing-audio.mp3}"
 BURNED_VIDEO_PATH="${LINGUAFRAME_DEMO_BURNED_VIDEO_PATH:-/tmp/linguaframe-demo/burned-video.mp4}"
+DUBBED_VIDEO_PATH="${LINGUAFRAME_DEMO_DUBBED_VIDEO_PATH:-/tmp/linguaframe-demo/dubbed-video.mp4}"
 ARCHIVE_PATH="${LINGUAFRAME_DEMO_ARCHIVE_PATH:-/tmp/linguaframe-demo/artifacts.zip}"
 DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/job-diagnostics.json}"
 EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/job-evidence.md}"
@@ -117,6 +118,11 @@ if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$DUBB
   echo "Downloaded dubbing audio to $DUBBING_AUDIO_PATH"
 else
   echo "No dubbing audio artifact found; TTS may be disabled"
+fi
+if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBED_VIDEO "$DUBBED_VIDEO_PATH"; then
+  echo "Downloaded dubbed video to $DUBBED_VIDEO_PATH"
+else
+  echo "No dubbed video artifact found; TTS or subtitle burn-in may be disabled"
 fi
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$ARTIFACT_PATH"
 echo "Downloaded extracted audio to $AUDIO_PATH"

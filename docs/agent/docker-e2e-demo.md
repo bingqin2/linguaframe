@@ -64,7 +64,7 @@ After opening a job, check the `Source media` panel first. It should show filena
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
 
-Check the `Media delivery` panel when playable outputs exist. It should show `DUBBING_AUDIO`, generated `BURNED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs with browser players, direct download links, content type, size, short SHA-256 hashes, and generated/reused cache state. Terminal `mediaDelivery*` summary lines must include only artifact type, filename, content type, and generated/reused state.
+Check the `Media delivery` panel when playable outputs exist. It should show `DUBBING_AUDIO`, generated `BURNED_VIDEO`, generated `DUBBED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs with browser players, direct download links, content type, size, short SHA-256 hashes, and generated/reused cache state. `DUBBED_VIDEO` appears only when TTS audio and a subtitle-burned video base are both available. Terminal `mediaDelivery*` summary lines must include only artifact type, filename, content type, and generated/reused state.
 
 Check the read-only `Subtitle review` panel after transcript and target subtitles load. It should show segment count, missing target count, timing mismatch count, average and max duration, quality score/verdict, downloadable subtitle artifact count, and source/target comparison rows. Evidence exports and terminal summaries should include only subtitle-review metadata, not raw transcript or subtitle text.
 
@@ -367,7 +367,7 @@ Override the input path when needed:
 LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
-The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video and `demo-presenter-pack.json` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, and safe download routes. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
+The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video and `demo-presenter-pack.json` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, and safe download routes. `BURNED_VIDEO`, `DUBBING_AUDIO`, and `DUBBED_VIDEO` are optional because burn-in and TTS can be disabled for stable local runs.
 
 To compare two complete Tears of Steel runs, first run a baseline profile and keep the completed job id:
 

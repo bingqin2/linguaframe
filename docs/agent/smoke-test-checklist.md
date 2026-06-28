@@ -206,7 +206,7 @@ Expected browser behavior:
 - The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
 - The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.
 - The `Media delivery` panel appears when playable media artifacts exist.
-- The `Media delivery` panel renders `DUBBING_AUDIO`, generated `BURNED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs when present.
+- The `Media delivery` panel renders `DUBBING_AUDIO`, generated `BURNED_VIDEO`, generated `DUBBED_VIDEO`, and reviewed `REVIEWED_BURNED_VIDEO` as separate outputs when present.
 - Each `Media delivery` output has a browser player, direct download link, content type, size, short SHA-256 hash, and generated/reused cache state.
 - The `Demo review guide` panel appears near the top of the selected job view.
 - The guide shows `Presentation ready` only when the pipeline is terminal, reviewed subtitles are ready, handoff delivery is ready, evidence links are available, and the session report is ready.
@@ -246,7 +246,7 @@ Expected browser behavior:
 - Artifact download links appear when artifacts exist.
 - The `Download result bundle` link appears in the `Artifacts` panel and points to `/api/jobs/{jobId}/artifacts/archive/download`.
 - The `Download diagnostics` link appears in the selected job header and points to `/api/jobs/{jobId}/diagnostics/download`.
-- Audio and video playback appears in `Media delivery` for `DUBBING_AUDIO`, `BURNED_VIDEO`, and `REVIEWED_BURNED_VIDEO` artifacts.
+- Audio and video playback appears in `Media delivery` for `DUBBING_AUDIO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, and `REVIEWED_BURNED_VIDEO` artifacts.
 - Failed jobs show a retry button.
 - The `Retention cleanup` panel appears in the sidebar.
 - Clicking `Preview cleanup` refreshes aggregate cleanup counts without deleting data.
@@ -316,12 +316,13 @@ Expected:
 - Output includes `mediaDeliveryReadyCount`.
 - Output includes `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Generated` or `mediaDeliveryArtifact=BURNED_VIDEO:burned-video.mp4:video/mp4:Reused`.
 - Output includes `mediaDeliveryArtifact=DUBBING_AUDIO:dubbing-audio.mp3:audio/mpeg:Generated` only when TTS is enabled.
+- Output includes `mediaDeliveryArtifact=DUBBED_VIDEO:dubbed-video.mp4:video/mp4:Generated` only when TTS and subtitle burn-in both produce compatible media artifacts.
 - Output includes `mediaDeliveryArtifact=REVIEWED_BURNED_VIDEO:reviewed-burned-video.mp4:video/mp4:Generated` only when reviewed burn-in is requested.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.
-- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `SUBTITLE_BURN_IN`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
-- Output includes `artifactCount=12` by default and `artifactCount=13` when TTS is enabled.
+- Timeline includes `WORKER_RECEIVED`, `WORKER_SMOKE`, `AUDIO_EXTRACTION`, `TRANSCRIPT_SUBTITLE_EXPORT`, `TARGET_SUBTITLE_EXPORT`, `DUBBING_AUDIO_GENERATION`, `SUBTITLE_BURN_IN`, `DUBBED_VIDEO_DELIVERY`, `ARTIFACT_SUMMARY`, and `COMPLETED`.
+- Output includes `artifactCount=12` by default, `artifactCount=13` when TTS audio is enabled without dubbed-video delivery, and `artifactCount=14` when TTS and subtitle burn-in also create `DUBBED_VIDEO`.
 - Output includes `EXTRACTED_AUDIO audio.wav`.
 - Output includes `TRANSCRIPT_JSON transcript.json`.
 - Output includes `SUBTITLE_SRT subtitles.srt`.
@@ -334,6 +335,7 @@ Expected:
 - Output includes `REVIEWED_SUBTITLE_VTT reviewed-subtitles.zh-CN.vtt`.
 - Output includes `DUBBING_AUDIO dubbing-audio.mp3` only when TTS is enabled.
 - Output includes `BURNED_VIDEO burned-video.mp4`.
+- Output includes `DUBBED_VIDEO dubbed-video.mp4` only when TTS and subtitle burn-in both produce compatible media artifacts.
 - Output includes `WORKER_SUMMARY worker-summary.json`.
 - The script downloads `/tmp/linguaframe-demo/audio.wav`.
 - The script downloads `/tmp/linguaframe-demo/transcript.json`.
@@ -343,6 +345,7 @@ Expected:
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.srt`.
 - The script downloads `/tmp/linguaframe-demo/target-subtitles.vtt`.
 - The script downloads `/tmp/linguaframe-demo/dubbing-audio.mp3` only when TTS is enabled.
+- The script downloads `/tmp/linguaframe-demo/dubbed-video.mp4` only when TTS and subtitle burn-in both produce compatible media artifacts.
 - The script downloads `/tmp/linguaframe-demo/burned-video.mp4`.
 - The script downloads `/tmp/linguaframe-demo/job-diagnostics.json`.
 - The script downloads `/tmp/linguaframe-demo/delivery-manifest.md`.
@@ -440,11 +443,12 @@ cat /tmp/linguaframe-demo/target-subtitles.srt
 cat /tmp/linguaframe-demo/target-subtitles.vtt
 file /tmp/linguaframe-demo/dubbing-audio.mp3
 file /tmp/linguaframe-demo/burned-video.mp4
+file /tmp/linguaframe-demo/dubbed-video.mp4
 python3 -m json.tool /tmp/linguaframe-demo/job-diagnostics.json
 python3 -m json.tool /tmp/linguaframe-demo/worker-summary.json
 ```
 
-Skip `file /tmp/linguaframe-demo/dubbing-audio.mp3` when TTS is disabled.
+Skip `file /tmp/linguaframe-demo/dubbing-audio.mp3` when TTS is disabled. Skip `file /tmp/linguaframe-demo/dubbed-video.mp4` unless both TTS and subtitle burn-in are enabled and completed.
 
 Expected transcript fields:
 
@@ -620,6 +624,7 @@ Expected:
 
 - Job status reaches `COMPLETED`.
 - `DUBBING_AUDIO` artifact is present as `dubbing-audio.mp3`.
+- `DUBBED_VIDEO` artifact is present as `dubbed-video.mp4` when subtitle burn-in is also enabled and the generated TTS audio is muxable by FFmpeg.
 - The downloaded file has content type `audio/mpeg`.
 - Logs and persisted failure reasons do not expose the API key or raw OpenAI response body.
 - This path may consume OpenAI credits.

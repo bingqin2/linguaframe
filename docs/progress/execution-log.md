@@ -6,6 +6,30 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the TTS dubbed video delivery workspace in `docs/plans/101-tts-dubbed-video-delivery-workspace.md`.
+- Added `DUBBED_VIDEO` and `DUBBED_VIDEO_DELIVERY` as the separate generated-media output for TTS audio plus generated subtitle-burned video.
+- Added an FFmpeg audio replacement service that maps video from `BURNED_VIDEO`, audio from `DUBBING_AUDIO`, writes `dubbed-video.mp4`, and preserves safe bounded failure summaries.
+- Added the pipeline stage, FFmpeg worker routing, browser playback/download support, delivery manifest/package metadata, and terminal demo summaries/downloads.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with dubbed-video behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=FfmpegAudioReplacementServiceTests test` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DubbedVideoPipelineStageTests,WorkerStageRouterTests test` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobExecutionServiceTests#dubbingAudioStageCreatesArtifactAfterTargetSubtitleExport test` passed with `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DeliveryManifestServiceTests,DemoRunPackageServiceTests test` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx` passed with `Tests 72 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because media summaries did not include `DUBBED_VIDEO`, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 508, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 127 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo upload readiness workspace in `docs/plans/100-demo-upload-readiness-workspace.md`.
 - Added `GET /api/media/uploads/readiness` as a metadata-only aggregate of access-gated API reachability, runtime contract, live dependency checks, owner quota preflight, selected demo profile, and paid-provider warning state.
 - Added a React `Upload readiness` panel that refreshes on page/profile/upload state changes and blocks upload only for backend `BLOCKED` readiness while leaving file validation available.

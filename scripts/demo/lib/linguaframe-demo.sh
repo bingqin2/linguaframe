@@ -952,7 +952,7 @@ print_media_delivery_summary() {
 import json
 import sys
 
-media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "DUBBED_VIDEO", "REVIEWED_BURNED_VIDEO"}
 artifacts = [artifact for artifact in json.load(sys.stdin) if artifact.get("type") in media_types]
 print("mediaDeliveryReadyCount=" + str(len(artifacts)))
 for artifact in artifacts:
@@ -985,7 +985,7 @@ artifacts = json.load(open(sys.argv[3], encoding="utf-8"))
 
 artifact_types = [artifact.get("type") for artifact in artifacts]
 reviewed_types = {"REVIEWED_SUBTITLE_JSON", "REVIEWED_SUBTITLE_SRT", "REVIEWED_SUBTITLE_VTT"}
-media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "DUBBED_VIDEO", "REVIEWED_BURNED_VIDEO"}
 reviewed_count = sum(1 for artifact_type in artifact_types if artifact_type in reviewed_types)
 media_count = sum(1 for artifact_type in artifact_types if artifact_type in media_types)
 
@@ -1030,7 +1030,7 @@ output_path = sys.argv[4]
 
 artifact_types = [artifact.get("type") for artifact in artifacts]
 reviewed_types = {"REVIEWED_SUBTITLE_JSON", "REVIEWED_SUBTITLE_SRT", "REVIEWED_SUBTITLE_VTT"}
-media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "DUBBED_VIDEO", "REVIEWED_BURNED_VIDEO"}
 reviewed_count = sum(1 for artifact_type in artifact_types if artifact_type in reviewed_types)
 media_count = sum(1 for artifact_type in artifact_types if artifact_type in media_types)
 job_id = job.get("jobId", "unknown")

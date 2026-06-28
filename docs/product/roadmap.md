@@ -194,12 +194,12 @@ Build:
 - FFmpeg subtitle burn-in service.
 - Subtitle style defaults.
 - Generated video artifact record.
+- Audio replacement with TTS. Status: implemented as a separate `DUBBED_VIDEO` artifact created after TTS audio and generated `BURNED_VIDEO` are both available.
 - Video preview and download API.
 - Burn-in failure handling.
 
 Do not build yet:
 
-- Audio replacement with TTS.
 - Multi-track export.
 - Advanced video editor controls.
 

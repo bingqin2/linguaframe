@@ -104,5 +104,11 @@ else
   echo "No dubbing audio artifact found; TTS may be disabled."
 fi
 
+if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBED_VIDEO "$OUTPUT_DIR/dubbed-video.mp4"; then
+  echo "Downloaded dubbed video to $OUTPUT_DIR/dubbed-video.mp4"
+else
+  echo "No dubbed video artifact found; TTS or subtitle burn-in may be disabled."
+fi
+
 echo "Downloaded artifact archive to $OUTPUT_DIR/artifacts.zip"
 echo "Downloaded full-video demo artifacts to $OUTPUT_DIR"

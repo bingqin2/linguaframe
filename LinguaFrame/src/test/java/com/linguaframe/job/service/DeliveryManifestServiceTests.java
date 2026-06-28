@@ -27,6 +27,7 @@ class DeliveryManifestServiceTests {
                 artifact("reviewed-json", JobArtifactType.REVIEWED_SUBTITLE_JSON, "reviewed-subtitles.zh-CN.json"),
                 artifact("reviewed-srt", JobArtifactType.REVIEWED_SUBTITLE_SRT, "reviewed-subtitles.zh-CN.srt"),
                 artifact("reviewed-vtt", JobArtifactType.REVIEWED_SUBTITLE_VTT, "reviewed-subtitles.zh-CN.vtt"),
+                artifact("dubbed-video", JobArtifactType.DUBBED_VIDEO, "dubbed-video.mp4"),
                 artifact("reviewed-video", JobArtifactType.REVIEWED_BURNED_VIDEO, "reviewed-burned-video.mp4"),
                 artifact("worker-summary", JobArtifactType.WORKER_SUMMARY, "worker-summary.json")
         ));
@@ -44,7 +45,7 @@ class DeliveryManifestServiceTests {
         assertThat(manifest.handoffReady()).isTrue();
         assertThat(manifest.reviewedSubtitleArtifactCount()).isEqualTo(3);
         assertThat(manifest.reviewedBurnedVideoAvailable()).isTrue();
-        assertThat(manifest.generatedArtifactCount()).isEqualTo(1);
+        assertThat(manifest.generatedArtifactCount()).isEqualTo(2);
         assertThat(manifest.reviewedArtifacts()).extracting(DeliveryManifestArtifactVo::type)
                 .containsExactly(
                         JobArtifactType.REVIEWED_SUBTITLE_JSON,
@@ -53,7 +54,7 @@ class DeliveryManifestServiceTests {
                         JobArtifactType.REVIEWED_BURNED_VIDEO
                 );
         assertThat(manifest.auditArtifacts()).extracting(DeliveryManifestArtifactVo::type)
-                .containsExactly(JobArtifactType.WORKER_SUMMARY);
+                .containsExactly(JobArtifactType.DUBBED_VIDEO, JobArtifactType.WORKER_SUMMARY);
         assertThat(manifest.reviewedArtifacts()).extracting(DeliveryManifestArtifactVo::downloadUrl)
                 .contains("/api/jobs/job-handoff/artifacts/reviewed-srt/download");
         assertThat(manifest.links()).extracting(link -> link.kind())
@@ -66,7 +67,8 @@ class DeliveryManifestServiceTests {
                 new RecordingLocalizationJobQueryService(job(LocalizationJobStatus.COMPLETED)),
                 new RecordingJobArtifactService(List.of(
                         artifact("target-srt", JobArtifactType.TARGET_SUBTITLE_SRT, "target-subtitles.srt"),
-                        artifact("burned-video", JobArtifactType.BURNED_VIDEO, "burned-video.mp4")
+                        artifact("burned-video", JobArtifactType.BURNED_VIDEO, "burned-video.mp4"),
+                        artifact("dubbed-video", JobArtifactType.DUBBED_VIDEO, "dubbed-video.mp4")
                 ))
         );
 
@@ -77,7 +79,7 @@ class DeliveryManifestServiceTests {
         assertThat(manifest.reviewedBurnedVideoAvailable()).isFalse();
         assertThat(manifest.reviewedArtifacts()).isEmpty();
         assertThat(manifest.auditArtifacts()).extracting(DeliveryManifestArtifactVo::filename)
-                .containsExactly("target-subtitles.srt", "burned-video.mp4");
+                .containsExactly("target-subtitles.srt", "burned-video.mp4", "dubbed-video.mp4");
     }
 
     @Test

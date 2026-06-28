@@ -279,8 +279,16 @@ const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
   { key: 'reviewed-vtt', label: 'Reviewed VTT', artifactType: 'REVIEWED_SUBTITLE_VTT', preview: null },
   { key: 'dubbing-audio', label: 'Dubbing audio', artifactType: 'DUBBING_AUDIO', preview: null },
   { key: 'burned-video', label: 'Burned video', artifactType: 'BURNED_VIDEO', preview: null },
+  { key: 'dubbed-video', label: 'Dubbed video', artifactType: 'DUBBED_VIDEO', preview: null },
   { key: 'reviewed-burned-video', label: 'Reviewed burned video', artifactType: 'REVIEWED_BURNED_VIDEO', preview: null },
   { key: 'worker-summary', label: 'Worker summary', artifactType: 'WORKER_SUMMARY', preview: null }
+];
+
+const MEDIA_ARTIFACT_TYPES: JobArtifact['type'][] = [
+  'DUBBING_AUDIO',
+  'BURNED_VIDEO',
+  'DUBBED_VIDEO',
+  'REVIEWED_BURNED_VIDEO'
 ];
 
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
@@ -5075,6 +5083,13 @@ function buildMediaDeliveryItems(artifacts: JobArtifact[]): MediaDeliveryItem[] 
       artifact: findFirstArtifact(artifacts, 'BURNED_VIDEO')
     },
     {
+      key: 'dubbed-video',
+      label: 'Dubbed video',
+      playerLabel: 'Dubbed video player',
+      kind: 'video',
+      artifact: findFirstArtifact(artifacts, 'DUBBED_VIDEO')
+    },
+    {
       key: 'reviewed-burned-video',
       label: 'Reviewed burned video',
       playerLabel: 'Reviewed burned video player',
@@ -5101,11 +5116,7 @@ function buildDemoHandoffChecklist(
     'REVIEWED_SUBTITLE_SRT',
     'REVIEWED_SUBTITLE_VTT'
   ]);
-  const mediaOutputCount = countArtifacts(artifacts, [
-    'DUBBING_AUDIO',
-    'BURNED_VIDEO',
-    'REVIEWED_BURNED_VIDEO'
-  ]);
+  const mediaOutputCount = countArtifacts(artifacts, MEDIA_ARTIFACT_TYPES);
   const hasEvidenceLinks = Boolean(
     evidence.links.resultBundle &&
       evidence.links.diagnostics &&
@@ -5233,11 +5244,7 @@ function buildDemoReviewSteps(
     'REVIEWED_SUBTITLE_SRT',
     'REVIEWED_SUBTITLE_VTT'
   ]);
-  const mediaOutputCount = countArtifacts(artifacts, [
-    'DUBBING_AUDIO',
-    'BURNED_VIDEO',
-    'REVIEWED_BURNED_VIDEO'
-  ]);
+  const mediaOutputCount = countArtifacts(artifacts, MEDIA_ARTIFACT_TYPES);
   const pipelineTerminal = job.pipelineProgress?.terminal ?? ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.status);
   const hasInput = Boolean(job.jobId && job.videoId && job.targetLanguage);
 
@@ -5333,11 +5340,7 @@ function buildDemoSessionReport(
     'REVIEWED_SUBTITLE_SRT',
     'REVIEWED_SUBTITLE_VTT'
   ]);
-  const mediaOutputCount = countArtifacts(artifacts, [
-    'DUBBING_AUDIO',
-    'BURNED_VIDEO',
-    'REVIEWED_BURNED_VIDEO'
-  ]);
+  const mediaOutputCount = countArtifacts(artifacts, MEDIA_ARTIFACT_TYPES);
   const terminalState = job.pipelineProgress?.terminal ?? ['COMPLETED', 'FAILED', 'CANCELLED'].includes(job.status);
   const sections: DemoSessionReport['sections'] = [
     {
