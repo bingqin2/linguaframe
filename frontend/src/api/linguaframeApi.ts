@@ -6,6 +6,7 @@ import type {
   LocalizationJobList,
   LocalizationJobStatus,
   MediaUpload,
+  MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
   PrivateDemoOperations,
@@ -80,6 +81,12 @@ export async function uploadMedia(
   return requestJson<MediaUpload>('/api/media/uploads', {
     method: 'POST',
     body
+  });
+}
+
+export async function getMediaUpload(videoId: string): Promise<MediaUploadDetail> {
+  return requestJson<MediaUploadDetail>(`/api/media/uploads/${encodeURIComponent(videoId)}`, {
+    method: 'GET'
   });
 }
 
@@ -308,6 +315,10 @@ export function aiAuditPackageDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/ai-audit-package/download`;
 }
 
+export function sourceMediaDownloadUrl(videoId: string): string {
+  return `/api/media/uploads/${encodeURIComponent(videoId)}/source/download`;
+}
+
 export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
 }
@@ -322,6 +333,7 @@ export const linguaFrameApi = {
   logoutDemoSession,
   validateUpload,
   uploadMedia,
+  getMediaUpload,
   listJobs,
   getJob,
   getDeliveryManifest,
@@ -352,6 +364,7 @@ export const linguaFrameApi = {
   jobHandoffPackageDownloadUrl,
   demoRunPackageDownloadUrl,
   aiAuditPackageDownloadUrl,
+  sourceMediaDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,

@@ -82,6 +82,7 @@ class OpenApiDocumentationTests {
                         "/api/media/uploads/validate",
                         "/api/media/uploads",
                         "/api/media/uploads/{videoId}",
+                        "/api/media/uploads/{videoId}/source/download",
                         "/api/jobs",
                         "/api/jobs/{jobId}",
                         "/api/jobs/{jobId}/events",

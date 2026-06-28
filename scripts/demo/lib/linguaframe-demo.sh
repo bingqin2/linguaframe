@@ -798,6 +798,72 @@ with open(output_path, "w", encoding="utf-8") as handle:
 PY
 }
 
+fetch_source_media_metadata() {
+  local base_url="$1"
+  local video_id="$2"
+
+  demo_curl -fsS "$base_url/api/media/uploads/$video_id"
+}
+
+download_source_media() {
+  local base_url="$1"
+  local video_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/media/uploads/$video_id/source/download" -o "$output_path"
+}
+
+print_source_media_summary() {
+  local metadata_path="$1"
+  local job_id="$2"
+
+  python3 - "$metadata_path" "$job_id" <<'PY'
+import json
+import sys
+
+metadata_path = sys.argv[1]
+job_id = sys.argv[2]
+text = open(metadata_path, encoding="utf-8").read()
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "provider payload",
+]
+metadata = json.loads(text)
+safe = {
+    "videoId": metadata.get("videoId", ""),
+    "filename": metadata.get("filename", ""),
+    "contentType": metadata.get("contentType", ""),
+    "fileSizeBytes": metadata.get("fileSizeBytes", 0),
+    "durationSeconds": metadata.get("durationSeconds"),
+    "status": metadata.get("status", ""),
+    "createdAt": metadata.get("createdAt", ""),
+}
+summary = "\n".join([
+    "sourceMediaJobId=" + job_id,
+    "sourceMediaVideoId=" + str(safe["videoId"]),
+    "sourceMediaFilename=" + str(safe["filename"]),
+    "sourceMediaContentType=" + str(safe["contentType"]),
+    "sourceMediaSizeBytes=" + str(safe["fileSizeBytes"]),
+    "sourceMediaDurationSeconds=" + ("" if safe["durationSeconds"] is None else str(safe["durationSeconds"])),
+    "sourceMediaStatus=" + str(safe["status"]),
+    "sourceMediaCreatedAt=" + str(safe["createdAt"]),
+    "sourceMediaDownloadRoute=/api/media/uploads/" + str(safe["videoId"]) + "/source/download",
+])
+for value in forbidden:
+    if value in summary:
+        raise SystemExit("Source media summary contains forbidden sensitive string: " + value)
+print(summary)
+PY
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

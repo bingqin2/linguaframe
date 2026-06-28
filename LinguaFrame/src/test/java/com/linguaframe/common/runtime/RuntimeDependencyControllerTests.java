@@ -61,6 +61,7 @@ class RuntimeDependencyControllerTests {
                         "/api/runtime/dependencies",
                         "/api/runtime/live-checks",
                         "/api/media/uploads",
+                        "/api/media/uploads/{videoId}/source/download",
                         "/api/jobs/{jobId}",
                         "/api/jobs/{jobId}/diagnostics/download",
                         "/api/jobs/{jobId}/evidence/markdown/download",

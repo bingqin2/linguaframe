@@ -10,7 +10,6 @@ public record MediaUploadDetailVo(
         String contentType,
         long fileSizeBytes,
         Integer durationSeconds,
-        String sourceObjectKey,
         MediaUploadStatus status,
         Instant createdAt
 ) {

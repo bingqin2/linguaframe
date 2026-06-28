@@ -34,6 +34,16 @@ export interface MediaUploadValidation {
   supportedContentTypes: string[];
 }
 
+export interface MediaUploadDetail {
+  videoId: string;
+  filename: string;
+  contentType: string;
+  fileSizeBytes: number;
+  durationSeconds: number | null;
+  status: string;
+  createdAt: string;
+}
+
 export type DemoSessionMode = 'OPEN' | 'OWNER_SESSION_ACTIVE' | 'OWNER_SESSION_REQUIRED';
 
 export interface DemoSessionStatus {

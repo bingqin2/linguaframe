@@ -191,6 +191,8 @@ Expected browser behavior:
 - Upload a short MP4 with a target language.
 - A recent job appears in the browser-local recent jobs list.
 - The selected job reaches `COMPLETED`, `FAILED`, or `CANCELLED`.
+- The `Source media` panel shows filename, content type, size, duration, upload status, created time, video id, job id, target language, and `Download source video`.
+- Source media metadata and terminal `sourceMedia*` summary lines do not expose source object keys, local paths, tokens, credentials, provider payloads, raw transcript text, or raw subtitle text.
 - Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
 - The `Pipeline progress` panel renders current stage, completed stage count, terminal state, total measured duration, slowest stage, and per-stage status/duration rows from timeline-derived `pipelineProgress`.
 - The operator dashboard shows stage timing rows with max, average, latest, completed count, and failed count for the slowest recent stages.

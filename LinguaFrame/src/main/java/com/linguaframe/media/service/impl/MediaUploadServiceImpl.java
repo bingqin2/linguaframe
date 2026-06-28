@@ -1,5 +1,6 @@
 package com.linguaframe.media.service.impl;
 
+import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.repository.LocalizationJobRepository;
@@ -124,9 +125,20 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 record.contentType(),
                 record.fileSizeBytes(),
                 record.durationSeconds(),
-                record.sourceObjectKey(),
                 record.status(),
                 record.createdAt()
+        );
+    }
+
+    @Override
+    public StoredObjectResourceBo openSourceMedia(String videoId) {
+        VideoRecord record = videoRepository.findById(videoId)
+                .orElseThrow(() -> new NoSuchElementException("Media upload not found."));
+        return new StoredObjectResourceBo(
+                record.originalFilename(),
+                record.contentType(),
+                record.fileSizeBytes(),
+                objectStorageService.open(record.sourceObjectKey())
         );
     }
 

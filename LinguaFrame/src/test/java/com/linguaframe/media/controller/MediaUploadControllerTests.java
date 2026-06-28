@@ -15,6 +15,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.ByteArrayInputStream;
+
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.mockito.ArgumentMatchers.any;
@@ -122,7 +124,46 @@ class MediaUploadControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.videoId").value(videoId))
                 .andExpect(jsonPath("$.durationSeconds").value(42))
-                .andExpect(jsonPath("$.status").value("UPLOADED"));
+                .andExpect(jsonPath("$.status").value("UPLOADED"))
+                .andExpect(jsonPath("$.sourceObjectKey").doesNotExist());
+    }
+
+    @Test
+    void downloadsUploadedSourceVideo() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
+        byte[] sourceBytes = new byte[] {9, 8, 7, 6};
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", sourceBytes);
+
+        String response = mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String videoId = response.replaceAll(".*\"videoId\":\"([^\"]+)\".*", "$1");
+        when(objectStorageService.open("source-videos/" + videoId + "/sample.mp4"))
+                .thenReturn(new ByteArrayInputStream(sourceBytes));
+
+        mockMvc.perform(get("/api/media/uploads/{videoId}/source/download", videoId))
+                .andExpect(status().isOk())
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getHeader("Content-Disposition"))
+                        .contains("attachment")
+                        .contains("sample.mp4"))
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentType())
+                        .isEqualTo("video/mp4"))
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentLength())
+                        .isEqualTo(sourceBytes.length))
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                                result.getResponse().getContentAsByteArray())
+                        .isEqualTo(sourceBytes));
     }
 
     @Test

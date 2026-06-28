@@ -35,6 +35,10 @@ job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED 120 2)"
 job_detail_path="$OUTPUT_DIR/job-detail.json"
 printf '%s' "$job_response" >"$job_detail_path"
 printf '%s' "$job_response" | print_job_summary
+video_id="$(printf '%s' "$job_response" | extract_json_field videoId)"
+fetch_source_media_metadata "$BASE_URL" "$video_id" >"$OUTPUT_DIR/source-media.json"
+print_source_media_summary "$OUTPUT_DIR/source-media.json" "$job_id"
+download_source_media "$BASE_URL" "$video_id" "$OUTPUT_DIR/source-video.mp4"
 print_quality_evaluation_summary_file "$job_detail_path"
 
 python3 - "$job_detail_path" <<'PY'
@@ -103,6 +107,7 @@ print_quality_evidence_markdown_summary "$OUTPUT_DIR/quality-evidence.md" "$job_
 print_evidence_bundle_summary "$OUTPUT_DIR/job-evidence.zip" "$job_id"
 print_demo_run_package_summary "$OUTPUT_DIR/demo-run-package.zip" "$job_id"
 print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
+print_source_media_summary "$OUTPUT_DIR/source-media.json" "$job_id"
 
 cat <<EOF
 

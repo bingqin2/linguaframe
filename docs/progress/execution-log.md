@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the source media evidence workspace in `docs/plans/087-source-media-evidence-workspace.md`.
+- Removed source object keys from the media upload detail response and added `GET /api/media/uploads/{videoId}/source/download` for explicit source video downloads.
+- Added runtime and OpenAPI route contract coverage for the source download endpoint.
+- Added a React `Source media` panel that shows safe input metadata and a controlled source download link for the selected job.
+- Added terminal demo helpers and deterministic/OpenAI smoke script steps that write `source-media.json`, download `source-video.mp4`, and print `sourceMedia*` summary lines.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with the source media evidence boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` first failed because the detail API still exposed `sourceObjectKey` and the source download route was missing, then passed with `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi -t "source media"` first failed because `getMediaUpload` and the `Source media` panel did not exist, then passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_source_media_summary` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+
+## 2026-06-28
+
+Work:
+
 - Added a read-only subtitle review summary API at `GET /api/jobs/{jobId}/subtitle-review?language=zh-CN`.
 - Derived review rows from persisted transcript and target subtitle segments, marked `ALIGNED`, `MISSING_TARGET`, and `TIMING_MISMATCH` with a 250 ms timing threshold, and counted target subtitle artifacts.
 - Rendered a React `Subtitle review` panel with source/target comparison rows, quality score/verdict, timing deltas, missing target counts, and subtitle artifact count.
