@@ -376,13 +376,14 @@ Suggested ExecPlan:
 
 Goal: add a lightweight LLM-based quality check for generated subtitles.
 
-Status: in progress. The MVP now persists quality evaluation records, runs an optional non-blocking stage after target subtitle export, exposes the latest result in job detail, and renders it in the React demo.
+Status: in progress. The MVP now persists quality evaluation records, runs an optional non-blocking stage after target subtitle export, exposes the latest result in job detail, renders it in the React demo, and provides browser/backend/terminal quality-evidence Markdown exports.
 
 Build:
 
 - Quality evaluation prompt template.
 - OpenAI quality evaluation client.
 - Structured quality score parser.
+- Quality evaluation evidence workspace. Status: implemented with browser copy/download actions, backend Markdown download, terminal `/tmp/linguaframe-demo/quality-evidence.md` output, and metadata-only safety validation.
 - Quality evaluation persistence.
 - Evaluation result in job detail.
 - Optional non-blocking evaluation stage after translation.

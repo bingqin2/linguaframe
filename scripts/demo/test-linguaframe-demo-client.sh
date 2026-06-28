@@ -173,6 +173,57 @@ JSON
   [[ "$output" == *"diagnosticsPipelineTotalMeasuredDurationMs=2400"* ]] || fail "diagnostics summary missed pipeline measured duration"
 }
 
+test_quality_evaluation_evidence_helpers_are_metadata_only() {
+  cat >"$TMPDIR/job-quality-evidence.json" <<'JSON'
+{
+  "jobId": "job-quality",
+  "videoId": "video-quality",
+  "targetLanguage": "zh-CN",
+  "status": "COMPLETED",
+  "createdAt": "2026-06-28T10:00:00Z",
+  "failureReason": "provider request payload raw transcript text sk-test /Users/example/job-artifacts/raw.json",
+  "qualityEvaluation": {
+    "evaluationId": "quality-1",
+    "jobId": "job-quality",
+    "language": "zh-CN",
+    "score": 92,
+    "verdict": "GOOD",
+    "completeness": 95,
+    "readability": 92,
+    "timingPreservation": 94,
+    "naturalness": 88,
+    "issues": ["One subtitle line is slightly literal."],
+    "suggestedFixes": ["Review terminology."],
+    "status": "SUCCEEDED",
+    "safeErrorSummary": null,
+    "createdAt": "2026-06-28T10:01:00Z"
+  }
+}
+JSON
+
+  print_quality_evaluation_summary_file "$TMPDIR/job-quality-evidence.json" >"$TMPDIR/job-quality-summary.out"
+  local summary
+  summary="$(cat "$TMPDIR/job-quality-summary.out")"
+  [[ "$summary" == *"qualityEvaluationJobId=job-quality"* ]] || fail "quality summary missed job id"
+  [[ "$summary" == *"qualityEvaluationStatus=SUCCEEDED"* ]] || fail "quality summary missed status"
+  [[ "$summary" == *"qualityEvaluationScore=92"* ]] || fail "quality summary missed score"
+  [[ "$summary" == *"qualityEvaluationIssueCount=1"* ]] || fail "quality summary missed issue count"
+
+  write_quality_evaluation_evidence_markdown \
+    "$TMPDIR/job-quality-evidence.json" \
+    "$TMPDIR/quality-evidence.md"
+  print_quality_evidence_markdown_summary "$TMPDIR/quality-evidence.md" "job-quality" >"$TMPDIR/quality-evidence-summary.out"
+  local output
+  output="$(cat "$TMPDIR/quality-evidence.md")"
+  [[ "$output" == *"# LinguaFrame Quality Evaluation Evidence"* ]] || fail "quality evidence missed title"
+  [[ "$output" == *"- Score: 92 / 100"* ]] || fail "quality evidence missed score"
+  [[ "$output" == *"/api/jobs/job-quality/quality-evaluation/evidence/markdown/download"* ]] || fail "quality evidence missed backend route"
+  [[ "$output" != *"raw transcript text"* ]] || fail "quality evidence exposed raw transcript text"
+  [[ "$output" != *"provider request payload"* ]] || fail "quality evidence exposed provider payload"
+  [[ "$output" != *"/Users/example"* ]] || fail "quality evidence exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "quality evidence exposed token"
+}
+
 test_print_subtitle_review_summary_is_metadata_only() {
   cat >"$TMPDIR/subtitle-review.json" <<'JSON'
 {
@@ -766,6 +817,7 @@ test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
+test_quality_evaluation_evidence_helpers_are_metadata_only
 test_print_subtitle_review_summary_is_metadata_only
 test_print_subtitle_draft_summary_is_metadata_only
 test_print_reviewed_publish_summary_is_metadata_only

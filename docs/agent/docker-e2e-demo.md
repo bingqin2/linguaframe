@@ -72,6 +72,8 @@ For failed jobs, check the `Failure triage` panel before retrying. It should sho
 
 Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a browser-generated Markdown summary for notes or interview walkthroughs, `Download evidence JSON` writes a local metadata file, `Download backend evidence` downloads the API-generated Markdown report, and `Download evidence bundle` downloads a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. The evidence should include job status, pipeline progress, subtitle-review counts, subtitle-draft counts, reviewed artifact counts, reviewed burned-video availability, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, media bytes, or generated artifact bytes.
 
+Use the `Quality evaluation` panel when a quality result exists. `Copy quality evidence` and `Download quality evidence` produce reviewer-facing Markdown from browser metadata, while `Download backend quality evidence` calls `/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download`. The terminal success and OpenAI smoke scripts also download `/tmp/linguaframe-demo/quality-evidence.md` and print `qualityEvaluation*` plus `qualityEvidenceMarkdown*` summary lines.
+
 After a job starts, inspect job-scoped backend logs when debugging worker behavior:
 
 ```bash
@@ -151,6 +153,10 @@ pipelineSlowestStage=...
 modelCallCount=2
 failedModelCallCount=0
 estimatedCostUsd=0E-8
+qualityEvaluationStatus=...
+qualityEvaluationScore=...
+qualityEvaluationVerdict=...
+qualityEvidenceMarkdownJobId=...
 subtitleReviewSegmentCount=...
 subtitleReviewMissingTargetCount=...
 subtitleReviewTimingMismatchCount=...
@@ -212,6 +218,7 @@ The script downloads generated artifacts to:
 /tmp/linguaframe-demo/target-subtitles.vtt
 /tmp/linguaframe-demo/burned-video.mp4
 /tmp/linguaframe-demo/worker-summary.json
+/tmp/linguaframe-demo/quality-evidence.md
 ```
 
 `dubbing-audio.mp3` is downloaded only when TTS is enabled.

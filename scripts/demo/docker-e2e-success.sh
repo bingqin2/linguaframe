@@ -23,6 +23,7 @@ BURNED_VIDEO_PATH="${LINGUAFRAME_DEMO_BURNED_VIDEO_PATH:-/tmp/linguaframe-demo/b
 ARCHIVE_PATH="${LINGUAFRAME_DEMO_ARCHIVE_PATH:-/tmp/linguaframe-demo/artifacts.zip}"
 DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/job-diagnostics.json}"
 EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/job-evidence.md}"
+QUALITY_EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_QUALITY_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/quality-evidence.md}"
 EVIDENCE_BUNDLE_PATH="${LINGUAFRAME_DEMO_EVIDENCE_BUNDLE_PATH:-/tmp/linguaframe-demo/job-evidence.zip}"
 HANDOFF_PACKAGE_PATH="${LINGUAFRAME_DEMO_HANDOFF_PACKAGE_PATH:-/tmp/linguaframe-demo/handoff-package.zip}"
 DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_PATH:-/tmp/linguaframe-demo/delivery-manifest.md}"
@@ -42,6 +43,8 @@ job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
 mkdir -p "$(dirname "$JOB_DETAIL_PATH")"
 printf '%s' "$job_response" >"$JOB_DETAIL_PATH"
 printf '%s' "$job_response" | print_job_summary
+echo "Quality evaluation summary for job $job_id:"
+print_quality_evaluation_summary_file "$JOB_DETAIL_PATH"
 
 echo "Subtitle draft summary for job $job_id:"
 get_job_subtitle_draft "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_draft_summary
@@ -87,6 +90,12 @@ download_job_diagnostics "$BASE_URL" "$job_id" "$DIAGNOSTICS_PATH"
 print_diagnostics_summary "$DIAGNOSTICS_PATH"
 download_job_evidence_markdown "$BASE_URL" "$job_id" "$EVIDENCE_MARKDOWN_PATH"
 print_evidence_markdown_summary "$EVIDENCE_MARKDOWN_PATH" "$job_id"
+if download_quality_evaluation_evidence_markdown "$BASE_URL" "$job_id" "$QUALITY_EVIDENCE_MARKDOWN_PATH"; then
+  print_quality_evidence_markdown_summary "$QUALITY_EVIDENCE_MARKDOWN_PATH" "$job_id"
+else
+  write_quality_evaluation_evidence_markdown "$JOB_DETAIL_PATH" "$QUALITY_EVIDENCE_MARKDOWN_PATH"
+  print_quality_evidence_markdown_summary "$QUALITY_EVIDENCE_MARKDOWN_PATH" "$job_id"
+fi
 download_job_evidence_bundle "$BASE_URL" "$job_id" "$EVIDENCE_BUNDLE_PATH"
 print_evidence_bundle_summary "$EVIDENCE_BUNDLE_PATH" "$job_id"
 download_delivery_manifest_markdown "$BASE_URL" "$job_id" "$DELIVERY_MANIFEST_MARKDOWN_PATH"
@@ -109,6 +118,7 @@ echo "Downloaded burned video to $BURNED_VIDEO_PATH"
 echo "Downloaded artifact archive to $ARCHIVE_PATH"
 echo "Downloaded diagnostics report to $DIAGNOSTICS_PATH"
 echo "Downloaded evidence markdown to $EVIDENCE_MARKDOWN_PATH"
+echo "Downloaded quality evidence markdown to $QUALITY_EVIDENCE_MARKDOWN_PATH"
 echo "Downloaded evidence bundle to $EVIDENCE_BUNDLE_PATH"
 echo "Downloaded delivery manifest markdown to $DELIVERY_MANIFEST_MARKDOWN_PATH"
 echo "Downloaded handoff package to $HANDOFF_PACKAGE_PATH"

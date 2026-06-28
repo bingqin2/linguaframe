@@ -215,6 +215,9 @@ Expected browser behavior:
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
 - `Download evidence bundle` points to `/api/jobs/{jobId}/evidence/bundle/download` and returns a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`.
+- When quality evaluation exists, the `Quality evaluation` panel exposes `Copy quality evidence`, `Download quality evidence`, and `Download backend quality evidence`.
+- Backend quality evidence points to `/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download` and the terminal scripts validate `/tmp/linguaframe-demo/quality-evidence.md`.
+- Quality evidence must include score, verdict, dimensions, issue/fix counts, and safe routes without raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, credentials, or media bytes.
 - `Download handoff package` appears in `Delivery handoff`, `Demo handoff checklist`, and `Demo session report`, and points to `/api/jobs/{jobId}/handoff-package/download`.
 - The handoff package ZIP contains `manifest.json`, `delivery-manifest.md`, `evidence.md`, `diagnostics.json`, reviewed subtitle artifacts, and optional reviewed burned video only.
 - The `Demo handoff checklist` panel appears in the selected job view.

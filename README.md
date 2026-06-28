@@ -200,6 +200,8 @@ The selected job view also includes a `Pipeline progress` panel derived from dur
 
 The selected job view also includes a `Demo evidence` panel. Use `Copy evidence` for a browser-generated Markdown summary, `Download evidence JSON` for a local metadata file, `Download backend evidence` for a backend-generated Markdown report, or `Download evidence bundle` for a metadata-only ZIP containing the backend report, diagnostics JSON, and manifest. These exports record job status, pipeline progress, subtitle-review counts, subtitle-draft counts, reviewed artifact counts, reviewed burned-video availability, timeline stages, usage, cache counts, artifact hashes, and safe download routes without raw transcript text, raw subtitles, corrected draft text, object keys, local paths, tokens, provider payloads, or media bytes.
 
+The `Quality evaluation` panel is also an evidence workspace when a quality result exists. Use `Copy quality evidence` for a metadata-only Markdown summary, `Download quality evidence` for the same browser-generated Markdown file, or `Download backend quality evidence` for `GET /api/jobs/{jobId}/quality-evaluation/evidence/markdown/download`. The Docker success and OpenAI smoke scripts write this backend report to `/tmp/linguaframe-demo/quality-evidence.md` by default and validate that it contains scores, verdict, dimensions, issue/fix counts, and safe job routes without raw transcript text, subtitles, local paths, tokens, object keys, provider payloads, or media bytes.
+
 React demo frontend commands:
 
 ```bash

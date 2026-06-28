@@ -290,6 +290,12 @@ export function jobEvidenceBundleDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/evidence/bundle/download`;
 }
 
+export function qualityEvaluationEvidenceMarkdownDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(
+    jobId
+  )}/quality-evaluation/evidence/markdown/download`;
+}
+
 export function jobHandoffPackageDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/handoff-package/download`;
 }
@@ -334,6 +340,7 @@ export const linguaFrameApi = {
   jobDiagnosticsDownloadUrl,
   jobEvidenceMarkdownDownloadUrl,
   jobEvidenceBundleDownloadUrl,
+  qualityEvaluationEvidenceMarkdownDownloadUrl,
   jobHandoffPackageDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   jobEventsUrl,

@@ -35,6 +35,7 @@ job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED 120 2)"
 job_detail_path="$OUTPUT_DIR/job-detail.json"
 printf '%s' "$job_response" >"$job_detail_path"
 printf '%s' "$job_response" | print_job_summary
+print_quality_evaluation_summary_file "$job_detail_path"
 
 python3 - "$job_detail_path" <<'PY'
 import json
@@ -80,6 +81,9 @@ download_artifact_by_type "$BASE_URL" "$job_id" BURNED_VIDEO "$OUTPUT_DIR/burned
 download_artifact_archive "$BASE_URL" "$job_id" "$OUTPUT_DIR/artifacts.zip"
 download_job_diagnostics "$BASE_URL" "$job_id" "$OUTPUT_DIR/job-diagnostics.json"
 download_job_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/job-evidence.md"
+if ! download_quality_evaluation_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/quality-evidence.md"; then
+  write_quality_evaluation_evidence_markdown "$job_detail_path" "$OUTPUT_DIR/quality-evidence.md"
+fi
 download_job_evidence_bundle "$BASE_URL" "$job_id" "$OUTPUT_DIR/job-evidence.zip"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
@@ -93,6 +97,7 @@ fi
 print_zip_entries "$OUTPUT_DIR/artifacts.zip"
 print_diagnostics_summary "$OUTPUT_DIR/job-diagnostics.json"
 print_evidence_markdown_summary "$OUTPUT_DIR/job-evidence.md" "$job_id"
+print_quality_evidence_markdown_summary "$OUTPUT_DIR/quality-evidence.md" "$job_id"
 print_evidence_bundle_summary "$OUTPUT_DIR/job-evidence.zip" "$job_id"
 
 cat <<EOF

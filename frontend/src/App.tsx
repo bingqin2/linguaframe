@@ -2099,7 +2099,7 @@ function JobDetail({
         onSelectComparison={onSelectCacheReplayComparison}
       />
 
-      <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
+      <QualityEvaluationPanel job={job} />
 
       <SubtitleReviewPanel review={subtitleReview} />
 
@@ -3158,11 +3158,36 @@ function CacheReplayPanel({
   );
 }
 
-function QualityEvaluationPanel({
-  evaluation
-}: {
-  evaluation: LocalizationJob['qualityEvaluation'];
-}) {
+function QualityEvaluationPanel({ job }: { job: LocalizationJob }) {
+  const evaluation = job.qualityEvaluation;
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator.clipboard?.writeText === 'function';
+  const markdown = useMemo(() => formatQualityEvaluationEvidence(job), [job]);
+
+  const handleCopyEvidence = useCallback(async () => {
+    if (!canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(markdown);
+    setStatus('Quality evidence copied.');
+  }, [canCopy, markdown]);
+
+  const handleDownloadEvidence = useCallback(() => {
+    const blob = new Blob([markdown], {
+      type: 'text/markdown;charset=UTF-8'
+    });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-job-${sanitizeFilename(job.jobId)}-quality-evidence.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Quality evidence downloaded.');
+  }, [job.jobId, markdown]);
+
   if (!evaluation) {
     return (
       <section className="panel" aria-label="Quality evaluation">
@@ -3183,8 +3208,29 @@ function QualityEvaluationPanel({
     <section className="panel" aria-label="Quality evaluation">
       <div className="panel-heading">
         <h3>Quality evaluation</h3>
-        <span className="status-pill">{evaluation.status}</span>
+        <div className="panel-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handleCopyEvidence}
+            disabled={!canCopy}
+          >
+            Copy quality evidence
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadEvidence}>
+            Download quality evidence
+          </button>
+          <a
+            className="secondary-link"
+            href={linguaFrameApi.qualityEvaluationEvidenceMarkdownDownloadUrl(job.jobId)}
+          >
+            Download backend quality evidence
+          </a>
+          <span className="status-pill">{evaluation.status}</span>
+        </div>
       </div>
+      {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
       {evaluation.status === 'FAILED' && evaluation.safeErrorSummary ? (
         <p className="error-text">{evaluation.safeErrorSummary}</p>
       ) : null}
@@ -4027,6 +4073,68 @@ function buildDemoEvidence(
       evidenceBundle: linguaFrameApi.jobEvidenceBundleDownloadUrl(job.jobId)
     }
   };
+}
+
+function formatQualityEvaluationEvidence(job: LocalizationJob): string {
+  const evaluation = job.qualityEvaluation;
+  const lines = [
+    '# LinguaFrame Quality Evaluation Evidence',
+    '',
+    '## Job',
+    `- Job: ${job.jobId}`,
+    `- Video: ${job.videoId}`,
+    `- Target language: ${job.targetLanguage}`,
+    `- Job status: ${job.status}`,
+    `- Created at: ${job.createdAt}`,
+    ''
+  ];
+
+  if (!evaluation) {
+    lines.push('## Evaluation');
+    lines.push('- Status: NOT_RECORDED');
+    lines.push('- Quality evaluation has not been recorded for this job.');
+    lines.push('');
+  } else {
+    lines.push('## Evaluation');
+    lines.push(`- Status: ${evaluation.status}`);
+    lines.push(`- Score: ${evaluation.score} / 100`);
+    lines.push(`- Verdict: ${evaluation.verdict}`);
+    lines.push(`- Evaluation language: ${evaluation.language}`);
+    lines.push(`- Created at: ${evaluation.createdAt}`);
+    if (evaluation.safeErrorSummary) {
+      lines.push(`- Safe error summary: ${evaluation.safeErrorSummary}`);
+    }
+    lines.push('');
+    lines.push('## Dimensions');
+    lines.push(`- Completeness: ${evaluation.completeness} / 100`);
+    lines.push(`- Readability: ${evaluation.readability} / 100`);
+    lines.push(`- Timing preservation: ${evaluation.timingPreservation} / 100`);
+    lines.push(`- Naturalness: ${evaluation.naturalness} / 100`);
+    lines.push('');
+    appendMarkdownList(lines, 'Issues', 'Issue count', evaluation.issues);
+    appendMarkdownList(lines, 'Suggested Fixes', 'Suggested fix count', evaluation.suggestedFixes);
+  }
+
+  lines.push('## Related Safe Routes');
+  lines.push(`- Job detail: /api/jobs/${job.jobId}`);
+  lines.push(`- Diagnostics: ${linguaFrameApi.jobDiagnosticsDownloadUrl(job.jobId)}`);
+  lines.push(`- Backend evidence: ${linguaFrameApi.jobEvidenceMarkdownDownloadUrl(job.jobId)}`);
+  lines.push(
+    `- Backend quality evidence: ${linguaFrameApi.qualityEvaluationEvidenceMarkdownDownloadUrl(job.jobId)}`
+  );
+  lines.push(`- Subtitle review: /api/jobs/${job.jobId}/subtitle-review?language=${job.targetLanguage}`);
+  return lines.join('\n');
+}
+
+function appendMarkdownList(lines: string[], title: string, countLabel: string, values: string[]) {
+  lines.push(`## ${title}`);
+  lines.push(`- ${countLabel}: ${values.length}`);
+  if (values.length === 0) {
+    lines.push('- None recorded.');
+  } else {
+    values.forEach((value) => lines.push(`- ${value}`));
+  }
+  lines.push('');
 }
 
 function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {

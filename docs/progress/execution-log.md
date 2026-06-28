@@ -2521,3 +2521,25 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
+- Planned the quality evaluation evidence workspace in `docs/plans/084-quality-evaluation-evidence-workspace.md`.
+- Added a backend quality-evaluation evidence Markdown service and `GET /api/jobs/{jobId}/quality-evaluation/evidence/markdown/download`.
+- Added the route to OpenAPI and runtime required-route contracts.
+- Extended the React `Quality evaluation` panel with metadata-only copy, browser Markdown download, and backend Markdown download actions.
+- Added terminal demo helpers that print quality-evaluation summaries and write/download `/tmp/linguaframe-demo/quality-evidence.md`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, and target state with quality evidence verification expectations.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationEvidenceServiceTests test` first failed because the service and BO did not exist, then passed as part of the focused backend suite.
+- `mvn -pl LinguaFrame -Dtest=QualityEvaluationEvidenceServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App -t "quality evidence"` first skipped because no matching test name existed, then passed with `Tests 1 passed | 57 skipped`.
+- `cd frontend && npm run test:run -- App` passed with `Tests 58 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+- `git diff --check` passed.

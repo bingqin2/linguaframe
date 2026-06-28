@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
+import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -29,6 +30,7 @@ import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.QualityEvaluationEvidenceService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.SubtitleDraftService;
@@ -72,6 +74,7 @@ public class LocalizationJobController {
     private final JobEvidenceBundleService evidenceBundleService;
     private final JobEvidenceReportService evidenceReportService;
     private final JobHandoffPackageService handoffPackageService;
+    private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
     private final SubtitleDraftService subtitleDraftService;
@@ -89,6 +92,7 @@ public class LocalizationJobController {
             JobEvidenceBundleService evidenceBundleService,
             JobEvidenceReportService evidenceReportService,
             JobHandoffPackageService handoffPackageService,
+            QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
             SubtitleDraftService subtitleDraftService,
@@ -105,6 +109,7 @@ public class LocalizationJobController {
         this.evidenceBundleService = evidenceBundleService;
         this.evidenceReportService = evidenceReportService;
         this.handoffPackageService = handoffPackageService;
+        this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
         this.subtitleDraftService = subtitleDraftService;
@@ -251,6 +256,31 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(body);
+    }
+
+    @GetMapping("/{jobId}/quality-evaluation/evidence/markdown/download")
+    @Operation(summary = "Download a safe Markdown quality evaluation evidence report for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Quality evaluation evidence Markdown bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadQualityEvaluationEvidenceMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredQualityEvidenceBo evidence = qualityEvaluationEvidenceService.openMarkdownEvidence(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(evidence.contentType()))
+                .contentLength(evidence.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(evidence.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(evidence.inputStream()));
     }
 
     @GetMapping("/{jobId}/delivery-manifest")

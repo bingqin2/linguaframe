@@ -401,6 +401,86 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void downloadsQualityEvaluationEvidenceMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:10:00Z");
+        videoRepository.save(new VideoRecord(
+                "job-video-quality-evidence",
+                "quality-evidence.mp4",
+                "video/mp4",
+                123L,
+                "source-videos/job-video-quality-evidence/sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-job-quality-evidence",
+                "job-video-quality-evidence",
+                "zh-CN",
+                "verse",
+                LocalizationJobStatus.COMPLETED,
+                createdAt,
+                createdAt.plusSeconds(1),
+                createdAt.plusSeconds(20),
+                null,
+                LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
+                "provider request payload raw transcript text sk-test /Users/example/job-artifacts/raw.json",
+                0,
+                createdAt.plusSeconds(20)
+        ));
+        qualityEvaluationRepository.save(new QualityEvaluationRecord(
+                "quality-controller-evidence",
+                "job-controller-job-quality-evidence",
+                "zh-CN",
+                92,
+                "GOOD",
+                95,
+                92,
+                94,
+                88,
+                List.of("No blocking issue."),
+                List.of("Review terminology."),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download",
+                        "job-controller-job-quality-evidence"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        "Content-Disposition",
+                        "attachment; filename=\"linguaframe-job-job-controller-job-quality-evidence-quality-evidence.md\""
+                ))
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# LinguaFrame Quality Evaluation Evidence")
+                .contains("- Job: job-controller-job-quality-evidence")
+                .contains("- Video: job-video-quality-evidence")
+                .contains("- Target language: zh-CN")
+                .contains("- Status: SUCCEEDED")
+                .contains("- Score: 92 / 100")
+                .contains("- Verdict: GOOD")
+                .contains("- Completeness: 95 / 100")
+                .contains("- Issue count: 1")
+                .contains("- No blocking issue.")
+                .contains("- Suggested fix count: 1")
+                .contains("- Review terminology.")
+                .contains("/api/jobs/job-controller-job-quality-evidence/diagnostics/download")
+                .contains("/api/jobs/job-controller-job-quality-evidence/subtitle-review?language=zh-CN")
+                .doesNotContain("raw transcript text")
+                .doesNotContain("provider request payload")
+                .doesNotContain("/Users/")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("sk-test");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(
