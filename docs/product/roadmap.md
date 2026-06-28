@@ -325,6 +325,7 @@ Build:
 - Private demo operations readiness workspace. Status: implemented through `GET /api/operator/private-demo/operations`, the React `Private demo operations` panel, and `scripts/demo/private-demo-operations-report.sh`.
 - Private demo evidence gallery workspace. Status: implemented through `GET /api/operator/private-demo/evidence-gallery`, the React `Private demo evidence gallery` panel, and `scripts/demo/private-demo-evidence-gallery.sh`.
 - Private demo run archive workspace. Status: implemented through `GET /api/operator/private-demo/run-archive`, the React `Private demo run archive` panel, and `scripts/demo/private-demo-run-archive.sh` as a metadata-only table of contents for readiness, recommended completed run, and safe package links.
+- Demo run launcher workspace. Status: implemented through `GET /api/operator/demo-run-launcher`, the upload-form `Demo run launcher` panel, and `scripts/demo/demo-run-launcher.sh` for read-only recommended sample/profile commands, readiness gates, and expected evidence files before a full Tears run.
 - Explicit OpenAI connectivity check. Status: implemented as a disabled-by-default `openai` live-check probe that can verify configured model metadata access before provider-backed uploads.
 - OpenAI demo smoke profile. Status: implemented with a separate no-secret env template, preflight script, and provider-backed smoke runner for real credential demos.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.
@@ -443,6 +444,7 @@ Build:
 - Cache-hit audit events. Status: implemented for artifact reuse, transcription provider cache hits, translation provider cache hits, quality evaluation provider cache hits, and TTS provider cache hits.
 - Browser-visible cache replay evidence. Status: implemented by composing existing safe job detail and artifact APIs in the React demo without adding a backend aggregate endpoint.
 - Pre-upload demo readiness workspace. Status: implemented with `GET /api/media/uploads/readiness`, a browser `Upload readiness` panel, and `scripts/demo/upload-readiness.sh` for metadata-only terminal go/no-go checks.
+- Demo run launcher workspace. Status: implemented as a metadata-only operator aggregate that connects sample selection, the `tears-showcase` profile, upload-readiness gates, the full Tears command, and expected post-run evidence outputs before paid or full-video execution.
 
 Do not build yet:
 

@@ -70,7 +70,7 @@ Expected:
 - `scripts/demo/private-demo-preflight.sh` passes before any media upload.
 - Preflight prints live dependency check lines for database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI. OpenAI is `SKIPPED` unless the explicit connectivity check is enabled.
 - Preflight prints `Worker topology readiness is visible` after the runtime contract check.
-- The script prints `http://localhost:5173`, `scripts/demo/upload-readiness.sh`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
+- The script prints `http://localhost:5173`, `scripts/demo/demo-run-launcher.sh`, `scripts/demo/upload-readiness.sh`, `scripts/demo/docker-e2e-success.sh`, and `scripts/demo/docker-e2e-cache-hit.sh`.
 
 Validate Compose configuration and rebuild the backend image:
 
@@ -222,6 +222,9 @@ Expected browser behavior:
 - The upload form `Demo sample media` panel appears before upload and shows overall status, recommended sample id, upload duration limit, source/attribution links, configured path status, and safe terminal commands.
 - `scripts/demo/demo-sample-media-catalog.sh` writes `/tmp/linguaframe-demo/demo-sample-media-catalog.json` and prints `sampleCatalog*` summary lines.
 - Demo sample media catalog output must not expose full local paths, object keys, demo tokens, provider payloads, OpenAI keys, transcript text, subtitle text, uploaded media bytes, or generated media bytes.
+- The upload form `Demo run launcher` panel appears before upload and shows overall status, recommended sample id, recommended profile id, next command, readiness gates, and expected post-run evidence paths.
+- `scripts/demo/demo-run-launcher.sh` writes `/tmp/linguaframe-demo/demo-run-launcher.json` and prints `demoRunLauncher*` summary lines.
+- Demo run launcher output must not expose full local paths, object keys, demo tokens, provider payloads, OpenAI keys, transcript text, subtitle text, uploaded media bytes, or generated media bytes.
 - The `Demo share sheet` panel appears for the selected job and shows readiness, headline, summary, outcome bullets, recommended next action, and curated safe links.
 - `Copy share sheet`, `Download backend Markdown`, and `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-share-sheet.sh` export safe metadata only.
 - `Copy presenter notes` and `Download presenter notes` must not include raw transcript text, raw subtitle text, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.

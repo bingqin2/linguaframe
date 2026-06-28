@@ -39,10 +39,10 @@
 - Consumes: `DemoSampleMediaCatalogService.getCatalog()` and upload-readiness service metadata if available from existing application services.
 - Status rules: `READY` when the recommended sample path is configured and upload readiness is not blocked; `ATTENTION` when the sample is not configured or paid-provider checks need manual confirmation; `BLOCKED` when upload readiness/runtime contract is blocked.
 
-- [ ] Write failing service tests for ready Tears sample, sample-missing attention, blocked upload-readiness gate, safe command list, expected evidence list, and local-path redaction.
-- [ ] Write failing controller/OpenAPI/runtime-contract tests for `GET /api/operator/demo-run-launcher`.
-- [ ] Implement VO records, service composition, controller route, and runtime required-route entry.
-- [ ] Run focused backend tests:
+- [x] Write failing service tests for ready Tears sample, sample-missing attention, blocked upload-readiness gate, safe command list, expected evidence list, and local-path redaction.
+- [x] Write failing controller/OpenAPI/runtime-contract tests for `GET /api/operator/demo-run-launcher`.
+- [x] Implement VO records, service composition, controller route, and runtime required-route entry.
+- [x] Run focused backend tests:
 
 ```bash
 mvn -pl LinguaFrame -Dtest=DemoRunLauncherServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test
@@ -63,10 +63,10 @@ mvn -pl LinguaFrame -Dtest=DemoRunLauncherServiceTests,OperatorDashboardControll
 - Show overall status, recommended sample/profile, readiness gates, copyable commands, and expected post-run evidence paths/routes.
 - Keep upload controls independent: `ATTENTION` must not block upload; `BLOCKED` is advisory unless upload readiness itself blocks upload.
 
-- [ ] Write failing API test that confirms the launcher route sends the stored demo token header.
-- [ ] Write failing App test that renders the launcher panel, command, evidence outputs, readiness gates, and no local paths/secrets.
-- [ ] Implement TypeScript interfaces, API method, data loading, refresh behavior, and React panel.
-- [ ] Run focused frontend tests:
+- [x] Write failing API test that confirms the launcher route sends the stored demo token header.
+- [x] Write failing App test that renders the launcher panel, command, evidence outputs, readiness gates, and no local paths/secrets.
+- [x] Implement TypeScript interfaces, API method, data loading, refresh behavior, and React panel.
+- [x] Run focused frontend tests:
 
 ```bash
 cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts
@@ -87,10 +87,10 @@ cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts
 - `READY` and `ATTENTION` exit 0; `BLOCKED` exits non-zero unless `LINGUAFRAME_DEMO_RUN_LAUNCHER_REPORT_ONLY=true`.
 - `start-local-demo.sh` and `private-demo-preflight.sh` mention the launcher command as the next operator step without running it automatically.
 
-- [ ] Add failing shell tests for helper route, summary output, metadata-only redaction, command/evidence lines, and blocked exit behavior.
-- [ ] Implement shared helper functions and launcher script.
-- [ ] Add non-invasive guidance to startup/preflight scripts.
-- [ ] Run shell tests and syntax checks:
+- [x] Add failing shell tests for helper route, summary output, metadata-only redaction, command/evidence lines, and blocked exit behavior.
+- [x] Implement shared helper functions and launcher script.
+- [x] Add non-invasive guidance to startup/preflight scripts.
+- [x] Run shell tests and syntax checks:
 
 ```bash
 bash scripts/demo/test-linguaframe-demo-client.sh
@@ -119,8 +119,8 @@ bash -n scripts/demo/demo-run-launcher.sh scripts/demo/start-local-demo.sh scrip
 - `cd frontend && npm run build`
 - `git diff --check`
 
-- [ ] Document where the launcher appears, how to use it before a full Tears run, and why it remains read-only.
-- [ ] Record validation evidence in the execution log.
+- [x] Document where the launcher appears, how to use it before a full Tears run, and why it remains read-only.
+- [x] Record validation evidence in the execution log.
 - [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
 
 ## Plan Self-Review

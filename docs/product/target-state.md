@@ -36,6 +36,7 @@ git clone linguaframe
   -> configure .env
   -> docker compose up --build
   -> open React frontend
+  -> inspect demo run launcher
   -> upload sample video
   -> inspect generated artifacts
   -> compare two completed demo profile runs
@@ -53,6 +54,7 @@ Stage 1 goals:
 - Validate FFmpeg availability.
 - Validate OpenAI API calls with a short sample video.
 - Validate real OpenAI demo runs through an explicit no-secret env template, preflight, and smoke runner instead of enabling paid providers by default.
+- Validate the next full-demo command and expected evidence files through the browser `Demo run launcher` and `scripts/demo/demo-run-launcher.sh` before uploading full public sample media.
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.

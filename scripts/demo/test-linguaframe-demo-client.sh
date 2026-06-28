@@ -651,6 +651,137 @@ SH
   [[ "$status" -eq 0 ]] || fail "sample catalog script failed in report-only mode"
 }
 
+test_demo_run_launcher_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_launcher_json "http://example.test" "$TMPDIR/demo-run-launcher.json" >"$TMPDIR/demo-run-launcher-curl.out"
+
+  local curl_output
+  curl_output="$(cat "$TMPDIR/demo-run-launcher-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/operator/demo-run-launcher"* ]] || fail "launcher helper used wrong route"
+
+  cat >"$TMPDIR/demo-run-launcher.json" <<'JSON'
+{
+  "generatedAt": "2026-06-29T08:05:00Z",
+  "overallStatus": "ATTENTION",
+  "recommendedSampleId": "tears-of-steel-casting",
+  "recommendedProfileId": "tears-showcase",
+  "recommendedNextCommand": "scripts/demo/docker-e2e-tears-of-steel-full.sh",
+  "gates": [
+    {
+      "id": "sample-media",
+      "label": "Sample media",
+      "status": "READY",
+      "detail": "Recommended Tears sample is configured as tos_casting-720p.mp4.",
+      "nextAction": "No sample-media action required.",
+      "blocking": false
+    },
+    {
+      "id": "paid-provider-check",
+      "label": "Paid provider check",
+      "status": "ATTENTION",
+      "detail": "OpenAI provider mode is enabled, but the live OpenAI connectivity check is skipped.",
+      "nextAction": "Run the OpenAI preflight before provider-backed uploads.",
+      "blocking": false
+    }
+  ],
+  "commands": [
+    {
+      "label": "Inspect launcher",
+      "command": "scripts/demo/demo-run-launcher.sh",
+      "description": "Download this read-only launcher contract."
+    },
+    {
+      "label": "Run full Tears demo",
+      "command": "scripts/demo/docker-e2e-tears-of-steel-full.sh",
+      "description": "Process the configured complete Tears sample."
+    }
+  ],
+  "expectedEvidence": [
+    {
+      "label": "Demo presenter pack",
+      "path": "/tmp/linguaframe-demo/full-tears/demo-presenter-pack.json",
+      "description": "Presenter-facing metadata."
+    },
+    {
+      "label": "Demo run snapshot ZIP",
+      "path": "/tmp/linguaframe-demo/full-tears/demo-run-snapshot.zip",
+      "description": "Safe reviewer package."
+    }
+  ],
+  "notesMarkdown": "# Launcher",
+  "localPath": "/Users/example/Downloads/tos_casting-720p.mp4",
+  "demoToken": "private-demo-token",
+  "providerPayload": "raw provider payload"
+}
+JSON
+
+  print_demo_run_launcher_summary_file "$TMPDIR/demo-run-launcher.json" >"$TMPDIR/demo-run-launcher.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-launcher.out")"
+  [[ "$output" == *"demoRunLauncherOverall=ATTENTION"* ]] || fail "launcher summary missed overall"
+  [[ "$output" == *"demoRunLauncherRecommendedSample=tears-of-steel-casting"* ]] || fail "launcher summary missed sample"
+  [[ "$output" == *"demoRunLauncherRecommendedProfile=tears-showcase"* ]] || fail "launcher summary missed profile"
+  [[ "$output" == *"demoRunLauncherNextCommand=scripts/demo/docker-e2e-tears-of-steel-full.sh"* ]] || fail "launcher summary missed next command"
+  [[ "$output" == *"demoRunLauncherGate=ATTENTION:paid-provider-check:Paid provider check:blocking=false"* ]] || fail "launcher summary missed gate"
+  [[ "$output" == *"demoRunLauncherCommand=scripts/demo/docker-e2e-tears-of-steel-full.sh"* ]] || fail "launcher summary missed command"
+  [[ "$output" == *"demoRunLauncherEvidence=Demo presenter pack:/tmp/linguaframe-demo/full-tears/demo-presenter-pack.json"* ]] || fail "launcher summary missed evidence"
+  [[ "$output" != *"/Users/example"* ]] || fail "launcher summary exposed local path"
+  [[ "$output" != *"private-demo-token"* ]] || fail "launcher summary exposed demo token"
+  [[ "$output" != *"provider payload"* ]] || fail "launcher summary exposed provider payload"
+}
+
+test_demo_run_launcher_script_exits_on_blocked_state() {
+  local fake_curl="$TMPDIR/fake-demo-run-launcher-curl"
+  cat >"$fake_curl" <<'SH'
+#!/usr/bin/env bash
+output_path=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o)
+      output_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+cat >"$output_path" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "recommendedSampleId": "tears-of-steel-casting",
+  "recommendedProfileId": "tears-showcase",
+  "recommendedNextCommand": "scripts/demo/upload-readiness.sh",
+  "gates": [],
+  "commands": [],
+  "expectedEvidence": [],
+  "notesMarkdown": "# Launcher"
+}
+JSON
+SH
+  chmod +x "$fake_curl"
+
+  local status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_DEMO_RUN_LAUNCHER_JSON_PATH="$TMPDIR/script-demo-run-launcher.json" \
+    "$SCRIPT_DIR/demo-run-launcher.sh" >"$TMPDIR/script-demo-run-launcher.out" || status=$?
+
+  [[ "$status" -ne 0 ]] || fail "launcher script did not fail on blocked state"
+
+  status=0
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_DEMO_RUN_LAUNCHER_REPORT_ONLY=true \
+  LINGUAFRAME_DEMO_RUN_LAUNCHER_JSON_PATH="$TMPDIR/script-demo-run-launcher-report-only.json" \
+    "$SCRIPT_DIR/demo-run-launcher.sh" >"$TMPDIR/script-demo-run-launcher-report-only.out" || status=$?
+
+  [[ "$status" -eq 0 ]] || fail "launcher script failed in report-only mode"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -2409,6 +2540,8 @@ test_worker_topology_summary_is_metadata_only
 test_upload_readiness_script_exits_on_blocked_state
 test_demo_sample_media_catalog_helpers_are_metadata_only
 test_demo_sample_media_catalog_script_exits_on_blocked_state
+test_demo_run_launcher_helpers_are_metadata_only
+test_demo_run_launcher_script_exits_on_blocked_state
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

@@ -133,6 +133,39 @@ export interface DemoSampleMediaCommand {
   description: string;
 }
 
+export interface DemoRunLauncher {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus;
+  recommendedSampleId: string;
+  recommendedProfileId: string;
+  recommendedNextCommand: string;
+  gates: DemoRunLauncherGate[];
+  commands: DemoRunLauncherCommand[];
+  expectedEvidence: DemoRunLauncherEvidence[];
+  notesMarkdown: string;
+}
+
+export interface DemoRunLauncherGate {
+  id: string;
+  label: string;
+  status: PrivateDemoOperationsStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoRunLauncherCommand {
+  label: string;
+  command: string;
+  description: string;
+}
+
+export interface DemoRunLauncherEvidence {
+  label: string;
+  path: string;
+  description: string;
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;

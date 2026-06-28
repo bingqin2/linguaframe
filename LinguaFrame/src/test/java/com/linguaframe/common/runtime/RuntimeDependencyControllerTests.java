@@ -88,7 +88,8 @@ class RuntimeDependencyControllerTests {
                         "/api/operator/private-demo/launch-rehearsal",
                         "/api/operator/private-demo/evidence-gallery",
                         "/api/operator/private-demo/run-archive",
-                        "/api/operator/demo-sample-media-catalog"
+                        "/api/operator/demo-sample-media-catalog",
+                        "/api/operator/demo-run-launcher"
                 );
 
         assertThat(body.get("readiness")).isInstanceOf(Map.class);

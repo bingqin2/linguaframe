@@ -8,6 +8,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DeliveryManifest,
+  DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoRunMonitor,
   DemoRunSnapshot,
@@ -93,6 +94,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getDemoSampleMediaCatalog').mockResolvedValue(
       demoSampleMediaCatalogFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
+      demoRunLauncherFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -1184,6 +1188,46 @@ describe('App', () => {
     expect(within(panel).getByText('scripts/demo/docker-e2e-tears-of-steel-full.sh')).toBeInTheDocument();
     expect(panel).not.toHaveTextContent('/Users/');
     expect(panel).not.toHaveTextContent('Downloads');
+  });
+
+  test('shows demo run launcher with commands and expected evidence', async () => {
+    vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
+      demoRunLauncherFixture({
+        gates: [
+          {
+            id: 'sample-media',
+            label: 'Sample media',
+            status: 'READY',
+            detail: 'Recommended Tears sample is configured as tos_casting-720p.mp4.',
+            nextAction: 'No sample-media action required.',
+            blocking: false
+          },
+          {
+            id: 'paid-provider-check',
+            label: 'Paid provider check',
+            status: 'ATTENTION',
+            detail: 'OpenAI provider mode is enabled, but the live OpenAI connectivity check is skipped.',
+            nextAction: 'Run the OpenAI preflight before provider-backed uploads.',
+            blocking: false
+          }
+        ]
+      })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', { name: /demo run launcher/i });
+    expect(within(panel).getAllByText('ATTENTION').length).toBeGreaterThanOrEqual(1);
+    expect(within(panel).getByText('tears-of-steel-casting')).toBeInTheDocument();
+    expect(within(panel).getByText('tears-showcase')).toBeInTheDocument();
+    expect(within(panel).getAllByText('scripts/demo/docker-e2e-tears-of-steel-full.sh').length).toBeGreaterThanOrEqual(1);
+    expect(within(panel).getByText('scripts/demo/openai-demo-preflight.sh')).toBeInTheDocument();
+    expect(within(panel).getByText('Paid provider check')).toBeInTheDocument();
+    expect(within(panel).getByText('/tmp/linguaframe-demo/full-tears/demo-presenter-pack.json')).toBeInTheDocument();
+    expect(within(panel).getByText('/tmp/linguaframe-demo/full-tears/demo-run-snapshot.zip')).toBeInTheDocument();
+    expect(panel).not.toHaveTextContent('/Users/');
+    expect(panel).not.toHaveTextContent('sk-test');
+    expect(panel).not.toHaveTextContent('provider payload');
   });
 
   test('keeps upload enabled when readiness needs attention but is not blocked', async () => {
@@ -3868,6 +3912,72 @@ function demoSampleMediaCatalogFixture(
         detail: 'Public sample sources.'
       }
     ],
+    ...overrides
+  };
+}
+
+function demoRunLauncherFixture(
+  overrides: Partial<DemoRunLauncher> = {}
+): DemoRunLauncher {
+  return {
+    generatedAt: '2026-06-29T08:05:00Z',
+    overallStatus: 'ATTENTION',
+    recommendedSampleId: 'tears-of-steel-casting',
+    recommendedProfileId: 'tears-showcase',
+    recommendedNextCommand: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+    gates: [
+      {
+        id: 'sample-media',
+        label: 'Sample media',
+        status: 'ATTENTION',
+        detail: 'Recommended Tears sample is not configured for the full demo.',
+        nextAction: 'Set LINGUAFRAME_TEARS_SAMPLE_PATH before a full run.',
+        blocking: false
+      },
+      {
+        id: 'upload-readiness',
+        label: 'Upload readiness',
+        status: 'READY',
+        detail: 'Upload readiness for profile tears-showcase is READY.',
+        nextAction: 'Validate the selected media file before upload.',
+        blocking: false
+      }
+    ],
+    commands: [
+      {
+        label: 'Inspect launcher',
+        command: 'scripts/demo/demo-run-launcher.sh',
+        description: 'Download this read-only launcher contract.'
+      },
+      {
+        label: 'Check OpenAI preflight',
+        command: 'scripts/demo/openai-demo-preflight.sh',
+        description: 'Verify provider-backed demo configuration.'
+      },
+      {
+        label: 'Run full Tears demo',
+        command: 'scripts/demo/docker-e2e-tears-of-steel-full.sh',
+        description: 'Process the configured complete Tears sample.'
+      }
+    ],
+    expectedEvidence: [
+      {
+        label: 'Job detail JSON',
+        path: '/tmp/linguaframe-demo/full-tears/job-detail.json',
+        description: 'Terminal job-detail snapshot.'
+      },
+      {
+        label: 'Demo presenter pack',
+        path: '/tmp/linguaframe-demo/full-tears/demo-presenter-pack.json',
+        description: 'Presenter-facing metadata.'
+      },
+      {
+        label: 'Demo run snapshot ZIP',
+        path: '/tmp/linguaframe-demo/full-tears/demo-run-snapshot.zip',
+        description: 'Safe reviewer package.'
+      }
+    ],
+    notesMarkdown: '# LinguaFrame Demo Run Launcher',
     ...overrides
   };
 }

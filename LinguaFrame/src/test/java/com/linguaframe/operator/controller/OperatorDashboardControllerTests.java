@@ -209,6 +209,23 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsDemoRunLauncher() throws Exception {
+            mockMvc.perform(get("/api/operator/demo-run-launcher"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.recommendedSampleId").value("tears-of-steel-casting"))
+                    .andExpect(jsonPath("$.recommendedProfileId").value("tears-showcase"))
+                    .andExpect(jsonPath("$.recommendedNextCommand").exists())
+                    .andExpect(jsonPath("$.gates[?(@.id == 'sample-media')]").exists())
+                    .andExpect(jsonPath("$.gates[?(@.id == 'upload-readiness')]").exists())
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/docker-e2e-tears-of-steel-full.sh')]").exists())
+                    .andExpect(jsonPath("$.expectedEvidence[?(@.path == '/tmp/linguaframe-demo/full-tears/demo-presenter-pack.json')]").exists())
+                    .andExpect(jsonPath("$.notesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Demo Run Launcher"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -279,6 +296,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-sample-media-catalog")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-run-launcher"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-run-launcher")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

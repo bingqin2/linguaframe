@@ -443,6 +443,14 @@ download_demo_sample_media_catalog_json() {
   demo_curl -fsS "$base_url/api/operator/demo-sample-media-catalog" -o "$output_path"
 }
 
+download_demo_run_launcher_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-run-launcher" -o "$output_path"
+}
+
 download_runtime_dependencies_json() {
   local base_url="$1"
   local output_path="$2"
@@ -588,6 +596,48 @@ for item in catalog.get("items", []):
     )
 for command in catalog.get("commands", []):
     print("sampleCatalogCommand=" + safe(command.get("command")))
+PY
+}
+
+print_demo_run_launcher_summary_file() {
+  local launcher_path="$1"
+
+  python3 - "$launcher_path" <<'PY'
+import json
+import sys
+
+launcher = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ")
+
+print("demoRunLauncherOverall=" + text(launcher.get("overallStatus", "UNKNOWN")))
+print("demoRunLauncherRecommendedSample=" + text(launcher.get("recommendedSampleId")))
+print("demoRunLauncherRecommendedProfile=" + text(launcher.get("recommendedProfileId")))
+print("demoRunLauncherNextCommand=" + text(launcher.get("recommendedNextCommand")))
+print("demoRunLauncherGeneratedAt=" + text(launcher.get("generatedAt")))
+for gate in launcher.get("gates", []):
+    print(
+        "demoRunLauncherGate="
+        + text(gate.get("status"))
+        + ":"
+        + text(gate.get("id"))
+        + ":"
+        + text(gate.get("label"))
+        + ":blocking="
+        + ("true" if gate.get("blocking") else "false")
+    )
+for command in launcher.get("commands", []):
+    value = text(command.get("command"))
+    if value:
+        print("demoRunLauncherCommand=" + value)
+for evidence in launcher.get("expectedEvidence", []):
+    label = text(evidence.get("label"))
+    path = text(evidence.get("path"))
+    if label or path:
+        print("demoRunLauncherEvidence=" + label + ":" + path)
 PY
 }
 

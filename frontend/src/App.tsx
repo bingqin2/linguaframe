@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemoToken } from './api/linguaframeApi';
 import type {
   AuthSessionStatus,
+  DemoRunLauncher,
   DemoSampleMediaCatalog,
   DeliveryManifest,
   DemoPresenterPack,
@@ -341,6 +342,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoSampleMediaCatalog, setDemoSampleMediaCatalog] = useState<DemoSampleMediaCatalog | null>(null);
   const [demoSampleMediaCatalogError, setDemoSampleMediaCatalogError] = useState<string | null>(null);
   const [isLoadingDemoSampleMediaCatalog, setIsLoadingDemoSampleMediaCatalog] = useState(false);
+  const [demoRunLauncher, setDemoRunLauncher] = useState<DemoRunLauncher | null>(null);
+  const [demoRunLauncherError, setDemoRunLauncherError] = useState<string | null>(null);
+  const [isLoadingDemoRunLauncher, setIsLoadingDemoRunLauncher] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -686,6 +690,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoRunLauncher = useCallback(async () => {
+    setIsLoadingDemoRunLauncher(true);
+    try {
+      const launcher = await linguaFrameApi.getDemoRunLauncher();
+      setDemoRunLauncher(launcher);
+      setDemoRunLauncherError(null);
+      return launcher;
+    } catch (launcherLoadError) {
+      setDemoRunLauncher(null);
+      setDemoRunLauncherError(toErrorMessage(launcherLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoRunLauncher(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -854,6 +874,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadDemoSampleMediaCatalog();
   }, [loadDemoSampleMediaCatalog]);
+
+  useEffect(() => {
+    void loadDemoRunLauncher();
+  }, [loadDemoRunLauncher]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1671,6 +1695,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               error={demoSampleMediaCatalogError}
               isLoading={isLoadingDemoSampleMediaCatalog}
               onRefresh={() => void loadDemoSampleMediaCatalog()}
+            />
+            <DemoRunLauncherPanel
+              launcher={demoRunLauncher}
+              error={demoRunLauncherError}
+              isLoading={isLoadingDemoRunLauncher}
+              onRefresh={() => void loadDemoRunLauncher()}
             />
             <OwnerQuotaPreflightPanel
               preflight={ownerQuotaPreflight}
@@ -2574,6 +2604,88 @@ function DemoSampleMediaCatalogPanel({
               ))}
             </ul>
           ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoRunLauncherPanel({
+  launcher,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  launcher: DemoRunLauncher | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  return (
+    <section className="upload-validation-panel" aria-label="Demo run launcher">
+      <div className="panel-heading">
+        <h3>Demo run launcher</h3>
+        {launcher ? (
+          <span className={readinessStatusClassName(launcher.overallStatus)}>
+            {launcher.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !launcher ? <p className="muted">Loading demo run launcher...</p> : null}
+      {launcher ? (
+        <>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Sample</dt>
+              <dd>{launcher.recommendedSampleId}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(launcher.recommendedProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Next command</dt>
+              <dd>
+                <code>{launcher.recommendedNextCommand}</code>
+              </dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(launcher.generatedAt)}</dd>
+            </div>
+          </dl>
+          <ul className="readiness-list upload-readiness-list" aria-label="Demo run launcher gates">
+            {launcher.gates.map((gate) => (
+              <li key={gate.id}>
+                <span>{gate.label}</span>
+                <span className={readinessStatusClassName(gate.status)}>{gate.status}</span>
+                <span>{gate.detail}</span>
+                <span>{gate.nextAction}</span>
+              </li>
+            ))}
+          </ul>
+          <ul className="readiness-list" aria-label="Demo run launcher commands">
+            {launcher.commands.map((command) => (
+              <li key={command.command}>
+                <span>{command.label}</span>
+                <code>{command.command}</code>
+                <span>{command.description}</span>
+              </li>
+            ))}
+          </ul>
+          <ul className="readiness-list" aria-label="Demo run launcher expected evidence">
+            {launcher.expectedEvidence.map((evidence) => (
+              <li key={evidence.path}>
+                <span>{evidence.label}</span>
+                <code>{evidence.path}</code>
+                <span>{evidence.description}</span>
+              </li>
+            ))}
+          </ul>
         </>
       ) : null}
     </section>
