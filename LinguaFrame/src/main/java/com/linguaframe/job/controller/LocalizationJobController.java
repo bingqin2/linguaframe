@@ -17,6 +17,7 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
+import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
 import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -32,6 +33,7 @@ import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunMatrixService;
+import com.linguaframe.job.service.DemoRunMonitorService;
 import com.linguaframe.job.service.DemoRunPackageService;
 import com.linguaframe.job.service.DemoShareSheetService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
@@ -90,6 +92,7 @@ public class LocalizationJobController {
     private final AiAuditPackageService aiAuditPackageService;
     private final DemoRunMatrixService demoRunMatrixService;
     private final DemoPresenterPackService demoPresenterPackService;
+    private final DemoRunMonitorService demoRunMonitorService;
     private final DemoShareSheetService demoShareSheetService;
     private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
@@ -114,6 +117,7 @@ public class LocalizationJobController {
             AiAuditPackageService aiAuditPackageService,
             DemoRunMatrixService demoRunMatrixService,
             DemoPresenterPackService demoPresenterPackService,
+            DemoRunMonitorService demoRunMonitorService,
             DemoShareSheetService demoShareSheetService,
             JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
@@ -137,6 +141,7 @@ public class LocalizationJobController {
         this.aiAuditPackageService = aiAuditPackageService;
         this.demoRunMatrixService = demoRunMatrixService;
         this.demoPresenterPackService = demoPresenterPackService;
+        this.demoRunMonitorService = demoRunMonitorService;
         this.demoShareSheetService = demoShareSheetService;
         this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
@@ -207,6 +212,46 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return demoPresenterPackService.buildPresenterPack(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-run-monitor")
+    @Operation(summary = "Build a live demo run monitor")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run monitor was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoRunMonitorVo getDemoRunMonitor(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoRunMonitorService.buildMonitor(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-run-monitor/markdown/download")
+    @Operation(summary = "Download a safe Markdown live demo run monitor")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run monitor Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoRunMonitorMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = demoRunMonitorService.buildMarkdownMonitor(jobId)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-demo-run-monitor.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping("/{jobId}/demo-share-sheet")

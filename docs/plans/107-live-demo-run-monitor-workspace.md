@@ -42,9 +42,9 @@
 - Return safe fields: job id, video id, status, dispatch status, generated time, elapsed time, current stage, completed/total stage counts, slowest completed stage, attention level, headline summary, recommended next action, stage rows, and curated safe links.
 - Mark attention for failed/cancelled jobs, terminal completed jobs, jobs with no progress after dispatch, and active stages that exceed a conservative stuck threshold.
 
-- [ ] Write failing service/controller tests for queued, processing, completed, failed, and stale in-flight monitor states.
-- [ ] Implement VO records, service derivation, controller routes, and Markdown rendering.
-- [ ] Run focused backend tests for run monitor and owner access.
+- [x] Write failing service/controller tests for queued, processing, completed, failed, and stale in-flight monitor states.
+- [x] Implement VO records, service derivation, controller routes, and Markdown rendering.
+- [x] Run focused backend tests for run monitor and owner access.
 
 ## Task 2: Browser Run Monitor Panel
 
@@ -61,9 +61,9 @@
 - Add explicit refresh and backend Markdown download actions.
 - Refresh monitor data when a job is opened, uploaded, retried, cancelled, refreshed manually, and when SSE delivers job updates.
 
-- [ ] Write failing Vitest coverage for monitor rendering, attention state, refresh, and download link.
-- [ ] Implement frontend API types and selected-job panel.
-- [ ] Run focused frontend tests.
+- [x] Write failing Vitest coverage for monitor rendering, attention state, refresh, and download link.
+- [x] Implement frontend API types and selected-job panel.
+- [x] Run focused frontend tests.
 
 ## Task 3: Terminal Watch And Export Script
 
@@ -79,9 +79,9 @@
 - The full Tears demo should export the final monitor artifacts after completion.
 - Script output must fail clearly when the job id is missing or access is denied.
 
-- [ ] Add failing shell helper tests for JSON download, Markdown download, summary printing, and watch termination.
-- [ ] Implement shared helpers and the monitor script.
-- [ ] Integrate final monitor export into the full Tears demo path.
+- [x] Add failing shell helper tests for JSON download, Markdown download, summary printing, and watch termination.
+- [x] Implement shared helpers and the monitor script.
+- [x] Integrate final monitor export into the full Tears demo path.
 
 ## Task 4: Documentation, Validation, And Merge
 
@@ -103,6 +103,6 @@
 - `cd frontend && npm run build`
 - `git diff --check`
 
-- [ ] Document browser and terminal monitor usage.
-- [ ] Record validation evidence in the execution log.
+- [x] Document browser and terminal monitor usage.
+- [x] Record validation evidence in the execution log.
 - [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.

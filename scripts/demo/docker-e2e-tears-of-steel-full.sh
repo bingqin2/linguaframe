@@ -84,6 +84,12 @@ download_demo_presenter_pack_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-presen
 print_demo_presenter_pack_summary_file "$OUTPUT_DIR/demo-presenter-pack.json"
 echo "Downloaded demo presenter pack to $OUTPUT_DIR/demo-presenter-pack.json"
 
+echo "Demo run monitor:"
+download_demo_run_monitor_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.json"
+download_demo_run_monitor_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.md"
+print_demo_run_monitor_summary_file "$OUTPUT_DIR/demo-run-monitor.json"
+echo "Downloaded demo run monitor to $OUTPUT_DIR/demo-run-monitor.json and $OUTPUT_DIR/demo-run-monitor.md"
+
 echo "Demo share sheet:"
 download_demo_share_sheet_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-share-sheet.json"
 download_demo_share_sheet_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-share-sheet.md"

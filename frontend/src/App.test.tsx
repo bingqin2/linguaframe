@@ -8,6 +8,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DeliveryManifest,
+  DemoRunMonitor,
   DemoPresenterPack,
   DemoRunMatrix,
   DemoShareSheet,
@@ -104,6 +105,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
@@ -2892,6 +2894,39 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoShareSheet).toHaveBeenCalledWith('share-showcase-job');
   });
 
+  test('shows a live demo run monitor for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'monitor-showcase-job',
+        videoId: 'monitor-video',
+        status: 'PROCESSING',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'monitor-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const monitor = await screen.findByRole('region', { name: /demo run monitor/i });
+    expect(within(monitor).getAllByText('RUNNING')).toHaveLength(2);
+    expect(within(monitor).getAllByText('TARGET_SUBTITLE_EXPORT')).toHaveLength(2);
+    expect(within(monitor).getByText('2 / 12')).toBeInTheDocument();
+    expect(within(monitor).getByText(/Keep watching this monitor/i)).toBeInTheDocument();
+    expect(within(monitor).getByText(/TRANSCRIPT_SUBTITLE_EXPORT/)).toBeInTheDocument();
+    expect(within(monitor).getByRole('link', { name: /download backend markdown/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/monitor-showcase-job/demo-run-monitor/markdown/download'
+    );
+    await userEvent.click(within(monitor).getByRole('button', { name: /refresh/i }));
+    await waitFor(() => expect(linguaFrameApi.getDemoRunMonitor).toHaveBeenCalledWith('monitor-showcase-job'));
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -4109,6 +4144,57 @@ function demoShareSheetFixture(overrides: Partial<DemoShareSheet> = {}): DemoSha
       }
     ],
     markdown: '# tears-showcase demo to zh-CN\n',
+    ...overrides
+  };
+}
+
+function demoRunMonitorFixture(overrides: Partial<DemoRunMonitor> = {}): DemoRunMonitor {
+  return {
+    jobId: 'monitor-showcase-job',
+    videoId: 'monitor-video',
+    status: 'PROCESSING',
+    dispatchStatus: 'DISPATCHED',
+    generatedAt: '2026-06-29T10:00:00Z',
+    elapsedMs: 540000,
+    currentStage: 'TARGET_SUBTITLE_EXPORT',
+    completedStageCount: 2,
+    totalStageCount: 12,
+    failedStageCount: 0,
+    slowestStage: 'TRANSCRIPT_SUBTITLE_EXPORT',
+    slowestStageDurationMs: 90000,
+    attentionLevel: 'RUNNING',
+    summary: 'Localization job is running at TARGET_SUBTITLE_EXPORT.',
+    recommendedNextAction: 'Keep watching this monitor until the job reaches a terminal status.',
+    stages: [
+      {
+        stage: 'WORKER_RECEIVED',
+        status: 'SUCCEEDED',
+        startedAt: '2026-06-29T09:50:00Z',
+        finishedAt: '2026-06-29T09:50:01Z',
+        durationMs: 1000,
+        runningForMs: null,
+        attention: 'OK',
+        message: 'Stage completed.'
+      },
+      {
+        stage: 'TARGET_SUBTITLE_EXPORT',
+        status: 'STARTED',
+        startedAt: '2026-06-29T09:51:00Z',
+        finishedAt: null,
+        durationMs: null,
+        runningForMs: 540000,
+        attention: 'RUNNING',
+        message: 'Stage is running.'
+      }
+    ],
+    links: [
+      {
+        kind: 'JOB_DETAIL',
+        label: 'Job detail',
+        url: '/api/jobs/monitor-showcase-job'
+      }
+    ],
+    markdown: '# LinguaFrame Demo Run Monitor\n',
     ...overrides
   };
 }

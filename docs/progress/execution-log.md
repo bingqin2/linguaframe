@@ -2,6 +2,30 @@
 
 This file records implementation progress, validation commands, failures, and follow-up notes.
 
+## 2026-06-29
+
+Work:
+
+- Planned the live demo run monitor workspace in `docs/plans/107-live-demo-run-monitor-workspace.md`.
+- Added `GET /api/jobs/{jobId}/demo-run-monitor` and `GET /api/jobs/{jobId}/demo-run-monitor/markdown/download` for metadata-only run monitoring.
+- Added backend monitor state derivation for queued, running, stale, completed, failed, and cancelled jobs from existing job detail and pipeline progress.
+- Added the browser `Demo run monitor` panel with refresh, backend Markdown download, current stage, attention level, elapsed time, slowest stage, next action, and compact stage rows.
+- Added `scripts/demo/demo-run-monitor.sh` plus helper functions for JSON/Markdown export and optional watch mode.
+- Extended the full Tears demo to write `demo-run-monitor.json` and `demo-run-monitor.md`.
+- Updated README, Docker E2E guide, smoke checklist, decisions, and this execution log with monitor behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunMonitorServiceTests,LocalizationJobControllerTests test` first failed because monitor types and routes did not exist, then passed with `Tests run: 46, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` first failed because `getDemoRunMonitor` and `demoRunMonitorMarkdownDownloadUrl` did not exist, then passed with `Tests 135 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_demo_run_monitor_json` did not exist, then passed.
+- `bash -n scripts/demo/demo-run-monitor.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 556, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 142 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
 ## 2026-06-28
 
 Work:

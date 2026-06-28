@@ -347,6 +347,28 @@ download_demo_presenter_pack_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-presenter-pack" -o "$output_path"
 }
 
+download_demo_run_monitor_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-monitor" -o "$output_path"
+}
+
+download_demo_run_monitor_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-monitor/markdown/download" -o "$output_path"
+}
+
 download_demo_share_sheet_json() {
   local base_url="$1"
   local job_id="$2"
@@ -740,6 +762,61 @@ for outcome in sheet.get("outcomeBullets") or []:
         print("demoShareSheetOutcome=" + safe_outcome)
 for link in sheet.get("links") or []:
     print("demoShareSheetLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
+PY
+}
+
+print_demo_run_monitor_summary_file() {
+  local monitor_path="$1"
+
+  python3 - "$monitor_path" <<'PY'
+import json
+import sys
+
+monitor = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "raw subtitle text", "/Users/", "sk-", "provider payload", "objectKey")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+status = text(monitor.get("status"))
+terminal = "true" if status in ("COMPLETED", "FAILED", "CANCELLED") else "false"
+print("demoRunMonitorJobId=" + text(monitor.get("jobId")))
+print("demoRunMonitorVideoId=" + text(monitor.get("videoId")))
+print("demoRunMonitorStatus=" + status)
+print("demoRunMonitorDispatchStatus=" + text(monitor.get("dispatchStatus")))
+print("demoRunMonitorAttentionLevel=" + text(monitor.get("attentionLevel")))
+print("demoRunMonitorCurrentStage=" + text(monitor.get("currentStage")))
+print("demoRunMonitorElapsedMs=" + text(monitor.get("elapsedMs")))
+print("demoRunMonitorCompletedStageCount=" + text(monitor.get("completedStageCount", 0)))
+print("demoRunMonitorTotalStageCount=" + text(monitor.get("totalStageCount", 0)))
+print("demoRunMonitorFailedStageCount=" + text(monitor.get("failedStageCount", 0)))
+print("demoRunMonitorSlowestStage=" + text(monitor.get("slowestStage")))
+print("demoRunMonitorSlowestStageDurationMs=" + text(monitor.get("slowestStageDurationMs")))
+print("demoRunMonitorTerminal=" + terminal)
+summary = safe(monitor.get("summary"))
+if summary != "REDACTED_UNSAFE_DETAIL":
+    print("demoRunMonitorSummary=" + summary)
+next_action = safe(monitor.get("recommendedNextAction"))
+if next_action != "REDACTED_UNSAFE_DETAIL":
+    print("demoRunMonitorRecommendedNextAction=" + next_action)
+for stage in monitor.get("stages") or []:
+    print(":".join([
+        "demoRunMonitorStage=" + text(stage.get("stage")),
+        text(stage.get("status")),
+        "attention=" + text(stage.get("attention")),
+        "durationMs=" + text(stage.get("durationMs")),
+        "runningForMs=" + text(stage.get("runningForMs")),
+    ]))
+for link in monitor.get("links") or []:
+    print("demoRunMonitorLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
 PY
 }
 

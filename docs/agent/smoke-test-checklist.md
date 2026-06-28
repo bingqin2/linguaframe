@@ -204,6 +204,8 @@ Expected browser behavior:
 - Source media metadata and terminal `sourceMedia*` summary lines do not expose source object keys, local paths, tokens, credentials, provider payloads, raw transcript text, or raw subtitle text.
 - Timeline, usage summary, and model-call panels render from `GET /api/jobs/{jobId}`.
 - The `Pipeline progress` panel renders current stage, completed stage count, terminal state, total measured duration, slowest stage, and per-stage status/duration rows from timeline-derived `pipelineProgress`.
+- The `Demo run monitor` panel appears for the selected job and shows attention level, current stage, elapsed time, completed/total stage count, slowest stage, recommended next action, and compact stage rows from `GET /api/jobs/{jobId}/demo-run-monitor`.
+- `Download backend Markdown`, `scripts/demo/demo-run-monitor.sh`, and `LINGUAFRAME_DEMO_RUN_MONITOR_WATCH=true scripts/demo/demo-run-monitor.sh` write metadata-only run monitor evidence without raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, media bytes, or generated artifact bytes.
 - The operator dashboard shows stage timing rows with max, average, latest, completed count, and failed count for the slowest recent stages.
 - Failed jobs render a `Failure triage` panel with category, retryability, recommended action, optional static runbook command, and safe details.
 - Failed-job diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal demo summaries include the same safe failure triage without secrets, object keys, local paths, provider payloads, media bytes, raw transcript text, or raw subtitle text.

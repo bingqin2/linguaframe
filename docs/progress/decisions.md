@@ -556,6 +556,14 @@ Impact: `/api/jobs/{jobId}/demo-share-sheet` and `/api/jobs/{jobId}/demo-share-s
 
 ## 2026-06-28
 
+Decision: Derive the live demo run monitor from existing job detail and pipeline progress instead of persisting another runtime state table.
+
+Reason: The monitor is observability for demos, not an execution controller. Job rows, dispatch state, and timeline-derived pipeline progress already carry the durable truth needed to show current stage, elapsed time, slowest stage, stale-stage attention, and next action.
+
+Impact: `/api/jobs/{jobId}/demo-run-monitor` and `/api/jobs/{jobId}/demo-run-monitor/markdown/download` provide metadata-only JSON/Markdown for browser and terminal use. The monitor does not retry, cancel, dispatch, upload, call providers, expose raw media text, or reveal object keys, local paths, tokens, credentials, or provider payloads.
+
+## 2026-06-28
+
 Decision: Keep failed-job triage advisory instead of changing retry semantics.
 
 Reason: Retry transitions already have backend ownership, bounded retry counts, cache eviction, and dispatch side effects. The next demo gap is explaining likely causes and next actions safely across browser, diagnostics, evidence, and terminal scripts, not adding another automatic recovery path.
