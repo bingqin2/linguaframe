@@ -51,6 +51,20 @@ select {
   background: #fff;
 }
 
+input[type='checkbox'] {
+  width: auto;
+  min-height: 0;
+  padding: 0;
+}
+
+.inline-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: #31586e;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

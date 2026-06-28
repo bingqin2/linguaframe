@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
+import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.service.JobEvidenceReportService;
@@ -104,6 +105,7 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Subtitle review downloadable subtitle artifacts: "
                 + subtitleReview.downloadableSubtitleArtifactCount());
         addSubtitleDraftEvidence(lines, job);
+        addReviewedSubtitleEvidence(lines, report);
 
         if (!job.timelineEvents().isEmpty()) {
             lines.add("");
@@ -174,6 +176,18 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
             lines.add("- Subtitle draft edited segments: 0");
             lines.add("- Subtitle draft last updated: Not saved");
         }
+    }
+
+    private void addReviewedSubtitleEvidence(List<String> lines, JobDiagnosticsReportVo report) {
+        long reviewedSubtitleArtifacts = report.artifacts().stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_JSON
+                        || artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_SRT
+                        || artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_VTT)
+                .count();
+        boolean reviewedBurnedVideoAvailable = report.artifacts().stream()
+                .anyMatch(artifact -> artifact.type() == JobArtifactType.REVIEWED_BURNED_VIDEO);
+        lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleArtifacts);
+        lines.add("- Reviewed burned video: " + (reviewedBurnedVideoAvailable ? "Available" : "Not available"));
     }
 
     private boolean hasText(String value) {

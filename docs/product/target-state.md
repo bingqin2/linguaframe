@@ -102,12 +102,13 @@ A user should be able to:
 5. Preview transcript segments and translated subtitles.
 6. Download SRT or VTT files.
 7. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
-8. Play the generated dubbing audio.
-9. Preview or download the subtitle-burned video.
-10. Inspect cost and processing time.
-11. Retry the job if a step fails.
-12. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-13. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+8. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
+9. Play the generated dubbing audio.
+10. Preview or download the subtitle-burned video.
+11. Inspect cost and processing time.
+12. Retry the job if a step fails.
+13. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+14. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 

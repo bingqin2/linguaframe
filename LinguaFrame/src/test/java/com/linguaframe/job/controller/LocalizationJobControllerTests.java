@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipInputStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -1181,6 +1182,86 @@ class LocalizationJobControllerTests {
                                 """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Subtitle draft segment index does not exist: 9"));
+    }
+
+    @Test
+    void publishesReviewedSubtitleArtifactsForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:20:00Z");
+        createJob("job-controller-video-reviewed", "job-controller-job-reviewed", createdAt);
+        subtitleService.replaceSubtitles("job-controller-job-reviewed", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行"),
+                new TranslationSegmentBo(1, 1_200L, 2_800L, "第二行")
+        )));
+        mockMvc.perform(put("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-reviewed")
+                        .param("language", "zh-CN")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {"index": 1, "text": "修正后的第二行"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/{jobId}/subtitle-draft/publish", "job-controller-job-reviewed")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "language": "zh-CN",
+                                  "includeBurnedVideo": false
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-reviewed"))
+                .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.burnedVideoRequested").value(false))
+                .andExpect(jsonPath("$.burnedVideoCreated").value(false))
+                .andExpect(jsonPath("$.artifacts.length()").value(3))
+                .andExpect(jsonPath("$.artifacts[0].type").value("REVIEWED_SUBTITLE_JSON"))
+                .andExpect(jsonPath("$.artifacts[0].filename").value("reviewed-subtitles.zh-CN.json"))
+                .andExpect(jsonPath("$.artifacts[1].type").value("REVIEWED_SUBTITLE_SRT"))
+                .andExpect(jsonPath("$.artifacts[2].type").value("REVIEWED_SUBTITLE_VTT"));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/artifacts", "job-controller-job-reviewed"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].type").value("REVIEWED_SUBTITLE_JSON"))
+                .andExpect(jsonPath("$[1].type").value("REVIEWED_SUBTITLE_SRT"))
+                .andExpect(jsonPath("$[2].type").value("REVIEWED_SUBTITLE_VTT"));
+
+        List<JobArtifactRecord> reviewedArtifacts = artifactRepository.findByJobId("job-controller-job-reviewed");
+        JobArtifactRecord reviewedSrt = reviewedArtifacts.stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_SRT)
+                .findFirst()
+                .orElseThrow();
+        when(objectStorageService.open(reviewedSrt.objectKey()))
+                .thenReturn(new ByteArrayInputStream("reviewed srt 修正后的第二行".getBytes(StandardCharsets.UTF_8)));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/artifacts/{artifactId}/download",
+                        "job-controller-job-reviewed",
+                        reviewedSrt.id()
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"reviewed-subtitles.zh-CN.srt\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("修正后的第二行")));
+
+        for (JobArtifactRecord artifact : reviewedArtifacts) {
+            when(objectStorageService.open(artifact.objectKey()))
+                    .thenReturn(new ByteArrayInputStream(("archive " + artifact.type()).getBytes(StandardCharsets.UTF_8)));
+        }
+        byte[] archive = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/artifacts/archive/download",
+                        "job-controller-job-reviewed"
+                ))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        Map<String, String> entries = readZipEntries(archive);
+        assertThat(entries.keySet()).anySatisfy(name ->
+                assertThat(name).contains("REVIEWED_SUBTITLE_SRT").contains("reviewed-subtitles.zh-CN.srt"));
+        assertThat(entries.get("manifest.json")).contains("REVIEWED_SUBTITLE_JSON");
     }
 
     @Test

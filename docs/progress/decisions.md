@@ -433,3 +433,11 @@ Decision: Store subtitle corrections as a draft overlay separate from generated 
 Reason: Human review needs editable corrected subtitles, but saving a text correction should not imply that LinguaFrame has regenerated TTS audio, burned video, artifact cache entries, or provider outputs.
 
 Impact: `/api/jobs/{jobId}/subtitle-draft` persists per-segment draft text and corrected JSON/SRT/VTT exports read from the overlay. Existing generated target subtitle artifacts remain unchanged, and evidence exports report draft counts and timestamps without raw corrected text.
+
+## 2026-06-28
+
+Decision: Publish reviewed subtitles as explicit handoff artifacts instead of mutating generated artifacts.
+
+Reason: A demo reviewer needs downloadable corrected outputs after editing subtitles, but generated provider outputs, cache evidence, and the original burned video should remain auditable and unchanged.
+
+Impact: `POST /api/jobs/{jobId}/subtitle-draft/publish` creates reviewed JSON/SRT/VTT artifacts from the current draft overlay and can optionally create a separate reviewed burned video. Artifact lists, archives, browser result delivery, diagnostics, evidence, and terminal scripts expose reviewed artifact metadata without raw corrected subtitle text.

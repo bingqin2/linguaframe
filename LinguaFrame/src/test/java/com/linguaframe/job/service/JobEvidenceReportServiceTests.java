@@ -1,12 +1,14 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.enums.FailureTriageCategory;
+import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.SubtitleReviewSegmentStatus;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
+import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.JobPipelineProgressVo;
 import com.linguaframe.job.domain.vo.JobStageProgressVo;
@@ -70,6 +72,8 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Subtitle draft segments: 2");
         assertThat(markdown).contains("- Subtitle draft edited segments: 1");
         assertThat(markdown).contains("- Subtitle draft last updated: 2026-06-28T09:30:00Z");
+        assertThat(markdown).contains("- Reviewed subtitle artifacts: 3");
+        assertThat(markdown).contains("- Reviewed burned video: Available");
         assertThat(markdown).doesNotContain("raw source text");
         assertThat(markdown).doesNotContain("raw target text");
         assertThat(markdown).doesNotContain("raw draft text");
@@ -164,7 +168,27 @@ class JobEvidenceReportServiceTests {
                 triage,
                 pipelineProgress()
         );
-        return new JobDiagnosticsReportVo(Instant.parse("2026-06-28T08:06:00Z"), job, List.of(), 0);
+        List<JobDiagnosticsArtifactVo> artifacts = List.of(
+                artifact(JobArtifactType.REVIEWED_SUBTITLE_JSON, "reviewed-subtitles.zh-CN.json"),
+                artifact(JobArtifactType.REVIEWED_SUBTITLE_SRT, "reviewed-subtitles.zh-CN.srt"),
+                artifact(JobArtifactType.REVIEWED_SUBTITLE_VTT, "reviewed-subtitles.zh-CN.vtt"),
+                artifact(JobArtifactType.REVIEWED_BURNED_VIDEO, "reviewed-burned-video.mp4")
+        );
+        return new JobDiagnosticsReportVo(Instant.parse("2026-06-28T08:06:00Z"), job, artifacts, artifacts.size());
+    }
+
+    private JobDiagnosticsArtifactVo artifact(JobArtifactType type, String filename) {
+        return new JobDiagnosticsArtifactVo(
+                "artifact-" + type.name(),
+                type,
+                filename,
+                type == JobArtifactType.REVIEWED_BURNED_VIDEO ? "video/mp4" : "text/plain",
+                123,
+                "1234567890abcdef",
+                false,
+                null,
+                Instant.parse("2026-06-28T09:45:00Z")
+        );
     }
 
     private JobPipelineProgressVo pipelineProgress() {

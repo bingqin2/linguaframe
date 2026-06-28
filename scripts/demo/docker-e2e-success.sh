@@ -35,6 +35,10 @@ echo "Uploaded demo video. Waiting for job $job_id to complete..."
 job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
 printf '%s' "$job_response" | print_job_summary
 
+echo "Subtitle draft summary for job $job_id:"
+get_job_subtitle_draft "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_draft_summary
+echo "Publishing reviewed subtitle artifacts for job $job_id:"
+publish_reviewed_subtitles "$BASE_URL" "$job_id" "zh-CN" "false" | print_reviewed_publish_summary
 echo "Artifacts for job $job_id:"
 artifacts_response="$(list_job_artifacts "$BASE_URL" "$job_id")"
 printf '%s' "$artifacts_response" | print_artifact_summary
@@ -44,8 +48,6 @@ echo "Target subtitle preview for job $job_id:"
 get_job_subtitles "$BASE_URL" "$job_id" "zh-CN" | python3 -m json.tool
 echo "Subtitle review summary for job $job_id:"
 get_job_subtitle_review "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_review_summary
-echo "Subtitle draft summary for job $job_id:"
-get_job_subtitle_draft "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_draft_summary
 download_artifact_by_type "$BASE_URL" "$job_id" EXTRACTED_AUDIO "$AUDIO_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" TRANSCRIPT_JSON "$TRANSCRIPT_PATH"
 download_artifact_by_type "$BASE_URL" "$job_id" SUBTITLE_SRT "$SRT_PATH"

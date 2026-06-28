@@ -1185,7 +1185,7 @@ describe('App', () => {
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('3 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('1 reused')).toBeInTheDocument();
-    expect(within(delivery).getByText('1 missing')).toBeInTheDocument();
+    expect(within(delivery).getByText('5 missing')).toBeInTheDocument();
     expect(within(delivery).getByText('2 calls')).toBeInTheDocument();
     expect(within(delivery).getByText('$0.00045000')).toBeInTheDocument();
     expect(within(delivery).getByText('Transcript JSON')).toBeInTheDocument();
@@ -1257,12 +1257,30 @@ describe('App', () => {
         }))
       })
     );
+    const reviewedArtifacts = [
+      artifactFixture({
+        artifactId: 'reviewed-srt',
+        jobId: 'draft-job',
+        type: 'REVIEWED_SUBTITLE_SRT',
+        filename: 'reviewed-subtitles.zh-CN.srt',
+        contentType: 'application/x-subrip;charset=UTF-8'
+      })
+    ];
+    const publishReviewed = vi.spyOn(linguaFrameApi, 'publishReviewedSubtitles').mockResolvedValue({
+      jobId: 'draft-job',
+      targetLanguage: 'zh-CN',
+      burnedVideoRequested: true,
+      burnedVideoCreated: false,
+      artifacts: reviewedArtifacts
+    });
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'draft-job', videoId: 'draft-video', targetLanguage: 'zh-CN' })
     );
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
-    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    const listArtifacts = vi.spyOn(linguaFrameApi, 'listArtifacts')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(reviewedArtifacts);
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(
       subtitleDraftFixture({ jobId: 'draft-job' })
     );
@@ -1292,6 +1310,18 @@ describe('App', () => {
     await userEvent.click(within(draftEditor).getByRole('button', { name: /clear draft/i }));
     expect(clearDraft).toHaveBeenCalledWith('draft-job', 'zh-CN');
     expect(await within(draftEditor).findByText('Draft cleared.')).toBeInTheDocument();
+
+    await userEvent.click(within(draftEditor).getByLabelText(/include reviewed burned video/i));
+    await userEvent.click(within(draftEditor).getByRole('button', { name: /publish reviewed subtitles/i }));
+    expect(publishReviewed).toHaveBeenCalledWith('draft-job', {
+      language: 'zh-CN',
+      includeBurnedVideo: true
+    });
+    expect(listArtifacts).toHaveBeenCalledTimes(2);
+    expect(await within(draftEditor).findByText('Published 1 reviewed artifacts.')).toBeInTheDocument();
+    const delivery = screen.getByRole('region', { name: /result delivery/i });
+    expect(within(delivery).getByText('Reviewed SRT')).toBeInTheDocument();
+    expect(within(delivery).getByText('reviewed-subtitles.zh-CN.srt')).toBeInTheDocument();
   });
 
   test('exports safe browser demo evidence for a selected job', async () => {
@@ -1344,7 +1374,25 @@ describe('App', () => {
         cacheHit: true,
         sourceArtifactId: 'source-vtt-artifact',
         createdAt: '2026-06-26T10:00:05Z'
-      }
+      },
+      artifactFixture({
+        artifactId: 'reviewed-json',
+        jobId: 'evidence-job',
+        type: 'REVIEWED_SUBTITLE_JSON',
+        filename: 'reviewed-subtitles.zh-CN.json'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-srt',
+        jobId: 'evidence-job',
+        type: 'REVIEWED_SUBTITLE_SRT',
+        filename: 'reviewed-subtitles.zh-CN.srt'
+      }),
+      artifactFixture({
+        artifactId: 'reviewed-video',
+        jobId: 'evidence-job',
+        type: 'REVIEWED_BURNED_VIDEO',
+        filename: 'reviewed-burned-video.mp4'
+      })
     ]);
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(
       subtitleReviewFixture({
@@ -1393,7 +1441,7 @@ describe('App', () => {
     const evidenceText = evidencePreview?.textContent ?? '';
     expect(evidenceText).toContain('Job: evidence-job');
     expect(evidenceText).toContain('Status: QUEUED');
-    expect(evidenceText).toContain('Artifacts: 1');
+    expect(evidenceText).toContain('Artifacts: 4');
     expect(evidenceText).toContain('Transcript preview segments: 1');
     expect(evidenceText).toContain('Subtitle preview segments: 1');
     expect(evidenceText).toContain('Subtitle review segments: 2');
@@ -1401,6 +1449,8 @@ describe('App', () => {
     expect(evidenceText).toContain('Subtitle review quality: 88 / 100, NEEDS_REVIEW');
     expect(evidenceText).toContain('Subtitle draft segments: 2');
     expect(evidenceText).toContain('Subtitle draft edited segments: 1');
+    expect(evidenceText).toContain('Reviewed subtitle artifacts: 2');
+    expect(evidenceText).toContain('Reviewed burned video: Available');
     expect(evidenceText).toContain('Pipeline current stage: TARGET_SUBTITLE_EXPORT');
     expect(evidenceText).toContain('Pipeline completed: 2 / 10');
     expect(evidenceText).toContain('Pipeline slowest stage: TARGET_SUBTITLE_EXPORT (1.5 s)');
@@ -1780,7 +1830,7 @@ describe('App', () => {
     const delivery = await screen.findByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('0 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('0 reused')).toBeInTheDocument();
-    expect(within(delivery).getByText('3 missing')).toBeInTheDocument();
+    expect(within(delivery).getByText('7 missing')).toBeInTheDocument();
     expect(within(delivery).getByText('Transcript JSON')).toBeInTheDocument();
     expect(within(delivery).getAllByText('Preview only')).toHaveLength(6);
     expect(within(delivery).getByText('Dubbing audio')).toBeInTheDocument();

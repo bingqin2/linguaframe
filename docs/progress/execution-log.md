@@ -2288,3 +2288,26 @@ Post-merge verification:
 - `cd frontend && npm run build` passed on `main`.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-28
+
+Work:
+
+- Planned the reviewed subtitle delivery MVP in `docs/plans/076-reviewed-subtitle-delivery-mvp.md`.
+- Added reviewed subtitle artifact types and `POST /api/jobs/{jobId}/subtitle-draft/publish`.
+- Added a reviewed delivery service that publishes draft-overlay JSON/SRT/VTT artifacts and can optionally create a separate reviewed subtitle-burned video.
+- Extended backend Markdown evidence, browser evidence, result delivery, and terminal demo summaries with reviewed artifact metadata.
+- Added browser controls for publishing reviewed subtitles from the draft editor.
+- Updated deterministic demo scripts to publish reviewed subtitle artifacts before artifact archive download.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleDeliveryServiceTests test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#publishesReviewedSubtitleArtifactsForLocalizationJob test` passed.
+- `mvn -pl LinguaFrame -Dtest=JobEvidenceReportServiceTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleDeliveryServiceTests,LocalizationJobControllerTests,JobEvidenceReportServiceTests,OpenApiDocumentationTests test` passed with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed with `Tests 80 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.

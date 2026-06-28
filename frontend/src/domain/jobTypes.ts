@@ -399,8 +399,12 @@ export interface JobArtifact {
     | 'TARGET_SUBTITLE_JSON'
     | 'TARGET_SUBTITLE_SRT'
     | 'TARGET_SUBTITLE_VTT'
+    | 'REVIEWED_SUBTITLE_JSON'
+    | 'REVIEWED_SUBTITLE_SRT'
+    | 'REVIEWED_SUBTITLE_VTT'
     | 'DUBBING_AUDIO'
     | 'BURNED_VIDEO'
+    | 'REVIEWED_BURNED_VIDEO'
     | 'WORKER_SUMMARY';
   filename: string;
   contentType: string;
@@ -469,6 +473,19 @@ export interface UpdateSubtitleDraftRequest {
     index: number;
     text: string;
   }>;
+}
+
+export interface PublishReviewedSubtitlesRequest {
+  language: string;
+  includeBurnedVideo: boolean;
+}
+
+export interface ReviewedSubtitlePublish {
+  jobId: string;
+  targetLanguage: string;
+  burnedVideoRequested: boolean;
+  burnedVideoCreated: boolean;
+  artifacts: JobArtifact[];
 }
 
 export interface SubtitleReviewSegment {
