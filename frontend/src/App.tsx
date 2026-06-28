@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { linguaFrameApi, readDemoToken, writeDemoToken } from './api/linguaframeApi';
 import type {
+  DeliveryManifest,
   FailureTriage,
   JobArtifact,
   DemoSessionStatus,
@@ -223,6 +224,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isSseUnavailable, setIsSseUnavailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
+  const [deliveryManifest, setDeliveryManifest] = useState<DeliveryManifest | null>(null);
+  const [deliveryManifestError, setDeliveryManifestError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
   const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
@@ -379,8 +382,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, transcriptResult, subtitleResult, reviewResult, draftResult] = await Promise.allSettled([
+    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, draftResult] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
+      linguaFrameApi.getDeliveryManifest(jobId),
       linguaFrameApi.listTranscript(jobId),
       linguaFrameApi.listSubtitles(jobId, language),
       linguaFrameApi.getSubtitleReview(jobId, language),
@@ -392,6 +396,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setArtifacts([]);
       errors.push(`Artifacts: ${toErrorMessage(artifactResult.reason)}`);
+    }
+
+    if (manifestResult.status === 'fulfilled') {
+      setDeliveryManifest(manifestResult.value);
+      setDeliveryManifestError(null);
+    } else {
+      setDeliveryManifest(null);
+      setDeliveryManifestError(toErrorMessage(manifestResult.reason));
+      errors.push(`Delivery manifest: ${toErrorMessage(manifestResult.reason)}`);
     }
 
     if (transcriptResult.status === 'fulfilled') {
@@ -738,8 +751,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         language: selectedLanguage,
         includeBurnedVideo
       });
-      const refreshedArtifacts = await linguaFrameApi.listArtifacts(job.jobId);
+      const [refreshedArtifacts, refreshedManifest] = await Promise.all([
+        linguaFrameApi.listArtifacts(job.jobId),
+        linguaFrameApi.getDeliveryManifest(job.jobId)
+      ]);
       setArtifacts(refreshedArtifacts);
+      setDeliveryManifest(refreshedManifest);
+      setDeliveryManifestError(null);
       setSubtitleDraftError(null);
       setSubtitleDraftStatus(`Published ${published.artifacts.length} reviewed artifacts.`);
     } catch (publishError) {
@@ -1052,6 +1070,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isRetrying={isRetrying}
               isSavingSubtitleDraft={isSavingSubtitleDraft}
               artifacts={artifacts}
+              deliveryManifest={deliveryManifest}
+              deliveryManifestError={deliveryManifestError}
               job={job}
               cacheReplayBaseline={cacheReplayBaseline}
               cacheReplayCandidates={cacheReplayCandidates}
@@ -1637,6 +1657,8 @@ function JobDetail({
   isRetrying,
   isSavingSubtitleDraft,
   artifacts,
+  deliveryManifest,
+  deliveryManifestError,
   job,
   cacheReplayBaseline,
   cacheReplayCandidates,
@@ -1670,6 +1692,8 @@ function JobDetail({
   isRetrying: boolean;
   isSavingSubtitleDraft: boolean;
   artifacts: JobArtifact[];
+  deliveryManifest: DeliveryManifest | null;
+  deliveryManifestError: string | null;
   job: LocalizationJob;
   cacheReplayBaseline: CacheReplayBaseline | null;
   cacheReplayCandidates: CacheReplayCandidate[];
@@ -1788,6 +1812,12 @@ function JobDetail({
         estimatedCost={estimatedCost}
         job={job}
         modelCallLabel={modelCallLabel}
+      />
+
+      <DeliveryHandoffPanel
+        error={deliveryManifestError}
+        jobId={job.jobId}
+        manifest={deliveryManifest}
       />
 
       <PipelineProgressPanel progress={job.pipelineProgress} />
@@ -2077,6 +2107,112 @@ function ResultDeliveryPanel({
         ))}
       </ul>
     </section>
+  );
+}
+
+function DeliveryHandoffPanel({
+  error,
+  jobId,
+  manifest
+}: {
+  error: string | null;
+  jobId: string;
+  manifest: DeliveryManifest | null;
+}) {
+  if (error) {
+    return (
+      <section className="panel" aria-label="Delivery handoff">
+        <h3>Delivery handoff</h3>
+        <p className="error-text">{error}</p>
+      </section>
+    );
+  }
+  if (!manifest) {
+    return (
+      <section className="panel" aria-label="Delivery handoff">
+        <h3>Delivery handoff</h3>
+        <p className="muted">Delivery manifest is not loaded.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel delivery-handoff-panel" aria-label="Delivery handoff">
+      <div className="panel-heading">
+        <div>
+          <h3>Delivery handoff</h3>
+          <p className={manifest.handoffReady ? 'status-pill success' : 'status-pill warning'}>
+            {manifest.handoffReady ? 'Ready for handoff' : 'Needs reviewed subtitle publish'}
+          </p>
+        </div>
+        <a className="secondary-link" href={linguaFrameApi.deliveryManifestMarkdownDownloadUrl(jobId)}>
+          Download delivery manifest
+        </a>
+      </div>
+
+      <dl className="metrics-grid result-delivery-metrics">
+        <div>
+          <dt>Reviewed subtitles</dt>
+          <dd>{manifest.reviewedSubtitleArtifactCount} files</dd>
+        </div>
+        <div>
+          <dt>Reviewed video</dt>
+          <dd>{manifest.reviewedBurnedVideoAvailable ? 'Available' : 'Not available'}</dd>
+        </div>
+        <div>
+          <dt>Audit artifacts</dt>
+          <dd>{manifest.generatedArtifactCount} files</dd>
+        </div>
+      </dl>
+
+      <ManifestArtifactList title="Reviewed handoff artifacts" artifacts={manifest.reviewedArtifacts} />
+      <ManifestArtifactList title="Audit artifacts" artifacts={manifest.auditArtifacts} />
+
+      {manifest.links.length > 0 ? (
+        <ul className="handoff-link-list" aria-label="Delivery verification links">
+          {manifest.links.map((link) => (
+            <li key={`${link.kind}-${link.url}`}>
+              <a href={link.url}>{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  );
+}
+
+function ManifestArtifactList({
+  artifacts,
+  title
+}: {
+  artifacts: DeliveryManifest['reviewedArtifacts'];
+  title: string;
+}) {
+  return (
+    <div className="manifest-artifact-group">
+      <h4>{title}</h4>
+      {artifacts.length === 0 ? (
+        <p className="muted">No artifacts in this group.</p>
+      ) : (
+        <ul className="result-deliverable-list">
+          {artifacts.map((artifact) => (
+            <li key={artifact.artifactId}>
+              <div className="result-deliverable-main">
+                <strong>{artifact.filename}</strong>
+                <span className="status-pill">{artifact.role}</span>
+              </div>
+              <div className="result-deliverable-meta">
+                <span>{artifact.type}</span>
+                <span>{formatBytes(artifact.sizeBytes)}</span>
+                <span title={artifact.shortSha256}>SHA-256 {artifact.shortSha256}</span>
+                <span>{artifact.cacheState}</span>
+                <a href={artifact.downloadUrl}>Download {artifact.filename}</a>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 

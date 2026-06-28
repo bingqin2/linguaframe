@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type {
+  DeliveryManifest,
   JobArtifact,
   LocalizationJob,
   LocalizationJobList,
@@ -55,6 +56,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
+    vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
   });
 
   test('shows demo readiness configuration in the sidebar', async () => {
@@ -1273,6 +1275,41 @@ describe('App', () => {
       burnedVideoCreated: false,
       artifacts: reviewedArtifacts
     });
+    const getDeliveryManifest = vi.spyOn(linguaFrameApi, 'getDeliveryManifest')
+      .mockResolvedValueOnce(deliveryManifestFixture({
+        jobId: 'draft-job',
+        handoffReady: false,
+        reviewedSubtitleArtifactCount: 0,
+        reviewedArtifacts: [],
+        auditArtifacts: [],
+        links: []
+      }))
+      .mockResolvedValueOnce(deliveryManifestFixture({
+        jobId: 'draft-job',
+        handoffReady: true,
+        reviewedSubtitleArtifactCount: 1,
+        reviewedArtifacts: [
+          {
+            artifactId: 'reviewed-srt',
+            type: 'REVIEWED_SUBTITLE_SRT',
+            filename: 'reviewed-subtitles.zh-CN.srt',
+            contentType: 'application/x-subrip;charset=UTF-8',
+            sizeBytes: 120,
+            shortSha256: '0123456789ab',
+            cacheState: 'Generated',
+            role: 'REVIEWED_HANDOFF',
+            downloadUrl: '/api/jobs/draft-job/artifacts/reviewed-srt/download'
+          }
+        ],
+        auditArtifacts: [],
+        links: [
+          {
+            label: 'Delivery manifest Markdown',
+            kind: 'DELIVERY_MANIFEST_MARKDOWN',
+            url: '/api/jobs/draft-job/delivery-manifest/markdown/download'
+          }
+        ]
+      }));
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'draft-job', videoId: 'draft-video', targetLanguage: 'zh-CN' })
     );
@@ -1291,6 +1328,8 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
     const draftEditor = await screen.findByRole('region', { name: /subtitle draft editor/i });
+    const handoff = await screen.findByRole('region', { name: /delivery handoff/i });
+    expect(within(handoff).getByText('Needs reviewed subtitle publish')).toBeInTheDocument();
     const secondDraft = within(draftEditor).getByLabelText('Draft text 1');
     await userEvent.clear(secondDraft);
     await userEvent.type(secondDraft, '人工修正后的字幕');
@@ -1318,7 +1357,14 @@ describe('App', () => {
       includeBurnedVideo: true
     });
     expect(listArtifacts).toHaveBeenCalledTimes(2);
+    expect(getDeliveryManifest).toHaveBeenCalledTimes(2);
     expect(await within(draftEditor).findByText('Published 1 reviewed artifacts.')).toBeInTheDocument();
+    expect(await within(handoff).findByText('Ready for handoff')).toBeInTheDocument();
+    expect(within(handoff).getByText('reviewed-subtitles.zh-CN.srt')).toBeInTheDocument();
+    expect(within(handoff).getByRole('link', { name: /download delivery manifest/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/draft-job/delivery-manifest/markdown/download'
+    );
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('Reviewed SRT')).toBeInTheDocument();
     expect(within(delivery).getByText('reviewed-subtitles.zh-CN.srt')).toBeInTheDocument();
@@ -2068,6 +2114,30 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
     createdAt: '2026-06-26T10:00:00Z',
+    ...overrides
+  };
+}
+
+function deliveryManifestFixture(overrides: Partial<DeliveryManifest> = {}): DeliveryManifest {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    targetLanguage: 'zh-CN',
+    status: 'COMPLETED',
+    generatedAt: '2026-06-28T11:00:00Z',
+    handoffReady: true,
+    reviewedSubtitleArtifactCount: 3,
+    reviewedBurnedVideoAvailable: false,
+    generatedArtifactCount: 1,
+    reviewedArtifacts: [],
+    auditArtifacts: [],
+    links: [
+      {
+        label: 'Result bundle',
+        kind: 'RESULT_BUNDLE',
+        url: '/api/jobs/job-1/artifacts/archive/download'
+      }
+    ],
     ...overrides
   };
 }

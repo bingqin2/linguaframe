@@ -24,6 +24,7 @@ ARCHIVE_PATH="${LINGUAFRAME_DEMO_ARCHIVE_PATH:-/tmp/linguaframe-demo/artifacts.z
 DIAGNOSTICS_PATH="${LINGUAFRAME_DEMO_DIAGNOSTICS_PATH:-/tmp/linguaframe-demo/job-diagnostics.json}"
 EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/job-evidence.md}"
 EVIDENCE_BUNDLE_PATH="${LINGUAFRAME_DEMO_EVIDENCE_BUNDLE_PATH:-/tmp/linguaframe-demo/job-evidence.zip}"
+DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_PATH:-/tmp/linguaframe-demo/delivery-manifest.md}"
 
 wait_for_backend "$BASE_URL"
 ensure_demo_sample "$SAMPLE_PATH"
@@ -39,6 +40,8 @@ echo "Subtitle draft summary for job $job_id:"
 get_job_subtitle_draft "$BASE_URL" "$job_id" "zh-CN" | print_subtitle_draft_summary
 echo "Publishing reviewed subtitle artifacts for job $job_id:"
 publish_reviewed_subtitles "$BASE_URL" "$job_id" "zh-CN" "false" | print_reviewed_publish_summary
+echo "Delivery manifest summary for job $job_id:"
+get_delivery_manifest "$BASE_URL" "$job_id" | print_delivery_manifest_summary
 echo "Artifacts for job $job_id:"
 artifacts_response="$(list_job_artifacts "$BASE_URL" "$job_id")"
 printf '%s' "$artifacts_response" | print_artifact_summary
@@ -64,6 +67,7 @@ download_job_evidence_markdown "$BASE_URL" "$job_id" "$EVIDENCE_MARKDOWN_PATH"
 print_evidence_markdown_summary "$EVIDENCE_MARKDOWN_PATH" "$job_id"
 download_job_evidence_bundle "$BASE_URL" "$job_id" "$EVIDENCE_BUNDLE_PATH"
 print_evidence_bundle_summary "$EVIDENCE_BUNDLE_PATH" "$job_id"
+download_delivery_manifest_markdown "$BASE_URL" "$job_id" "$DELIVERY_MANIFEST_MARKDOWN_PATH"
 if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$DUBBING_AUDIO_PATH"; then
   echo "Downloaded dubbing audio to $DUBBING_AUDIO_PATH"
 else
@@ -82,4 +86,5 @@ echo "Downloaded artifact archive to $ARCHIVE_PATH"
 echo "Downloaded diagnostics report to $DIAGNOSTICS_PATH"
 echo "Downloaded evidence markdown to $EVIDENCE_MARKDOWN_PATH"
 echo "Downloaded evidence bundle to $EVIDENCE_BUNDLE_PATH"
+echo "Downloaded delivery manifest markdown to $DELIVERY_MANIFEST_MARKDOWN_PATH"
 echo "Downloaded worker summary to $ARTIFACT_PATH"

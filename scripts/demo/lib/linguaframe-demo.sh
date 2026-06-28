@@ -375,6 +375,22 @@ publish_reviewed_subtitles() {
     "$base_url/api/jobs/$job_id/subtitle-draft/publish"
 }
 
+get_delivery_manifest() {
+  local base_url="$1"
+  local job_id="$2"
+
+  demo_curl -fsS "$base_url/api/jobs/$job_id/delivery-manifest"
+}
+
+download_delivery_manifest_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/delivery-manifest/markdown/download" -o "$output_path"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -426,6 +442,23 @@ print("reviewedPublishSubtitleArtifactCount=" + str(subtitle_count))
 print("reviewedPublishBurnedVideoArtifactCount=" + str(burned_video_count))
 for artifact in artifacts:
     print("reviewedPublishArtifact=" + artifact.get("type", "UNKNOWN") + ":" + artifact.get("filename", "unnamed"))
+'
+}
+
+print_delivery_manifest_summary() {
+  python3 -c '
+import json
+import sys
+
+manifest = json.load(sys.stdin)
+print("deliveryManifestJobId=" + manifest["jobId"])
+print("deliveryManifestHandoffReady=" + str(manifest.get("handoffReady", False)).lower())
+print("deliveryManifestReviewedSubtitleArtifactCount=" + str(manifest.get("reviewedSubtitleArtifactCount", 0)))
+print("deliveryManifestReviewedBurnedVideoAvailable=" + str(manifest.get("reviewedBurnedVideoAvailable", False)).lower())
+print("deliveryManifestGeneratedArtifactCount=" + str(manifest.get("generatedArtifactCount", 0)))
+print("deliveryManifestLinkCount=" + str(len(manifest.get("links", []))))
+for artifact in manifest.get("reviewedArtifacts", []):
+    print("deliveryManifestReviewedArtifact=" + artifact.get("type", "UNKNOWN") + ":" + artifact.get("filename", "unnamed"))
 '
 }
 

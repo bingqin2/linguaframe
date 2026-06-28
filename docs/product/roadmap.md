@@ -265,6 +265,7 @@ Build:
 - Subtitle review workspace. Status: implemented as a read-only source/target comparison panel with missing-target and timing-mismatch counts, quality score/verdict, target subtitle artifact count, and safe evidence metadata.
 - Subtitle draft editing workspace. Status: implemented as a target-subtitle draft overlay with save, reset, clear, corrected JSON/SRT/VTT export links, metadata-only evidence counts, and explicit reviewed artifact publishing.
 - Reviewed subtitle delivery. Status: implemented as publishable reviewed JSON/SRT/VTT artifacts plus optional separate reviewed burned video output. It intentionally does not regenerate TTS audio, replace generated subtitle artifacts, or replace the generated burned video artifact.
+- Delivery handoff manifest. Status: implemented as a selected-job browser panel plus JSON and Markdown backend endpoints that separate reviewed handoff artifacts from generated audit artifacts and link safe verification evidence.
 - Audio player.
 - Video preview.
 - Artifact downloads.

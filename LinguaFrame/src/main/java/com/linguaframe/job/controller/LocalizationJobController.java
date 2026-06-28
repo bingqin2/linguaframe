@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
@@ -19,6 +20,7 @@ import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
@@ -64,6 +66,7 @@ public class LocalizationJobController {
     private final LocalizationJobCancellationService cancellationService;
     private final LocalizationJobProgressStreamService progressStreamService;
     private final JobArtifactService artifactService;
+    private final DeliveryManifestService deliveryManifestService;
     private final JobEvidenceBundleService evidenceBundleService;
     private final JobEvidenceReportService evidenceReportService;
     private final TranscriptService transcriptService;
@@ -79,6 +82,7 @@ public class LocalizationJobController {
             LocalizationJobCancellationService cancellationService,
             LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
+            DeliveryManifestService deliveryManifestService,
             JobEvidenceBundleService evidenceBundleService,
             JobEvidenceReportService evidenceReportService,
             TranscriptService transcriptService,
@@ -93,6 +97,7 @@ public class LocalizationJobController {
         this.cancellationService = cancellationService;
         this.progressStreamService = progressStreamService;
         this.artifactService = artifactService;
+        this.deliveryManifestService = deliveryManifestService;
         this.evidenceBundleService = evidenceBundleService;
         this.evidenceReportService = evidenceReportService;
         this.transcriptService = transcriptService;
@@ -237,6 +242,46 @@ public class LocalizationJobController {
                         HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment()
                                 .filename("linguaframe-job-" + jobId + "-evidence.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @GetMapping("/{jobId}/delivery-manifest")
+    @Operation(summary = "Get a safe delivery handoff manifest for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Delivery manifest was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DeliveryManifestVo getDeliveryManifest(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return deliveryManifestService.buildManifest(jobId);
+    }
+
+    @GetMapping("/{jobId}/delivery-manifest/markdown/download")
+    @Operation(summary = "Download a safe Markdown delivery handoff manifest for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Delivery manifest Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDeliveryManifestMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = deliveryManifestService.buildMarkdownManifest(jobId)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-delivery-manifest.md")
                                 .build()
                                 .toString()
                 )

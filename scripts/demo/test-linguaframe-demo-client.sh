@@ -307,6 +307,74 @@ JSON
   [[ "$output" != *"raw corrected subtitle"* ]] || fail "reviewed publish summary exposed corrected text"
 }
 
+test_print_delivery_manifest_summary_is_metadata_only() {
+  cat >"$TMPDIR/delivery-manifest.json" <<'JSON'
+{
+  "jobId": "job-manifest",
+  "videoId": "video-manifest",
+  "targetLanguage": "zh-CN",
+  "status": "COMPLETED",
+  "generatedAt": "2026-06-28T11:00:00Z",
+  "handoffReady": true,
+  "reviewedSubtitleArtifactCount": 3,
+  "reviewedBurnedVideoAvailable": false,
+  "generatedArtifactCount": 9,
+  "reviewedArtifacts": [
+    {
+      "artifactId": "reviewed-srt",
+      "type": "REVIEWED_SUBTITLE_SRT",
+      "filename": "reviewed-subtitles.zh-CN.srt",
+      "contentType": "application/x-subrip",
+      "sizeBytes": 256,
+      "shortSha256": "abcdef012345",
+      "cacheState": "Generated",
+      "role": "REVIEWED_HANDOFF",
+      "downloadUrl": "/api/jobs/job-manifest/artifacts/reviewed-srt/download",
+      "unsafeText": "raw corrected subtitle"
+    }
+  ],
+  "auditArtifacts": [],
+  "links": [
+    {
+      "label": "Result bundle",
+      "kind": "RESULT_BUNDLE",
+      "url": "/api/jobs/job-manifest/artifacts/archive/download"
+    },
+    {
+      "label": "Evidence bundle",
+      "kind": "EVIDENCE_BUNDLE",
+      "url": "/api/jobs/job-manifest/evidence/bundle/download"
+    }
+  ],
+  "unsafeTranscript": "raw transcript text",
+  "unsafeSubtitle": "raw generated subtitle",
+  "unsafeObjectKey": "job-artifacts/job-manifest/reviewed-srt",
+  "unsafePath": "/Users/example/private.mov",
+  "unsafeProviderPayload": "provider payload",
+  "unsafeToken": "OPENAI_API_KEY"
+}
+JSON
+
+  print_delivery_manifest_summary <"$TMPDIR/delivery-manifest.json" >"$TMPDIR/delivery-manifest.out"
+  local output
+  output="$(cat "$TMPDIR/delivery-manifest.out")"
+
+  [[ "$output" == *"deliveryManifestJobId=job-manifest"* ]] || fail "delivery manifest summary missed job id"
+  [[ "$output" == *"deliveryManifestHandoffReady=true"* ]] || fail "delivery manifest summary missed ready state"
+  [[ "$output" == *"deliveryManifestReviewedSubtitleArtifactCount=3"* ]] || fail "delivery manifest summary missed reviewed subtitle count"
+  [[ "$output" == *"deliveryManifestReviewedBurnedVideoAvailable=false"* ]] || fail "delivery manifest summary missed reviewed video availability"
+  [[ "$output" == *"deliveryManifestGeneratedArtifactCount=9"* ]] || fail "delivery manifest summary missed generated artifact count"
+  [[ "$output" == *"deliveryManifestLinkCount=2"* ]] || fail "delivery manifest summary missed link count"
+  [[ "$output" == *"deliveryManifestReviewedArtifact=REVIEWED_SUBTITLE_SRT:reviewed-subtitles.zh-CN.srt"* ]] || fail "delivery manifest summary missed reviewed artifact"
+  [[ "$output" != *"raw transcript text"* ]] || fail "delivery manifest summary exposed transcript"
+  [[ "$output" != *"raw generated subtitle"* ]] || fail "delivery manifest summary exposed generated subtitle"
+  [[ "$output" != *"raw corrected subtitle"* ]] || fail "delivery manifest summary exposed corrected subtitle"
+  [[ "$output" != *"job-artifacts/job-manifest"* ]] || fail "delivery manifest summary exposed object key"
+  [[ "$output" != *"/Users/example/private.mov"* ]] || fail "delivery manifest summary exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "delivery manifest summary exposed provider payload"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "delivery manifest summary exposed token"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -315,5 +383,6 @@ test_print_diagnostics_summary_includes_failure_triage
 test_print_subtitle_review_summary_is_metadata_only
 test_print_subtitle_draft_summary_is_metadata_only
 test_print_reviewed_publish_summary_is_metadata_only
+test_print_delivery_manifest_summary_is_metadata_only
 
 echo "linguaframe-demo client tests passed"

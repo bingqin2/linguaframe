@@ -1,6 +1,7 @@
 import type {
   JobArtifact,
   DemoSessionStatus,
+  DeliveryManifest,
   LocalizationJob,
   LocalizationJobList,
   LocalizationJobStatus,
@@ -83,6 +84,12 @@ export async function uploadMedia(
 
 export async function getJob(jobId: string): Promise<LocalizationJob> {
   return requestJson<LocalizationJob>(`/api/jobs/${encodeURIComponent(jobId)}`, {
+    method: 'GET'
+  });
+}
+
+export async function getDeliveryManifest(jobId: string): Promise<DeliveryManifest> {
+  return requestJson<DeliveryManifest>(`/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest`, {
     method: 'GET'
   });
 }
@@ -276,6 +283,10 @@ export function jobEvidenceBundleDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/evidence/bundle/download`;
 }
 
+export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
+}
+
 export function jobEventsUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/events`;
 }
@@ -288,6 +299,7 @@ export const linguaFrameApi = {
   uploadMedia,
   listJobs,
   getJob,
+  getDeliveryManifest,
   retryJob,
   cancelJob,
   listArtifacts,
@@ -310,6 +322,7 @@ export const linguaFrameApi = {
   jobDiagnosticsDownloadUrl,
   jobEvidenceMarkdownDownloadUrl,
   jobEvidenceBundleDownloadUrl,
+  deliveryManifestMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,
   writeDemoToken

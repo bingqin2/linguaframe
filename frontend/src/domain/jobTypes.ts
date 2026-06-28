@@ -488,6 +488,39 @@ export interface ReviewedSubtitlePublish {
   artifacts: JobArtifact[];
 }
 
+export interface DeliveryManifestArtifact {
+  artifactId: string;
+  type: JobArtifact['type'];
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  shortSha256: string;
+  cacheState: string;
+  role: string;
+  downloadUrl: string;
+}
+
+export interface DeliveryManifestLink {
+  label: string;
+  kind: string;
+  url: string;
+}
+
+export interface DeliveryManifest {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  status: LocalizationJobStatus;
+  generatedAt: string;
+  handoffReady: boolean;
+  reviewedSubtitleArtifactCount: number;
+  reviewedBurnedVideoAvailable: boolean;
+  generatedArtifactCount: number;
+  reviewedArtifacts: DeliveryManifestArtifact[];
+  auditArtifacts: DeliveryManifestArtifact[];
+  links: DeliveryManifestLink[];
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;

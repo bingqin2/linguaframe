@@ -20,8 +20,10 @@ import {
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getDemoSession,
+  getDeliveryManifest,
   loginDemoSession,
   logoutDemoSession,
+  deliveryManifestMarkdownDownloadUrl,
   publishReviewedSubtitles,
   readDemoToken,
   cancelJob,
@@ -316,6 +318,12 @@ describe('linguaframeApi', () => {
   test('builds evidence bundle download URL with encoded job id', () => {
     expect(jobEvidenceBundleDownloadUrl('job with/slash')).toBe(
       '/api/jobs/job%20with%2Fslash/evidence/bundle/download'
+    );
+  });
+
+  test('builds delivery manifest markdown download URL with encoded job id', () => {
+    expect(deliveryManifestMarkdownDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/delivery-manifest/markdown/download'
     );
   });
 
@@ -740,6 +748,55 @@ describe('linguaframeApi', () => {
         body: JSON.stringify({ language: 'zh-CN', includeBurnedVideo: true })
       }
     );
+  });
+
+  test('gets delivery manifest with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job manifest/slash',
+        videoId: 'video-manifest',
+        targetLanguage: 'zh-CN',
+        status: 'COMPLETED',
+        generatedAt: '2026-06-28T11:00:00Z',
+        handoffReady: true,
+        reviewedSubtitleArtifactCount: 3,
+        reviewedBurnedVideoAvailable: false,
+        generatedArtifactCount: 1,
+        reviewedArtifacts: [
+          {
+            artifactId: 'reviewed-srt',
+            type: 'REVIEWED_SUBTITLE_SRT',
+            filename: 'reviewed-subtitles.zh-CN.srt',
+            contentType: 'application/x-subrip',
+            sizeBytes: 128,
+            shortSha256: '0123456789ab',
+            cacheState: 'Generated',
+            role: 'REVIEWED_HANDOFF',
+            downloadUrl: '/api/jobs/job manifest/slash/artifacts/reviewed-srt/download'
+          }
+        ],
+        auditArtifacts: [],
+        links: [
+          {
+            label: 'Result bundle',
+            kind: 'RESULT_BUNDLE',
+            url: '/api/jobs/job manifest/slash/artifacts/archive/download'
+          }
+        ]
+      })
+    );
+
+    const result = await getDeliveryManifest('job manifest/slash');
+
+    expect(result.handoffReady).toBe(true);
+    expect(result.reviewedArtifacts[0].filename).toBe('reviewed-subtitles.zh-CN.srt');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20manifest%2Fslash/delivery-manifest', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
   });
 
   test('lists jobs with default paging params', async () => {

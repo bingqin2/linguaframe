@@ -441,3 +441,11 @@ Decision: Publish reviewed subtitles as explicit handoff artifacts instead of mu
 Reason: A demo reviewer needs downloadable corrected outputs after editing subtitles, but generated provider outputs, cache evidence, and the original burned video should remain auditable and unchanged.
 
 Impact: `POST /api/jobs/{jobId}/subtitle-draft/publish` creates reviewed JSON/SRT/VTT artifacts from the current draft overlay and can optionally create a separate reviewed burned video. Artifact lists, archives, browser result delivery, diagnostics, evidence, and terminal scripts expose reviewed artifact metadata without raw corrected subtitle text.
+
+## 2026-06-28
+
+Decision: Derive delivery handoff manifests on demand from durable job and artifact state.
+
+Reason: A demo handoff needs one readable checklist, but persisting another artifact would duplicate state already represented by jobs, reviewed artifacts, result bundles, diagnostics, and evidence bundles.
+
+Impact: `/api/jobs/{jobId}/delivery-manifest` and `/api/jobs/{jobId}/delivery-manifest/markdown/download` report handoff readiness, reviewed artifacts, audit artifacts, hashes, and safe verification links without storing new media, embedding raw subtitles, or exposing object keys and local paths.
