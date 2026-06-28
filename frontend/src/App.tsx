@@ -22,6 +22,7 @@ import type {
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
+  PrivateDemoRunArchive,
   PromptTemplate,
   ProviderReadiness,
   RetentionCleanupResult,
@@ -368,6 +369,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     null
   );
   const [isLoadingPrivateDemoEvidenceGallery, setIsLoadingPrivateDemoEvidenceGallery] = useState(false);
+  const [privateDemoRunArchive, setPrivateDemoRunArchive] = useState<PrivateDemoRunArchive | null>(null);
+  const [privateDemoRunArchiveError, setPrivateDemoRunArchiveError] = useState<string | null>(null);
+  const [isLoadingPrivateDemoRunArchive, setIsLoadingPrivateDemoRunArchive] = useState(false);
   const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
   const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
   const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
@@ -568,6 +572,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadPrivateDemoRunArchive = useCallback(async () => {
+    setIsLoadingPrivateDemoRunArchive(true);
+    try {
+      const archive = await linguaFrameApi.getPrivateDemoRunArchive();
+      setPrivateDemoRunArchive(archive);
+      setPrivateDemoRunArchiveError(null);
+    } catch (archiveLoadError) {
+      setPrivateDemoRunArchive(null);
+      setPrivateDemoRunArchiveError(toErrorMessage(archiveLoadError));
+    } finally {
+      setIsLoadingPrivateDemoRunArchive(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -724,6 +742,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadPrivateDemoEvidenceGallery();
   }, [loadPrivateDemoEvidenceGallery]);
+
+  useEffect(() => {
+    void loadPrivateDemoRunArchive();
+  }, [loadPrivateDemoRunArchive]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1529,6 +1551,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={privateDemoEvidenceGalleryError}
             isLoading={isLoadingPrivateDemoEvidenceGallery}
             onRefresh={loadPrivateDemoEvidenceGallery}
+          />
+
+          <PrivateDemoRunArchivePanel
+            archive={privateDemoRunArchive}
+            error={privateDemoRunArchiveError}
+            isLoading={isLoadingPrivateDemoRunArchive}
+            onRefresh={loadPrivateDemoRunArchive}
           />
 
           <RetentionCleanupPanel
@@ -2769,6 +2798,168 @@ function PrivateDemoEvidenceGalleryPanel({
   );
 }
 
+function PrivateDemoRunArchivePanel({
+  archive,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  archive: PrivateDemoRunArchive | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = archive ? formatPrivateDemoRunArchiveNotes(archive) : '';
+  const recommended = archive?.candidates.find((candidate) => candidate.jobId === archive.recommendedJobId)
+    ?? archive?.candidates[0]
+    ?? null;
+
+  const handleCopy = async () => {
+    if (!archive || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Archive notes copied.');
+  };
+
+  const handleDownload = () => {
+    if (!archive) {
+      return;
+    }
+    const blob = new Blob([notes], { type: 'text/markdown;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'linguaframe-private-demo-run-archive.md';
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Archive notes downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-run-archive-panel" aria-label="Private demo run archive">
+      <div className="panel-heading">
+        <h2>Private demo run archive</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Run archive unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !archive ? <p className="muted">Loading run archive...</p> : null}
+      {archive ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>
+                <span className={operationsStatusClassName(archive.overallStatus)}>
+                  {archive.overallStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Recommended</dt>
+              <dd>{archive.recommendedJobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{archive.recommendedProfileId ?? 'manual'}</dd>
+            </div>
+            <div>
+              <dt>Operations</dt>
+              <dd>{archive.operationsOverallStatus}</dd>
+            </div>
+            <div>
+              <dt>Launch</dt>
+              <dd>{archive.launchOverallStatus}</dd>
+            </div>
+            <div>
+              <dt>Next</dt>
+              <dd>{archive.launchRecommendedNextStep}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{archive.galleryCompletedJobCount} completed</dd>
+            </div>
+            <div>
+              <dt>Handoff</dt>
+              <dd>{archive.galleryHandoffReadyCount} handoff ready</dd>
+            </div>
+          </dl>
+          {recommended ? (
+            <div className="evidence-gallery-recommended">
+              <h3>Recommended archive candidate</h3>
+              <p>
+                <strong>{recommended.jobId}</strong> · {recommended.filename} · {recommended.profileId}
+              </p>
+              <ul className="inline-evidence-list">
+                <li>{recommended.qualityScore === null ? 'Quality unavailable' : `Quality ${recommended.qualityScore}`}</li>
+                <li>{formatGalleryCost(recommended.estimatedCostUsd)}</li>
+                <li>{recommended.modelCallCount} model calls</li>
+                <li>{recommended.providerCacheHitCount} provider cache hit</li>
+              </ul>
+            </div>
+          ) : (
+            <p className="muted">No completed recommended job is available yet.</p>
+          )}
+          {archive.candidates.length > 0 ? (
+            <ul className="operations-section-list evidence-gallery-job-list" aria-label="Private demo archive candidates">
+              {archive.candidates.map((candidate) => (
+                <li key={candidate.jobId}>
+                  <div className="operations-section-heading">
+                    <strong>{candidate.jobId}</strong>
+                    <span className={operationsStatusClassName(candidate.readiness)}>
+                      {candidate.readiness}
+                    </span>
+                  </div>
+                  <p>
+                    {candidate.filename} · {candidate.profileId} · {candidate.status}
+                  </p>
+                  <small>
+                    {candidate.qualityScore === null ? 'Quality unavailable' : `Quality ${candidate.qualityScore}`}
+                    {' · '}
+                    {formatGalleryCost(candidate.estimatedCostUsd)}
+                    {' · '}
+                    {candidate.providerCacheHitCount} provider cache hit
+                  </small>
+                  {candidate.roles.length > 0 ? <small>{candidate.roles.join(', ')}</small> : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <h3>Archive links</h3>
+          <ul className="link-list">
+            {archive.archiveLinks.map((link) => (
+              <li key={link.href}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy archive notes
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownload}>
+              Download archive notes
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function formatPrivateDemoOperationsReport(operations: PrivateDemoOperations): string {
   const lines = [
     '# LinguaFrame Private Demo Operations Report',
@@ -2848,7 +3039,30 @@ function formatPrivateDemoEvidenceGalleryNotes(gallery: PrivateDemoEvidenceGalle
   return `${lines.join('\n')}\n`;
 }
 
-function operationsStatusClassName(status: PrivateDemoOperations['overallStatus']): string {
+function formatPrivateDemoRunArchiveNotes(archive: PrivateDemoRunArchive): string {
+  if (archive.archiveNotesMarkdown.trim().length > 0) {
+    return `${archive.archiveNotesMarkdown.trim()}\n`;
+  }
+  const lines = [
+    '# LinguaFrame Private Demo Run Archive',
+    '',
+    `- Overall: ${archive.overallStatus}`,
+    `- Generated at: ${archive.generatedAt}`,
+    `- Recommended job: ${archive.recommendedJobId ?? 'none'}`,
+    `- Operations readiness: ${archive.operationsOverallStatus}`,
+    `- Launch rehearsal: ${archive.launchOverallStatus}`,
+    `- Completed jobs: ${archive.galleryCompletedJobCount}`,
+    `- Handoff ready: ${archive.galleryHandoffReadyCount}`,
+    '',
+    '## Links'
+  ];
+  archive.archiveLinks.forEach((link) => {
+    lines.push(`- ${link.label}: ${link.href}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
+function operationsStatusClassName(status: string): string {
   if (status === 'BLOCKED') {
     return 'status-pill danger';
   }

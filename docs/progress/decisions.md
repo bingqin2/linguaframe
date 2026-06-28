@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Add the private demo run archive as a derived metadata index instead of persisting archive records or embedding package contents.
+
+Reason: After a private demo, the owner needs one table of contents for readiness state, launch status, recommended completed run, and package routes. Persisting another archive model or copying ZIP/media contents would duplicate existing job, gallery, presenter-pack, and package evidence.
+
+Impact: `GET /api/operator/private-demo/run-archive`, the browser panel, and `scripts/demo/private-demo-run-archive.sh` compose existing safe metadata into JSON/Markdown reports. Backups, generated media packages, per-job demo run packages, OpenAI calls, uploads, cleanup, and restore operations remain explicit separate workflows.
+
+## 2026-06-28
+
 Decision: Expose worker topology through read-only runtime readiness instead of changing queue routing or Docker topology.
 
 Reason: Split-worker demos need to verify the active role, listener queue, and FFmpeg/OpenAI routes before upload, but the existing worker role and RabbitMQ configuration already control execution behavior.

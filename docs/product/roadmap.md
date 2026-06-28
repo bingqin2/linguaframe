@@ -311,7 +311,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a configured demo owner boundary persisted on videos and localization jobs, owner quota preflight before upload creation, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, and a completed-run evidence gallery with browser and terminal metadata-only reports.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a configured demo owner boundary persisted on videos and localization jobs, owner quota preflight before upload creation, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, a completed-run evidence gallery, and a private demo run archive with browser and terminal metadata-only reports.
 
 Build:
 
@@ -324,6 +324,7 @@ Build:
 - Browser-visible live dependency checks. Status: implemented through `GET /api/runtime/live-checks` and the React `Live checks` panel with bounded non-destructive probes and safe status messages.
 - Private demo operations readiness workspace. Status: implemented through `GET /api/operator/private-demo/operations`, the React `Private demo operations` panel, and `scripts/demo/private-demo-operations-report.sh`.
 - Private demo evidence gallery workspace. Status: implemented through `GET /api/operator/private-demo/evidence-gallery`, the React `Private demo evidence gallery` panel, and `scripts/demo/private-demo-evidence-gallery.sh`.
+- Private demo run archive workspace. Status: implemented through `GET /api/operator/private-demo/run-archive`, the React `Private demo run archive` panel, and `scripts/demo/private-demo-run-archive.sh` as a metadata-only table of contents for readiness, recommended completed run, and safe package links.
 - Explicit OpenAI connectivity check. Status: implemented as a disabled-by-default `openai` live-check probe that can verify configured model metadata access before provider-backed uploads.
 - OpenAI demo smoke profile. Status: implemented with a separate no-secret env template, preflight script, and provider-backed smoke runner for real credential demos.
 - File retention policy. Status: implemented as default-off dry-run cleanup for terminal jobs, source videos, and generated artifacts, with curl fallback and browser operator controls.

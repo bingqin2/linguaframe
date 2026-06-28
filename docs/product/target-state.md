@@ -86,6 +86,7 @@ Stage 2 goals:
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
 - Provide a read-only evidence gallery that selects completed demo runs for presentation and handoff from safe metadata and package links.
+- Provide a read-only run archive that captures private-demo readiness, launch status, completed-run gallery counts, the recommended job, and safe package routes as a post-demo evidence index.
 - Keep file size and duration limits conservative.
 - Show repeatable demo input and output.
 

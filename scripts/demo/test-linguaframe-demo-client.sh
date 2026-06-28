@@ -1718,6 +1718,96 @@ JSON
   [[ "$output" != *"raw transcript text"* ]] || fail "gallery report exposed transcript"
 }
 
+test_private_demo_run_archive_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_private_demo_run_archive_json "http://example.test" "$TMPDIR/private-demo-run-archive-route.json" \
+    >"$TMPDIR/private-demo-run-archive-curl.out"
+  local curl_output
+  curl_output="$(cat "$TMPDIR/private-demo-run-archive-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/operator/private-demo/run-archive"* ]] || fail "run archive helper used wrong route"
+
+  cat >"$TMPDIR/private-demo-run-archive.json" <<'JSON'
+{
+  "generatedAt": "2026-06-28T08:50:00Z",
+  "overallStatus": "READY",
+  "recommendedJobId": "job-gallery-best",
+  "recommendedVideoId": "video-gallery",
+  "recommendedProfileId": "tears-showcase",
+  "recommendedReadiness": "READY",
+  "operationsOverallStatus": "READY",
+  "launchOverallStatus": "READY",
+  "launchRecommendedNextStep": "operations-report-export",
+  "galleryCompletedJobCount": 2,
+  "galleryHandoffReadyCount": 1,
+  "candidates": [
+    {
+      "jobId": "job-gallery-best",
+      "videoId": "video-gallery",
+      "filename": "tears-demo.mp4",
+      "profileId": "tears-showcase",
+      "status": "COMPLETED",
+      "readiness": "READY",
+      "qualityScore": 94,
+      "estimatedCostUsd": 0.40,
+      "modelCallCount": 5,
+      "providerCacheHitCount": 1,
+      "handoffReady": true,
+      "roles": ["RECOMMENDED", "HANDOFF_READY"],
+      "unsafeToken": "OPENAI_API_KEY",
+      "unsafePath": "/Users/example/private.mov",
+      "unsafePayload": "provider payload"
+    }
+  ],
+  "archiveLinks": [
+    {
+      "label": "Operations readiness",
+      "href": "/api/operator/private-demo/operations",
+      "description": "Private demo readiness."
+    },
+    {
+      "label": "Demo run package",
+      "href": "/api/jobs/job-gallery-best/demo-run-package/download",
+      "description": "Complete safe demo run package."
+    }
+  ],
+  "archiveNotesMarkdown": "# LinguaFrame Private Demo Run Archive\n- Overall: READY\n- Recommended job: job-gallery-best\n- Demo run package: /api/jobs/job-gallery-best/demo-run-package/download\nraw transcript text /Users/example/private.mov private-demo-token provider payload"
+}
+JSON
+
+  print_private_demo_run_archive_summary_file \
+    "$TMPDIR/private-demo-run-archive.json" \
+    >"$TMPDIR/private-demo-run-archive.out"
+  local summary
+  summary="$(cat "$TMPDIR/private-demo-run-archive.out")"
+  [[ "$summary" == *"privateDemoRunArchiveOverall=READY"* ]] || fail "run archive summary missed overall"
+  [[ "$summary" == *"privateDemoRunArchiveRecommendedJobId=job-gallery-best"* ]] || fail "run archive summary missed recommendation"
+  [[ "$summary" == *"privateDemoRunArchiveCompletedJobCount=2"* ]] || fail "run archive summary missed completed count"
+  [[ "$summary" == *"privateDemoRunArchiveHandoffReadyCount=1"* ]] || fail "run archive summary missed handoff count"
+  [[ "$summary" == *"privateDemoRunArchiveCandidate=job-gallery-best:tears-showcase:COMPLETED:READY:quality=94:cost=0.4:modelCalls=5:providerCacheHits=1:handoffReady=true"* ]] || fail "run archive summary missed candidate"
+  [[ "$summary" == *"privateDemoRunArchiveLink=Demo run package:/api/jobs/job-gallery-best/demo-run-package/download"* ]] || fail "run archive summary missed link"
+  [[ "$summary" != *"OPENAI_API_KEY"* ]] || fail "run archive summary exposed API key"
+  [[ "$summary" != *"/Users/example"* ]] || fail "run archive summary exposed local path"
+  [[ "$summary" != *"provider payload"* ]] || fail "run archive summary exposed provider payload"
+
+  write_private_demo_run_archive_report \
+    "$TMPDIR/private-demo-run-archive.json" \
+    "$TMPDIR/private-demo-run-archive.md"
+  local output
+  output="$(cat "$TMPDIR/private-demo-run-archive.md")"
+  [[ "$output" == *"# LinguaFrame Private Demo Run Archive"* ]] || fail "run archive report missed title"
+  [[ "$output" == *"- Overall: READY"* ]] || fail "run archive report missed overall"
+  [[ "$output" == *"- Recommended job: job-gallery-best"* ]] || fail "run archive report missed recommendation"
+  [[ "$output" == *"/api/jobs/job-gallery-best/demo-run-package/download"* ]] || fail "run archive report missed package route"
+  [[ "$output" != *"private-demo-token"* ]] || fail "run archive report exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "run archive report exposed API key"
+  [[ "$output" != *"/Users/example"* ]] || fail "run archive report exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "run archive report exposed provider payload"
+  [[ "$output" != *"raw transcript text"* ]] || fail "run archive report exposed transcript"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -1753,5 +1843,6 @@ test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
 test_private_demo_launch_rehearsal_helpers_are_metadata_only
 test_private_demo_evidence_gallery_helpers_are_metadata_only
+test_private_demo_run_archive_helpers_are_metadata_only
 
 echo "linguaframe-demo client tests passed"

@@ -18,6 +18,7 @@ import {
   listPromptTemplates,
   getOperatorDashboard,
   getPrivateDemoEvidenceGallery,
+  getPrivateDemoRunArchive,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoOperations,
   getRetentionCleanupPreview,
@@ -780,6 +781,38 @@ describe('linguaframeApi', () => {
 
     expect(gallery.recommendedJobId).toBe('job-gallery');
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/evidence-gallery?limit=10', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches private demo run archive with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-28T08:00:00Z',
+        overallStatus: 'READY',
+        recommendedJobId: 'job-gallery-best',
+        recommendedVideoId: 'video-gallery',
+        recommendedProfileId: 'tears-showcase',
+        recommendedReadiness: 'READY',
+        operationsOverallStatus: 'READY',
+        launchOverallStatus: 'READY',
+        launchRecommendedNextStep: 'operations-report-export',
+        galleryCompletedJobCount: 2,
+        galleryHandoffReadyCount: 1,
+        candidates: [],
+        archiveLinks: [],
+        archiveNotesMarkdown: '# Archive'
+      })
+    );
+
+    const archive = await getPrivateDemoRunArchive();
+
+    expect(archive.recommendedJobId).toBe('job-gallery-best');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/run-archive', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

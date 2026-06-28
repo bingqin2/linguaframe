@@ -23,6 +23,7 @@ import type {
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
+  PrivateDemoRunArchive,
   PromptTemplate,
   RetentionCleanupResult,
   RuntimeDependencySummary,
@@ -80,6 +81,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getPrivateDemoEvidenceGallery').mockResolvedValue(
       privateDemoEvidenceGalleryFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoRunArchive').mockResolvedValue(
+      privateDemoRunArchiveFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -508,6 +512,46 @@ describe('App', () => {
       name: /private demo evidence gallery/i
     });
     expect(within(gallery).getAllByText('Evidence gallery unavailable').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows private demo run archive with recommended job and export actions', async () => {
+    render(<App />);
+
+    const archive = await screen.findByRole('region', {
+      name: /private demo run archive/i
+    });
+    expect(within(archive).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(archive).getAllByText('job-gallery-best').length).toBeGreaterThan(0);
+    expect(within(archive).getByText('tears-showcase')).toBeInTheDocument();
+    expect(within(archive).getByText('2 completed')).toBeInTheDocument();
+    expect(within(archive).getByText('1 handoff ready')).toBeInTheDocument();
+    expect(within(archive).getByText('operations-report-export')).toBeInTheDocument();
+    expect(within(archive).getByText('Quality 94')).toBeInTheDocument();
+    expect(within(archive).getByText('$0.40')).toBeInTheDocument();
+    expect(within(archive).getByRole('link', { name: /demo run package/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/demo-run-package/download');
+    expect(within(archive).getByRole('link', { name: /operations readiness/i }))
+      .toHaveAttribute('href', '/api/operator/private-demo/operations');
+    expect(within(archive).getByRole('button', { name: /copy archive notes/i }))
+      .toBeEnabled();
+    expect(within(archive).getByRole('button', { name: /download archive notes/i }))
+      .toBeEnabled();
+    expect(archive).not.toHaveTextContent('raw transcript text');
+    expect(archive).not.toHaveTextContent('private-demo-token');
+  });
+
+  test('keeps upload controls usable when private demo run archive fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoRunArchive').mockRejectedValue(
+      new Error('Run archive unavailable')
+    );
+
+    render(<App />);
+
+    const archive = await screen.findByRole('region', {
+      name: /private demo run archive/i
+    });
+    expect(within(archive).getAllByText('Run archive unavailable').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
@@ -3255,6 +3299,56 @@ function privateDemoEvidenceGalleryFixture(
       }
     ],
     galleryNotesMarkdown: '# LinguaFrame Private Demo Evidence Gallery\n',
+    ...overrides
+  };
+}
+
+function privateDemoRunArchiveFixture(
+  overrides: Partial<PrivateDemoRunArchive> = {}
+): PrivateDemoRunArchive {
+  return {
+    generatedAt: '2026-06-28T08:50:00Z',
+    overallStatus: 'READY',
+    recommendedJobId: 'job-gallery-best',
+    recommendedVideoId: 'video-gallery',
+    recommendedProfileId: 'tears-showcase',
+    recommendedReadiness: 'READY',
+    operationsOverallStatus: 'READY',
+    launchOverallStatus: 'READY',
+    launchRecommendedNextStep: 'operations-report-export',
+    galleryCompletedJobCount: 2,
+    galleryHandoffReadyCount: 1,
+    candidates: [
+      {
+        jobId: 'job-gallery-best',
+        videoId: 'video-gallery',
+        filename: 'tears-demo.mp4',
+        profileId: 'tears-showcase',
+        status: 'COMPLETED',
+        readiness: 'READY',
+        qualityScore: 94,
+        estimatedCostUsd: '0.40',
+        modelCallCount: 5,
+        providerCacheHitCount: 1,
+        handoffReady: true,
+        roles: ['RECOMMENDED', 'HANDOFF_READY']
+      }
+    ],
+    archiveLinks: [
+      {
+        label: 'Operations readiness',
+        href: '/api/operator/private-demo/operations',
+        contentType: 'application/json',
+        description: 'Private demo readiness.'
+      },
+      {
+        label: 'Demo run package',
+        href: '/api/jobs/job-gallery-best/demo-run-package/download',
+        contentType: 'application/zip',
+        description: 'Complete safe demo run package.'
+      }
+    ],
+    archiveNotesMarkdown: '# LinguaFrame Private Demo Run Archive\nRecommended job: job-gallery-best\n',
     ...overrides
   };
 }

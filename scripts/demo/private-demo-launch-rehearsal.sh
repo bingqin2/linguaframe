@@ -19,6 +19,7 @@ write_private_demo_launch_rehearsal_report "$JSON_PATH" "$REPORT_PATH"
 status="$(extract_json_field overallStatus <"$JSON_PATH")"
 echo "Wrote private demo launch rehearsal JSON to $JSON_PATH"
 echo "Wrote private demo launch rehearsal report to $REPORT_PATH"
+echo "Next archive command: scripts/demo/private-demo-run-archive.sh"
 
 if [[ "$status" == "BLOCKED" ]]; then
   exit 1
