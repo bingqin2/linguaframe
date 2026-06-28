@@ -775,6 +775,72 @@ test_download_demo_presenter_pack_helper_uses_backend_route() {
   [[ "$output" == *"http://example.test/api/jobs/presenter%20job%2Fslash/demo-presenter-pack"* ]] || fail "demo presenter pack helper used wrong route"
 }
 
+test_download_demo_share_sheet_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_share_sheet_json "http://example.test" "share job/slash" "$TMPDIR/demo-share-sheet.json" >"$TMPDIR/share-sheet-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_share_sheet_markdown "http://example.test" "share job/slash" "$TMPDIR/demo-share-sheet.md" >"$TMPDIR/share-sheet-md-curl.out"
+
+  local json_output
+  json_output="$(cat "$TMPDIR/share-sheet-json-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/jobs/share%20job%2Fslash/demo-share-sheet"* ]] || fail "demo share sheet json helper used wrong route"
+
+  local markdown_output
+  markdown_output="$(cat "$TMPDIR/share-sheet-md-curl.out")"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/share%20job%2Fslash/demo-share-sheet/markdown/download"* ]] || fail "demo share sheet markdown helper used wrong route"
+}
+
+test_print_demo_share_sheet_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-share-sheet.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-28T12:00:00Z",
+  "readiness": "READY",
+  "headline": "tears-showcase demo to zh-CN",
+  "summary": "Completed job with safe metadata.",
+  "outcomeBullets": [
+    "Status: COMPLETED",
+    "Quality score: 91 (GOOD)",
+    "raw transcript text /Users/example/private.mov sk-test provider payload"
+  ],
+  "recommendedNextAction": "Open the demo run package.",
+  "links": [
+    {
+      "kind": "DEMO_RUN_PACKAGE",
+      "label": "Demo run package",
+      "url": "/api/jobs/showcase-job/demo-run-package/download"
+    },
+    {
+      "kind": "EVIDENCE_BUNDLE",
+      "label": "Evidence bundle",
+      "url": "/api/jobs/showcase-job/evidence/bundle/download"
+    }
+  ],
+  "markdown": "raw transcript text /Users/example/private.mov sk-test provider payload"
+}
+JSON
+
+  print_demo_share_sheet_summary_file "$TMPDIR/demo-share-sheet.json" >"$TMPDIR/demo-share-sheet.out"
+  local output
+  output="$(cat "$TMPDIR/demo-share-sheet.out")"
+
+  [[ "$output" == *"demoShareSheetJobId=showcase-job"* ]] || fail "share sheet summary missed job"
+  [[ "$output" == *"demoShareSheetVideoId=video-demo"* ]] || fail "share sheet summary missed video"
+  [[ "$output" == *"demoShareSheetReadiness=READY"* ]] || fail "share sheet summary missed readiness"
+  [[ "$output" == *"demoShareSheetHeadline=tears-showcase demo to zh-CN"* ]] || fail "share sheet summary missed headline"
+  [[ "$output" == *"demoShareSheetRecommendedNextAction=Open the demo run package."* ]] || fail "share sheet summary missed next action"
+  [[ "$output" == *"demoShareSheetOutcome=Status: COMPLETED"* ]] || fail "share sheet summary missed status outcome"
+  [[ "$output" == *"demoShareSheetLink=DEMO_RUN_PACKAGE:/api/jobs/showcase-job/demo-run-package/download"* ]] || fail "share sheet summary missed package link"
+  [[ "$output" != *"raw transcript text"* ]] || fail "share sheet summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "share sheet summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "share sheet summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "share sheet summary exposed provider payload"
+}
+
 test_print_demo_presenter_pack_summary_is_metadata_only() {
   cat >"$TMPDIR/demo-presenter-pack.json" <<'JSON'
 {
@@ -2010,6 +2076,8 @@ test_print_job_comparison_summary_is_metadata_only
 test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
+test_download_demo_share_sheet_helpers_use_backend_routes
+test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage

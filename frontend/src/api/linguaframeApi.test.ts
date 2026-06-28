@@ -32,12 +32,14 @@ import {
   getJobComparison,
   getDemoRunMatrix,
   getDemoPresenterPack,
+  getDemoShareSheet,
   getDemoUploadReadiness,
   getOwnerQuotaPreflight,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
+  demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,
   publishReviewedSubtitles,
   readDemoToken,
@@ -727,6 +729,12 @@ describe('linguaframeApi', () => {
   test('builds delivery manifest markdown download URL with encoded job id', () => {
     expect(deliveryManifestMarkdownDownloadUrl('job with/slash')).toBe(
       '/api/jobs/job%20with%2Fslash/delivery-manifest/markdown/download'
+    );
+  });
+
+  test('builds demo share sheet markdown download URL with encoded job id', () => {
+    expect(demoShareSheetMarkdownDownloadUrl('job with/slash')).toBe(
+      '/api/jobs/job%20with%2Fslash/demo-share-sheet/markdown/download'
     );
   });
 
@@ -1484,6 +1492,41 @@ describe('linguaframeApi', () => {
     expect(result.runs[0].roles).toContain('BEST_QUALITY');
     expect(result.downloads[0].kind).toBe('DEMO_RUN_PACKAGE');
     expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20presenter%2Fslash/demo-presenter-pack', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('gets demo share sheet with encoded id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-share',
+        videoId: 'video-share',
+        generatedAt: '2026-06-28T12:00:00Z',
+        readiness: 'READY',
+        headline: 'tears-showcase demo to zh-CN',
+        summary: 'Completed demo share sheet.',
+        outcomeBullets: ['Status: COMPLETED'],
+        recommendedNextAction: 'Open the demo run package.',
+        links: [
+          {
+            kind: 'DEMO_RUN_PACKAGE',
+            label: 'Demo run package',
+            url: '/api/jobs/job-share/demo-run-package/download'
+          }
+        ],
+        markdown: '# tears-showcase demo to zh-CN\n'
+      })
+    );
+
+    const result = await getDemoShareSheet('job share/slash');
+
+    expect(result.readiness).toBe('READY');
+    expect(result.links[0]?.kind).toBe('DEMO_RUN_PACKAGE');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20share%2Fslash/demo-share-sheet', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

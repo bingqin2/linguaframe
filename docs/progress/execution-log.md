@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo share sheet workspace in `docs/plans/106-demo-share-sheet-workspace.md`.
+- Added `GET /api/jobs/{jobId}/demo-share-sheet` and `GET /api/jobs/{jobId}/demo-share-sheet/markdown/download`.
+- Added a React `Demo share sheet` panel with readiness, headline, summary, outcome bullets, next action, curated links, copy action, and backend Markdown download.
+- Added `scripts/demo/demo-share-sheet.sh` plus full Tears demo export of `demo-share-sheet.json` and `demo-share-sheet.md`.
+- Updated README, Docker E2E guide, smoke checklist, decisions, and this execution log with share sheet behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoShareSheetServiceTests test` first failed because share sheet classes did not exist, then passed.
+- `mvn -pl LinguaFrame -Dtest=DemoShareSheetServiceTests,LocalizationJobControllerTests#returnsDemoShareSheetForSelectedCompletedJob,LocalizationJobControllerTests#downloadsDemoShareSheetMarkdownForSelectedJob test` first failed on missing routes and a manual-profile headline fallback, then passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "demo share sheet"` first failed because the API helpers were missing, then passed.
+- `cd frontend && npm test -- --run App.test.tsx -t "demo share sheet"` first failed because the panel did not exist, then passed.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts -t "demo share sheet|demo presenter pack"` passed with `Tests 5 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because share sheet helper functions did not exist, then passed.
+- `bash -n scripts/demo/demo-share-sheet.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=DemoShareSheetServiceTests,LocalizationJobControllerTests,AuthenticatedOwnerJobAccessTests test` passed with `Tests run: 50, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 549, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 139 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the authenticated owner access workspace in `docs/plans/105-authenticated-owner-access-workspace.md`.
 - Scoped bearer-token and demo-token job history/detail, media metadata/source downloads, artifact list/download/archive, diagnostics/evidence, and operator dashboard metadata through the active owner identity.
 - Added `ownershipScope` to local auth session status and owner metadata to the operator dashboard response.

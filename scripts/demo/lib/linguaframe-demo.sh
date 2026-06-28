@@ -347,6 +347,28 @@ download_demo_presenter_pack_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-presenter-pack" -o "$output_path"
 }
 
+download_demo_share_sheet_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-share-sheet" -o "$output_path"
+}
+
+download_demo_share_sheet_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-share-sheet/markdown/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -683,6 +705,41 @@ for run in runs:
     ]))
 for download in downloads:
     print("demoPresenterPackDownload=" + text(download.get("kind")) + ":" + text(download.get("url")))
+PY
+}
+
+print_demo_share_sheet_summary_file() {
+  local sheet_path="$1"
+
+  python3 - "$sheet_path" <<'PY'
+import json
+import sys
+
+sheet = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = ("raw transcript text", "/Users/", "sk-", "provider payload")
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("demoShareSheetJobId=" + text(sheet.get("jobId")))
+print("demoShareSheetVideoId=" + text(sheet.get("videoId")))
+print("demoShareSheetReadiness=" + text(sheet.get("readiness")))
+print("demoShareSheetHeadline=" + safe(sheet.get("headline")))
+print("demoShareSheetRecommendedNextAction=" + safe(sheet.get("recommendedNextAction")))
+for outcome in sheet.get("outcomeBullets") or []:
+    safe_outcome = safe(outcome)
+    if safe_outcome != "REDACTED_UNSAFE_DETAIL":
+        print("demoShareSheetOutcome=" + safe_outcome)
+for link in sheet.get("links") or []:
+    print("demoShareSheetLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
 PY
 }
 

@@ -6,6 +6,7 @@ import type {
   DemoPresenterPack,
   DemoRunMatrix,
   DemoRunProfile,
+  DemoShareSheet,
   DemoSessionStatus,
   DemoUploadReadiness,
   DeliveryManifest,
@@ -214,6 +215,12 @@ export async function getDemoRunMatrix(jobId: string, limit?: number): Promise<D
 
 export async function getDemoPresenterPack(jobId: string): Promise<DemoPresenterPack> {
   return requestJson<DemoPresenterPack>(`/api/jobs/${encodeURIComponent(jobId)}/demo-presenter-pack`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoShareSheet(jobId: string): Promise<DemoShareSheet> {
+  return requestJson<DemoShareSheet>(`/api/jobs/${encodeURIComponent(jobId)}/demo-share-sheet`, {
     method: 'GET'
   });
 }
@@ -462,6 +469,10 @@ export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
 }
 
+export function demoShareSheetMarkdownDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/demo-share-sheet/markdown/download`;
+}
+
 export function jobComparisonMarkdownDownloadUrl(jobId: string, comparisonJobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/comparison/${encodeURIComponent(
     comparisonJobId
@@ -490,6 +501,7 @@ export const linguaFrameApi = {
   getDeliveryManifest,
   getDemoRunMatrix,
   getDemoPresenterPack,
+  getDemoShareSheet,
   getJobComparison,
   retryJob,
   cancelJob,
@@ -523,6 +535,7 @@ export const linguaFrameApi = {
   aiAuditPackageDownloadUrl,
   sourceMediaDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
+  demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,

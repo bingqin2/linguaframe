@@ -1981,6 +1981,73 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
+        createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-share-showcase",
+                "job-controller-video-share",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings("job-controller-share-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-share-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-share-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-share-showcase", "job-controller-share-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("share-showcase-json", "job-controller-share-showcase", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("share-showcase-srt", "job-controller-share-showcase", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("share-showcase-vtt", "job-controller-share-showcase", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-share-sheet",
+                        "job-controller-share-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-share-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-share"))
+                .andExpect(jsonPath("$.readiness").value("READY"))
+                .andExpect(jsonPath("$.headline").value("tears-showcase demo to zh-CN"))
+                .andExpect(jsonPath("$.summary").value(org.hamcrest.Matchers.containsString("COMPLETED")))
+                .andExpect(jsonPath("$.outcomeBullets").value(org.hamcrest.Matchers.hasItem("Quality score: 91 (GOOD)")))
+                .andExpect(jsonPath("$.recommendedNextAction").value("Open the demo run package or reviewed handoff package for reviewer delivery."))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-share-showcase/demo-run-package/download"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'HANDOFF_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-share-showcase/handoff-package/download"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'SOURCE_MEDIA')].url")
+                        .value("/api/media/uploads/job-controller-video-share/source/download"))
+                .andExpect(jsonPath("$.markdown").value(org.hamcrest.Matchers.containsString(
+                        "# tears-showcase demo to zh-CN"
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoShareSheetMarkdownForSelectedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T18:00:00Z");
+        createJob("job-controller-video-share-md", "job-controller-share-md", "share-md.mp4",
+                LocalizationJobStatus.FAILED, createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-share-sheet/markdown/download",
+                        "job-controller-share-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-share-md-demo-share-sheet.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# manual demo to zh-CN")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Readiness: NEEDS_ATTENTION")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Review diagnostics and failure triage before sharing this run.")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);

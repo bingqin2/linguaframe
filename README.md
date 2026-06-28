@@ -209,6 +209,14 @@ For same-source demo review, open any completed job and inspect `Demo run matrix
 
 For presenter handoff, open the same selected job and inspect `Demo presenter pack`. It calls `GET /api/jobs/{jobId}/demo-presenter-pack`, combines the same-source matrix with safe evidence/package routes, and shows readiness, recommended runs, copy/download presenter notes, and artifact links. The full Tears script also writes `demo-presenter-pack.json` and prints a metadata-only summary under `/tmp/linguaframe-demo/tears-of-steel-full/`.
 
+For a reviewer-facing single-run entry point, open `Demo share sheet`. It calls `GET /api/jobs/{jobId}/demo-share-sheet`, shows readiness, headline, summary, outcome bullets, recommended next action, and curated package/evidence links. Use `Copy share sheet` or `Download backend Markdown` for a compact handoff note. Terminal export is available with:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-share-sheet.sh
+```
+
+The script writes `demo-share-sheet.json` and `demo-share-sheet.md` under `/tmp/linguaframe-demo/demo-share-sheet/` by default. The full Tears script also writes both files under `/tmp/linguaframe-demo/tears-of-steel-full/`.
+
 The browser demo also shows a `Demo runbook` panel with the startup command, E2E validation commands, local URLs, sample-media guidance, and runtime constraints derived from `GET /api/runtime/dependencies`. The adjacent read-only `Demo readiness` panel shows the sanitized configuration summary plus `Worker topology`: active role, listener queue, job exchange, default/FFmpeg/OpenAI routes, owned stage groups, and safe startup commands. Use this before split-worker demos to confirm FFmpeg workers listen to `linguaframe.localization.jobs` and OpenAI workers listen to `linguaframe.localization.openai.jobs`; this is observability only and does not change RabbitMQ routing. The `Live checks` panel shows bounded MySQL, Redis, RabbitMQ, MinIO, and FFmpeg probes from `GET /api/runtime/live-checks`. Use these panels for browser-visible demo guidance, and use `scripts/demo/private-demo-preflight.sh` for local command, Compose, backend, dependency, frontend, token-gate, and sample-path reachability checks.
 
 The upload form also shows an `Upload readiness` panel from `GET /api/media/uploads/readiness`. It combines owner-session access, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warning checks before any media upload. `BLOCKED` disables upload while `Validate file` remains available; `ATTENTION` allows upload but asks the owner to review provider or readiness warnings. The adjacent `Owner quota` panel from `GET /api/media/uploads/preflight` still shows configured owner id, active/queued job counts, same-day estimated cost, limits, and safe blocking reasons.

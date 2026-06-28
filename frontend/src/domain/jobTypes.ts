@@ -916,6 +916,25 @@ export interface DemoPresenterPack {
   presenterNotesMarkdown: string;
 }
 
+export interface DemoShareSheetLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoShareSheet {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  readiness: string;
+  headline: string;
+  summary: string;
+  outcomeBullets: string[];
+  recommendedNextAction: string;
+  links: DemoShareSheetLink[];
+  markdown: string;
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;

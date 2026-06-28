@@ -84,6 +84,12 @@ download_demo_presenter_pack_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-presen
 print_demo_presenter_pack_summary_file "$OUTPUT_DIR/demo-presenter-pack.json"
 echo "Downloaded demo presenter pack to $OUTPUT_DIR/demo-presenter-pack.json"
 
+echo "Demo share sheet:"
+download_demo_share_sheet_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-share-sheet.json"
+download_demo_share_sheet_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-share-sheet.md"
+print_demo_share_sheet_summary_file "$OUTPUT_DIR/demo-share-sheet.json"
+echo "Downloaded demo share sheet to $OUTPUT_DIR/demo-share-sheet.json and $OUTPUT_DIR/demo-share-sheet.md"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

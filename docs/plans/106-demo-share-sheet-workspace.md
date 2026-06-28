@@ -39,9 +39,9 @@
 - Include safe fields: job id, video id, target language, demo profile, generated time, readiness, headline, one-paragraph summary, primary outcome bullets, recommended next action, selected safe links, and evidence package links.
 - Add tests proving completed jobs produce a ready sheet, incomplete jobs produce an attention sheet, and unsafe values are excluded.
 
-- [ ] Write failing service/controller tests for JSON and Markdown output.
-- [ ] Implement VO, service, controller routes, and Markdown rendering.
-- [ ] Run focused backend tests for share sheet and owner access.
+- [x] Write failing service/controller tests for JSON and Markdown output.
+- [x] Implement VO, service, controller routes, and Markdown rendering.
+- [x] Run focused backend tests for share sheet and owner access.
 
 ## Task 2: Browser Share Sheet Panel
 
@@ -57,9 +57,9 @@
 - Provide copy-safe Markdown and backend Markdown download actions.
 - Keep UI dense and operational; do not add a marketing landing page.
 
-- [ ] Write failing Vitest coverage for rendering, copy action, and download link.
-- [ ] Implement frontend API type and panel.
-- [ ] Run focused frontend tests.
+- [x] Write failing Vitest coverage for rendering, copy action, and download link.
+- [x] Implement frontend API type and panel.
+- [x] Run focused frontend tests.
 
 ## Task 3: Terminal Export Script
 
@@ -74,9 +74,9 @@
 - The full Tears demo should export the share sheet automatically after a completed job.
 - Script output must stay metadata-only and fail clearly when the job id is missing or the backend blocks access.
 
-- [ ] Add failing shell helper tests for JSON/Markdown export and unsafe redaction fixtures.
-- [ ] Implement the script and integrate it into the full demo path.
-- [ ] Run shell validation.
+- [x] Add failing shell helper tests for JSON/Markdown export and unsafe redaction fixtures.
+- [x] Implement the script and integrate it into the full demo path.
+- [x] Run shell validation.
 
 ## Task 4: Documentation, Validation, And Merge
 
@@ -98,6 +98,6 @@
 - `cd frontend && npm run build`
 - `git diff --check`
 
-- [ ] Document how to export a share sheet from browser and terminal.
-- [ ] Record validation evidence in the execution log.
+- [x] Document how to export a share sheet from browser and terminal.
+- [x] Record validation evidence in the execution log.
 - [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
