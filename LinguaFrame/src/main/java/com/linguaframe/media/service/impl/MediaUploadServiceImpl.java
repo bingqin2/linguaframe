@@ -10,6 +10,7 @@ import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.job.service.impl.TranslationGlossaryParser;
+import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.demo.service.DemoRunProfileService;
 import com.linguaframe.demo.service.impl.InMemoryDemoRunProfileService;
 import com.linguaframe.media.domain.entity.VideoRecord;
@@ -46,6 +47,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final JobDispatchOutboxService dispatchOutboxService;
     private final TranslationGlossaryParser translationGlossaryParser;
     private final DemoRunProfileService demoRunProfileService;
+    private final DemoOwnerIdentityService ownerIdentityService;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -54,7 +56,18 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner");
+    }
+
+    public MediaUploadServiceImpl(
+            MediaUploadValidationService validationService,
+            ObjectStorageService objectStorageService,
+            VideoRepository videoRepository,
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService,
+            DemoOwnerIdentityService ownerIdentityService
+    ) {
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService);
     }
 
     @Autowired
@@ -65,7 +78,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService,
             TranslationGlossaryParser translationGlossaryParser,
-            DemoRunProfileService demoRunProfileService
+            DemoRunProfileService demoRunProfileService,
+            DemoOwnerIdentityService ownerIdentityService
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
@@ -74,6 +88,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         this.dispatchOutboxService = dispatchOutboxService;
         this.translationGlossaryParser = translationGlossaryParser;
         this.demoRunProfileService = demoRunProfileService;
+        this.ownerIdentityService = ownerIdentityService;
     }
 
     @Override
@@ -104,6 +119,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         String objectKey = "source-videos/" + videoId + "/" + filename;
         String normalizedTargetLanguage = normalizeTargetLanguage(targetLanguage);
         String normalizedTtsVoice = normalizeTtsVoice(ttsVoice);
+        String ownerId = ownerIdentityService.currentOwnerId();
         Instant createdAt = Instant.now();
 
         try {
@@ -119,6 +135,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
         VideoRecord video = new VideoRecord(
                 videoId,
+                ownerId,
                 filename,
                 validation.contentType(),
                 validation.fileSizeBytes(),
@@ -130,6 +147,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         LocalizationJobRecord job = new LocalizationJobRecord(
                 jobId,
                 videoId,
+                ownerId,
                 normalizedTargetLanguage,
                 normalizedTtsVoice,
                 normalizedTranslationStyle,
@@ -170,7 +188,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
     @Override
     public MediaUploadDetailVo getUpload(String videoId) {
-        VideoRecord record = videoRepository.findById(videoId)
+        VideoRecord record = videoRepository.findByIdAndOwnerId(videoId, ownerIdentityService.currentOwnerId())
                 .orElseThrow(() -> new NoSuchElementException("Media upload not found."));
         return new MediaUploadDetailVo(
                 record.id(),
@@ -185,7 +203,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
     @Override
     public StoredObjectResourceBo openSourceMedia(String videoId) {
-        VideoRecord record = videoRepository.findById(videoId)
+        VideoRecord record = videoRepository.findByIdAndOwnerId(videoId, ownerIdentityService.currentOwnerId())
                 .orElseThrow(() -> new NoSuchElementException("Media upload not found."));
         return new StoredObjectResourceBo(
                 record.originalFilename(),

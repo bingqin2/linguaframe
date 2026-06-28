@@ -6,6 +6,33 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo user ownership boundary workspace in `docs/plans/098-demo-user-ownership-boundary-workspace.md`.
+- Added `LINGUAFRAME_DEMO_OWNER_ID` and a configured `DemoOwnerIdentityService` separate from the private demo access token.
+- Added `owner_id` columns and indexes for uploaded videos and localization jobs.
+- Persisted owner ids during upload and scoped owner-facing media/job reads by the configured demo owner.
+- Extended `/api/demo-session` with sanitized `ownerId` and `ownershipScope` metadata.
+- Added browser owner-boundary metadata beside the existing owner-session controls.
+- Added terminal demo-session owner summary helpers and documented the owner boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=LinguaFramePropertiesTests,VideoRepositoryTests,LocalizationJobRepositoryTests test` first failed because owner config, owner record fields, and owner-scoped repository methods did not exist, then passed with `Tests run: 34, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadServiceTests,LocalizationJobQueryServiceTests test` first failed because owner identity was not injected and owner-scoped job reads were not implemented, then passed with `Tests run: 32, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionControllerTests,MediaUploadControllerTests,MediaUploadServiceTests,LocalizationJobQueryServiceTests test` passed with `Tests run: 52, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo owner session|private demo owner session|open demo owner session"` first failed because the owner boundary was not rendered, then passed with `Tests 5 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_demo_session_owner_summary_file` did not exist, then passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests,RuntimeDependencyControllerTests,LocalizationJobExecutionServiceTests,QualityEvaluationPipelineStageTests test` first failed because the short `LocalizationJobRecord` constructor delegated with a shifted owner/target-language parameter and because the runtime migration count still expected 24, then passed with `Tests run: 69, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 483, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 121 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the private demo evidence gallery workspace in `docs/plans/097-private-demo-evidence-gallery-workspace.md`.
 - Added `GET /api/operator/private-demo/evidence-gallery` to aggregate recent completed jobs, handoff readiness, presenter-pack readiness, quality, cost, cache evidence, recommended run selection, and safe package links.
 - Added a React `Private demo evidence gallery` panel with recommended run metadata, handoff-ready counts, safe package links, and copy/download notes actions.

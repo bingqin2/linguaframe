@@ -363,13 +363,17 @@ describe('linguaframeApi', () => {
         accessGateEnabled: true,
         authenticated: false,
         headerName: 'X-LinguaFrame-Demo-Token',
-        mode: 'OWNER_SESSION_REQUIRED'
+        mode: 'OWNER_SESSION_REQUIRED',
+        ownerId: 'owner-alpha',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
       })
     );
 
     const status = await getDemoSession();
 
     expect(status.mode).toBe('OWNER_SESSION_REQUIRED');
+    expect(status.ownerId).toBe('owner-alpha');
+    expect(status.ownershipScope).toBe('CONFIGURED_DEMO_OWNER');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/demo-session',
       expect.objectContaining({ method: 'GET' })

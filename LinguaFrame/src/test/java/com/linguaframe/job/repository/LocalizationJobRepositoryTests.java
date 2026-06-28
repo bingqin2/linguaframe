@@ -58,9 +58,11 @@ class LocalizationJobRepositoryTests {
         Instant createdAt = Instant.parse("2026-06-25T15:00:00Z");
         videoRepository.save(new VideoRecord(
                 "video-job-1",
+                "owner-alpha",
                 "sample.mp4",
                 "video/mp4",
                 123L,
+                null,
                 "source-videos/video-job-1/sample.mp4",
                 MediaUploadStatus.UPLOADED,
                 createdAt
@@ -68,7 +70,16 @@ class LocalizationJobRepositoryTests {
         LocalizationJobRecord record = new LocalizationJobRecord(
                 "job-1",
                 "video-job-1",
+                "owner-alpha",
                 "zh-CN",
+                null,
+                "NATURAL",
+                "STANDARD",
+                "[]",
+                "",
+                0,
+                "OFF",
+                null,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -78,6 +89,8 @@ class LocalizationJobRepositoryTests {
         Optional<LocalizationJobRecord> found = jobRepository.findById("job-1");
 
         assertThat(found).contains(record);
+        assertThat(jobRepository.findByIdAndOwnerId("job-1", "owner-alpha")).contains(record);
+        assertThat(jobRepository.findByIdAndOwnerId("job-1", "owner-beta")).isEmpty();
     }
 
     @Test
@@ -276,6 +289,22 @@ class LocalizationJobRepositoryTests {
     }
 
     @Test
+    void findsJobSummariesScopedByOwner() {
+        Instant base = Instant.parse("2026-06-26T14:30:00Z");
+        createJob("video-owner-alpha", "job-owner-alpha", "owner-alpha", LocalizationJobStatus.COMPLETED, base);
+        createJob("video-owner-beta", "job-owner-beta", "owner-beta", LocalizationJobStatus.COMPLETED, base.plusSeconds(10));
+
+        assertThat(jobRepository.findSummariesByOwnerId("owner-alpha", null, 20, 0))
+                .extracting("jobId")
+                .containsExactly("job-owner-alpha");
+        assertThat(jobRepository.countSummariesByOwnerId("owner-alpha", null)).isEqualTo(1);
+        assertThat(jobRepository.findSummariesByVideoIdAndOwnerId("video-owner-beta", "owner-alpha", 20)).isEmpty();
+        assertThat(jobRepository.findSummariesByVideoIdAndOwnerId("video-owner-beta", "owner-beta", 20))
+                .extracting("jobId")
+                .containsExactly("job-owner-beta");
+    }
+
+    @Test
     void findsRetentionCandidatesForOnlyRequestedTerminalStatusesOlderThanCutoff() {
         Instant base = Instant.parse("2026-06-27T12:00:00Z");
         createJob("video-retention-completed-old", "job-retention-completed-old", LocalizationJobStatus.COMPLETED, base.minusSeconds(900));
@@ -325,11 +354,17 @@ class LocalizationJobRepositoryTests {
     }
 
     private void createJob(String videoId, String jobId, LocalizationJobStatus status, Instant createdAt) {
+        createJob(videoId, jobId, "demo-owner", status, createdAt);
+    }
+
+    private void createJob(String videoId, String jobId, String ownerId, LocalizationJobStatus status, Instant createdAt) {
         videoRepository.save(new VideoRecord(
                 videoId,
+                ownerId,
                 "sample-" + videoId + ".mp4",
                 "video/mp4",
                 123L,
+                null,
                 "source-videos/" + videoId + "/sample.mp4",
                 MediaUploadStatus.UPLOADED,
                 createdAt
@@ -337,7 +372,16 @@ class LocalizationJobRepositoryTests {
         jobRepository.save(new LocalizationJobRecord(
                 jobId,
                 videoId,
+                ownerId,
                 "zh-CN",
+                null,
+                "NATURAL",
+                "STANDARD",
+                "[]",
+                "",
+                0,
+                "OFF",
+                null,
                 status,
                 createdAt
         ));

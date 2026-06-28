@@ -37,6 +37,7 @@ class LinguaFramePropertiesTests {
         assertThat(properties.getWorker().getRole()).isEqualTo(WorkerRole.COMBINED);
         assertThat(properties.getDemo().getAccessToken()).isEmpty();
         assertThat(properties.getDemo().getAccessHeaderName()).isEqualTo("X-LinguaFrame-Demo-Token");
+        assertThat(properties.getDemo().getOwnerId()).isEqualTo("demo-owner");
         assertThat(properties.getDemo().isAccessGateEnabled()).isFalse();
         assertThat(properties.getRetention().isEnabled()).isFalse();
         assertThat(properties.getRetention().isDryRun()).isTrue();
@@ -141,13 +142,15 @@ class LinguaFramePropertiesTests {
         contextRunner
                 .withPropertyValues(
                         "linguaframe.demo.access-token=test-token",
-                        "linguaframe.demo.access-header-name=X-Test-Demo-Token"
+                        "linguaframe.demo.access-header-name=X-Test-Demo-Token",
+                        "linguaframe.demo.owner-id=owner-alpha"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     LinguaFrameProperties boundProperties = context.getBean(LinguaFrameProperties.class);
                     assertThat(boundProperties.getDemo().getAccessToken()).isEqualTo("test-token");
                     assertThat(boundProperties.getDemo().getAccessHeaderName()).isEqualTo("X-Test-Demo-Token");
+                    assertThat(boundProperties.getDemo().getOwnerId()).isEqualTo("owner-alpha");
                     assertThat(boundProperties.getDemo().isAccessGateEnabled()).isTrue();
                 });
     }

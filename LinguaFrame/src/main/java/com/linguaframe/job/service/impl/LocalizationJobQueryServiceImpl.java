@@ -22,6 +22,8 @@ import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
 import com.linguaframe.job.service.FailureTriageService;
 import com.linguaframe.job.service.JobPipelineProgressService;
+import com.linguaframe.common.security.DemoOwnerIdentityService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -44,7 +46,9 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final LocalizationJobStatusCacheService jobStatusCacheService;
     private final FailureTriageService failureTriageService;
     private final JobPipelineProgressService pipelineProgressService;
+    private final DemoOwnerIdentityService ownerIdentityService;
 
+    @Autowired
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
             JobArtifactRepository artifactRepository,
@@ -56,6 +60,32 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
             FailureTriageService failureTriageService,
             JobPipelineProgressService pipelineProgressService
     ) {
+        this(
+                jobRepository,
+                artifactRepository,
+                dispatchEventRepository,
+                timelineEventRepository,
+                modelCallAuditService,
+                qualityEvaluationService,
+                jobStatusCacheService,
+                failureTriageService,
+                pipelineProgressService,
+                () -> "demo-owner"
+        );
+    }
+
+    public LocalizationJobQueryServiceImpl(
+            LocalizationJobRepository jobRepository,
+            JobArtifactRepository artifactRepository,
+            JobDispatchEventRepository dispatchEventRepository,
+            JobTimelineEventRepository timelineEventRepository,
+            ModelCallAuditService modelCallAuditService,
+            QualityEvaluationService qualityEvaluationService,
+            LocalizationJobStatusCacheService jobStatusCacheService,
+            FailureTriageService failureTriageService,
+            JobPipelineProgressService pipelineProgressService,
+            DemoOwnerIdentityService ownerIdentityService
+    ) {
         this.jobRepository = jobRepository;
         this.artifactRepository = artifactRepository;
         this.dispatchEventRepository = dispatchEventRepository;
@@ -65,40 +95,45 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         this.jobStatusCacheService = jobStatusCacheService;
         this.failureTriageService = failureTriageService;
         this.pipelineProgressService = pipelineProgressService;
+        this.ownerIdentityService = ownerIdentityService;
     }
 
     @Override
     public LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset) {
         int normalizedLimit = normalizeLimit(limit);
         int normalizedOffset = normalizeOffset(offset);
+        String ownerId = ownerIdentityService.currentOwnerId();
         return new LocalizationJobListVo(
-                jobRepository.findSummaries(status, normalizedLimit, normalizedOffset),
+                jobRepository.findSummariesByOwnerId(ownerId, status, normalizedLimit, normalizedOffset),
                 normalizedLimit,
                 normalizedOffset,
-                jobRepository.countSummaries(status)
+                jobRepository.countSummariesByOwnerId(ownerId, status)
         );
     }
 
     @Override
     public LocalizationJobListVo listJobsByVideoId(String videoId, Integer limit) {
         int normalizedLimit = normalizeLimit(limit);
+        String ownerId = ownerIdentityService.currentOwnerId();
         return new LocalizationJobListVo(
-                jobRepository.findSummariesByVideoId(videoId, normalizedLimit),
+                jobRepository.findSummariesByVideoIdAndOwnerId(videoId, ownerId, normalizedLimit),
                 normalizedLimit,
                 0,
-                jobRepository.countSummariesByVideoId(videoId)
+                jobRepository.countSummariesByVideoIdAndOwnerId(videoId, ownerId)
         );
     }
 
     @Override
     public LocalizationJobVo getJob(String jobId) {
+        String ownerId = ownerIdentityService.currentOwnerId();
+        LocalizationJobRecord ownerRecord = jobRepository.findByIdAndOwnerId(jobId, ownerId)
+                .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
         Optional<LocalizationJobVo> cachedJob = cachedJob(jobId);
         if (cachedJob.isPresent()) {
             return cachedJob.get();
         }
 
-        LocalizationJobRecord record = jobRepository.findById(jobId)
-                .orElseThrow(() -> new NoSuchElementException("Localization job not found."));
+        LocalizationJobRecord record = ownerRecord;
         JobDispatchEventRecord dispatchEvent = dispatchEventRepository.findLatestByJobId(jobId).orElse(null);
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
         List<JobTimelineEventRecord> timelineEvents = timelineEventRepository.findByJobId(jobId);

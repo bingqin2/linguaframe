@@ -2,6 +2,7 @@ package com.linguaframe.media.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
@@ -77,8 +78,14 @@ class MediaUploadServiceTests {
         assertThat(videoRepository.findById(result.videoId()))
                 .isPresent()
                 .get()
-                .satisfies(video -> assertThat(video.durationSeconds()).isEqualTo(42));
-        assertThat(jobRepository.findById(result.jobId())).isPresent();
+                .satisfies(video -> {
+                    assertThat(video.durationSeconds()).isEqualTo(42);
+                    assertThat(video.ownerId()).isEqualTo("demo-owner");
+                });
+        assertThat(jobRepository.findById(result.jobId()))
+                .isPresent()
+                .get()
+                .satisfies(job -> assertThat(job.ownerId()).isEqualTo("demo-owner"));
         assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
                 .isPresent()
                 .get()
@@ -90,6 +97,27 @@ class MediaUploadServiceTests {
                             .contains(result.videoId())
                             .contains(result.sourceObjectKey());
                 });
+    }
+
+    @Test
+    void createsVideoAndJobForConfiguredDemoOwner() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper),
+                new FixedDemoOwnerIdentityService("owner-alpha")
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "owner.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN");
+
+        assertThat(videoRepository.findByIdAndOwnerId(result.videoId(), "owner-alpha")).isPresent();
+        assertThat(jobRepository.findByIdAndOwnerId(result.jobId(), "owner-alpha")).isPresent();
+        assertThat(videoRepository.findByIdAndOwnerId(result.videoId(), "owner-beta")).isEmpty();
+        assertThat(jobRepository.findByIdAndOwnerId(result.jobId(), "owner-beta")).isEmpty();
     }
 
     @Test
@@ -558,6 +586,14 @@ class MediaUploadServiceTests {
         @Override
         public MediaDurationProbeResult probeDuration(MediaDurationProbeCommand command) {
             return new MediaDurationProbeResult(durationSeconds);
+        }
+    }
+
+    private record FixedDemoOwnerIdentityService(String ownerId) implements DemoOwnerIdentityService {
+
+        @Override
+        public String currentOwnerId() {
+            return ownerId;
         }
     }
 }

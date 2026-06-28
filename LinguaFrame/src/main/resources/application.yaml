@@ -53,6 +53,7 @@ linguaframe:
   demo:
     access-token: ${LINGUAFRAME_DEMO_ACCESS_TOKEN:}
     access-header-name: ${LINGUAFRAME_DEMO_ACCESS_HEADER_NAME:X-LinguaFrame-Demo-Token}
+    owner-id: ${LINGUAFRAME_DEMO_OWNER_ID:demo-owner}
   retention:
     enabled: ${LINGUAFRAME_RETENTION_ENABLED:false}
     dry-run: ${LINGUAFRAME_RETENTION_DRY_RUN:true}

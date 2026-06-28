@@ -484,6 +484,14 @@ Impact: `GET /api/operator/private-demo/evidence-gallery`, the browser panel, an
 
 ## 2026-06-28
 
+Decision: Separate the private demo access token from the persisted demo owner identity.
+
+Reason: The private demo needs owner-scoped media and job state before public authentication exists, but the access token is only an entry gate and should not become a user id, account model, or billing identity.
+
+Impact: `LINGUAFRAME_DEMO_OWNER_ID` defaults to `demo-owner` and is persisted on uploaded videos and localization jobs. Owner-facing media and job reads use that configured identity, `/api/demo-session` exposes only sanitized owner metadata, and worker/operator maintenance paths keep explicit internal access where needed.
+
+## 2026-06-28
+
 Decision: Use a separate OpenAI demo profile instead of making `.env.example` provider-backed.
 
 Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.

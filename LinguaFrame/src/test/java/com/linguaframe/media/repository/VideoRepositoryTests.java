@@ -24,6 +24,7 @@ class VideoRepositoryTests {
         Instant createdAt = Instant.parse("2026-06-25T15:00:00Z");
         VideoRecord record = new VideoRecord(
                 "video-1",
+                "owner-alpha",
                 "sample.mp4",
                 "video/mp4",
                 123L,
@@ -38,6 +39,8 @@ class VideoRepositoryTests {
         Optional<VideoRecord> found = videoRepository.findById("video-1");
 
         assertThat(found).contains(record);
+        assertThat(videoRepository.findByIdAndOwnerId("video-1", "owner-alpha")).contains(record);
+        assertThat(videoRepository.findByIdAndOwnerId("video-1", "owner-beta")).isEmpty();
         assertThat(found).get().extracting(VideoRecord::durationSeconds).isEqualTo(42);
     }
 

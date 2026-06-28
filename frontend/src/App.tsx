@@ -1169,7 +1169,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           <p>Upload a video, follow the localization pipeline, and inspect generated outputs.</p>
         </div>
         <div className="header-tools">
-          <span className="runtime-badge">{formatDemoSessionStatus(demoSessionStatus)}</span>
+          <div className="demo-session-summary" aria-label="Demo owner boundary">
+            <span className="runtime-badge">{formatDemoSessionStatus(demoSessionStatus)}</span>
+            {demoSessionStatus ? (
+              <span className="owner-boundary">
+                <span>Owner: {demoSessionStatus.ownerId}</span>
+                <span>Scope: {demoSessionStatus.ownershipScope}</span>
+              </span>
+            ) : null}
+          </div>
           <form className="demo-token-form" onSubmit={handleSaveDemoToken}>
             <label>
               Owner access token

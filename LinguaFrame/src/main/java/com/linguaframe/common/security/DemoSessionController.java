@@ -23,9 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class DemoSessionController {
 
     private final LinguaFrameProperties properties;
+    private final DemoOwnerIdentityService ownerIdentityService;
 
-    public DemoSessionController(LinguaFrameProperties properties) {
+    public DemoSessionController(LinguaFrameProperties properties, DemoOwnerIdentityService ownerIdentityService) {
         this.properties = properties;
+        this.ownerIdentityService = ownerIdentityService;
     }
 
     @GetMapping
@@ -84,15 +86,26 @@ public class DemoSessionController {
     }
 
     private DemoSessionStatusVo openStatus() {
-        return new DemoSessionStatusVo(false, true, properties.getDemo().getAccessHeaderName(), "OPEN");
+        return status("OPEN", false, true);
     }
 
     private DemoSessionStatusVo activeStatus() {
-        return new DemoSessionStatusVo(true, true, properties.getDemo().getAccessHeaderName(), "OWNER_SESSION_ACTIVE");
+        return status("OWNER_SESSION_ACTIVE", true, true);
     }
 
     private DemoSessionStatusVo requiredStatus() {
-        return new DemoSessionStatusVo(true, false, properties.getDemo().getAccessHeaderName(), "OWNER_SESSION_REQUIRED");
+        return status("OWNER_SESSION_REQUIRED", true, false);
+    }
+
+    private DemoSessionStatusVo status(String mode, boolean accessGateEnabled, boolean authenticated) {
+        return new DemoSessionStatusVo(
+                accessGateEnabled,
+                authenticated,
+                properties.getDemo().getAccessHeaderName(),
+                mode,
+                ownerIdentityService.currentOwnerId(),
+                ownerIdentityService.ownershipScope()
+        );
     }
 
     private boolean isAuthenticated(HttpServletRequest request) {
