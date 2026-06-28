@@ -25,6 +25,10 @@ Validation so far:
 - `cd frontend && npm run build` passed.
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
+- Merged `private-demo-evidence-gallery` back to `main` with merge commit.
+- Post-merge `mvn -pl LinguaFrame -Dtest=PrivateDemoEvidenceGalleryServiceTests,OperatorDashboardControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`.
+- Post-merge `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "private demo evidence gallery"` passed with `Tests 3 passed`.
+- Post-merge `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 
 ## 2026-06-28
 

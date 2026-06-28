@@ -122,4 +122,4 @@
 - [x] Run `cd frontend && npm run build`.
 - [x] Run `bash scripts/demo/test-linguaframe-demo-client.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit on `private-demo-evidence-gallery`, merge back to `main`, and record the merge in the execution log.
+- [x] Commit on `private-demo-evidence-gallery`, merge back to `main`, and record the merge in the execution log.
