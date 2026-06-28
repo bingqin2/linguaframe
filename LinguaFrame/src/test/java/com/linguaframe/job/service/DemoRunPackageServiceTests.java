@@ -250,6 +250,7 @@ class DemoRunPackageServiceTests {
                     jobId,
                     "video-demo-package",
                     "zh-CN",
+                    "STANDARD",
                     LocalizationJobStatus.COMPLETED,
                     Instant.parse("2026-06-28T12:01:00Z"),
                     true,

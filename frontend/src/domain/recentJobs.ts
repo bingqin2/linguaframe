@@ -7,13 +7,15 @@ export interface RecentJob {
   targetLanguage: string;
   ttsVoice: string | null;
   translationStyle: string;
+  subtitleStylePreset: string;
   filename: string;
   createdAt: string;
 }
 
-type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle'> & {
+type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset'> & {
   ttsVoice?: string | null;
   translationStyle?: string | null;
+  subtitleStylePreset?: string | null;
 };
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
@@ -41,7 +43,8 @@ export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[
   const normalizedJob = {
     ...job,
     ttsVoice: job.ttsVoice ?? null,
-    translationStyle: normalizeTranslationStyle(job.translationStyle)
+    translationStyle: normalizeTranslationStyle(job.translationStyle),
+    subtitleStylePreset: normalizeSubtitleStylePreset(job.subtitleStylePreset)
   };
   const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
@@ -81,6 +84,7 @@ function toRecentJob(value: unknown): RecentJob | null {
     targetLanguage: candidate.targetLanguage,
     ttsVoice: typeof candidate.ttsVoice === 'string' ? candidate.ttsVoice : null,
     translationStyle: normalizeTranslationStyle(candidate.translationStyle),
+    subtitleStylePreset: normalizeSubtitleStylePreset(candidate.subtitleStylePreset),
     filename: candidate.filename,
     createdAt: candidate.createdAt
   };
@@ -89,6 +93,13 @@ function toRecentJob(value: unknown): RecentJob | null {
 function normalizeTranslationStyle(value: unknown): string {
   if (typeof value !== 'string' || value.trim() === '') {
     return 'NATURAL';
+  }
+  return value.trim().toUpperCase();
+}
+
+function normalizeSubtitleStylePreset(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return 'STANDARD';
   }
   return value.trim().toUpperCase();
 }

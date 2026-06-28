@@ -10,6 +10,7 @@ export interface MediaUpload {
   targetLanguage: string;
   ttsVoice: string | null;
   translationStyle: string;
+  subtitleStylePreset: string;
   createdAt: string;
 }
 
@@ -68,6 +69,7 @@ export interface LocalizationJob {
   targetLanguage: string;
   ttsVoice: string | null;
   translationStyle: string;
+  subtitleStylePreset: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -138,6 +140,7 @@ export interface LocalizationJobSummary {
   targetLanguage: string;
   ttsVoice: string | null;
   translationStyle: string;
+  subtitleStylePreset: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -561,6 +564,7 @@ export interface DeliveryManifest {
   jobId: string;
   videoId: string;
   targetLanguage: string;
+  subtitleStylePreset: string;
   status: LocalizationJobStatus;
   generatedAt: string;
   handoffReady: boolean;

@@ -11,6 +11,7 @@ public record LocalizationJobRecord(
         String targetLanguage,
         String ttsVoice,
         String translationStyle,
+        String subtitleStylePreset,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,
@@ -28,7 +29,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, null, "NATURAL", status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, null, "NATURAL", "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -39,7 +40,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -51,7 +52,20 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, "STANDARD", status, createdAt, null, null, null, null, null, 0, createdAt);
+    }
+
+    public LocalizationJobRecord(
+            String id,
+            String videoId,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            LocalizationJobStatus status,
+            Instant createdAt
+    ) {
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -75,6 +89,7 @@ public record LocalizationJobRecord(
                 targetLanguage,
                 ttsVoice,
                 "NATURAL",
+                "STANDARD",
                 status,
                 createdAt,
                 startedAt,
@@ -107,6 +122,7 @@ public record LocalizationJobRecord(
                 targetLanguage,
                 null,
                 "NATURAL",
+                "STANDARD",
                 status,
                 createdAt,
                 startedAt,

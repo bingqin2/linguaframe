@@ -32,6 +32,7 @@ class ArtifactCacheServiceTests {
         assertThat(artifactRepository.lookupVideoId).isEqualTo("cache-video-1");
         assertThat(artifactRepository.lookupTargetLanguage).isEqualTo("zh-CN");
         assertThat(artifactRepository.lookupType).isEqualTo(JobArtifactType.BURNED_VIDEO);
+        assertThat(artifactRepository.lookupSubtitleStylePreset).isEqualTo("HIGH_CONTRAST");
         assertThat(artifactService.reusedSources).isEmpty();
     }
 
@@ -77,6 +78,9 @@ class ArtifactCacheServiceTests {
                         "cache-current-job",
                         "cache-video-1",
                         "zh-CN",
+                        null,
+                        "NATURAL",
+                        "HIGH_CONTRAST",
                         LocalizationJobStatus.PROCESSING,
                         createdAt
                 ),
@@ -85,6 +89,9 @@ class ArtifactCacheServiceTests {
                         "cache-video-1",
                         "source-videos/cache-video-1/demo.mp4",
                         "zh-CN",
+                        null,
+                        "NATURAL",
+                        "HIGH_CONTRAST",
                         createdAt
                 ),
                 createdAt
@@ -97,6 +104,7 @@ class ArtifactCacheServiceTests {
         private String lookupVideoId;
         private String lookupTargetLanguage;
         private JobArtifactType lookupType;
+        private String lookupSubtitleStylePreset;
 
         private RecordingJobArtifactRepository() {
             super(null);
@@ -106,11 +114,13 @@ class ArtifactCacheServiceTests {
         public Optional<JobArtifactRecord> findReusableArtifact(
                 String videoId,
                 String targetLanguage,
-                JobArtifactType type
+                JobArtifactType type,
+                String subtitleStylePreset
         ) {
             this.lookupVideoId = videoId;
             this.lookupTargetLanguage = targetLanguage;
             this.lookupType = type;
+            this.lookupSubtitleStylePreset = subtitleStylePreset;
             return Optional.ofNullable(reusableArtifact);
         }
     }

@@ -80,6 +80,7 @@ public class DeliveryManifestServiceImpl implements DeliveryManifestService {
                 job.jobId(),
                 job.videoId(),
                 job.targetLanguage(),
+                job.subtitleStylePreset(),
                 job.status(),
                 Instant.now(clock),
                 handoffReady,
@@ -100,6 +101,7 @@ public class DeliveryManifestServiceImpl implements DeliveryManifestService {
         builder.append("- Job: ").append(manifest.jobId()).append('\n');
         builder.append("- Video: ").append(manifest.videoId()).append('\n');
         builder.append("- Target language: ").append(manifest.targetLanguage()).append('\n');
+        builder.append("- Subtitle style: ").append(manifest.subtitleStylePreset()).append('\n');
         builder.append("- Status: ").append(manifest.status()).append('\n');
         builder.append("- Handoff ready: ").append(manifest.handoffReady()).append('\n');
         builder.append("- Reviewed subtitle artifacts: ").append(manifest.reviewedSubtitleArtifactCount()).append('\n');

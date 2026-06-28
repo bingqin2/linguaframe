@@ -418,7 +418,8 @@ Build:
 - Per-user daily cost budget hook. Status: implemented for the private-demo budget identity hook; real authenticated user budgets remain out of scope.
 - Budget checks before translation, evaluation, and TTS stages. Status: implemented for guarded AI stages using accumulated recorded estimated cost before provider execution.
 - Content hash foundation for generated artifacts. Status: implemented for artifact records and UI visibility.
-- Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language.
+- Artifact-level cache hits for stable generated media artifacts. Status: implemented for extracted audio, dubbing audio, and subtitle-burned video within the same source video and target language; subtitle-burned video reuse is also scoped by subtitle style preset.
+- Subtitle burn-in style presets. Status: implemented as upload-time `STANDARD`, `LARGE`, and `HIGH_CONTRAST` presets persisted on the job, shown in demo evidence, applied to FFmpeg burn-in, and included in burned-video artifact cache identity.
 - Transcription provider cache based on extracted audio hash, provider, model, and prompt version. Status: implemented.
 - Cache key for translation inputs based on source text hash, target language, provider, model, and prompt version. Status: implemented.
 - Quality evaluation provider cache based on source transcript hash, target subtitle hash, target language, provider, model, and prompt version. Status: implemented.

@@ -3,6 +3,7 @@ package com.linguaframe.media.service.impl;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
@@ -53,8 +54,15 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
     @Override
     @Transactional
-    public MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice, String translationStyle) {
+    public MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset
+    ) {
         String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
+        String normalizedSubtitleStylePreset = SubtitleStylePreset.parse(subtitleStylePreset).name();
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
@@ -95,6 +103,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 normalizedTargetLanguage,
                 normalizedTtsVoice,
                 normalizedTranslationStyle,
+                normalizedSubtitleStylePreset,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -115,6 +124,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 normalizedTargetLanguage,
                 normalizedTtsVoice,
                 normalizedTranslationStyle,
+                normalizedSubtitleStylePreset,
                 createdAt
         );
     }

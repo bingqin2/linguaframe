@@ -139,6 +139,67 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void createsJobWithExplicitSubtitleStylePreset() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "contrast.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", "verse", "formal", " high_contrast ");
+
+        assertThat(result.subtitleStylePreset()).isEqualTo("HIGH_CONTRAST");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.subtitleStylePreset()).isEqualTo("HIGH_CONTRAST"));
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .get()
+                .satisfies(event -> assertThat(event.payloadJson()).contains("\"subtitleStylePreset\":\"HIGH_CONTRAST\""));
+    }
+
+    @Test
+    void defaultsBlankSubtitleStylePresetToStandard() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "standard.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", null, null, "   ");
+
+        assertThat(result.subtitleStylePreset()).isEqualTo("STANDARD");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.subtitleStylePreset()).isEqualTo("STANDARD"));
+    }
+
+    @Test
+    void rejectsInvalidSubtitleStylePresetBeforeStorage() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "invalid-subtitle-style.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN", null, null, "tiny"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported subtitle style preset");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
     void defaultsBlankTranslationStyleToNatural() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(

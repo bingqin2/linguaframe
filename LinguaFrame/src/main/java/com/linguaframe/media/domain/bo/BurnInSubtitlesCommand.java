@@ -6,6 +6,15 @@ public record BurnInSubtitlesCommand(
         String jobId,
         Path inputVideoPath,
         Path subtitlePath,
-        Path outputVideoPath
+        Path outputVideoPath,
+        String subtitleStylePreset
 ) {
+    public BurnInSubtitlesCommand(
+            String jobId,
+            Path inputVideoPath,
+            Path subtitlePath,
+            Path outputVideoPath
+    ) {
+        this(jobId, inputVideoPath, subtitlePath, outputVideoPath, "STANDARD");
+    }
 }

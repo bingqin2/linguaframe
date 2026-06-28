@@ -412,6 +412,14 @@ Impact: `translation_style` is stored on `localization_jobs`, defaults to `NATUR
 
 ## 2026-06-28
 
+Decision: Keep subtitle burn-in customization as preset-based job input.
+
+Reason: The demo needs visible control over generated burned videos, but a free-form subtitle style editor would expand the UX, validation, and FFmpeg escaping surface before the product needs it. Presets give predictable output and make artifact cache identity explicit.
+
+Impact: Uploads can choose `STANDARD`, `LARGE`, or `HIGH_CONTRAST`. The selected preset is persisted on the job, carried through dispatch and worker execution, applied to FFmpeg `force_style`, shown in safe browser/terminal evidence, and included in `BURNED_VIDEO` artifact cache reuse.
+
+## 2026-06-28
+
 Decision: Add a private demo owner-session API before building public authentication.
 
 Reason: The browser demo needs a clear login/logout affordance for the project owner, but LinguaFrame still has no user model, owner-scoped media, account lifecycle, JWT refresh, or billing semantics. Reusing the configured demo access token keeps the private demo honest without pretending to be a public hosted service.

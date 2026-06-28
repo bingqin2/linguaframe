@@ -168,10 +168,43 @@ class JobArtifactRepositoryTests {
         artifactRepository.save(wrongType);
         artifactRepository.save(wrongVideo);
 
-        assertThat(artifactRepository.findReusableArtifact("reuse-video", "zh-CN", JobArtifactType.BURNED_VIDEO))
+        assertThat(artifactRepository.findReusableArtifact("reuse-video", "zh-CN", JobArtifactType.BURNED_VIDEO, "STANDARD"))
                 .contains(newestReusable);
-        assertThat(artifactRepository.findReusableArtifact("reuse-video", "en-US", JobArtifactType.BURNED_VIDEO))
+        assertThat(artifactRepository.findReusableArtifact("reuse-video", "en-US", JobArtifactType.BURNED_VIDEO, "STANDARD"))
                 .isEmpty();
+    }
+
+    @Test
+    void findsReusableBurnedVideoOnlyForMatchingSubtitleStylePreset() {
+        Instant createdAt = Instant.parse("2026-06-27T08:30:00Z");
+        createVideo("preset-video", createdAt);
+        createJobForExistingVideo("preset-video", "preset-standard-job", "STANDARD", createdAt);
+        createJobForExistingVideo("preset-video", "preset-contrast-job", "HIGH_CONTRAST", createdAt.plusSeconds(1));
+        JobArtifactRecord standardArtifact = artifact(
+                "preset-standard-artifact",
+                "preset-standard-job",
+                JobArtifactType.BURNED_VIDEO,
+                "standard-hash",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        );
+        JobArtifactRecord contrastArtifact = artifact(
+                "preset-contrast-artifact",
+                "preset-contrast-job",
+                JobArtifactType.BURNED_VIDEO,
+                "contrast-hash",
+                false,
+                null,
+                createdAt.plusSeconds(3)
+        );
+        artifactRepository.save(standardArtifact);
+        artifactRepository.save(contrastArtifact);
+
+        assertThat(artifactRepository.findReusableArtifact("preset-video", "zh-CN", JobArtifactType.BURNED_VIDEO, "STANDARD"))
+                .contains(standardArtifact);
+        assertThat(artifactRepository.findReusableArtifact("preset-video", "zh-CN", JobArtifactType.BURNED_VIDEO, "HIGH_CONTRAST"))
+                .contains(contrastArtifact);
     }
 
     private JobArtifactRecord artifact(
@@ -216,10 +249,17 @@ class JobArtifactRepositoryTests {
     }
 
     private void createJobForExistingVideo(String videoId, String jobId, Instant createdAt) {
+        createJobForExistingVideo(videoId, jobId, "STANDARD", createdAt);
+    }
+
+    private void createJobForExistingVideo(String videoId, String jobId, String subtitleStylePreset, Instant createdAt) {
         jobRepository.save(new LocalizationJobRecord(
                 jobId,
                 videoId,
                 "zh-CN",
+                null,
+                "NATURAL",
+                subtitleStylePreset,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         ));

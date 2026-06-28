@@ -128,6 +128,32 @@ describe('linguaframeApi', () => {
     expect((body as FormData).get('translationStyle')).toBe('FORMAL');
   });
 
+  test('uploads media with selected subtitle style preset when provided', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        ttsVoice: 'verse',
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(new File(['demo'], 'sample.mp4', { type: 'video/mp4' }), 'zh', 'verse', 'formal', ' high_contrast ');
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
+  });
+
   test('fetches uploaded source media metadata without object keys', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({

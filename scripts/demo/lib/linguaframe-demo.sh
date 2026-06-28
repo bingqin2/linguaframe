@@ -121,11 +121,13 @@ upload_demo_video() {
   local base_url="$1"
   local sample_path="$2"
   local translation_style="${LINGUAFRAME_DEMO_TRANSLATION_STYLE:-NATURAL}"
+  local subtitle_style_preset="${LINGUAFRAME_DEMO_SUBTITLE_STYLE_PRESET:-STANDARD}"
 
   demo_curl -fsS \
     -F "file=@${sample_path};type=video/mp4" \
     -F "targetLanguage=zh-CN" \
     -F "translationStyle=${translation_style}" \
+    -F "subtitleStylePreset=${subtitle_style_preset}" \
     "$base_url/api/media/uploads"
 }
 
@@ -298,6 +300,7 @@ evaluation = job.get("qualityEvaluation")
 job_id = job["jobId"]
 target_language = job.get("targetLanguage") or "N/A"
 translation_style = job.get("translationStyle") or "NATURAL"
+subtitle_style_preset = job.get("subtitleStylePreset") or "STANDARD"
 lines = [
     "# LinguaFrame Quality Evaluation Evidence",
     "",
@@ -306,6 +309,7 @@ lines = [
     "- Video: " + str(job.get("videoId") or "N/A"),
     "- Target language: " + target_language,
     "- Translation style: " + translation_style,
+    "- Subtitle style: " + subtitle_style_preset,
     "- Job status: " + str(job.get("status") or "N/A"),
     "- Created at: " + str(job.get("createdAt") or "N/A"),
     "",
@@ -672,6 +676,7 @@ job_id = job.get("jobId", "unknown")
 video_id = job.get("videoId", "unknown")
 target_language = job.get("targetLanguage", "unknown")
 translation_style = job.get("translationStyle", "NATURAL")
+subtitle_style_preset = job.get("subtitleStylePreset", "STANDARD")
 status = job.get("status", "UNKNOWN")
 pipeline = job.get("pipelineProgress") or {}
 usage = job.get("usageSummary") or {}
@@ -690,6 +695,7 @@ lines = [
     f"- Video: {video_id}",
     f"- Target language: {target_language}",
     f"- Translation style: {translation_style}",
+    f"- Subtitle style: {subtitle_style_preset}",
     f"- Status: {status}",
     f"- Retries: {job.get('retryCount', 0)}",
     f"- Terminal: {'yes' if pipeline.get('terminal') or status in {'COMPLETED', 'FAILED', 'CANCELLED'} else 'no'}",

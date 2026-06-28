@@ -111,7 +111,8 @@ public class JobArtifactRepository {
     public Optional<JobArtifactRecord> findReusableArtifact(
             String videoId,
             String targetLanguage,
-            JobArtifactType type
+            JobArtifactType type,
+            String subtitleStylePreset
     ) {
         return jdbcClient.sql("""
                         SELECT
@@ -131,6 +132,7 @@ public class JobArtifactRepository {
                         WHERE job.video_id = :videoId
                           AND job.target_language = :targetLanguage
                           AND artifact.type = :type
+                          AND (:type <> 'BURNED_VIDEO' OR job.subtitle_style_preset = :subtitleStylePreset)
                           AND artifact.cache_hit = FALSE
                           AND artifact.content_sha256 <> ''
                         ORDER BY artifact.created_at DESC, artifact.id DESC
@@ -139,6 +141,7 @@ public class JobArtifactRepository {
                 .param("videoId", videoId)
                 .param("targetLanguage", targetLanguage)
                 .param("type", type.name())
+                .param("subtitleStylePreset", subtitleStylePreset == null ? "STANDARD" : subtitleStylePreset)
                 .query(this::mapRow)
                 .optional();
     }

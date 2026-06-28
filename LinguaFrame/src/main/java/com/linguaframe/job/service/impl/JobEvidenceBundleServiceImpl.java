@@ -70,6 +70,7 @@ public class JobEvidenceBundleServiceImpl implements JobEvidenceBundleService {
                 "jobId", diagnostics.job().jobId(),
                 "videoId", diagnostics.job().videoId(),
                 "targetLanguage", diagnostics.job().targetLanguage(),
+                "subtitleStylePreset", diagnostics.job().subtitleStylePreset(),
                 "status", diagnostics.job().status().name(),
                 "artifactCount", diagnostics.artifactCount(),
                 "entries", List.of("manifest.json", "evidence.md", "diagnostics.json"),

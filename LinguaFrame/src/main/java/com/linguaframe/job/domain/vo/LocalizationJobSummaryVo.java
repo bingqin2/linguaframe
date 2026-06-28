@@ -13,6 +13,7 @@ public record LocalizationJobSummaryVo(
         String targetLanguage,
         String ttsVoice,
         String translationStyle,
+        String subtitleStylePreset,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,

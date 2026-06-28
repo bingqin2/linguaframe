@@ -106,6 +106,7 @@ public class JobHandoffPackageServiceImpl implements JobHandoffPackageService {
                 "jobId", diagnostics.job().jobId(),
                 "videoId", diagnostics.job().videoId(),
                 "targetLanguage", diagnostics.job().targetLanguage(),
+                "subtitleStylePreset", diagnostics.job().subtitleStylePreset(),
                 "status", diagnostics.job().status().name(),
                 "handoffReady", handoffReady(reviewedArtifacts),
                 "reviewedArtifactCount", reviewedArtifacts.size(),
