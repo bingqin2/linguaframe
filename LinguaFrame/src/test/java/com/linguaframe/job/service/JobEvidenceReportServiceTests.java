@@ -1,11 +1,14 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.enums.FailureTriageCategory;
+import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
+import com.linguaframe.job.domain.vo.JobPipelineProgressVo;
+import com.linguaframe.job.domain.vo.JobStageProgressVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.service.impl.JobEvidenceReportServiceImpl;
@@ -40,6 +43,10 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Failure triage: OPENAI_AUTH_OR_MODEL, retryable=false");
         assertThat(markdown).contains("Action: Run the OpenAI preflight");
         assertThat(markdown).contains("- Failure runbook: scripts/demo/openai-demo-preflight.sh");
+        assertThat(markdown).contains("- Pipeline current stage: TARGET_SUBTITLE_EXPORT");
+        assertThat(markdown).contains("- Pipeline completed: 2 / 10");
+        assertThat(markdown).contains("- Pipeline measured time: 1700 ms");
+        assertThat(markdown).contains("- Pipeline slowest stage: TARGET_SUBTITLE_EXPORT / 1500 ms");
         assertThat(markdown).doesNotContain("sk-");
         assertThat(markdown).doesNotContain("/Users/");
         assertThat(markdown).doesNotContain("provider request payload");
@@ -77,8 +84,42 @@ class JobEvidenceReportServiceTests {
                 new JobCacheSummaryVo(0, 0, 0),
                 List.of(),
                 null,
-                triage
+                triage,
+                pipelineProgress()
         );
         return new JobDiagnosticsReportVo(Instant.parse("2026-06-28T08:06:00Z"), job, List.of(), 0);
+    }
+
+    private JobPipelineProgressVo pipelineProgress() {
+        return new JobPipelineProgressVo(
+                10,
+                2,
+                1,
+                0,
+                0,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                true,
+                1700,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                1500L,
+                List.of(
+                        new JobStageProgressVo(
+                                LocalizationJobStage.WORKER_RECEIVED,
+                                JobTimelineEventStatus.SUCCEEDED,
+                                Instant.parse("2026-06-28T08:00:00Z"),
+                                Instant.parse("2026-06-28T08:00:01Z"),
+                                200L,
+                                "Worker received localization job."
+                        ),
+                        new JobStageProgressVo(
+                                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                                JobTimelineEventStatus.FAILED,
+                                Instant.parse("2026-06-28T08:00:02Z"),
+                                Instant.parse("2026-06-28T08:00:04Z"),
+                                1500L,
+                                "TARGET_SUBTITLE_EXPORT failed"
+                        )
+                )
+        );
     }
 }

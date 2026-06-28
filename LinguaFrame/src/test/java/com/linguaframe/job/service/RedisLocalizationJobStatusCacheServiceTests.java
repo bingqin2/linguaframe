@@ -183,6 +183,7 @@ class RedisLocalizationJobStatusCacheServiceTests {
                 new JobCacheSummaryVo(0, 0, 0),
                 List.of(),
                 null,
+                null,
                 null
         );
     }

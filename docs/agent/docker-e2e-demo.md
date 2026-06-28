@@ -52,9 +52,11 @@ Before uploading, check the browser `Demo runbook`, `Live checks`, and upload fo
 
 After opening a job, check the `Result delivery` panel before the detailed artifact table. It should list transcript JSON, source subtitles, target subtitles, dubbing audio, burned video, and worker summary as `Ready`, `Preview only`, or `Missing`. Ready rows should expose direct artifact downloads, short SHA-256 hashes, and generated/reused cache state. The panel should also keep `Download result bundle` and `Download diagnostics` visible without exposing object keys, local paths, or provider payloads.
 
+Check the `Pipeline progress` panel during short, full-video, cache-hit, and OpenAI smoke runs. It is derived from `job_timeline_events` and does not change worker execution. It should show current stage, completed stage count, terminal state, total measured stage duration, slowest stage, and compact per-stage status/duration rows. Use the detailed `Timeline` panel when you need event-level evidence.
+
 For failed jobs, check the `Failure triage` panel before retrying. It should show a safe category such as `OPENAI_AUTH_OR_MODEL`, `OPENAI_TIMEOUT_OR_NETWORK`, `BUDGET_GUARD`, `MEDIA_PROCESSING`, `STORAGE_OR_ARTIFACT`, `WORKER_OR_QUEUE`, `CONFIGURATION`, `USER_CANCELLED`, or `UNKNOWN`, plus retryability, a recommended action, and an optional static runbook command. The same triage appears in diagnostics JSON, backend Markdown evidence, browser evidence export, and terminal script summaries.
 
-Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a browser-generated Markdown summary for notes or interview walkthroughs, `Download evidence JSON` writes a local metadata file, `Download backend evidence` downloads the API-generated Markdown report, and `Download evidence bundle` downloads a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. The evidence should include job status, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, media bytes, or generated artifact bytes.
+Use the `Demo evidence` panel after the job is visible in the browser. `Copy evidence` produces a browser-generated Markdown summary for notes or interview walkthroughs, `Download evidence JSON` writes a local metadata file, `Download backend evidence` downloads the API-generated Markdown report, and `Download evidence bundle` downloads a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`. The evidence should include job status, pipeline progress, timeline stages, usage, cache counts, artifact hashes, and safe download routes, but no raw transcript text, raw subtitles, object keys, local paths, demo tokens, provider payloads, media bytes, or generated artifact bytes.
 
 After a job starts, inspect job-scoped backend logs when debugging worker behavior:
 
@@ -127,6 +129,11 @@ Expected output includes:
 
 ```text
 status=COMPLETED
+pipelineCurrentStage=COMPLETED
+pipelineTerminal=true
+pipelineCompletedStageCount=...
+pipelineTotalMeasuredDurationMs=...
+pipelineSlowestStage=...
 modelCallCount=2
 failedModelCallCount=0
 estimatedCostUsd=0E-8

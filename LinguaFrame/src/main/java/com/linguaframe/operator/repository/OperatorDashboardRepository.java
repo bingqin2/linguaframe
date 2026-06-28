@@ -9,6 +9,7 @@ import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.OperatorJobStatusCountVo;
 import com.linguaframe.operator.domain.vo.OperatorModelCallSummaryVo;
 import com.linguaframe.operator.domain.vo.OperatorRecentFailureVo;
+import com.linguaframe.operator.domain.vo.OperatorStageTimingVo;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -34,7 +35,8 @@ public class OperatorDashboardRepository {
                 statusCounts(),
                 recentFailures(),
                 modelCallSummary(),
-                cacheSummary()
+                cacheSummary(),
+                stageTimings()
         );
     }
 
@@ -124,6 +126,47 @@ public class OperatorDashboardRepository {
                 generatedArtifacts == null ? 0L : generatedArtifacts,
                 providerCacheHits == null ? 0L : providerCacheHits
         );
+    }
+
+    private List<OperatorStageTimingVo> stageTimings() {
+        return jdbcClient.sql("""
+                        WITH latest_stage_events AS (
+                            SELECT
+                                stage,
+                                duration_ms,
+                                ROW_NUMBER() OVER (PARTITION BY stage ORDER BY occurred_at DESC, id DESC) AS row_num
+                            FROM job_timeline_events
+                            WHERE duration_ms IS NOT NULL
+                              AND status IN (:succeededStatus, :failedStatus)
+                        )
+                        SELECT
+                            events.stage,
+                            COALESCE(SUM(CASE WHEN events.status = :succeededStatus THEN 1 ELSE 0 END), 0) AS completed_event_count,
+                            COALESCE(SUM(CASE WHEN events.status = :failedStatus THEN 1 ELSE 0 END), 0) AS failed_event_count,
+                            COALESCE(AVG(events.duration_ms), 0) AS average_duration_ms,
+                            COALESCE(MAX(events.duration_ms), 0) AS max_duration_ms,
+                            COALESCE(MAX(CASE WHEN latest.row_num = 1 THEN latest.duration_ms ELSE NULL END), 0) AS latest_duration_ms
+                        FROM job_timeline_events events
+                        LEFT JOIN latest_stage_events latest
+                            ON latest.stage = events.stage
+                           AND latest.row_num = 1
+                        WHERE events.duration_ms IS NOT NULL
+                          AND events.status IN (:succeededStatus, :failedStatus)
+                        GROUP BY events.stage
+                        ORDER BY max_duration_ms DESC, events.stage ASC
+                        LIMIT 6
+                        """)
+                .param("succeededStatus", JobTimelineEventStatus.SUCCEEDED.name())
+                .param("failedStatus", JobTimelineEventStatus.FAILED.name())
+                .query((rs, rowNum) -> new OperatorStageTimingVo(
+                        LocalizationJobStage.valueOf(rs.getString("stage")),
+                        rs.getLong("completed_event_count"),
+                        rs.getLong("failed_event_count"),
+                        rs.getLong("average_duration_ms"),
+                        rs.getLong("max_duration_ms"),
+                        rs.getLong("latest_duration_ms")
+                ))
+                .list();
     }
 
     private OperatorRecentFailureVo mapFailure(ResultSet rs, int rowNum) throws SQLException {

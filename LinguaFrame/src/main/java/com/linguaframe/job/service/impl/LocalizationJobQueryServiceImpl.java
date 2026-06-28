@@ -21,6 +21,7 @@ import com.linguaframe.job.service.LocalizationJobStatusCacheService;
 import com.linguaframe.job.service.ModelCallAuditService;
 import com.linguaframe.job.service.QualityEvaluationService;
 import com.linguaframe.job.service.FailureTriageService;
+import com.linguaframe.job.service.JobPipelineProgressService;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -42,6 +43,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     private final QualityEvaluationService qualityEvaluationService;
     private final LocalizationJobStatusCacheService jobStatusCacheService;
     private final FailureTriageService failureTriageService;
+    private final JobPipelineProgressService pipelineProgressService;
 
     public LocalizationJobQueryServiceImpl(
             LocalizationJobRepository jobRepository,
@@ -51,7 +53,8 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
             ModelCallAuditService modelCallAuditService,
             QualityEvaluationService qualityEvaluationService,
             LocalizationJobStatusCacheService jobStatusCacheService,
-            FailureTriageService failureTriageService
+            FailureTriageService failureTriageService,
+            JobPipelineProgressService pipelineProgressService
     ) {
         this.jobRepository = jobRepository;
         this.artifactRepository = artifactRepository;
@@ -61,6 +64,7 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
         this.qualityEvaluationService = qualityEvaluationService;
         this.jobStatusCacheService = jobStatusCacheService;
         this.failureTriageService = failureTriageService;
+        this.pipelineProgressService = pipelineProgressService;
     }
 
     @Override
@@ -111,7 +115,8 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
                 cacheSummary(artifacts, timelineEvents),
                 modelCalls,
                 qualityEvaluationService.latestForJob(jobId).orElse(null),
-                failureTriageService.triage(record, timelineEvents, modelCalls)
+                failureTriageService.triage(record, timelineEvents, modelCalls),
+                pipelineProgressService.summarize(record, timelineEvents)
         );
         cacheJob(job);
         return job;

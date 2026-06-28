@@ -73,6 +73,7 @@ export interface LocalizationJob {
   modelCalls: ModelCall[];
   qualityEvaluation: QualityEvaluation | null;
   failureTriage: FailureTriage | null;
+  pipelineProgress: JobPipelineProgress | null;
 }
 
 export type FailureTriageCategory =
@@ -93,6 +94,29 @@ export interface FailureTriage {
   retryable: boolean;
   runbookCommand: string | null;
   safeDetails: string[];
+}
+
+export interface JobPipelineProgress {
+  totalStageCount: number;
+  completedStageCount: number;
+  failedStageCount: number;
+  skippedStageCount: number;
+  cacheHitStageCount: number;
+  currentStage: LocalizationJobStage | null;
+  terminal: boolean;
+  totalMeasuredDurationMs: number;
+  slowestStage: LocalizationJobStage | null;
+  slowestStageDurationMs: number | null;
+  stages: JobStageProgress[];
+}
+
+export interface JobStageProgress {
+  stage: LocalizationJobStage;
+  status: JobTimelineEvent['status'] | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+  message: string | null;
 }
 
 export interface LocalizationJobSummary {
@@ -211,6 +235,7 @@ export interface OperatorDashboard {
   recentFailures: OperatorRecentFailure[];
   modelCalls: OperatorModelCallSummary;
   cache: OperatorCacheSummary;
+  stageTimings: OperatorStageTiming[];
 }
 
 export interface OperatorJobStatusCount {
@@ -238,6 +263,15 @@ export interface OperatorCacheSummary {
   artifactCacheHitCount: number;
   generatedArtifactCount: number;
   providerCacheHitCount: number;
+}
+
+export interface OperatorStageTiming {
+  stage: LocalizationJobStage;
+  completedEventCount: number;
+  failedEventCount: number;
+  averageDurationMs: number;
+  maxDurationMs: number;
+  latestDurationMs: number;
 }
 
 export interface RetentionCleanupResult {

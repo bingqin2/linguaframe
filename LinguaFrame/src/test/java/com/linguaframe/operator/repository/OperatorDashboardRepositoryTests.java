@@ -95,6 +95,12 @@ class OperatorDashboardRepositoryTests {
         saveArtifact("dashboard-generated-artifact", "dashboard-job-completed", false, null, base.plusSeconds(22));
         saveArtifact("dashboard-reused-artifact", "dashboard-job-completed", true, "source-artifact", base.plusSeconds(23));
         saveProviderCacheHit("dashboard-provider-cache-hit", "dashboard-job-completed", base.plusSeconds(24));
+        saveStageTiming("dashboard-stage-audio", "dashboard-job-completed", LocalizationJobStage.AUDIO_EXTRACTION,
+                JobTimelineEventStatus.SUCCEEDED, 2400L, base.plusSeconds(25));
+        saveStageTiming("dashboard-stage-translation", "dashboard-job-completed", LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                JobTimelineEventStatus.SUCCEEDED, 700L, base.plusSeconds(26));
+        saveStageTiming("dashboard-stage-failed", "dashboard-job-failed-new", LocalizationJobStage.DUBBING_AUDIO_GENERATION,
+                JobTimelineEventStatus.FAILED, 1800L, base.plusSeconds(43));
 
         var dashboard = dashboardRepository.fetchDashboard();
 
@@ -122,6 +128,21 @@ class OperatorDashboardRepositoryTests {
         assertThat(dashboard.cache().artifactCacheHitCount()).isEqualTo(1);
         assertThat(dashboard.cache().generatedArtifactCount()).isEqualTo(1);
         assertThat(dashboard.cache().providerCacheHitCount()).isEqualTo(1);
+        assertThat(dashboard.stageTimings())
+                .extracting("stage")
+                .containsExactly(
+                        LocalizationJobStage.AUDIO_EXTRACTION,
+                        LocalizationJobStage.DUBBING_AUDIO_GENERATION,
+                        LocalizationJobStage.TARGET_SUBTITLE_EXPORT
+                );
+        assertThat(dashboard.stageTimings().getFirst())
+                .satisfies(timing -> {
+                    assertThat(timing.completedEventCount()).isEqualTo(1);
+                    assertThat(timing.failedEventCount()).isZero();
+                    assertThat(timing.averageDurationMs()).isEqualTo(2400L);
+                    assertThat(timing.maxDurationMs()).isEqualTo(2400L);
+                    assertThat(timing.latestDurationMs()).isEqualTo(2400L);
+                });
     }
 
     private void createJob(
@@ -205,6 +226,26 @@ class OperatorDashboardRepositoryTests {
                 "Reused cached TRANSLATION provider result.",
                 null,
                 null,
+                occurredAt
+        ));
+    }
+
+    private void saveStageTiming(
+            String id,
+            String jobId,
+            LocalizationJobStage stage,
+            JobTimelineEventStatus status,
+            long durationMs,
+            Instant occurredAt
+    ) {
+        timelineEventRepository.save(new JobTimelineEventRecord(
+                id,
+                jobId,
+                stage,
+                status,
+                stage.name() + " " + status.name(),
+                durationMs,
+                status == JobTimelineEventStatus.FAILED ? "stage failed" : null,
                 occurredAt
         ));
     }

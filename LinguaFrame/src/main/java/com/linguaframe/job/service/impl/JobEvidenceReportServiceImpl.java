@@ -2,6 +2,7 @@ package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
+import com.linguaframe.job.domain.vo.JobPipelineProgressVo;
 import com.linguaframe.job.domain.vo.JobTimelineEventVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
@@ -60,6 +61,18 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
             if (hasText(triage.runbookCommand())) {
                 lines.add("- Failure runbook: " + triage.runbookCommand());
             }
+        }
+        JobPipelineProgressVo progress = job.pipelineProgress();
+        if (progress != null) {
+            lines.add("- Pipeline current stage: " + valueOrDefault(progress.currentStage(), "Queued"));
+            lines.add("- Pipeline completed: " + progress.completedStageCount()
+                    + " / " + progress.totalStageCount());
+            lines.add("- Pipeline states: " + progress.failedStageCount()
+                    + " failed / " + progress.skippedStageCount()
+                    + " skipped / " + progress.cacheHitStageCount() + " cache hits");
+            lines.add("- Pipeline measured time: " + progress.totalMeasuredDurationMs() + " ms");
+            lines.add("- Pipeline slowest stage: " + valueOrDefault(progress.slowestStage(), "Not measured")
+                    + " / " + valueOrDefault(progress.slowestStageDurationMs(), "0") + " ms");
         }
 
         QualityEvaluationVo quality = job.qualityEvaluation();

@@ -89,6 +89,19 @@ test_print_job_summary_includes_failure_triage() {
     "runbookCommand": "scripts/demo/openai-demo-preflight.sh",
     "safeDetails": ["failureStage=TARGET_SUBTITLE_EXPORT"]
   },
+  "pipelineProgress": {
+    "totalStageCount": 10,
+    "completedStageCount": 2,
+    "failedStageCount": 1,
+    "skippedStageCount": 0,
+    "cacheHitStageCount": 0,
+    "currentStage": "TARGET_SUBTITLE_EXPORT",
+    "terminal": true,
+    "totalMeasuredDurationMs": 1700,
+    "slowestStage": "TARGET_SUBTITLE_EXPORT",
+    "slowestStageDurationMs": 1500,
+    "stages": []
+  },
   "usageSummary": {
     "modelCallCount": 1,
     "failedModelCallCount": 1,
@@ -106,6 +119,11 @@ JSON
   [[ "$output" == *"failureTriageCategory=OPENAI_AUTH_OR_MODEL"* ]] || fail "print_job_summary missed triage category"
   [[ "$output" == *"failureTriageRetryable=false"* ]] || fail "print_job_summary missed triage retryability"
   [[ "$output" == *"failureTriageRunbookCommand=scripts/demo/openai-demo-preflight.sh"* ]] || fail "print_job_summary missed triage runbook"
+  [[ "$output" == *"pipelineCurrentStage=TARGET_SUBTITLE_EXPORT"* ]] || fail "print_job_summary missed pipeline current stage"
+  [[ "$output" == *"pipelineTerminal=true"* ]] || fail "print_job_summary missed pipeline terminal state"
+  [[ "$output" == *"pipelineCompletedStageCount=2"* ]] || fail "print_job_summary missed pipeline completed count"
+  [[ "$output" == *"pipelineTotalMeasuredDurationMs=1700"* ]] || fail "print_job_summary missed pipeline measured duration"
+  [[ "$output" == *"pipelineSlowestStage=TARGET_SUBTITLE_EXPORT"* ]] || fail "print_job_summary missed pipeline slowest stage"
 }
 
 test_print_diagnostics_summary_includes_failure_triage() {
@@ -124,6 +142,19 @@ test_print_diagnostics_summary_includes_failure_triage() {
       "retryable": false,
       "runbookCommand": "scripts/demo/docker-e2e-success.sh",
       "safeDetails": []
+    },
+    "pipelineProgress": {
+      "totalStageCount": 10,
+      "completedStageCount": 3,
+      "failedStageCount": 1,
+      "skippedStageCount": 0,
+      "cacheHitStageCount": 0,
+      "currentStage": "DUBBING_AUDIO_GENERATION",
+      "terminal": true,
+      "totalMeasuredDurationMs": 2400,
+      "slowestStage": "DUBBING_AUDIO_GENERATION",
+      "slowestStageDurationMs": 1800,
+      "stages": []
     }
   },
   "artifacts": [],
@@ -137,6 +168,9 @@ JSON
 
   [[ "$output" == *"diagnosticsFailureTriageCategory=BUDGET_GUARD"* ]] || fail "diagnostics summary missed triage category"
   [[ "$output" == *"diagnosticsFailureTriageRetryable=false"* ]] || fail "diagnostics summary missed triage retryability"
+  [[ "$output" == *"diagnosticsPipelineCurrentStage=DUBBING_AUDIO_GENERATION"* ]] || fail "diagnostics summary missed pipeline current stage"
+  [[ "$output" == *"diagnosticsPipelineCompletedStageCount=3"* ]] || fail "diagnostics summary missed pipeline completed count"
+  [[ "$output" == *"diagnosticsPipelineTotalMeasuredDurationMs=2400"* ]] || fail "diagnostics summary missed pipeline measured duration"
 }
 
 test_demo_curl_adds_token_header_when_configured
