@@ -22,7 +22,7 @@ class DemoTranslationProviderTests {
 
     @Test
     void demoProviderReturnsDeterministicChineseTextAndPreservesTiming() {
-        var result = provider.translate("translation-job-1", "zh-CN", List.of(
+        var result = provider.translate("translation-job-1", "zh-CN", "FORMAL", List.of(
                 new TranscriptSegmentVo(0, 0L, 1_800L, "Hello from LinguaFrame."),
                 new TranscriptSegmentVo(1, 1_800L, 3_600L, "This demo transcript is deterministic.")
         ));
@@ -41,7 +41,7 @@ class DemoTranslationProviderTests {
         assertThat(command.provider()).isEqualTo(ModelCallProvider.DEMO);
         assertThat(command.model()).isEqualTo("demo-translation");
         assertThat(command.promptVersion()).isEqualTo("demo-translation-v1");
-        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, segments=2, sourceChars=61");
+        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, style=FORMAL, segments=2, sourceChars=61");
         assertThat(command.outputSummary()).isEqualTo("segments=2, targetChars=29");
         assertThat(command.inputSummary()).doesNotContain("Hello from LinguaFrame.");
         assertThat(command.outputSummary()).doesNotContain("LinguaFrame 向你问好。");
@@ -50,7 +50,7 @@ class DemoTranslationProviderTests {
 
     @Test
     void demoProviderPrefixesUnknownTextWithTargetLanguage() {
-        var result = provider.translate("translation-job-2", "fr-FR", List.of(
+        var result = provider.translate("translation-job-2", "fr-FR", "CONCISE", List.of(
                 new TranscriptSegmentVo(0, 0L, 1_000L, "Unknown source text.")
         ));
 

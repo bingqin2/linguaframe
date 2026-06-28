@@ -74,9 +74,11 @@ public class MediaUploadController {
             @Parameter(description = "BCP 47 target language code such as zh-CN.")
             @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
             @Parameter(description = "Optional text-to-speech voice identifier.")
-            @RequestParam(value = "ttsVoice", required = false) String ttsVoice
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice,
+            @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
+            @RequestParam(value = "translationStyle", required = false) String translationStyle
     ) {
-        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice);
+        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle);
         return ResponseEntity.status(HttpStatus.CREATED).body(upload);
     }
 

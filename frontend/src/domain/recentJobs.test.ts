@@ -27,6 +27,7 @@ describe('recentJobs', () => {
         videoId: 'video-1',
         targetLanguage: 'ja',
         ttsVoice: null,
+        translationStyle: 'NATURAL',
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -81,6 +82,7 @@ describe('recentJobs', () => {
         videoId: 'video-legacy',
         targetLanguage: 'zh-CN',
         ttsVoice: null,
+        translationStyle: 'NATURAL',
         filename: 'legacy.mp4',
         createdAt: '2026-06-26T10:00:00Z'
       }

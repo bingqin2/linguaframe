@@ -7,5 +7,16 @@ import java.util.List;
 
 public interface TranslationProvider {
 
-    TranslationResultBo translate(String jobId, String targetLanguage, List<TranscriptSegmentVo> transcriptSegments);
+    default TranslationResultBo translate(String jobId, String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+        throw new UnsupportedOperationException("Translation provider must implement translate.");
+    }
+
+    default TranslationResultBo translate(
+            String jobId,
+            String targetLanguage,
+            String translationStyle,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
+        return translate(jobId, targetLanguage, transcriptSegments);
+    }
 }

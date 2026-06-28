@@ -48,6 +48,11 @@ const TTS_VOICE_OPTIONS = [
   { value: 'sage', label: 'Sage' },
   { value: 'coral', label: 'Coral' }
 ];
+const TRANSLATION_STYLE_OPTIONS = [
+  { value: 'NATURAL', label: 'Natural' },
+  { value: 'FORMAL', label: 'Formal' },
+  { value: 'CONCISE', label: 'Concise' }
+];
 
 type DeliverableStatus = 'Ready' | 'Preview only' | 'Missing';
 
@@ -78,6 +83,7 @@ interface DemoEvidence {
     jobId: string;
     videoId: string;
     targetLanguage: string;
+    translationStyle: string;
     status: LocalizationJobStatus;
     retryCount: number;
     failureStage: string | null;
@@ -184,6 +190,7 @@ interface CacheReplayCandidate {
   status: LocalizationJobStatus;
   targetLanguage: string;
   ttsVoice: string | null;
+  translationStyle: string;
 }
 
 interface CacheReplayBaseline {
@@ -196,6 +203,7 @@ interface CacheReplayEvidenceJob {
   status: LocalizationJobStatus;
   targetLanguage: string;
   ttsVoice: string;
+  translationStyle: string;
   modelCallCount: number;
   estimatedCostUsd: number;
   artifactCacheHitCount: number;
@@ -244,6 +252,7 @@ const RESULT_DELIVERABLES: ResultDeliverableDefinition[] = [
 export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: number }) {
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [ttsVoice, setTtsVoice] = useState('');
+  const [translationStyle, setTranslationStyle] = useState('NATURAL');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
@@ -665,7 +674,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     setIsUploading(true);
     try {
-      const upload = await linguaFrameApi.uploadMedia(file, targetLanguage.trim(), ttsVoice);
+      const upload = await linguaFrameApi.uploadMedia(file, targetLanguage.trim(), ttsVoice, translationStyle);
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
       setSelectedRecentJob(recentJob);
@@ -736,6 +745,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(recentJob.jobId);
     setTargetLanguage(recentJob.targetLanguage);
     setTtsVoice(recentJob.ttsVoice ?? '');
+    setTranslationStyle(recentJob.translationStyle);
     const nextJob = await loadJob(recentJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
@@ -746,6 +756,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(historyJob.jobId);
     setTargetLanguage(historyJob.targetLanguage);
     setTtsVoice(historyJob.ttsVoice ?? '');
+    setTranslationStyle(historyJob.translationStyle);
     const nextJob = await loadJob(historyJob.jobId);
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
@@ -758,6 +769,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const language = nextJob.targetLanguage ?? targetLanguage;
     setTargetLanguage(language);
     setTtsVoice(nextJob.ttsVoice ?? '');
+    setTranslationStyle(nextJob.translationStyle ?? 'NATURAL');
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
   }
@@ -1016,6 +1028,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 ))}
               </select>
             </label>
+            <label>
+              Translation style
+              <select value={translationStyle} onChange={(event) => setTranslationStyle(event.target.value)}>
+                {TRANSLATION_STYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <div className="panel-actions upload-actions">
               <button
                 type="button"
@@ -1093,6 +1115,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                       </span>
                       <span className="history-meta">
                         {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
+                        {formatTranslationStyle(historyJob.translationStyle)} ·
                         {formatCost(historyJob.estimatedCostUsd)} ·
                         retry {historyJob.retryCount}
                       </span>
@@ -1139,7 +1162,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                     <button type="button" onClick={() => void openRecentJob(recentJob)}>
                       <span>{recentJob.filename}</span>
                       <span className="history-meta">
-                        {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)}
+                        {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)} ·
+                        {formatTranslationStyle(recentJob.translationStyle)}
                       </span>
                       <small>{recentJob.jobId}</small>
                     </button>
@@ -1296,6 +1320,10 @@ function SourceMediaPanel({
           <div>
             <dt>Target language</dt>
             <dd>{job.targetLanguage}</dd>
+          </div>
+          <div>
+            <dt>Translation style</dt>
+            <dd>{formatTranslationStyle(job.translationStyle)}</dd>
           </div>
         </dl>
       ) : sourceMediaError ? null : (
@@ -3688,6 +3716,7 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     videoId: upload.videoId,
     targetLanguage: upload.targetLanguage,
     ttsVoice: upload.ttsVoice,
+    translationStyle: upload.translationStyle,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -4120,6 +4149,7 @@ function buildDemoEvidence(
       jobId: job.jobId,
       videoId: job.videoId,
       targetLanguage: job.targetLanguage,
+      translationStyle: job.translationStyle,
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
@@ -4200,6 +4230,7 @@ function formatQualityEvaluationEvidence(job: LocalizationJob): string {
     `- Job: ${job.jobId}`,
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
+    `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Job status: ${job.status}`,
     `- Created at: ${job.createdAt}`,
     ''
@@ -4411,6 +4442,7 @@ function formatDemoReviewPresenterNotes(
     `- Job: ${job.jobId}`,
     `- Video: ${job.videoId}`,
     `- Target language: ${job.targetLanguage}`,
+    `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Overall: ${ready ? 'READY' : 'ATTENTION'}`,
     '',
     '## Walkthrough'
@@ -4441,7 +4473,8 @@ function buildCacheReplayCandidates(
         filename: job.filename,
         status: job.status,
         targetLanguage: job.targetLanguage,
-        ttsVoice: job.ttsVoice
+        ttsVoice: job.ttsVoice,
+        translationStyle: job.translationStyle
       });
     }
   });
@@ -4452,7 +4485,8 @@ function buildCacheReplayCandidates(
         filename: job.filename,
         status: 'COMPLETED',
         targetLanguage: job.targetLanguage,
-        ttsVoice: job.ttsVoice
+        ttsVoice: job.ttsVoice,
+        translationStyle: job.translationStyle
       });
     }
   });
@@ -4495,6 +4529,7 @@ function cacheReplayEvidenceJob(
     status: job.status,
     targetLanguage: job.targetLanguage,
     ttsVoice: formatVoice(job.ttsVoice),
+    translationStyle: formatTranslationStyle(job.translationStyle),
     modelCallCount: modelCallCount(job),
     estimatedCostUsd: jobEstimatedCost(job),
     artifactCacheHitCount,
@@ -4581,6 +4616,12 @@ function formatReviewStatus(status: SubtitleReviewSummary['segments'][number]['s
 
 function formatVoice(value: string | null | undefined): string {
   return value?.trim() || 'Default voice';
+}
+
+function formatTranslationStyle(value: string | null | undefined): string {
+  const normalized = value?.trim().toUpperCase() || 'NATURAL';
+  const option = TRANSLATION_STYLE_OPTIONS.find((candidate) => candidate.value === normalized);
+  return option?.label ?? normalized;
 }
 
 function formatEnabled(value: boolean): string {

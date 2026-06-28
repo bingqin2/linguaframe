@@ -16,10 +16,10 @@ class ModelCallSummaryServiceTests {
         String rawSourceText = "Hello from LinguaFrame.";
         String rawTargetText = "来自 LinguaFrame 的问候。";
 
-        String inputSummary = service.translationInput("zh-CN", 3, rawSourceText.length());
+        String inputSummary = service.translationInput("zh-CN", "FORMAL", 3, rawSourceText.length());
         String outputSummary = service.translationOutput(3, rawTargetText.length());
 
-        assertThat(inputSummary).isEqualTo("target=zh-CN, segments=3, sourceChars=23");
+        assertThat(inputSummary).isEqualTo("target=zh-CN, style=FORMAL, segments=3, sourceChars=23");
         assertThat(outputSummary).isEqualTo("segments=3, targetChars=19");
         assertThat(inputSummary).doesNotContain(rawSourceText);
         assertThat(outputSummary).doesNotContain(rawTargetText);

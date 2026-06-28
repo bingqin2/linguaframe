@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the translation style control workspace in `docs/plans/088-translation-style-control-workspace.md`.
+- Added upload-time `translationStyle` support with `NATURAL`, `FORMAL`, and `CONCISE` values.
+- Added `localization_jobs.translation_style` with default `NATURAL`.
+- Threaded style through upload responses, job records, job list/detail VOs, dispatch messages, OpenAI and demo translation providers, safe model-call input summaries, and translation provider cache keys.
+- Added a React upload selector, recent-job persistence, history/detail display, browser evidence fields, and cache replay metadata for translation style.
+- Added `LINGUAFRAME_DEMO_TRANSLATION_STYLE` support to demo upload scripts and safe demo reports.
+- Updated README, roadmap, target state, decisions, and this execution log.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=MediaUploadServiceTests,MediaUploadControllerTests,TranslationCacheKeyServiceTests,DemoTranslationProviderTests,OpenAiTranslationProviderTests` first failed because style was missing from interfaces, persistence, cache identity, and OpenAI payloads, then passed with `Tests run: 35, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/domain/recentJobs.test.ts src/App.test.tsx` first failed because recent-job storage still received the mock `NATURAL` upload style after selecting `FORMAL`, then passed with `Tests 101 passed`.
+- `mvn -pl LinguaFrame test` first failed because runtime migration and model-call summary tests still expected the pre-style contract, then passed with `Tests run: 429, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 101 passed`.
+- `cd frontend && npm run build` first failed because `jobSummaryFixture` allowed an undefined `translationStyle`, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the source media evidence workspace in `docs/plans/087-source-media-evidence-workspace.md`.
 - Removed source object keys from the media upload detail response and added `GET /api/media/uploads/{videoId}/source/download` for explicit source video downloads.
 - Added runtime and OpenAPI route contract coverage for the source download endpoint.

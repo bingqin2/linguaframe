@@ -6,12 +6,14 @@ export interface RecentJob {
   videoId: string;
   targetLanguage: string;
   ttsVoice: string | null;
+  translationStyle: string;
   filename: string;
   createdAt: string;
 }
 
-type RecentJobInput = Omit<RecentJob, 'ttsVoice'> & {
+type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle'> & {
   ttsVoice?: string | null;
+  translationStyle?: string | null;
 };
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
@@ -36,7 +38,11 @@ export function loadRecentJobs(storage: Storage): RecentJob[] {
 }
 
 export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[] {
-  const normalizedJob = { ...job, ttsVoice: job.ttsVoice ?? null };
+  const normalizedJob = {
+    ...job,
+    ttsVoice: job.ttsVoice ?? null,
+    translationStyle: normalizeTranslationStyle(job.translationStyle)
+  };
   const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
     .slice(0, MAX_RECENT_JOBS);
@@ -74,7 +80,15 @@ function toRecentJob(value: unknown): RecentJob | null {
     videoId: candidate.videoId,
     targetLanguage: candidate.targetLanguage,
     ttsVoice: typeof candidate.ttsVoice === 'string' ? candidate.ttsVoice : null,
+    translationStyle: normalizeTranslationStyle(candidate.translationStyle),
     filename: candidate.filename,
     createdAt: candidate.createdAt
   };
+}
+
+function normalizeTranslationStyle(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return 'NATURAL';
+  }
+  return value.trim().toUpperCase();
 }

@@ -10,9 +10,10 @@ import java.math.RoundingMode;
 public class ModelCallSummaryServiceImpl implements ModelCallSummaryService {
 
     @Override
-    public String translationInput(String targetLanguage, int segmentCount, int sourceCharacterCount) {
-        return "target=%s, segments=%d, sourceChars=%d".formatted(
+    public String translationInput(String targetLanguage, String translationStyle, int segmentCount, int sourceCharacterCount) {
+        return "target=%s, style=%s, segments=%d, sourceChars=%d".formatted(
                 safeValue(targetLanguage),
+                safeValue(translationStyle),
                 segmentCount,
                 sourceCharacterCount
         );

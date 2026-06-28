@@ -35,12 +35,14 @@ public class TranslationCacheKeyServiceImpl implements TranslationCacheKeyServic
             String provider,
             String model,
             String promptVersion,
+            String translationStyle,
             List<TranscriptSegmentVo> segments
     ) {
         String normalizedTargetLanguage = requireText(targetLanguage, "target language");
         String normalizedProvider = requireText(provider, "provider");
         String normalizedModel = requireText(model, "model");
         String normalizedPromptVersion = requireText(promptVersion, "prompt version");
+        String normalizedTranslationStyle = requireText(translationStyle, "translation style").toUpperCase();
         if (segments == null || segments.isEmpty()) {
             throw new IllegalArgumentException("Transcript segments must not be empty.");
         }
@@ -51,6 +53,7 @@ public class TranslationCacheKeyServiceImpl implements TranslationCacheKeyServic
                 normalizedModel,
                 normalizedPromptVersion,
                 normalizedTargetLanguage,
+                normalizedTranslationStyle,
                 sourceHash
         ));
         return new TranslationCacheLookupBo(
@@ -59,7 +62,8 @@ public class TranslationCacheKeyServiceImpl implements TranslationCacheKeyServic
                 normalizedTargetLanguage,
                 normalizedProvider,
                 normalizedModel,
-                normalizedPromptVersion
+                normalizedPromptVersion,
+                normalizedTranslationStyle
         );
     }
 

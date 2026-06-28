@@ -6,6 +6,17 @@ public record TranslationCacheLookupBo(
         String targetLanguage,
         String provider,
         String model,
-        String promptVersion
+        String promptVersion,
+        String translationStyle
 ) {
+    public TranslationCacheLookupBo(
+            String cacheKey,
+            String sourceHash,
+            String targetLanguage,
+            String provider,
+            String model,
+            String promptVersion
+    ) {
+        this(cacheKey, sourceHash, targetLanguage, provider, model, promptVersion, "NATURAL");
+    }
 }

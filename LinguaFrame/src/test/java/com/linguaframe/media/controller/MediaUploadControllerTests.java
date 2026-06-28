@@ -192,6 +192,44 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void createsUploadWithTranslationStyle() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(42.0));
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
+        MockMultipartFile file = new MockMultipartFile("file", "style.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        String response = mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", " concise "))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.translationStyle").value("CONCISE"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String jobId = response.replaceAll(".*\"jobId\":\"([^\"]+)\".*", "$1");
+        mockMvc.perform(get("/api/jobs/{jobId}", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.translationStyle").value("CONCISE"));
+    }
+
+    @Test
+    void returnsBadRequestForInvalidTranslationStyle() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "style.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", "dramatic"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UPLOAD_VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.message").value("Unsupported translation style: dramatic"));
+    }
+
+    @Test
     void returnsBadRequestForInvalidUploadFile() throws Exception {
         MockMultipartFile file = new MockMultipartFile("file", "notes.txt", "text/plain", new byte[] {1});
 

@@ -68,7 +68,8 @@ export async function validateUpload(file: File): Promise<MediaUploadValidation>
 export async function uploadMedia(
   file: File,
   targetLanguage: string,
-  ttsVoice?: string
+  ttsVoice?: string,
+  translationStyle?: string
 ): Promise<MediaUpload> {
   const body = new FormData();
   body.set('file', file);
@@ -76,6 +77,10 @@ export async function uploadMedia(
   const normalizedVoice = ttsVoice?.trim();
   if (normalizedVoice) {
     body.set('ttsVoice', normalizedVoice);
+  }
+  const normalizedStyle = translationStyle?.trim().toUpperCase();
+  if (normalizedStyle) {
+    body.set('translationStyle', normalizedStyle);
   }
 
   return requestJson<MediaUpload>('/api/media/uploads', {

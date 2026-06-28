@@ -10,6 +10,7 @@ public record LocalizationJobRecord(
         String videoId,
         String targetLanguage,
         String ttsVoice,
+        String translationStyle,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,
@@ -27,7 +28,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, null, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, null, "NATURAL", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -38,7 +39,52 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", status, createdAt, null, null, null, null, null, 0, createdAt);
+    }
+
+    public LocalizationJobRecord(
+            String id,
+            String videoId,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            LocalizationJobStatus status,
+            Instant createdAt
+    ) {
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, status, createdAt, null, null, null, null, null, 0, createdAt);
+    }
+
+    public LocalizationJobRecord(
+            String id,
+            String videoId,
+            String targetLanguage,
+            String ttsVoice,
+            LocalizationJobStatus status,
+            Instant createdAt,
+            Instant startedAt,
+            Instant completedAt,
+            Instant failedAt,
+            LocalizationJobStage failureStage,
+            String failureReason,
+            int retryCount,
+            Instant updatedAt
+    ) {
+        this(
+                id,
+                videoId,
+                targetLanguage,
+                ttsVoice,
+                "NATURAL",
+                status,
+                createdAt,
+                startedAt,
+                completedAt,
+                failedAt,
+                failureStage,
+                failureReason,
+                retryCount,
+                updatedAt
+        );
     }
 
     public LocalizationJobRecord(
@@ -60,6 +106,7 @@ public record LocalizationJobRecord(
                 videoId,
                 targetLanguage,
                 null,
+                "NATURAL",
                 status,
                 createdAt,
                 startedAt,

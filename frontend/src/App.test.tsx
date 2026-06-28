@@ -683,7 +683,7 @@ describe('App', () => {
     const validateUpload = vi
       .spyOn(linguaFrameApi, 'validateUpload')
       .mockResolvedValue(mediaUploadValidationFixture());
-    vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture());
+    vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({ translationStyle: 'FORMAL' }));
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
@@ -698,6 +698,7 @@ describe('App', () => {
     await userEvent.clear(screen.getByLabelText(/target language/i));
     await userEvent.type(screen.getByLabelText(/target language/i), 'zh-CN');
     await userEvent.selectOptions(screen.getByLabelText(/tts voice/i), 'verse');
+    await userEvent.selectOptions(screen.getByLabelText(/translation style/i), 'FORMAL');
     await userEvent.click(screen.getByRole('button', { name: /upload/i }));
 
     expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
@@ -709,13 +710,15 @@ describe('App', () => {
         jobId: 'job-1',
         filename: 'sample.mp4',
         targetLanguage: 'zh-CN',
-        ttsVoice: 'verse'
+        ttsVoice: 'verse',
+        translationStyle: 'FORMAL'
       })
     ]);
     expect(linguaFrameApi.uploadMedia).toHaveBeenCalledWith(
       expect.any(File),
       'zh-CN',
-      'verse'
+      'verse',
+      'FORMAL'
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
     expect(listJobs).toHaveBeenCalledTimes(2);
@@ -2787,6 +2790,7 @@ function jobSummaryFixture(
     filename: 'history.mp4',
     targetLanguage: 'zh-CN',
     ttsVoice: null,
+    translationStyle: 'NATURAL',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,
@@ -2812,6 +2816,7 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     jobStatus: 'QUEUED',
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
+    translationStyle: 'NATURAL',
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };
@@ -2995,6 +3000,7 @@ function jobFixture(overrides: Partial<LocalizationJob> = {}): LocalizationJob {
     videoId: 'video-1',
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
+    translationStyle: 'NATURAL',
     status: 'QUEUED',
     createdAt: '2026-06-26T10:00:00Z',
     startedAt: null,

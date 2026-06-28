@@ -36,6 +36,16 @@ public class DemoTranslationProvider implements TranslationProvider {
 
     @Override
     public TranslationResultBo translate(String jobId, String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+        return translate(jobId, targetLanguage, "NATURAL", transcriptSegments);
+    }
+
+    @Override
+    public TranslationResultBo translate(
+            String jobId,
+            String targetLanguage,
+            String translationStyle,
+            List<TranscriptSegmentVo> transcriptSegments
+    ) {
         long started = System.nanoTime();
         try {
             List<TranslationSegmentBo> segments = transcriptSegments.stream()
@@ -50,7 +60,7 @@ public class DemoTranslationProvider implements TranslationProvider {
             auditService.recordSuccess(command(
                     jobId,
                     elapsedMillis(started),
-                    inputSummary(targetLanguage, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
                     outputSummary(result)
             ));
             return result;
@@ -58,7 +68,7 @@ public class DemoTranslationProvider implements TranslationProvider {
             auditService.recordFailure(command(
                     jobId,
                     elapsedMillis(started),
-                    inputSummary(targetLanguage, transcriptSegments),
+                    inputSummary(targetLanguage, translationStyle, transcriptSegments),
                     null
             ), ex.getMessage());
             throw ex;
@@ -88,9 +98,10 @@ public class DemoTranslationProvider implements TranslationProvider {
         );
     }
 
-    private String inputSummary(String targetLanguage, List<TranscriptSegmentVo> transcriptSegments) {
+    private String inputSummary(String targetLanguage, String translationStyle, List<TranscriptSegmentVo> transcriptSegments) {
         return summaryService.translationInput(
                 targetLanguage,
+                translationStyle,
                 transcriptSegments.size(),
                 transcriptSegments.stream()
                         .map(TranscriptSegmentVo::text)

@@ -57,12 +57,13 @@ class OpenAiTranslationProviderTests {
                 .andExpect(jsonPath("$.model").value("test-translation-model"))
                 .andExpect(jsonPath("$.input[0].content[0].text").value("Test translation prompt."))
                 .andExpect(jsonPath("$.input[1].content[0].text").exists())
+                .andExpect(jsonPath("$.input[1].content[0].text").value(org.hamcrest.Matchers.containsString("\"translationStyle\":\"FORMAL\"")))
                 .andExpect(jsonPath("$.text.format.schema.properties.segments.type").value("array"))
                 .andRespond(withSuccess(responsesPayload("""
                         {"segments":[{"index":0,"text":"LinguaFrame 向你问好。"},{"index":1,"text":"这个演示字幕来自 OpenAI。"}]}
                         """), MediaType.APPLICATION_JSON));
 
-        var result = provider.translate("translation-job-1", "zh-CN", List.of(
+        var result = provider.translate("translation-job-1", "zh-CN", "FORMAL", List.of(
                 new TranscriptSegmentVo(0, 0L, 1_800L, "Hello from LinguaFrame."),
                 new TranscriptSegmentVo(1, 1_800L, 3_600L, "This demo transcript is deterministic.")
         ));
@@ -83,7 +84,7 @@ class OpenAiTranslationProviderTests {
         assertThat(command.promptVersion()).isEqualTo("test-translation-template-v9");
         assertThat(command.inputTokens()).isEqualTo(1000);
         assertThat(command.outputTokens()).isEqualTo(500);
-        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, segments=2, sourceChars=61");
+        assertThat(command.inputSummary()).isEqualTo("target=zh-CN, style=FORMAL, segments=2, sourceChars=61");
         assertThat(command.outputSummary()).isEqualTo("segments=2, targetChars=33");
         assertThat(command.inputSummary()).doesNotContain("Hello from LinguaFrame.");
         assertThat(command.outputSummary()).doesNotContain("LinguaFrame 向你问好。");
@@ -128,14 +129,14 @@ class OpenAiTranslationProviderTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body("{\"error\":{\"message\":\"provider failure details\"}}"));
 
-        assertThatThrownBy(() -> provider.translate("translation-job-2", "zh-CN", oneSegment()))
+        assertThatThrownBy(() -> provider.translate("translation-job-2", "zh-CN", "NATURAL", oneSegment()))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("OpenAI translation request failed with status 401");
         assertThat(auditService.failureCommands).hasSize(1);
         assertThat(auditService.failureCommands.getFirst().jobId()).isEqualTo("translation-job-2");
         assertThat(auditService.failureCommands.getFirst().operation()).isEqualTo(ModelCallOperation.TRANSLATION);
         assertThat(auditService.failureCommands.getFirst().provider()).isEqualTo(ModelCallProvider.OPENAI);
-        assertThat(auditService.failureCommands.getFirst().inputSummary()).isEqualTo("target=zh-CN, segments=1, sourceChars=23");
+        assertThat(auditService.failureCommands.getFirst().inputSummary()).isEqualTo("target=zh-CN, style=NATURAL, segments=1, sourceChars=23");
         assertThat(auditService.failureCommands.getFirst().outputSummary()).isNull();
         assertThat(auditService.failureSummaries).containsExactly("OpenAI translation request failed with status 401");
         server.verify();
