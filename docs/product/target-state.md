@@ -9,6 +9,7 @@ The project should stay focused on video localization:
 - Speech-to-text.
 - Bilingual subtitle generation.
 - Subtitle translation and polishing.
+- Upload-time translation style control for natural, formal, or concise subtitle localization.
 - TTS dubbing audio.
 - Subtitle-burned preview video.
 - Cost, retry, and failure observability.
@@ -154,6 +155,7 @@ The backend should provide:
 - FFmpeg integration for audio extraction and subtitle burn-in.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.
+- Translation style metadata that is persisted per job and included in provider prompts, safe summaries, and translation cache keys.
 - OpenAI TTS client.
 - OpenAI-backed translation quality evaluation client.
 - Prompt template versioning for translation, polishing, and evaluation prompts.

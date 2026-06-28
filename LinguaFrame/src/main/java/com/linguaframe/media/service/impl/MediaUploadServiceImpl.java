@@ -3,6 +3,7 @@ package com.linguaframe.media.service.impl;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.media.domain.entity.VideoRecord;
@@ -52,7 +53,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
 
     @Override
     @Transactional
-    public MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice) {
+    public MediaUploadVo createUpload(MultipartFile file, String targetLanguage, String ttsVoice, String translationStyle) {
+        String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
@@ -92,6 +94,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 videoId,
                 normalizedTargetLanguage,
                 normalizedTtsVoice,
+                normalizedTranslationStyle,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -111,6 +114,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 LocalizationJobStatus.QUEUED,
                 normalizedTargetLanguage,
                 normalizedTtsVoice,
+                normalizedTranslationStyle,
                 createdAt
         );
     }

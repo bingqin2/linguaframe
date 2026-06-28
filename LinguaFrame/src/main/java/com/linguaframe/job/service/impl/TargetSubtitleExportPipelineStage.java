@@ -129,12 +129,13 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
 
         String jobId = context.job().id();
         String targetLanguage = context.job().targetLanguage();
+        String translationStyle = context.job().translationStyle();
         List<TranscriptSegmentVo> transcriptSegments = transcriptService.listTranscript(jobId);
         if (transcriptSegments.isEmpty()) {
             throw new IllegalStateException("Transcript segments not found.");
         }
 
-        TranslationCacheLookupBo lookup = buildCacheLookup(targetLanguage, transcriptSegments);
+        TranslationCacheLookupBo lookup = buildCacheLookup(targetLanguage, translationStyle, transcriptSegments);
         Optional<com.linguaframe.job.domain.vo.TranslationCacheHitVo> cacheHit = lookup == null || translationCacheService == null
                 ? Optional.empty()
                 : translationCacheService.findCachedTranslation(lookup);
@@ -148,7 +149,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
             ));
         } else {
             costBudgetGuardService.assertWithinBudget(jobId, stage());
-            result = translationProvider.translate(jobId, targetLanguage, transcriptSegments);
+            result = translationProvider.translate(jobId, targetLanguage, translationStyle, transcriptSegments);
         }
         List<SubtitleSegmentVo> subtitles = subtitleService.replaceSubtitles(jobId, targetLanguage, result);
         if (cacheHit.isEmpty() && lookup != null && translationCacheService != null) {
@@ -180,6 +181,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
 
     private TranslationCacheLookupBo buildCacheLookup(
             String targetLanguage,
+            String translationStyle,
             List<TranscriptSegmentVo> transcriptSegments
     ) {
         if (translationCacheKeyService == null) {
@@ -190,6 +192,7 @@ public class TargetSubtitleExportPipelineStage implements LocalizationPipelineSt
                 cacheProvider(),
                 cacheModel(),
                 cachePromptVersion(),
+                translationStyle,
                 transcriptSegments
         );
     }

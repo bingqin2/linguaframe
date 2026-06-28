@@ -404,6 +404,14 @@ Impact: `GET /api/jobs/{jobId}/evidence/bundle/download` returns a ZIP with `man
 
 ## 2026-06-28
 
+Decision: Treat translation style as part of the localization job identity.
+
+Reason: A natural, formal, or concise translation can produce different subtitles from the same transcript. Keeping the style only in the browser would make provider prompts, cache hits, evidence, and reruns ambiguous.
+
+Impact: `translation_style` is stored on `localization_jobs`, defaults to `NATURAL`, flows through upload responses, job list/detail, dispatch messages, OpenAI translation payloads, safe model-call summaries, browser demo state, and demo scripts. Translation provider cache keys include the style so jobs with different style choices cannot reuse each other's translated subtitle provider results.
+
+## 2026-06-28
+
 Decision: Add a private demo owner-session API before building public authentication.
 
 Reason: The browser demo needs a clear login/logout affordance for the project owner, but LinguaFrame still has no user model, owner-scoped media, account lifecycle, JWT refresh, or billing semantics. Reusing the configured demo access token keeps the private demo honest without pretending to be a public hosted service.

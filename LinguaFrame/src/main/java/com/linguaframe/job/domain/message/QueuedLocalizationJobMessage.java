@@ -10,11 +10,17 @@ public record QueuedLocalizationJobMessage(
         String sourceObjectKey,
         String targetLanguage,
         String ttsVoice,
+        String translationStyle,
         Instant createdAt,
         LocalizationJobStage startStage
 ) {
 
     public QueuedLocalizationJobMessage {
+        if (translationStyle == null || translationStyle.isBlank()) {
+            translationStyle = "NATURAL";
+        } else {
+            translationStyle = translationStyle.trim().toUpperCase();
+        }
         if (startStage == null) {
             startStage = LocalizationJobStage.WORKER_SMOKE;
         }
@@ -25,9 +31,21 @@ public record QueuedLocalizationJobMessage(
             String videoId,
             String sourceObjectKey,
             String targetLanguage,
+            String ttsVoice,
+            Instant createdAt,
+            LocalizationJobStage startStage
+    ) {
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, "NATURAL", createdAt, startStage);
+    }
+
+    public QueuedLocalizationJobMessage(
+            String jobId,
+            String videoId,
+            String sourceObjectKey,
+            String targetLanguage,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, null, createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -38,6 +56,6 @@ public record QueuedLocalizationJobMessage(
             Instant createdAt,
             LocalizationJobStage startStage
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, null, createdAt, startStage);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", createdAt, startStage);
     }
 }

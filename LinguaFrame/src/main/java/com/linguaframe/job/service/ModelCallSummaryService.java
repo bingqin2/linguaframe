@@ -4,7 +4,11 @@ import java.math.BigDecimal;
 
 public interface ModelCallSummaryService {
 
-    String translationInput(String targetLanguage, int segmentCount, int sourceCharacterCount);
+    default String translationInput(String targetLanguage, int segmentCount, int sourceCharacterCount) {
+        return translationInput(targetLanguage, "NATURAL", segmentCount, sourceCharacterCount);
+    }
+
+    String translationInput(String targetLanguage, String translationStyle, int segmentCount, int sourceCharacterCount);
 
     String translationOutput(int segmentCount, int targetCharacterCount);
 

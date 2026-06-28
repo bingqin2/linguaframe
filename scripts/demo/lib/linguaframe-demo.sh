@@ -120,10 +120,12 @@ print(value)
 upload_demo_video() {
   local base_url="$1"
   local sample_path="$2"
+  local translation_style="${LINGUAFRAME_DEMO_TRANSLATION_STYLE:-NATURAL}"
 
   demo_curl -fsS \
     -F "file=@${sample_path};type=video/mp4" \
     -F "targetLanguage=zh-CN" \
+    -F "translationStyle=${translation_style}" \
     "$base_url/api/media/uploads"
 }
 
@@ -295,6 +297,7 @@ output_path = sys.argv[2]
 evaluation = job.get("qualityEvaluation")
 job_id = job["jobId"]
 target_language = job.get("targetLanguage") or "N/A"
+translation_style = job.get("translationStyle") or "NATURAL"
 lines = [
     "# LinguaFrame Quality Evaluation Evidence",
     "",
@@ -302,6 +305,7 @@ lines = [
     "- Job: " + job_id,
     "- Video: " + str(job.get("videoId") or "N/A"),
     "- Target language: " + target_language,
+    "- Translation style: " + translation_style,
     "- Job status: " + str(job.get("status") or "N/A"),
     "- Created at: " + str(job.get("createdAt") or "N/A"),
     "",
@@ -667,6 +671,7 @@ media_count = sum(1 for artifact_type in artifact_types if artifact_type in medi
 job_id = job.get("jobId", "unknown")
 video_id = job.get("videoId", "unknown")
 target_language = job.get("targetLanguage", "unknown")
+translation_style = job.get("translationStyle", "NATURAL")
 status = job.get("status", "UNKNOWN")
 pipeline = job.get("pipelineProgress") or {}
 usage = job.get("usageSummary") or {}
@@ -684,6 +689,7 @@ lines = [
     "## Input and job",
     f"- Video: {video_id}",
     f"- Target language: {target_language}",
+    f"- Translation style: {translation_style}",
     f"- Status: {status}",
     f"- Retries: {job.get('retryCount', 0)}",
     f"- Terminal: {'yes' if pipeline.get('terminal') or status in {'COMPLETED', 'FAILED', 'CANCELLED'} else 'no'}",

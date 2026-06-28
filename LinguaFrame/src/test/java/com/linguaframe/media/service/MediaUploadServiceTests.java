@@ -116,6 +116,67 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void createsJobWithExplicitTranslationStyle() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "formal.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", "verse", " formal ");
+
+        assertThat(result.translationStyle()).isEqualTo("FORMAL");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.translationStyle()).isEqualTo("FORMAL"));
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .get()
+                .satisfies(event -> assertThat(event.payloadJson()).contains("\"translationStyle\":\"FORMAL\""));
+    }
+
+    @Test
+    void defaultsBlankTranslationStyleToNatural() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "natural.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(file, "zh-CN", null, "   ");
+
+        assertThat(result.translationStyle()).isEqualTo("NATURAL");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.translationStyle()).isEqualTo("NATURAL"));
+    }
+
+    @Test
+    void rejectsInvalidTranslationStyleBeforeStorage() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "invalid-style.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN", null, "dramatic"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported translation style");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
     void normalizesBlankTtsVoiceToNull() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(

@@ -251,6 +251,8 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
                 currentMessage.videoId(),
                 currentMessage.sourceObjectKey(),
                 currentMessage.targetLanguage(),
+                currentMessage.ttsVoice(),
+                currentMessage.translationStyle(),
                 currentMessage.createdAt(),
                 nextStage
         );

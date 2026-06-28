@@ -7,11 +7,24 @@ import java.util.List;
 
 public interface TranslationCacheKeyService {
 
-    TranslationCacheLookupBo build(
+    default TranslationCacheLookupBo build(
             String targetLanguage,
             String provider,
             String model,
             String promptVersion,
             List<TranscriptSegmentVo> segments
-    );
+    ) {
+        return build(targetLanguage, provider, model, promptVersion, "NATURAL", segments);
+    }
+
+    default TranslationCacheLookupBo build(
+            String targetLanguage,
+            String provider,
+            String model,
+            String promptVersion,
+            String translationStyle,
+            List<TranscriptSegmentVo> segments
+    ) {
+        return build(targetLanguage, provider, model, promptVersion, segments);
+    }
 }

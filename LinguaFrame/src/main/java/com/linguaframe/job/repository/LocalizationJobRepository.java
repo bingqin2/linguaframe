@@ -35,6 +35,7 @@ public class LocalizationJobRepository {
                             video_id,
                             target_language,
                             tts_voice,
+                            translation_style,
                             status,
                             created_at,
                             started_at,
@@ -50,6 +51,7 @@ public class LocalizationJobRepository {
                             :videoId,
                             :targetLanguage,
                             :ttsVoice,
+                            :translationStyle,
                             :status,
                             :createdAt,
                             :startedAt,
@@ -65,6 +67,7 @@ public class LocalizationJobRepository {
                 .param("videoId", record.videoId())
                 .param("targetLanguage", record.targetLanguage())
                 .param("ttsVoice", record.ttsVoice())
+                .param("translationStyle", record.translationStyle())
                 .param("status", record.status().name())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("startedAt", timestampOrNull(record.startedAt()))
@@ -84,6 +87,7 @@ public class LocalizationJobRepository {
                             video_id,
                             target_language,
                             tts_voice,
+                            translation_style,
                             status,
                             created_at,
                             started_at,
@@ -114,6 +118,7 @@ public class LocalizationJobRepository {
                             videos.original_filename,
                             jobs.target_language,
                             jobs.tts_voice,
+                            jobs.translation_style,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -133,6 +138,7 @@ public class LocalizationJobRepository {
                             videos.original_filename,
                             jobs.target_language,
                             jobs.tts_voice,
+                            jobs.translation_style,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -342,6 +348,7 @@ public class LocalizationJobRepository {
                 rs.getString("video_id"),
                 rs.getString("target_language"),
                 rs.getString("tts_voice"),
+                rs.getString("translation_style"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),
@@ -363,6 +370,7 @@ public class LocalizationJobRepository {
                 rs.getString("original_filename"),
                 rs.getString("target_language"),
                 rs.getString("tts_voice"),
+                rs.getString("translation_style"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),

@@ -19,6 +19,7 @@ class TranslationCacheKeyServiceTests {
                 "OPENAI",
                 "gpt-test",
                 "openai-subtitle-translation-v1",
+                "NATURAL",
                 List.of(
                         new TranscriptSegmentVo(0, 0L, 1_000L, " Hello world. "),
                         new TranscriptSegmentVo(1, 1_000L, 2_000L, "LinguaFrame demo")
@@ -29,6 +30,7 @@ class TranslationCacheKeyServiceTests {
                 "OPENAI",
                 "gpt-test",
                 "openai-subtitle-translation-v1",
+                " natural ",
                 List.of(
                         new TranscriptSegmentVo(0, 0L, 1_000L, "Hello world."),
                         new TranscriptSegmentVo(1, 1_000L, 2_000L, " LinguaFrame demo ")
@@ -38,6 +40,7 @@ class TranslationCacheKeyServiceTests {
         assertThat(first.cacheKey()).isEqualTo(second.cacheKey());
         assertThat(first.sourceHash()).isEqualTo(second.sourceHash());
         assertThat(first.targetLanguage()).isEqualTo("zh-CN");
+        assertThat(first.translationStyle()).isEqualTo("NATURAL");
         assertThat(first.cacheKey()).matches("[a-f0-9]{64}");
         assertThat(first.sourceHash()).matches("[a-f0-9]{64}");
     }
@@ -49,36 +52,42 @@ class TranslationCacheKeyServiceTests {
                 "OPENAI",
                 "gpt-test",
                 "openai-subtitle-translation-v1",
+                "NATURAL",
                 segments("Hello world.")
         );
 
-        assertThat(service.build("en-US", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", segments("Hello world.")).cacheKey())
+        assertThat(service.build("en-US", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "NATURAL", segments("Hello world.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
-        assertThat(service.build("zh-CN", "DEMO", "gpt-test", "openai-subtitle-translation-v1", segments("Hello world.")).cacheKey())
+        assertThat(service.build("zh-CN", "DEMO", "gpt-test", "openai-subtitle-translation-v1", "NATURAL", segments("Hello world.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
-        assertThat(service.build("zh-CN", "OPENAI", "gpt-next", "openai-subtitle-translation-v1", segments("Hello world.")).cacheKey())
+        assertThat(service.build("zh-CN", "OPENAI", "gpt-next", "openai-subtitle-translation-v1", "NATURAL", segments("Hello world.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
-        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v2", segments("Hello world.")).cacheKey())
+        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v2", "NATURAL", segments("Hello world.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
-        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", segments("Different text.")).cacheKey())
+        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "FORMAL", segments("Hello world.")).cacheKey())
+                .isNotEqualTo(baseline.cacheKey());
+        assertThat(service.build("zh-CN", "OPENAI", "gpt-test", "openai-subtitle-translation-v1", "NATURAL", segments("Different text.")).cacheKey())
                 .isNotEqualTo(baseline.cacheKey());
     }
 
     @Test
     void rejectsBlankCompatibilityInputsAndEmptySegments() {
-        assertThatThrownBy(() -> service.build(" ", "OPENAI", "gpt-test", "prompt-v1", segments("Hello")))
+        assertThatThrownBy(() -> service.build(" ", "OPENAI", "gpt-test", "prompt-v1", "NATURAL", segments("Hello")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("target language");
-        assertThatThrownBy(() -> service.build("zh-CN", " ", "gpt-test", "prompt-v1", segments("Hello")))
+        assertThatThrownBy(() -> service.build("zh-CN", " ", "gpt-test", "prompt-v1", "NATURAL", segments("Hello")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("provider");
-        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", " ", "prompt-v1", segments("Hello")))
+        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", " ", "prompt-v1", "NATURAL", segments("Hello")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("model");
-        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", "gpt-test", " ", segments("Hello")))
+        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", "gpt-test", " ", "NATURAL", segments("Hello")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("prompt version");
-        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", "gpt-test", "prompt-v1", List.of()))
+        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", "gpt-test", "prompt-v1", " ", segments("Hello")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("translation style");
+        assertThatThrownBy(() -> service.build("zh-CN", "OPENAI", "gpt-test", "prompt-v1", "NATURAL", List.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("segments");
     }
