@@ -6,6 +6,30 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo run matrix workspace in `docs/plans/094-demo-run-matrix-workspace.md`.
+- Added `GET /api/jobs/{jobId}/demo-run-matrix` for recent jobs sharing the selected job's source video.
+- Added matrix recommendation logic for recommended baseline, best quality run, and lowest cost run using existing quality, model-call, cache, and delivery manifest evidence.
+- Added a React `Demo run matrix` panel for selected jobs with profile, status, quality, estimated cost, model calls, cache hits, handoff readiness, and anchor/recommendation markers.
+- Added terminal helpers for `demo-run-matrix.json` download and metadata-only summary printing.
+- Extended the full Tears of Steel script to download and summarize `demo-run-matrix.json`.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunMatrixServiceTests test` first failed because the matrix service and VO types did not exist, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoRunMatrixServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 43, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "demo run matrix"` first failed because `getDemoRunMatrix` did not exist, then passed.
+- `cd frontend && npm test -- --run src/App.test.tsx -t "demo run matrix"` first failed because the panel did not exist, then passed.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo run matrix"` passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_demo_run_matrix_json` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 465, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` first failed because the new matrix table added additional `COMPLETED` text matches to older status tests; after scoping those assertions to the selected-job status grid, it passed with `Tests 113 passed`.
+- `cd frontend && npm run build` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the demo profile comparison workspace in `docs/plans/093-demo-profile-comparison-workspace.md`.
 - Added backend job comparison JSON and Markdown download endpoints for two localization jobs.
 - Added comparison VO models and service logic for same-source status, demo profiles, quality delta, model-call delta, cost delta, cache deltas, handoff readiness, and tracked setting differences.

@@ -341,7 +341,7 @@ Override the input path when needed:
 LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
-The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
+The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video and prints a metadata-only run matrix with profile, status, quality, estimated cost, model calls, provider cache hits, and handoff readiness. `BURNED_VIDEO` and `DUBBING_AUDIO` are optional because burn-in and TTS can be disabled for stable local runs.
 
 To compare two complete Tears of Steel runs, first run a baseline profile and keep the completed job id:
 
@@ -357,7 +357,7 @@ LINGUAFRAME_COMPARISON_BASELINE_JOB_ID=<baseline-job-id> \
 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
-The second run downloads `job-comparison.json` and `job-comparison.md` to `/tmp/linguaframe-demo/tears-of-steel-full/` and prints a metadata-only summary with profile, quality, model-call, cost, cache, and setting deltas. The same backend-backed comparison is available in the browser `Demo comparison` panel.
+The second run downloads `job-comparison.json` and `job-comparison.md` to `/tmp/linguaframe-demo/tears-of-steel-full/` and prints a metadata-only summary with profile, quality, model-call, cost, cache, and setting deltas. The same backend-backed comparison is available in the browser `Demo comparison` panel. To inspect all recent runs for the same source video, open the selected job in the browser and use `Demo run matrix`; it marks the recommended baseline, best quality run, and lowest cost run from the same backend matrix used by the terminal JSON output.
 
 ## Recommended OpenAI Smoke Demo
 

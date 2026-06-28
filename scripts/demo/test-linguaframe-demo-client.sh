@@ -215,6 +215,94 @@ JSON
   [[ "$output" != *"sk-test"* ]] || fail "comparison summary exposed token"
 }
 
+test_download_demo_run_matrix_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_run_matrix_json "http://example.test" "matrix job/slash" "$TMPDIR/demo-run-matrix.json" >"$TMPDIR/matrix-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/matrix-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/matrix%20job%2Fslash/demo-run-matrix"* ]] || fail "demo run matrix helper used wrong route"
+}
+
+test_print_demo_run_matrix_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-run-matrix.json" <<'JSON'
+{
+  "anchorJobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-28T12:00:00Z",
+  "recommendedBaselineJobId": "baseline-job",
+  "bestQualityJobId": "showcase-job",
+  "lowestCostJobId": "baseline-job",
+  "jobs": [
+    {
+      "jobId": "showcase-job",
+      "videoId": "video-demo",
+      "filename": "tears.mp4",
+      "targetLanguage": "zh-CN",
+      "demoProfileId": "tears-showcase",
+      "translationStyle": "FORMAL",
+      "subtitleStylePreset": "HIGH_CONTRAST",
+      "translationGlossaryEntryCount": 3,
+      "translationGlossaryHash": "abc123",
+      "subtitlePolishingMode": "BALANCED",
+      "status": "COMPLETED",
+      "qualityScore": 91,
+      "qualityVerdict": "GOOD",
+      "modelCallCount": 3,
+      "failedModelCallCount": 0,
+      "estimatedCostUsd": 0.000090,
+      "artifactCacheHitCount": 2,
+      "generatedArtifactCount": 9,
+      "providerCacheHitCount": 1,
+      "handoffReady": true,
+      "failureReason": "raw transcript text /Users/example/private.mov sk-test provider payload"
+    },
+    {
+      "jobId": "baseline-job",
+      "videoId": "video-demo",
+      "filename": "tears.mp4",
+      "targetLanguage": "zh-CN",
+      "demoProfileId": "quick-baseline",
+      "translationStyle": "NATURAL",
+      "subtitleStylePreset": "STANDARD",
+      "translationGlossaryEntryCount": 0,
+      "translationGlossaryHash": "",
+      "subtitlePolishingMode": "OFF",
+      "status": "COMPLETED",
+      "qualityScore": 80,
+      "qualityVerdict": "GOOD",
+      "modelCallCount": 2,
+      "failedModelCallCount": 0,
+      "estimatedCostUsd": 0.000012,
+      "artifactCacheHitCount": 0,
+      "generatedArtifactCount": 8,
+      "providerCacheHitCount": 0,
+      "handoffReady": true
+    }
+  ]
+}
+JSON
+
+  print_demo_run_matrix_summary_file "$TMPDIR/demo-run-matrix.json" >"$TMPDIR/demo-run-matrix.out"
+  local output
+  output="$(cat "$TMPDIR/demo-run-matrix.out")"
+
+  [[ "$output" == *"demoRunMatrixAnchorJobId=showcase-job"* ]] || fail "matrix summary missed anchor"
+  [[ "$output" == *"demoRunMatrixVideoId=video-demo"* ]] || fail "matrix summary missed video"
+  [[ "$output" == *"demoRunMatrixRunCount=2"* ]] || fail "matrix summary missed run count"
+  [[ "$output" == *"demoRunMatrixRecommendedBaselineJobId=baseline-job"* ]] || fail "matrix summary missed baseline"
+  [[ "$output" == *"demoRunMatrixBestQualityJobId=showcase-job"* ]] || fail "matrix summary missed best quality"
+  [[ "$output" == *"demoRunMatrixLowestCostJobId=baseline-job"* ]] || fail "matrix summary missed lowest cost"
+  [[ "$output" == *"demoRunMatrixRun=showcase-job:tears-showcase:COMPLETED:quality=91:cost=0.000090:modelCalls=3:providerCacheHits=1:handoffReady=true"* ]] || fail "matrix summary missed showcase row"
+  [[ "$output" != *"raw transcript text"* ]] || fail "matrix summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "matrix summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "matrix summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "matrix summary exposed provider payload"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -1101,6 +1189,8 @@ test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile
 test_download_job_comparison_helpers_use_backend_routes
 test_print_job_comparison_summary_is_metadata_only
+test_download_demo_run_matrix_helper_uses_backend_route
+test_print_demo_run_matrix_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

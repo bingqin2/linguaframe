@@ -80,6 +80,17 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
     }
 
     @Override
+    public LocalizationJobListVo listJobsByVideoId(String videoId, Integer limit) {
+        int normalizedLimit = normalizeLimit(limit);
+        return new LocalizationJobListVo(
+                jobRepository.findSummariesByVideoId(videoId, normalizedLimit),
+                normalizedLimit,
+                0,
+                jobRepository.countSummariesByVideoId(videoId)
+        );
+    }
+
+    @Override
     public LocalizationJobVo getJob(String jobId) {
         Optional<LocalizationJobVo> cachedJob = cachedJob(jobId);
         if (cachedJob.isPresent()) {

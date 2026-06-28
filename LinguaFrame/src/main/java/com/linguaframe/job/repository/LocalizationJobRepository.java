@@ -204,6 +204,74 @@ public class LocalizationJobRepository {
         return count == null ? 0 : count;
     }
 
+    public List<LocalizationJobSummaryVo> findSummariesByVideoId(String videoId, int limit) {
+        return jdbcClient.sql("""
+                        SELECT
+                            jobs.id AS job_id,
+                            jobs.video_id,
+                            videos.original_filename,
+                            jobs.target_language,
+                            jobs.tts_voice,
+                            jobs.translation_style,
+                            jobs.subtitle_style_preset,
+                            jobs.translation_glossary_hash,
+                            jobs.translation_glossary_entry_count,
+                            jobs.subtitle_polishing_mode,
+                            jobs.demo_profile_id,
+                            jobs.status,
+                            jobs.created_at,
+                            jobs.started_at,
+                            jobs.completed_at,
+                            jobs.failed_at,
+                            jobs.failure_stage,
+                            jobs.failure_reason,
+                            jobs.retry_count,
+                            COALESCE(SUM(model_call_records.estimated_cost_usd), 0) AS estimated_cost_usd
+                        FROM localization_jobs jobs
+                        JOIN videos ON videos.id = jobs.video_id
+                        LEFT JOIN model_call_records ON model_call_records.job_id = jobs.id
+                        WHERE jobs.video_id = :videoId
+                        GROUP BY
+                            jobs.id,
+                            jobs.video_id,
+                            videos.original_filename,
+                            jobs.target_language,
+                            jobs.tts_voice,
+                            jobs.translation_style,
+                            jobs.subtitle_style_preset,
+                            jobs.translation_glossary_hash,
+                            jobs.translation_glossary_entry_count,
+                            jobs.subtitle_polishing_mode,
+                            jobs.demo_profile_id,
+                            jobs.status,
+                            jobs.created_at,
+                            jobs.started_at,
+                            jobs.completed_at,
+                            jobs.failed_at,
+                            jobs.failure_stage,
+                            jobs.failure_reason,
+                            jobs.retry_count
+                        ORDER BY jobs.created_at DESC, jobs.id DESC
+                        LIMIT :limit
+                        """)
+                .param("videoId", videoId)
+                .param("limit", limit)
+                .query(this::mapSummaryRow)
+                .list();
+    }
+
+    public int countSummariesByVideoId(String videoId) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs jobs
+                        WHERE jobs.video_id = :videoId
+                        """)
+                .param("videoId", videoId)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
     public List<RetentionJobCandidateVo> findRetentionCandidates(
             Set<LocalizationJobStatus> statuses,
             Instant cutoff,

@@ -6,6 +6,7 @@ import { App } from './App';
 import { linguaFrameApi } from './api/linguaframeApi';
 import type {
   DeliveryManifest,
+  DemoRunMatrix,
   JobArtifact,
   JobComparison,
   LocalizationJob,
@@ -44,6 +45,15 @@ class FakeEventSource {
   }
 }
 
+function selectedJobStatusGrid() {
+  const selectedJob = screen.getByRole('region', { name: /selected job/i });
+  const statusGrid = selectedJob.querySelector('.status-grid');
+  if (!(statusGrid instanceof HTMLElement)) {
+    throw new Error('Selected job status grid was not rendered');
+  }
+  return within(statusGrid);
+}
+
 describe('App', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -70,6 +80,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
   });
 
@@ -896,15 +907,9 @@ describe('App', () => {
 
     await user.type(screen.getByLabelText(/open job id/i), 'job-1');
     await user.click(screen.getByRole('button', { name: /open job/i }));
-    await waitFor(() =>
-      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('PROCESSING'))
-        .toBeInTheDocument()
-    );
+    await waitFor(() => expect(selectedJobStatusGrid().getByText('PROCESSING')).toBeInTheDocument());
 
-    await waitFor(() =>
-      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
-        .toBeInTheDocument()
-    );
+    await waitFor(() => expect(selectedJobStatusGrid().getByText('COMPLETED')).toBeInTheDocument());
 
     await new Promise((resolve) => window.setTimeout(resolve, 30));
     expect(getJob).toHaveBeenCalledTimes(2);
@@ -1059,10 +1064,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
-    await waitFor(() =>
-      expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
-        .toBeInTheDocument()
-    );
+    await waitFor(() => expect(selectedJobStatusGrid().getByText('COMPLETED')).toBeInTheDocument());
     expect(screen.queryByRole('region', { name: /failure triage/i })).not.toBeInTheDocument();
   });
 
@@ -1114,8 +1116,7 @@ describe('App', () => {
     await userEvent.click(cancelButton);
 
     await waitFor(() => expect(cancelJob).toHaveBeenCalledWith('job-1'));
-    expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('CANCELLED'))
-      .toBeInTheDocument();
+    expect(selectedJobStatusGrid().getByText('CANCELLED')).toBeInTheDocument();
     expect(listJobs).toHaveBeenCalledTimes(2);
   });
 
@@ -1181,7 +1182,7 @@ describe('App', () => {
       await waitFor(() => expect(FakeEventSource.instances[0]?.url).toBe('/api/jobs/job-1/events'));
       FakeEventSource.instances[0].emitJob(jobFixture({ status: 'COMPLETED' }));
 
-      expect(await screen.findByText('COMPLETED')).toBeInTheDocument();
+      await waitFor(() => expect(selectedJobStatusGrid().getByText('COMPLETED')).toBeInTheDocument());
     } finally {
       window.EventSource = originalEventSource;
     }
@@ -1208,10 +1209,7 @@ describe('App', () => {
       FakeEventSource.instances[0].onerror?.();
 
       await waitFor(() => expect(getJob).toHaveBeenCalledTimes(2));
-      await waitFor(() =>
-        expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('COMPLETED'))
-          .toBeInTheDocument()
-      );
+      await waitFor(() => expect(selectedJobStatusGrid().getByText('COMPLETED')).toBeInTheDocument());
     } finally {
       window.EventSource = originalEventSource;
     }
@@ -2292,6 +2290,36 @@ describe('App', () => {
     );
   });
 
+  test('shows a same-source demo run matrix for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'matrix-showcase-job',
+        videoId: 'matrix-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'matrix-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const matrix = await screen.findByRole('region', { name: /demo run matrix/i });
+    expect(within(matrix).getByText('quick-baseline')).toBeInTheDocument();
+    expect(within(matrix).getByText('tears-showcase')).toBeInTheDocument();
+    expect(within(matrix).getByText('Best quality')).toBeInTheDocument();
+    expect(within(matrix).getByText('Lowest cost')).toBeInTheDocument();
+    expect(within(matrix).getByText('$0.00014100')).toBeInTheDocument();
+    expect(within(matrix).getByText('1 provider hits')).toBeInTheDocument();
+    expect(within(matrix).getAllByText('Ready')).toHaveLength(2);
+    expect(linguaFrameApi.getDemoRunMatrix).toHaveBeenCalledWith('matrix-showcase-job', 8);
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -3086,6 +3114,76 @@ function jobComparisonFixture(overrides: Partial<JobComparison> = {}): JobCompar
         field: 'demoProfileId',
         baselineValue: 'quick-baseline',
         comparisonValue: 'tears-showcase'
+      }
+    ],
+    ...overrides
+  };
+}
+
+function demoRunMatrixFixture(overrides: Partial<DemoRunMatrix> = {}): DemoRunMatrix {
+  return {
+    anchorJobId: 'matrix-showcase-job',
+    videoId: 'matrix-video',
+    generatedAt: '2026-06-28T12:00:00Z',
+    recommendedBaselineJobId: 'matrix-baseline-job',
+    bestQualityJobId: 'matrix-showcase-job',
+    lowestCostJobId: 'matrix-baseline-job',
+    jobs: [
+      {
+        jobId: 'matrix-showcase-job',
+        videoId: 'matrix-video',
+        filename: 'tears.mp4',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        ttsVoice: null,
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        translationGlossaryEntryCount: 3,
+        translationGlossaryHash: 'abc123',
+        subtitlePolishingMode: 'BALANCED',
+        status: 'COMPLETED',
+        createdAt: '2026-06-28T11:00:00Z',
+        completedAt: '2026-06-28T11:03:00Z',
+        failureStage: null,
+        failureReason: null,
+        retryCount: 0,
+        qualityScore: 91,
+        qualityVerdict: 'GOOD',
+        modelCallCount: 2,
+        failedModelCallCount: 0,
+        estimatedCostUsd: 0.000141,
+        artifactCacheHitCount: 1,
+        generatedArtifactCount: 4,
+        providerCacheHitCount: 1,
+        handoffReady: true
+      },
+      {
+        jobId: 'matrix-baseline-job',
+        videoId: 'matrix-video',
+        filename: 'tears.mp4',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'quick-baseline',
+        ttsVoice: null,
+        translationStyle: 'NATURAL',
+        subtitleStylePreset: 'STANDARD',
+        translationGlossaryEntryCount: 0,
+        translationGlossaryHash: '',
+        subtitlePolishingMode: 'OFF',
+        status: 'COMPLETED',
+        createdAt: '2026-06-28T10:00:00Z',
+        completedAt: '2026-06-28T10:02:00Z',
+        failureStage: null,
+        failureReason: null,
+        retryCount: 0,
+        qualityScore: 82,
+        qualityVerdict: 'GOOD',
+        modelCallCount: 1,
+        failedModelCallCount: 0,
+        estimatedCostUsd: 0.000063,
+        artifactCacheHitCount: 0,
+        generatedArtifactCount: 3,
+        providerCacheHitCount: 0,
+        handoffReady: true
       }
     ],
     ...overrides

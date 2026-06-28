@@ -39,6 +39,7 @@ git clone linguaframe
   -> upload sample video
   -> inspect generated artifacts
   -> compare two completed demo profile runs
+  -> inspect the same-source demo run matrix
 ```
 
 Stage 1 goals:
@@ -52,6 +53,7 @@ Stage 1 goals:
 - Validate OpenAI API calls with a short sample video.
 - Validate real OpenAI demo runs through an explicit no-secret env template, preflight, and smoke runner instead of enabling paid providers by default.
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
+- Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment
@@ -117,7 +119,8 @@ A user should be able to:
 14. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
 15. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
 16. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
-17. Play the generated dubbing audio with visible file metadata and download evidence.
+17. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
+18. Play the generated dubbing audio with visible file metadata and download evidence.
 18. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
 19. Inspect cost and processing time.
 20. Retry the job if a step fails.

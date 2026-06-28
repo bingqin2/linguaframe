@@ -1881,6 +1881,55 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoRunMatrixForSameSourceProfileRuns() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T16:30:00Z");
+        createJob("job-controller-video-matrix", "job-controller-matrix-baseline", "matrix.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-matrix-showcase",
+                "job-controller-video-matrix",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-matrix-failed",
+                "job-controller-video-matrix",
+                "zh-CN",
+                LocalizationJobStatus.FAILED,
+                createdAt.plusSeconds(20)
+        ));
+        updateComparisonSettings("job-controller-matrix-baseline", "quick-baseline", "NATURAL", "STANDARD", 0, "", "OFF");
+        updateComparisonSettings("job-controller-matrix-showcase", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        updateComparisonSettings("job-controller-matrix-failed", "concise-review", "CONCISE", "LARGE", 0, "", "STRICT");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-matrix-baseline", 100, 100, 80, "0.00006300"));
+        modelCallAuditService.recordSuccess(modelCall("job-controller-matrix-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-matrix-baseline", "job-controller-matrix-baseline", 82, createdAt.plusSeconds(30)));
+        qualityEvaluationRepository.save(quality("quality-matrix-showcase", "job-controller-matrix-showcase", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("matrix-baseline-json", "job-controller-matrix-baseline", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("matrix-baseline-srt", "job-controller-matrix-baseline", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("matrix-baseline-vtt", "job-controller-matrix-baseline", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-matrix",
+                        "job-controller-matrix-showcase"
+                ).param("limit", "8"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.anchorJobId").value("job-controller-matrix-showcase"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-matrix"))
+                .andExpect(jsonPath("$.recommendedBaselineJobId").value("job-controller-matrix-baseline"))
+                .andExpect(jsonPath("$.bestQualityJobId").value("job-controller-matrix-showcase"))
+                .andExpect(jsonPath("$.lowestCostJobId").value("job-controller-matrix-baseline"))
+                .andExpect(jsonPath("$.jobs[0].jobId").value("job-controller-matrix-failed"))
+                .andExpect(jsonPath("$.jobs[0].demoProfileId").value("concise-review"))
+                .andExpect(jsonPath("$.jobs[1].jobId").value("job-controller-matrix-showcase"))
+                .andExpect(jsonPath("$.jobs[1].qualityScore").value(91))
+                .andExpect(jsonPath("$.jobs[1].handoffReady").value(false))
+                .andExpect(jsonPath("$.jobs[2].jobId").value("job-controller-matrix-baseline"))
+                .andExpect(jsonPath("$.jobs[2].handoffReady").value(true));
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);
