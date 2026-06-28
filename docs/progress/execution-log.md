@@ -2480,6 +2480,23 @@ Post-merge verification:
 
 Work:
 
+- Planned the demo run evidence package workspace in `docs/plans/085-demo-run-evidence-package-workspace.md`.
+- Added `GET /api/jobs/{jobId}/demo-run-package/download` for a safe metadata-only ZIP workspace containing manifest, README, job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report.
+- Added OpenAPI and runtime required-route coverage for the demo run package endpoint.
+- Added `Download demo run package` links to `Delivery handoff`, `Demo handoff checklist`, and `Demo session report`.
+- Extended deterministic and OpenAI smoke demo scripts to download and validate `demo-run-package.zip`.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with demo run package behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunPackageServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App -t "demo run package"` first failed because the browser link was missing, then passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `print_demo_run_package_summary` did not exist, then passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the media preview delivery workspace in `docs/plans/078-media-preview-delivery-workspace.md`.
 - Replaced the ad hoc audio/video preview grid with a `Media delivery` panel for generated dubbing audio, generated burned video, and reviewed burned video outputs.
 - Added browser playback, direct downloads, content type, size, short SHA-256 hash, and generated/reused cache state for playable media artifacts.

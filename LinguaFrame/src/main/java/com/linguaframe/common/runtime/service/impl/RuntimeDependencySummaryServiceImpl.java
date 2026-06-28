@@ -38,6 +38,7 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
             "/api/jobs/{jobId}/evidence/markdown/download",
             "/api/jobs/{jobId}/evidence/bundle/download",
             "/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download",
+            "/api/jobs/{jobId}/demo-run-package/download",
             "/api/jobs/{jobId}/delivery-manifest",
             "/api/jobs/{jobId}/delivery-manifest/markdown/download",
             "/api/jobs/{jobId}/handoff-package/download",

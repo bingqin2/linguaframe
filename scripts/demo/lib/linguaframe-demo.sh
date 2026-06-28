@@ -489,6 +489,15 @@ download_handoff_package() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/handoff-package/download" -o "$output_path"
 }
 
+download_demo_run_package() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$job_id/demo-run-package/download" -o "$output_path"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -1139,5 +1148,67 @@ with zipfile.ZipFile(package_path) as archive:
 print("handoffPackageJobId=" + expected_job_id)
 print("handoffPackageEntryCount=" + str(len(names)))
 print("handoffPackageReviewedArtifactCount=" + str(len(reviewed_entries)))
+PY
+}
+
+print_demo_run_package_summary() {
+  local package_path="$1"
+  local expected_job_id="$2"
+
+  python3 - "$package_path" "$expected_job_id" <<'PY'
+import json
+import sys
+import zipfile
+
+package_path = sys.argv[1]
+expected_job_id = sys.argv[2]
+required_entries = {
+    "manifest.json",
+    "README.md",
+    "job-detail.json",
+    "diagnostics.json",
+    "evidence.md",
+    "quality-evidence.md",
+    "delivery-manifest.md",
+    "demo-handoff-checklist.md",
+    "demo-session-report.md",
+}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+
+with zipfile.ZipFile(package_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Demo run package is missing entries: " + ", ".join(missing))
+
+    combined = ""
+    for name in sorted(required_entries):
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+    for value in forbidden:
+        if value in combined:
+            raise SystemExit("Demo run package contains forbidden sensitive string: " + value)
+
+    manifest = json.loads(archive.read("manifest.json").decode("utf-8"))
+    if manifest.get("jobId") != expected_job_id:
+        raise SystemExit("Demo run package manifest job id mismatch: " + str(manifest.get("jobId")))
+
+print("demoRunPackageJobId=" + expected_job_id)
+print("demoRunPackageEntryCount=" + str(len(required_entries)))
 PY
 }

@@ -457,3 +457,11 @@ Decision: Generate reviewed handoff packages on demand from existing safe demo s
 Reason: The final demo handoff needs one downloadable package for reviewed deliverables, but it should not persist another artifact row or mix internal generated audit outputs with reviewer-facing files.
 
 Impact: `/api/jobs/{jobId}/handoff-package/download` returns a ZIP with a package manifest, delivery manifest, diagnostics, evidence report, reviewed subtitle artifacts, and optional reviewed burned video. It excludes source uploads, generated transcript/target subtitle artifacts, generated burned video, worker summaries, object keys, local paths, provider payloads, demo tokens, and credentials.
+
+## 2026-06-28
+
+Decision: Generate a complete demo run package on demand from existing safe evidence surfaces.
+
+Reason: The demo now has multiple proof artifacts, including diagnostics, evidence Markdown, quality evidence, delivery manifests, handoff checklists, and session reports. Reviewers need one ZIP workspace for a single run without mixing in media bytes or internal storage identifiers.
+
+Impact: `/api/jobs/{jobId}/demo-run-package/download` returns a metadata-only ZIP with `manifest.json`, `README.md`, `job-detail.json`, `diagnostics.json`, `evidence.md`, `quality-evidence.md`, `delivery-manifest.md`, `demo-handoff-checklist.md`, and `demo-session-report.md`. Browser and terminal demos expose the download, and scripts validate fixed entries plus forbidden sensitive markers.

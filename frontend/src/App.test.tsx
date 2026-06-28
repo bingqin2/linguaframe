@@ -1361,7 +1361,7 @@ describe('App', () => {
     expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
   });
 
-  test('renders ready demo handoff checklist for completed reviewed media jobs', async () => {
+  test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
       value: { writeText },
@@ -1448,6 +1448,10 @@ describe('App', () => {
     expect(within(checklist).getByText('Evidence downloads ready')).toBeInTheDocument();
     expect(within(checklist).getByRole('button', { name: /copy checklist/i })).toBeEnabled();
     expect(within(checklist).getByRole('button', { name: /download checklist json/i })).toBeEnabled();
+    expect(within(checklist).getByRole('link', { name: /download demo run package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/handoff-ready-job/demo-run-package/download'
+    );
   });
 
   test('renders attention demo handoff checklist for failed jobs', async () => {

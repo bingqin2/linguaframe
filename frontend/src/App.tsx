@@ -2450,6 +2450,9 @@ function DeliveryHandoffPanel({
           <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
             Download handoff package
           </a>
+          <a className="secondary-link" href={linguaFrameApi.demoRunPackageDownloadUrl(jobId)}>
+            Download demo run package
+          </a>
           <a className="secondary-link" href={linguaFrameApi.deliveryManifestMarkdownDownloadUrl(jobId)}>
             Download delivery manifest
           </a>
@@ -2811,6 +2814,9 @@ function DemoHandoffChecklistPanel({
         <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
           Download handoff package
         </a>
+        <a className="secondary-link" href={linguaFrameApi.demoRunPackageDownloadUrl(jobId)}>
+          Download demo run package
+        </a>
       </div>
     </section>
   );
@@ -2904,6 +2910,9 @@ function DemoSessionReportPanel({
         </a>
         <a className="secondary-link" href={linguaFrameApi.jobHandoffPackageDownloadUrl(jobId)}>
           Download handoff package
+        </a>
+        <a className="secondary-link" href={linguaFrameApi.demoRunPackageDownloadUrl(jobId)}>
+          Download demo run package
         </a>
       </div>
     </section>
