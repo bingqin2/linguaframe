@@ -9,6 +9,7 @@ import type {
   AuthSessionStatus,
   DeliveryManifest,
   DemoRunMonitor,
+  DemoRunSnapshot,
   DemoPresenterPack,
   DemoRunMatrix,
   DemoShareSheet,
@@ -106,6 +107,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoRunSnapshot').mockResolvedValue(demoRunSnapshotFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
@@ -2927,6 +2929,39 @@ describe('App', () => {
     await waitFor(() => expect(linguaFrameApi.getDemoRunMonitor).toHaveBeenCalledWith('monitor-showcase-job'));
   });
 
+  test('shows a static demo snapshot workspace for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'snapshot-showcase-job',
+        videoId: 'snapshot-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoRunSnapshot').mockResolvedValue(demoRunSnapshotFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'snapshot-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const snapshot = await screen.findByRole('region', { name: /demo snapshot/i });
+    expect(within(snapshot).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(snapshot).getByText('tears-showcase demo to zh-CN')).toBeInTheDocument();
+    expect(within(snapshot).getByText('index.html')).toBeInTheDocument();
+    expect(within(snapshot).getByText('demo-share-sheet.md')).toBeInTheDocument();
+    expect(within(snapshot).getByText('transcript content')).toBeInTheDocument();
+    expect(within(snapshot).getByRole('link', { name: /download static snapshot zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/snapshot-showcase-job/demo-run-snapshot/download'
+    );
+    await userEvent.click(within(snapshot).getByRole('button', { name: /refresh/i }));
+    await waitFor(() => expect(linguaFrameApi.getDemoRunSnapshot).toHaveBeenCalledWith('snapshot-showcase-job'));
+  });
+
   test('cache replay compares a pinned baseline with a completed cache-hit job', async () => {
     const baselineJob = jobFixture({
       jobId: 'cache-baseline-job',
@@ -4195,6 +4230,52 @@ function demoRunMonitorFixture(overrides: Partial<DemoRunMonitor> = {}): DemoRun
       }
     ],
     markdown: '# LinguaFrame Demo Run Monitor\n',
+    ...overrides
+  };
+}
+
+function demoRunSnapshotFixture(overrides: Partial<DemoRunSnapshot> = {}): DemoRunSnapshot {
+  return {
+    jobId: 'snapshot-showcase-job',
+    videoId: 'snapshot-video',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    generatedAt: '2026-06-29T12:00:00Z',
+    readiness: 'READY',
+    headline: 'tears-showcase demo to zh-CN',
+    summary: 'This offline reviewer snapshot captures metadata-only evidence for job snapshot-showcase-job while it is COMPLETED.',
+    sections: [
+      {
+        kind: 'INDEX_HTML',
+        title: 'Offline index',
+        status: 'READY',
+        filename: 'index.html',
+        summary: 'Self-contained HTML entry point for reviewers.'
+      },
+      {
+        kind: 'SHARE_SHEET',
+        title: 'Demo share sheet',
+        status: 'READY',
+        filename: 'demo-share-sheet.md',
+        summary: 'Reviewer-facing summary.'
+      }
+    ],
+    packageEntries: [
+      'index.html',
+      'manifest.json',
+      'README.md',
+      'demo-share-sheet.md',
+      'demo-share-sheet.json'
+    ],
+    links: [
+      {
+        kind: 'DEMO_RUN_SNAPSHOT_DOWNLOAD',
+        label: 'Static demo snapshot ZIP',
+        url: '/api/jobs/snapshot-showcase-job/demo-run-snapshot/download'
+      }
+    ],
+    exclusionPolicy: ['media bytes', 'transcript content', 'subtitle content', 'provider request bodies'],
+    markdown: '# LinguaFrame Demo Snapshot\n',
     ...overrides
   };
 }

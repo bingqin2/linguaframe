@@ -101,6 +101,8 @@ class OpenApiDocumentationTests {
                         "/api/jobs/{jobId}/evidence/bundle/download",
                         "/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download",
                         "/api/jobs/{jobId}/demo-run-package/download",
+                        "/api/jobs/{jobId}/demo-run-snapshot",
+                        "/api/jobs/{jobId}/demo-run-snapshot/download",
                         "/api/jobs/{jobId}/ai-audit-package/download",
                         "/api/jobs/{jobId}/demo-run-matrix",
                         "/api/jobs/{jobId}/demo-run-monitor",

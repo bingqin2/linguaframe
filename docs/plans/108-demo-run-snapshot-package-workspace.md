@@ -43,10 +43,10 @@
 - ZIP entries: `index.html`, `manifest.json`, `README.md`, `demo-share-sheet.md`, `demo-share-sheet.json`, `demo-run-monitor.md`, `demo-run-monitor.json`, `presenter-pack.json`, `delivery-manifest.md`, `diagnostics.json`, and `evidence.md`.
 - `index.html` must be self-contained, readable without backend access, and contain only escaped metadata plus relative links to packaged files.
 
-- [ ] Write failing service tests for completed, failed, and in-progress jobs proving snapshot readiness, ZIP entries, HTML escaping, and unsafe marker exclusion.
-- [ ] Write failing controller/owner-access tests for JSON preview and ZIP download routes.
-- [ ] Implement BO/VO records, service composition, Markdown/HTML rendering, ZIP generation, and controller routes.
-- [ ] Run focused backend tests for snapshot service, controller contract, OpenAPI route coverage, and authenticated owner access.
+- [x] Write failing service tests for completed, failed, and in-progress jobs proving snapshot readiness, ZIP entries, HTML escaping, and unsafe marker exclusion.
+- [x] Write failing controller/owner-access tests for JSON preview and ZIP download routes.
+- [x] Implement BO/VO records, service composition, Markdown/HTML rendering, ZIP generation, and controller routes.
+- [x] Run focused backend tests for snapshot service, controller contract, OpenAPI route coverage, and runtime route coverage.
 
 ## Task 2: Browser Snapshot Workspace Panel
 
@@ -63,9 +63,9 @@
 - Provide explicit refresh and `Download static snapshot ZIP` actions.
 - Refresh snapshot data when a job is opened, uploaded, retried, cancelled, manually refreshed, and when SSE updates the selected job.
 
-- [ ] Write failing Vitest coverage for snapshot rendering, included entries, exclusion copy, refresh behavior, and download link.
-- [ ] Implement frontend API types/client methods and selected-job panel.
-- [ ] Run focused frontend tests.
+- [x] Write failing Vitest coverage for snapshot rendering, included entries, exclusion copy, refresh behavior, and download link.
+- [x] Implement frontend API types/client methods and selected-job panel.
+- [x] Run focused frontend tests.
 
 ## Task 3: Terminal Snapshot Export Script
 
@@ -81,9 +81,9 @@
 - The full Tears demo automatically exports `demo-run-snapshot.json` and `demo-run-snapshot.zip` after a completed job.
 - The script fails clearly when job id is missing, backend access is denied, the ZIP is empty, or expected entries are missing.
 
-- [ ] Add failing shell helper tests for JSON download, ZIP download, summary printing, missing job id, and entry validation.
-- [ ] Implement shared helper functions and the snapshot script.
-- [ ] Integrate final snapshot export into the full Tears demo path without changing quick demo behavior.
+- [x] Add failing shell helper tests for JSON download, ZIP download, summary printing, missing job id, and entry validation.
+- [x] Implement shared helper functions and the snapshot script.
+- [x] Integrate final snapshot export into the full Tears demo path without changing quick demo behavior.
 
 ## Task 4: Documentation, Validation, And Merge
 
@@ -105,8 +105,8 @@
 - `cd frontend && npm run build`
 - `git diff --check`
 
-- [ ] Document when to use the snapshot package versus the existing demo run package, share sheet, evidence bundle, and reviewed handoff package.
-- [ ] Record validation evidence in the execution log.
+- [x] Document when to use the snapshot package versus the existing demo run package, share sheet, evidence bundle, and reviewed handoff package.
+- [x] Record validation evidence in the execution log.
 - [ ] Commit the completed feature branch, merge back to `main`, run post-merge focused validation, and record the merge.
 
 ## Plan Self-Review

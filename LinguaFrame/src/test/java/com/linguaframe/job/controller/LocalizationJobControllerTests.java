@@ -2144,6 +2144,94 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoRunSnapshotForSelectedCompletedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T18:45:00Z");
+        createJob("job-controller-video-snapshot", "job-controller-snapshot", "snapshot.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        updateComparisonSettings("job-controller-snapshot", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-snapshot", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-snapshot", "job-controller-snapshot", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("snapshot-json", "job-controller-snapshot", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("snapshot-srt", "job-controller-snapshot", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("snapshot-vtt", "job-controller-snapshot", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-snapshot",
+                        "job-controller-snapshot"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-snapshot"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-snapshot"))
+                .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.readiness").value("READY"))
+                .andExpect(jsonPath("$.headline").value("tears-showcase demo to zh-CN"))
+                .andExpect(jsonPath("$.sections[?(@.kind == 'INDEX_HTML')].filename").value("index.html"))
+                .andExpect(jsonPath("$.sections[?(@.kind == 'SHARE_SHEET')].filename").value("demo-share-sheet.md"))
+                .andExpect(jsonPath("$.sections[?(@.kind == 'RUN_MONITOR')].filename").value("demo-run-monitor.md"))
+                .andExpect(jsonPath("$.packageEntries").value(org.hamcrest.Matchers.hasItem("index.html")))
+                .andExpect(jsonPath("$.packageEntries").value(org.hamcrest.Matchers.hasItem("demo-share-sheet.json")))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_SNAPSHOT_DOWNLOAD')].url")
+                        .value("/api/jobs/job-controller-snapshot/demo-run-snapshot/download"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'DEMO_RUN_PACKAGE')].url")
+                        .value("/api/jobs/job-controller-snapshot/demo-run-package/download"))
+                .andExpect(jsonPath("$.exclusionPolicy").value(org.hamcrest.Matchers.hasItem("media bytes")))
+                .andExpect(jsonPath("$.markdown").value(org.hamcrest.Matchers.containsString("LinguaFrame Demo Snapshot")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))));
+    }
+
+    @Test
+    void downloadsDemoRunSnapshotZipForSelectedJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T19:00:00Z");
+        createJob("job-controller-video-snapshot-zip", "job-controller-snapshot-zip", "snapshot-zip.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        updateComparisonSettings("job-controller-snapshot-zip", "tears-showcase", "NATURAL", "STANDARD", 0, "", "OFF");
+        artifactRepository.save(reviewedArtifact("snapshot-zip-json", "job-controller-snapshot-zip", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("snapshot-zip-srt", "job-controller-snapshot-zip", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("snapshot-zip-vtt", "job-controller-snapshot-zip", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-run-snapshot/download",
+                        "job-controller-snapshot-zip"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-snapshot-zip-demo-run-snapshot.zip\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries)
+                .containsKeys(
+                        "index.html",
+                        "manifest.json",
+                        "README.md",
+                        "demo-share-sheet.md",
+                        "demo-share-sheet.json",
+                        "demo-run-monitor.md",
+                        "demo-run-monitor.json",
+                        "presenter-pack.json",
+                        "delivery-manifest.md",
+                        "diagnostics.json",
+                        "evidence.md"
+                );
+        assertThat(entries.get("index.html"))
+                .contains("LinguaFrame Demo Snapshot")
+                .contains("demo-share-sheet.md");
+        String combined = String.join("\n", entries.values());
+        assertThat(combined)
+                .doesNotContain("raw transcript text")
+                .doesNotContain("/Users/example")
+                .doesNotContain("sk-test")
+                .doesNotContain("provider payload")
+                .doesNotContain("job-artifacts/");
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);

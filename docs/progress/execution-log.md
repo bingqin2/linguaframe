@@ -3153,3 +3153,24 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo run snapshot package workspace in `docs/plans/108-demo-run-snapshot-package-workspace.md`.
+- Added backend snapshot preview and ZIP download routes at `/api/jobs/{jobId}/demo-run-snapshot` and `/api/jobs/{jobId}/demo-run-snapshot/download`.
+- Added a React `Demo snapshot` panel with readiness, package sections, exclusion policy, safe links, refresh, and static ZIP download.
+- Added `scripts/demo/demo-run-snapshot.sh`, shared snapshot helper functions, and full Tears export of `demo-run-snapshot.json` plus `demo-run-snapshot.zip`.
+- Updated README, Docker E2E guide, smoke checklist, decisions, and this execution log with snapshot package behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunSnapshotServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 52, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run App.test.tsx src/api/linguaframeApi.test.ts` passed with `Test Files 2 passed` and `Tests 136 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/demo-run-snapshot.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 562, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Test Files 3 passed` and `Tests 143 passed`.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.

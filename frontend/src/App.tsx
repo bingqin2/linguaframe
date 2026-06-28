@@ -7,6 +7,7 @@ import type {
   DemoPresenterPack,
   DemoRunMatrix,
   DemoRunMonitor,
+  DemoRunSnapshot,
   DemoShareSheet,
   FailureTriage,
   DemoUploadReadiness,
@@ -411,6 +412,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunMonitor, setDemoRunMonitor] = useState<DemoRunMonitor | null>(null);
   const [demoRunMonitorError, setDemoRunMonitorError] = useState<string | null>(null);
   const [isLoadingDemoRunMonitor, setIsLoadingDemoRunMonitor] = useState(false);
+  const [demoRunSnapshot, setDemoRunSnapshot] = useState<DemoRunSnapshot | null>(null);
+  const [demoRunSnapshotError, setDemoRunSnapshotError] = useState<string | null>(null);
+  const [isLoadingDemoRunSnapshot, setIsLoadingDemoRunSnapshot] = useState(false);
   const [demoShareSheet, setDemoShareSheet] = useState<DemoShareSheet | null>(null);
   const [demoShareSheetError, setDemoShareSheetError] = useState<string | null>(null);
   const [isLoadingDemoShareSheet, setIsLoadingDemoShareSheet] = useState(false);
@@ -543,6 +547,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunMonitorError(toErrorMessage(monitorLoadError));
     } finally {
       setIsLoadingDemoRunMonitor(false);
+    }
+  }, []);
+
+  const loadDemoRunSnapshot = useCallback(async (jobId: string) => {
+    setIsLoadingDemoRunSnapshot(true);
+    try {
+      const snapshot = await linguaFrameApi.getDemoRunSnapshot(jobId);
+      setDemoRunSnapshot(snapshot);
+      setDemoRunSnapshotError(null);
+    } catch (snapshotLoadError) {
+      setDemoRunSnapshot(null);
+      setDemoRunSnapshotError(toErrorMessage(snapshotLoadError));
+    } finally {
+      setIsLoadingDemoRunSnapshot(false);
     }
   }, []);
 
@@ -912,6 +930,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
           void loadDemoPresenterPack(nextJob.jobId);
+          void loadDemoRunSnapshot(nextJob.jobId);
           void loadDemoShareSheet(nextJob.jobId);
           void loadHistory(historyStatusFilter);
           eventSource.close();
@@ -927,7 +946,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoPresenterPack, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1023,6 +1042,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(upload.jobId);
       await loadDemoRunMonitor(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
+      await loadDemoRunSnapshot(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
@@ -1048,6 +1068,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(jobId);
     await loadDemoRunMonitor(jobId);
     await loadDemoPresenterPack(jobId);
+    await loadDemoRunSnapshot(jobId);
     await loadDemoShareSheet(jobId);
   }
 
@@ -1064,6 +1085,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(retriedJob.jobId);
       await loadDemoRunMonitor(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
+      await loadDemoRunSnapshot(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
@@ -1087,6 +1109,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunMatrix(cancelledJob.jobId);
       await loadDemoRunMonitor(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
+      await loadDemoRunSnapshot(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
@@ -1113,6 +1136,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(recentJob.jobId);
     await loadDemoRunMonitor(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
+    await loadDemoRunSnapshot(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
   }
 
@@ -1132,6 +1156,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(historyJob.jobId);
     await loadDemoRunMonitor(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
+    await loadDemoRunSnapshot(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
   }
 
@@ -1152,6 +1177,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunMatrix(failure.jobId);
     await loadDemoRunMonitor(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
+    await loadDemoRunSnapshot(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
   }
 
@@ -1807,6 +1833,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoRunMatrixError={demoRunMatrixError}
               demoRunMonitor={demoRunMonitor}
               demoRunMonitorError={demoRunMonitorError}
+              demoRunSnapshot={demoRunSnapshot}
+              demoRunSnapshotError={demoRunSnapshotError}
               demoPresenterPack={demoPresenterPack}
               demoPresenterPackError={demoPresenterPackError}
               demoShareSheet={demoShareSheet}
@@ -1815,6 +1843,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               isLoadingDemoRunMonitor={isLoadingDemoRunMonitor}
+              isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
               onCancel={handleCancel}
@@ -1822,6 +1851,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
+              onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
@@ -3369,6 +3399,8 @@ function JobDetail({
   demoRunMatrixError,
   demoRunMonitor,
   demoRunMonitorError,
+  demoRunSnapshot,
+  demoRunSnapshotError,
   demoPresenterPack,
   demoPresenterPackError,
   demoShareSheet,
@@ -3377,6 +3409,7 @@ function JobDetail({
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
   isLoadingDemoRunMonitor,
+  isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
   onCancel,
@@ -3384,6 +3417,7 @@ function JobDetail({
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
+  onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
   onSelectCacheReplayComparison,
@@ -3427,6 +3461,8 @@ function JobDetail({
   demoRunMatrixError: string | null;
   demoRunMonitor: DemoRunMonitor | null;
   demoRunMonitorError: string | null;
+  demoRunSnapshot: DemoRunSnapshot | null;
+  demoRunSnapshotError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
   demoPresenterPackError: string | null;
   demoShareSheet: DemoShareSheet | null;
@@ -3435,6 +3471,7 @@ function JobDetail({
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
   isLoadingDemoRunMonitor: boolean;
+  isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
   onCancel: () => void;
@@ -3442,6 +3479,7 @@ function JobDetail({
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
+  onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
@@ -3610,6 +3648,14 @@ function JobDetail({
         jobId={job.jobId}
         onRefresh={onRefreshDemoShareSheet}
         sheet={demoShareSheet}
+      />
+
+      <DemoRunSnapshotPanel
+        error={demoRunSnapshotError}
+        isLoading={isLoadingDemoRunSnapshot}
+        jobId={job.jobId}
+        onRefresh={onRefreshDemoRunSnapshot}
+        snapshot={demoRunSnapshot}
       />
 
       <DemoPresenterPackPanel
@@ -5228,6 +5274,96 @@ function DemoShareSheetPanel({
               </a>
             ))}
           </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoRunSnapshotPanel({
+  error,
+  isLoading,
+  jobId,
+  onRefresh,
+  snapshot
+}: {
+  error: string | null;
+  isLoading: boolean;
+  jobId: string;
+  onRefresh: () => void;
+  snapshot: DemoRunSnapshot | null;
+}) {
+  return (
+    <section className="panel demo-run-snapshot-panel" aria-label="Demo snapshot">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo snapshot</h3>
+          <p className="muted">Static reviewer workspace for offline inspection.</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <a className="secondary-link" href={linguaFrameApi.demoRunSnapshotDownloadUrl(jobId)}>
+            Download static snapshot ZIP
+          </a>
+        </div>
+      </div>
+      {isLoading && !snapshot ? <p className="muted">Loading demo snapshot...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {snapshot ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Readiness</dt>
+              <dd>{snapshot.readiness}</dd>
+            </div>
+            <div>
+              <dt>Generated</dt>
+              <dd>{formatIsoDateTime(snapshot.generatedAt)}</dd>
+            </div>
+            <div>
+              <dt>Entries</dt>
+              <dd>{snapshot.packageEntries.length}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(snapshot.demoProfileId)}</dd>
+            </div>
+          </dl>
+          <h4>{snapshot.headline}</h4>
+          <p>{snapshot.summary}</p>
+          <div className="snapshot-section-grid">
+            <div>
+              <h4>Packaged files</h4>
+              <ul className="compact-list">
+                {snapshot.sections.map((section) => (
+                  <li key={section.kind}>
+                    <strong>{section.filename}</strong>
+                    <span>{section.status}</span>
+                    <p>{section.summary}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Excludes</h4>
+              <ul className="compact-list">
+                {snapshot.exclusionPolicy.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          {snapshot.links.length > 0 ? (
+            <div className="link-list">
+              {snapshot.links.map((link) => (
+                <a key={link.kind} href={link.url}>
+                  {link.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
         </>
       ) : null}
     </section>
