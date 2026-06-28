@@ -473,3 +473,11 @@ Decision: Generate a focused AI audit package on demand from safe job model-call
 Reason: The full demo run package explains the whole run, but AI infrastructure review needs a narrower package that ties prompt versions, active templates, model calls, usage, latency, and estimated cost together without requiring a reviewer to cross-check multiple panels.
 
 Impact: `/api/jobs/{jobId}/ai-audit-package/download` returns a metadata-only ZIP with `manifest.json`, `README.md`, `model-calls.json`, `prompt-templates.json`, `ai-usage-summary.json`, and `ai-audit-report.md`. Browser and terminal demos expose the download, and scripts validate fixed entries plus forbidden sensitive markers.
+
+## 2026-06-28
+
+Decision: Treat source media metadata as safe evidence but keep storage object keys internal.
+
+Reason: A reviewer needs to verify the input video that produced the demo outputs, but object keys and local paths are implementation details that should not leak into browser or terminal evidence.
+
+Impact: `GET /api/media/uploads/{videoId}` returns safe source metadata without `sourceObjectKey`, while `GET /api/media/uploads/{videoId}/source/download` streams the source bytes only through an explicit route. Browser and terminal demos expose source media evidence without embedding source media bytes in metadata packages.

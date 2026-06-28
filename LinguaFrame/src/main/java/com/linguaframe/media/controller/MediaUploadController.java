@@ -1,5 +1,6 @@
 package com.linguaframe.media.controller;
 
+import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
@@ -11,6 +12,9 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -88,5 +92,25 @@ public class MediaUploadController {
             @PathVariable String videoId
     ) {
         return uploadService.getUpload(videoId);
+    }
+
+    @GetMapping("/{videoId}/source/download")
+    @Operation(summary = "Download the uploaded source video")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The uploaded source video was found."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No uploaded media exists for the supplied video id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadSourceMedia(
+            @Parameter(in = ParameterIn.PATH, description = "Uploaded video id.", required = true)
+            @PathVariable String videoId
+    ) {
+        StoredObjectResourceBo sourceMedia = uploadService.openSourceMedia(videoId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(sourceMedia.contentType()))
+                .contentLength(sourceMedia.sizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(sourceMedia.filename()).build().toString())
+                .body(new InputStreamResource(sourceMedia.inputStream()));
     }
 }

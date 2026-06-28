@@ -10,6 +10,7 @@ import type {
   LocalizationJob,
   LocalizationJobList,
   MediaUpload,
+  MediaUploadDetail,
   MediaUploadValidation,
   DemoSessionStatus,
   OperatorDashboard,
@@ -1051,6 +1052,51 @@ describe('App', () => {
     expect(within(screen.getByRole('region', { name: /selected job/i })).getByText('CANCELLED'))
       .toBeInTheDocument();
     expect(listJobs).toHaveBeenCalledTimes(2);
+  });
+
+  test('renders safe source media workspace for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ videoId: 'video-1' }));
+    vi.spyOn(linguaFrameApi, 'getMediaUpload').mockResolvedValue(
+      mediaUploadDetailFixture({
+        filename: 'source-demo.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 4096,
+        durationSeconds: 45
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const sourceMedia = await screen.findByRole('region', { name: /source media/i });
+    expect(within(sourceMedia).getByText('source-demo.mp4')).toBeInTheDocument();
+    expect(within(sourceMedia).getByText('video/mp4')).toBeInTheDocument();
+    expect(within(sourceMedia).getByText('45s')).toBeInTheDocument();
+    expect(within(sourceMedia).getByRole('link', { name: /download source video/i }))
+      .toHaveAttribute('href', '/api/media/uploads/video-1/source/download');
+    expect(sourceMedia).not.toHaveTextContent('source-videos/');
+  });
+
+  test('keeps selected job usable when source media metadata fails to load', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ videoId: 'video-1' }));
+    vi.spyOn(linguaFrameApi, 'getMediaUpload').mockRejectedValue(new Error('Source metadata unavailable'));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
+    const sourceMedia = screen.getByRole('region', { name: /source media/i });
+    expect(within(sourceMedia).getByText('Source metadata unavailable')).toBeInTheDocument();
   });
 
   test('updates selected active job from server-sent events', async () => {
@@ -2766,6 +2812,19 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     jobStatus: 'QUEUED',
     targetLanguage: 'zh-CN',
     ttsVoice: 'verse',
+    createdAt: '2026-06-26T10:00:00Z',
+    ...overrides
+  };
+}
+
+function mediaUploadDetailFixture(overrides: Partial<MediaUploadDetail> = {}): MediaUploadDetail {
+  return {
+    videoId: 'video-1',
+    filename: 'sample.mp4',
+    contentType: 'video/mp4',
+    fileSizeBytes: 1234,
+    durationSeconds: 42,
+    status: 'UPLOADED',
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };

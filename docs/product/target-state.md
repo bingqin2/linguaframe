@@ -99,24 +99,25 @@ A user should be able to:
 2. Upload a short video.
 3. Select target language or keep the default Chinese-English localization.
 4. Watch job progress through a status timeline.
-5. Use a guided demo review panel to walk through input, pipeline, review, delivery, evidence, and handoff in order.
-6. Preview transcript segments and translated subtitles.
-7. Download SRT or VTT files.
-8. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
-9. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
-10. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
-11. Download a reviewed handoff package that contains the delivery manifest, diagnostics, evidence report, reviewed subtitles, and optional reviewed burned video without internal audit artifacts or secrets.
-12. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
-13. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
-14. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
-15. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
-16. Play the generated dubbing audio with visible file metadata and download evidence.
-17. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-18. Inspect cost and processing time.
-19. Retry the job if a step fails.
-20. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-21. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-22. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+5. Verify source media metadata and download the uploaded source video through an explicit source route.
+6. Use a guided demo review panel to walk through input, pipeline, review, delivery, evidence, and handoff in order.
+7. Preview transcript segments and translated subtitles.
+8. Download SRT or VTT files.
+9. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
+10. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
+11. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
+12. Download a reviewed handoff package that contains the delivery manifest, diagnostics, evidence report, reviewed subtitles, and optional reviewed burned video without internal audit artifacts or secrets.
+13. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
+14. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
+15. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
+16. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
+17. Play the generated dubbing audio with visible file metadata and download evidence.
+18. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+19. Inspect cost and processing time.
+20. Retry the job if a step fails.
+21. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+22. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+23. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 

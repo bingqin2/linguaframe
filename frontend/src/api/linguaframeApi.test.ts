@@ -6,6 +6,7 @@ import {
   artifactDownloadUrl,
   clearSubtitleDraft,
   getJob,
+  getMediaUpload,
   getSubtitleDraft,
   getSubtitleReview,
   jobDiagnosticsDownloadUrl,
@@ -31,6 +32,7 @@ import {
   retryJob,
   runRetentionCleanup,
   subtitleDraftExportUrl,
+  sourceMediaDownloadUrl,
   updateSubtitleDraft,
   validateUpload,
   writeDemoToken,
@@ -99,6 +101,29 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('ttsVoice')).toBe('verse');
+  });
+
+  test('fetches uploaded source media metadata without object keys', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        durationSeconds: 42,
+        status: 'UPLOADED',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    const upload = await getMediaUpload('video-1');
+
+    expect(upload.filename).toBe('sample.mp4');
+    expect('sourceObjectKey' in upload).toBe(false);
+    expect(fetchMock).toHaveBeenCalledWith('/api/media/uploads/video-1', { method: 'GET' });
+    expect(sourceMediaDownloadUrl('video/1')).toBe(
+      '/api/media/uploads/video%2F1/source/download'
+    );
   });
 
   test('uploads media with demo access token header when stored', async () => {

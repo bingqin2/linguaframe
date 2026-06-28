@@ -10,6 +10,7 @@ import type {
   LocalizationJobStatus,
   LocalizationJobSummary,
   MediaUpload,
+  MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
   PrivateDemoOperations,
@@ -271,6 +272,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
   const [deliveryManifest, setDeliveryManifest] = useState<DeliveryManifest | null>(null);
   const [deliveryManifestError, setDeliveryManifestError] = useState<string | null>(null);
+  const [sourceMedia, setSourceMedia] = useState<MediaUploadDetail | null>(null);
+  const [sourceMediaError, setSourceMediaError] = useState<string | null>(null);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
   const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
@@ -357,6 +360,17 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     },
     []
   );
+
+  const loadSourceMedia = useCallback(async (videoId: string) => {
+    try {
+      const upload = await linguaFrameApi.getMediaUpload(videoId);
+      setSourceMedia(upload);
+      setSourceMediaError(null);
+    } catch (sourceMediaLoadError) {
+      setSourceMedia(null);
+      setSourceMediaError(toErrorMessage(sourceMediaLoadError));
+    }
+  }, []);
 
   const loadHistory = useCallback(async (status: LocalizationJobStatus | 'ALL') => {
     setIsLoadingHistory(true);
@@ -564,11 +578,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
 
     const timer = window.setTimeout(() => {
-      void loadJob(job.jobId, { silent: true });
+      void loadJob(job.jobId, { silent: true }).then((nextJob) => loadSourceMedia(nextJob.videoId));
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadJob, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadJob, loadSourceMedia, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -581,6 +595,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         const nextJob = JSON.parse(event.data) as LocalizationJob;
         setJob(nextJob);
         setError(null);
+        void loadSourceMedia(nextJob.videoId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadHistory(historyStatusFilter);
@@ -597,7 +612,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadHistory, loadPreviewData]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -654,7 +669,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
       setSelectedRecentJob(recentJob);
-      await loadJob(upload.jobId);
+      const nextJob = await loadJob(upload.jobId);
+      await loadSourceMedia(nextJob.videoId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
@@ -673,6 +689,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
     setSelectedRecentJob(recentJobs.find((recentJob) => recentJob.jobId === jobId) ?? null);
     const nextJob = await loadJob(jobId);
+    await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
   }
 
@@ -685,6 +702,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     try {
       const retriedJob = await linguaFrameApi.retryJob(job.jobId);
       setJob(retriedJob);
+      await loadSourceMedia(retriedJob.videoId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -703,6 +721,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     try {
       const cancelledJob = await linguaFrameApi.cancelJob(job.jobId);
       setJob(cancelledJob);
+      await loadSourceMedia(cancelledJob.videoId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -717,7 +736,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setManualJobId(recentJob.jobId);
     setTargetLanguage(recentJob.targetLanguage);
     setTtsVoice(recentJob.ttsVoice ?? '');
-    await loadJob(recentJob.jobId);
+    const nextJob = await loadJob(recentJob.jobId);
+    await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
   }
 
@@ -727,6 +747,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTargetLanguage(historyJob.targetLanguage);
     setTtsVoice(historyJob.ttsVoice ?? '');
     const nextJob = await loadJob(historyJob.jobId);
+    await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
   }
 
@@ -737,6 +758,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const language = nextJob.targetLanguage ?? targetLanguage;
     setTargetLanguage(language);
     setTtsVoice(nextJob.ttsVoice ?? '');
+    await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
   }
 
@@ -1164,6 +1186,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
+              sourceMedia={sourceMedia}
+              sourceMediaError={sourceMediaError}
               subtitleDraft={subtitleDraft}
               subtitleDraftError={subtitleDraftError}
               subtitleDraftStatus={subtitleDraftStatus}
@@ -1211,6 +1235,72 @@ function PromptTemplatesPanel({
           ))}
         </ul>
       ) : null}
+    </section>
+  );
+}
+
+function SourceMediaPanel({
+  job,
+  sourceMedia,
+  sourceMediaError
+}: {
+  job: LocalizationJob;
+  sourceMedia: MediaUploadDetail | null;
+  sourceMediaError: string | null;
+}) {
+  return (
+    <section id="source-media" className="panel" aria-label="Source media">
+      <div className="panel-heading">
+        <h3>Source media</h3>
+        <div className="panel-actions">
+          <a className="secondary-link" href={linguaFrameApi.sourceMediaDownloadUrl(job.videoId)}>
+            Download source video
+          </a>
+        </div>
+      </div>
+      {sourceMediaError ? <p className="error-text">{sourceMediaError}</p> : null}
+      {sourceMedia ? (
+        <dl className="status-grid compact">
+          <div>
+            <dt>Filename</dt>
+            <dd>{sourceMedia.filename}</dd>
+          </div>
+          <div>
+            <dt>Content type</dt>
+            <dd>{sourceMedia.contentType}</dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd>{formatBytes(sourceMedia.fileSizeBytes)}</dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd>{formatDurationSeconds(sourceMedia.durationSeconds)}</dd>
+          </div>
+          <div>
+            <dt>Upload status</dt>
+            <dd>{sourceMedia.status}</dd>
+          </div>
+          <div>
+            <dt>Uploaded</dt>
+            <dd>{formatIsoDateTime(sourceMedia.createdAt)}</dd>
+          </div>
+          <div>
+            <dt>Video</dt>
+            <dd>{sourceMedia.videoId}</dd>
+          </div>
+          <div>
+            <dt>Job</dt>
+            <dd>{job.jobId}</dd>
+          </div>
+          <div>
+            <dt>Target language</dt>
+            <dd>{job.targetLanguage}</dd>
+          </div>
+        </dl>
+      ) : sourceMediaError ? null : (
+        <p className="muted">Loading source media metadata...</p>
+      )}
     </section>
   );
 }
@@ -1913,6 +2003,8 @@ function JobDetail({
   onSaveSubtitleDraft,
   previewErrors,
   selectedLanguage,
+  sourceMedia,
+  sourceMediaError,
   subtitleDraft,
   subtitleDraftError,
   subtitleDraftStatus,
@@ -1948,6 +2040,8 @@ function JobDetail({
   onSaveSubtitleDraft: (segments: Array<{ index: number; text: string }>) => void;
   previewErrors: string[];
   selectedLanguage: string;
+  sourceMedia: MediaUploadDetail | null;
+  sourceMediaError: string | null;
   subtitleDraft: SubtitleDraftSummary | null;
   subtitleDraftError: string | null;
   subtitleDraftStatus: string | null;
@@ -2061,6 +2155,12 @@ function JobDetail({
           </strong>
         </div>
       </section>
+
+      <SourceMediaPanel
+        job={job}
+        sourceMedia={sourceMedia}
+        sourceMediaError={sourceMediaError}
+      />
 
       <DemoReviewGuidePanel job={job} report={demoSessionReport} steps={demoReviewSteps} />
 
@@ -4580,6 +4680,13 @@ function formatBytes(sizeBytes: number): string {
     return `${(sizeBytes / 1024).toFixed(2)} KB`;
   }
   return `${(sizeBytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+function formatDurationSeconds(durationSeconds: number | null): string {
+  if (durationSeconds === null) {
+    return 'Unknown';
+  }
+  return `${durationSeconds}s`;
 }
 
 function formatArtifactHash(contentSha256: string): string {

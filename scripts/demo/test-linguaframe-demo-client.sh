@@ -745,6 +745,39 @@ PY
   [[ "$(cat "$TMPDIR/unsafe-ai-audit-package.out")" == *"forbidden sensitive string"* ]] || fail "AI audit package unsafe failure was not explicit"
 }
 
+test_print_source_media_summary_is_metadata_only() {
+  cat >"$TMPDIR/source-media.json" <<'JSON'
+{
+  "videoId": "video-source",
+  "filename": "sample.mp4",
+  "contentType": "video/mp4",
+  "fileSizeBytes": 4096,
+  "durationSeconds": 45,
+  "sourceObjectKey": "source-videos/video-source/sample.mp4",
+  "status": "UPLOADED",
+  "createdAt": "2026-06-28T10:00:00Z",
+  "unsafePath": "/Users/example/source.mp4",
+  "unsafeToken": "demo-access-token",
+  "unsafeKey": "OPENAI_API_KEY"
+}
+JSON
+
+  print_source_media_summary "$TMPDIR/source-media.json" "job-source" >"$TMPDIR/source-media.out"
+  local output
+  output="$(cat "$TMPDIR/source-media.out")"
+
+  [[ "$output" == *"sourceMediaJobId=job-source"* ]] || fail "source media summary missed job id"
+  [[ "$output" == *"sourceMediaVideoId=video-source"* ]] || fail "source media summary missed video id"
+  [[ "$output" == *"sourceMediaFilename=sample.mp4"* ]] || fail "source media summary missed filename"
+  [[ "$output" == *"sourceMediaContentType=video/mp4"* ]] || fail "source media summary missed content type"
+  [[ "$output" == *"sourceMediaDurationSeconds=45"* ]] || fail "source media summary missed duration"
+  [[ "$output" == *"sourceMediaDownloadRoute=/api/media/uploads/video-source/source/download"* ]] || fail "source media summary missed download route"
+  [[ "$output" != *"source-videos/"* ]] || fail "source media summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "source media summary exposed local path"
+  [[ "$output" != *"demo-access-token"* ]] || fail "source media summary exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "source media summary exposed API key"
+}
+
 test_write_demo_session_report_markdown_is_metadata_only() {
   cat >"$TMPDIR/session-job.json" <<'JSON'
 {
@@ -932,6 +965,7 @@ test_print_demo_handoff_checklist_summary_is_metadata_only
 test_print_handoff_package_summary_validates_zip_and_secrets
 test_print_demo_run_package_summary_validates_zip_and_secrets
 test_print_ai_audit_package_summary_validates_zip_and_secrets
+test_print_source_media_summary_is_metadata_only
 test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
 
