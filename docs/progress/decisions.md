@@ -465,3 +465,11 @@ Decision: Generate a complete demo run package on demand from existing safe evid
 Reason: The demo now has multiple proof artifacts, including diagnostics, evidence Markdown, quality evidence, delivery manifests, handoff checklists, and session reports. Reviewers need one ZIP workspace for a single run without mixing in media bytes or internal storage identifiers.
 
 Impact: `/api/jobs/{jobId}/demo-run-package/download` returns a metadata-only ZIP with `manifest.json`, `README.md`, `job-detail.json`, `diagnostics.json`, `evidence.md`, `quality-evidence.md`, `delivery-manifest.md`, `demo-handoff-checklist.md`, and `demo-session-report.md`. Browser and terminal demos expose the download, and scripts validate fixed entries plus forbidden sensitive markers.
+
+## 2026-06-28
+
+Decision: Generate a focused AI audit package on demand from safe job model-call records and active prompt templates.
+
+Reason: The full demo run package explains the whole run, but AI infrastructure review needs a narrower package that ties prompt versions, active templates, model calls, usage, latency, and estimated cost together without requiring a reviewer to cross-check multiple panels.
+
+Impact: `/api/jobs/{jobId}/ai-audit-package/download` returns a metadata-only ZIP with `manifest.json`, `README.md`, `model-calls.json`, `prompt-templates.json`, `ai-usage-summary.json`, and `ai-audit-report.md`. Browser and terminal demos expose the download, and scripts validate fixed entries plus forbidden sensitive markers.

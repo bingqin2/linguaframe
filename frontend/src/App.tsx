@@ -2134,7 +2134,14 @@ function JobDetail({
       </section>
 
       <section id="model-calls" className="panel" aria-label="Model calls">
-        <h3>Model calls</h3>
+        <div className="panel-heading">
+          <h3>Model calls</h3>
+          <div className="panel-actions">
+            <a className="secondary-link" href={linguaFrameApi.aiAuditPackageDownloadUrl(job.jobId)}>
+              Download AI audit package
+            </a>
+          </div>
+        </div>
         {job.modelCalls.length === 0 ? (
           <p className="muted">No model calls recorded yet.</p>
         ) : (

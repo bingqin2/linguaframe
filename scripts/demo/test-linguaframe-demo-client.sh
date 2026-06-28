@@ -689,6 +689,62 @@ PY
   [[ "$(cat "$TMPDIR/unsafe-demo-run-package.out")" == *"forbidden sensitive string"* ]] || fail "demo run package unsafe failure was not explicit"
 }
 
+test_print_ai_audit_package_summary_validates_zip_and_secrets() {
+  python3 - "$TMPDIR/ai-audit-package.zip" "$TMPDIR/unsafe-ai-audit-package.zip" <<'PY'
+import json
+import sys
+import zipfile
+
+safe_path = sys.argv[1]
+unsafe_path = sys.argv[2]
+manifest = {
+    "jobId": "job-ai-audit-package",
+    "videoId": "video-ai-audit-package",
+    "targetLanguage": "zh-CN",
+    "status": "COMPLETED",
+    "modelCallCount": 3,
+    "promptTemplateCount": 2,
+}
+entries = {
+    "manifest.json": json.dumps(manifest, separators=(",", ":")),
+    "README.md": "# LinguaFrame AI Audit Package\n- Job: job-ai-audit-package\n",
+    "model-calls.json": json.dumps([
+        {"operation": "TRANSCRIPTION", "promptVersion": "openai-audio-transcriptions-v1"},
+        {"operation": "TRANSLATION", "promptVersion": "openai-subtitle-translation-v1"},
+        {"operation": "EVALUATION", "promptVersion": "openai-translation-quality-evaluation-v1"},
+    ]),
+    "prompt-templates.json": json.dumps([
+        {"purpose": "SUBTITLE_TRANSLATION", "version": "openai-subtitle-translation-v1"},
+        {"purpose": "TRANSLATION_QUALITY_EVALUATION", "version": "openai-translation-quality-evaluation-v1"},
+    ]),
+    "ai-usage-summary.json": json.dumps({"modelCallCount": 3, "failedModelCallCount": 1}),
+    "ai-audit-report.md": "# AI audit\n- Job: job-ai-audit-package\n",
+}
+with zipfile.ZipFile(safe_path, "w") as archive:
+    for name, content in entries.items():
+        archive.writestr(name, content)
+
+unsafe_entries = dict(entries)
+unsafe_entries["model-calls.json"] = "provider request payload sk-test /Users/example/job-artifacts/raw.json"
+with zipfile.ZipFile(unsafe_path, "w") as archive:
+    for name, content in unsafe_entries.items():
+        archive.writestr(name, content)
+PY
+
+  print_ai_audit_package_summary "$TMPDIR/ai-audit-package.zip" "job-ai-audit-package" >"$TMPDIR/ai-audit-package.out"
+  local output
+  output="$(cat "$TMPDIR/ai-audit-package.out")"
+
+  [[ "$output" == *"aiAuditPackageJobId=job-ai-audit-package"* ]] || fail "AI audit package summary missed job id"
+  [[ "$output" == *"aiAuditPackageEntryCount=6"* ]] || fail "AI audit package summary missed entry count"
+  [[ "$output" == *"aiAuditPackageModelCallCount=3"* ]] || fail "AI audit package summary missed model-call count"
+
+  if print_ai_audit_package_summary "$TMPDIR/unsafe-ai-audit-package.zip" "job-ai-audit-package" >"$TMPDIR/unsafe-ai-audit-package.out" 2>&1; then
+    fail "AI audit package summary accepted unsafe ZIP"
+  fi
+  [[ "$(cat "$TMPDIR/unsafe-ai-audit-package.out")" == *"forbidden sensitive string"* ]] || fail "AI audit package unsafe failure was not explicit"
+}
+
 test_write_demo_session_report_markdown_is_metadata_only() {
   cat >"$TMPDIR/session-job.json" <<'JSON'
 {
@@ -875,6 +931,7 @@ test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only
 test_print_handoff_package_summary_validates_zip_and_secrets
 test_print_demo_run_package_summary_validates_zip_and_secrets
+test_print_ai_audit_package_summary_validates_zip_and_secrets
 test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
 

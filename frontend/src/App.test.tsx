@@ -844,7 +844,7 @@ describe('App', () => {
     expect(getJob).toHaveBeenCalledTimes(2);
   });
 
-  test('renders timeline, usage summary, model calls, quality evidence, failed reason, and retry action', async () => {
+  test('renders timeline, usage summary, model calls, AI audit package, quality evidence, failed reason, and retry action', async () => {
     const retryJob = vi
       .spyOn(linguaFrameApi, 'retryJob')
       .mockResolvedValue(jobFixture({ status: 'RETRYING', retryCount: 1, failureReason: null }));
@@ -915,6 +915,10 @@ describe('App', () => {
     expect(within(timeline).getByText('WORKER_RECEIVED')).toBeInTheDocument();
     const modelCalls = screen.getByRole('region', { name: /model calls/i });
     expect(within(modelCalls).getByRole('heading', { name: /model calls/i })).toBeInTheDocument();
+    expect(within(modelCalls).getByRole('link', { name: /download ai audit package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/ai-audit-package/download'
+    );
     const usageSummary = screen.getByRole('region', { name: /usage summary/i });
     expect(within(usageSummary).getByText('2 calls')).toBeInTheDocument();
     expect(within(usageSummary).getByText('$0.00045000')).toBeInTheDocument();

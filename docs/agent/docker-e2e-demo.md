@@ -76,6 +76,8 @@ Use the `Demo evidence` panel after the job is visible in the browser. `Copy evi
 
 Use the `Quality evaluation` panel when a quality result exists. `Copy quality evidence` and `Download quality evidence` produce reviewer-facing Markdown from browser metadata, while `Download backend quality evidence` calls `/api/jobs/{jobId}/quality-evaluation/evidence/markdown/download`. The terminal success and OpenAI smoke scripts also download `/tmp/linguaframe-demo/quality-evidence.md` and print `qualityEvaluation*` plus `qualityEvidenceMarkdown*` summary lines.
 
+Use the `Model calls` panel when reviewing OpenAI or demo-provider usage. `Download AI audit package` calls `/api/jobs/{jobId}/ai-audit-package/download` and returns a metadata-only ZIP with `manifest.json`, `README.md`, `model-calls.json`, `prompt-templates.json`, `ai-usage-summary.json`, and `ai-audit-report.md`. The package connects model-call prompt versions to active prompt templates and excludes raw transcript text, raw subtitle text, corrected subtitle text, provider payloads, object keys, local paths, demo tokens, credentials, uploaded media bytes, and generated artifact bytes.
+
 After a job starts, inspect job-scoped backend logs when debugging worker behavior:
 
 ```bash
@@ -372,7 +374,7 @@ LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
 scripts/demo/docker-e2e-openai-smoke.sh
 ```
 
-Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
+Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, AI audit package, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
 
 ## Optional OpenAI Transcription Demo
 
