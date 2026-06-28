@@ -4,7 +4,9 @@ import type { RetentionCleanupResult } from '../domain/jobTypes';
 import {
   artifactArchiveDownloadUrl,
   artifactDownloadUrl,
+  clearSubtitleDraft,
   getJob,
+  getSubtitleDraft,
   getSubtitleReview,
   jobDiagnosticsDownloadUrl,
   jobEvidenceBundleDownloadUrl,
@@ -24,6 +26,8 @@ import {
   cancelJob,
   retryJob,
   runRetentionCleanup,
+  subtitleDraftExportUrl,
+  updateSubtitleDraft,
   validateUpload,
   writeDemoToken,
   uploadMedia
@@ -425,7 +429,7 @@ describe('linguaframeApi', () => {
 
     const dependencies = await getRuntimeDependencies();
 
-    expect(dependencies.runtime.latestMigrationVersion).toBe(17);
+    expect(dependencies.runtime.latestMigrationVersion).toBe(19);
     expect(dependencies.readiness.worker.role).toBe('COMBINED');
     expect(dependencies.readiness.providers.translation.provider).toBe('demo');
     expect(fetchMock).toHaveBeenCalledWith('/api/runtime/dependencies', {
@@ -624,6 +628,75 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches, updates, clears, and builds export urls for subtitle drafts', async () => {
+    const draftResponse = {
+      jobId: 'job-1',
+      targetLanguage: 'zh-CN',
+      segmentCount: 2,
+      editedSegmentCount: 1,
+      lastUpdatedAt: '2026-06-28T10:00:00Z',
+      segments: [
+        {
+          index: 0,
+          startMs: 0,
+          endMs: 1000,
+          sourceText: 'Hello.',
+          generatedText: '你好。',
+          draftText: '你好。',
+          edited: false,
+          updatedAt: null
+        },
+        {
+          index: 1,
+          startMs: 1000,
+          endMs: 2000,
+          sourceText: 'Welcome.',
+          generatedText: '欢迎。',
+          draftText: '欢迎你。',
+          edited: true,
+          updatedAt: '2026-06-28T10:00:00Z'
+        }
+      ]
+    };
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse(draftResponse))
+      .mockResolvedValueOnce(jsonResponse({ ...draftResponse, editedSegmentCount: 2 }))
+      .mockResolvedValueOnce(jsonResponse({ ...draftResponse, editedSegmentCount: 0 }));
+
+    const draft = await getSubtitleDraft('job with/slash', 'zh-CN');
+    const updated = await updateSubtitleDraft('job with/slash', 'zh-CN', {
+      segments: [{ index: 1, text: '欢迎你。' }]
+    });
+    const cleared = await clearSubtitleDraft('job with/slash', 'zh-CN');
+
+    expect(draft.editedSegmentCount).toBe(1);
+    expect(updated.editedSegmentCount).toBe(2);
+    expect(cleared.editedSegmentCount).toBe(0);
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/jobs/job%20with%2Fslash/subtitle-draft?language=zh-CN',
+      { method: 'GET' }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/jobs/job%20with%2Fslash/subtitle-draft?language=zh-CN',
+      expect.objectContaining({
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ segments: [{ index: 1, text: '欢迎你。' }] })
+      })
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/jobs/job%20with%2Fslash/subtitle-draft?language=zh-CN',
+      { method: 'DELETE' }
+    );
+    expect(subtitleDraftExportUrl('job with/slash', 'zh-CN', 'srt')).toBe(
+      '/api/jobs/job%20with%2Fslash/subtitle-draft/export?language=zh-CN&format=srt'
+    );
+  });
+
   test('lists jobs with default paging params', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
@@ -752,7 +825,7 @@ function runtimeDependenciesFixture() {
   return {
     runtime: {
       appVersion: '0.0.1-SNAPSHOT',
-      latestMigrationVersion: 17,
+      latestMigrationVersion: 19,
       requiredRoutes: [
         '/api/runtime/dependencies',
         '/api/media/uploads',

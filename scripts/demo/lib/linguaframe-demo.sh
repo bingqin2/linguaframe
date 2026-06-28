@@ -355,6 +355,14 @@ get_job_subtitle_review() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/subtitle-review?language=$language"
 }
 
+get_job_subtitle_draft() {
+  local base_url="$1"
+  local job_id="$2"
+  local language="$3"
+
+  demo_curl -fsS "$base_url/api/jobs/$job_id/subtitle-draft?language=$language"
+}
+
 print_subtitle_review_summary() {
   python3 -c '
 import json
@@ -370,6 +378,20 @@ print("subtitleReviewMissingTargetCount=" + str(review.get("missingTargetCount",
 print("subtitleReviewTimingMismatchCount=" + str(review.get("timingMismatchCount", 0)))
 print("subtitleReviewQuality=" + ("Not evaluated" if score is None else str(score) + " / 100, " + verdict))
 print("subtitleReviewSubtitleArtifactCount=" + str(review.get("downloadableSubtitleArtifactCount", 0)))
+'
+}
+
+print_subtitle_draft_summary() {
+  python3 -c '
+import json
+import sys
+
+draft = json.load(sys.stdin)
+print("subtitleDraftJobId=" + draft["jobId"])
+print("subtitleDraftLanguage=" + draft["targetLanguage"])
+print("subtitleDraftSegmentCount=" + str(draft.get("segmentCount", 0)))
+print("subtitleDraftEditedSegmentCount=" + str(draft.get("editedSegmentCount", 0)))
+print("subtitleDraftLastUpdated=" + str(draft.get("lastUpdatedAt") or "Not saved"))
 '
 }
 

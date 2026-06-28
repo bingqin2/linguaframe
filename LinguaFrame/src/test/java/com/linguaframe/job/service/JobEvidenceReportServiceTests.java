@@ -12,6 +12,8 @@ import com.linguaframe.job.domain.vo.JobPipelineProgressVo;
 import com.linguaframe.job.domain.vo.JobStageProgressVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSegmentVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.service.impl.JobEvidenceReportServiceImpl;
@@ -29,9 +31,11 @@ class JobEvidenceReportServiceTests {
 
     private final LocalizationJobQueryService queryService = mock(LocalizationJobQueryService.class);
     private final SubtitleReviewService subtitleReviewService = mock(SubtitleReviewService.class);
+    private final SubtitleDraftService subtitleDraftService = mock(SubtitleDraftService.class);
     private final JobEvidenceReportServiceImpl service = new JobEvidenceReportServiceImpl(
             queryService,
-            subtitleReviewService
+            subtitleReviewService,
+            subtitleDraftService
     );
 
     @Test
@@ -46,6 +50,8 @@ class JobEvidenceReportServiceTests {
         )));
         when(subtitleReviewService.buildReview("job-evidence-triage", "zh-CN"))
                 .thenReturn(subtitleReview());
+        when(subtitleDraftService.getDraft("job-evidence-triage", "zh-CN"))
+                .thenReturn(subtitleDraft());
 
         String markdown = service.buildMarkdownReport("job-evidence-triage");
 
@@ -61,8 +67,12 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Subtitle review timing mismatches: 1");
         assertThat(markdown).contains("- Subtitle review quality: 88 / 100, NEEDS_REVIEW");
         assertThat(markdown).contains("- Subtitle review downloadable subtitle artifacts: 3");
+        assertThat(markdown).contains("- Subtitle draft segments: 2");
+        assertThat(markdown).contains("- Subtitle draft edited segments: 1");
+        assertThat(markdown).contains("- Subtitle draft last updated: 2026-06-28T09:30:00Z");
         assertThat(markdown).doesNotContain("raw source text");
         assertThat(markdown).doesNotContain("raw target text");
+        assertThat(markdown).doesNotContain("raw draft text");
         assertThat(markdown).doesNotContain("sk-");
         assertThat(markdown).doesNotContain("/Users/");
         assertThat(markdown).doesNotContain("provider request payload");
@@ -73,6 +83,8 @@ class JobEvidenceReportServiceTests {
         when(queryService.getDiagnosticsReport("job-evidence-complete")).thenReturn(report(null));
         when(subtitleReviewService.buildReview("job-evidence-triage", "zh-CN"))
                 .thenReturn(subtitleReview());
+        when(subtitleDraftService.getDraft("job-evidence-triage", "zh-CN"))
+                .thenReturn(subtitleDraft());
 
         String markdown = service.buildMarkdownReport("job-evidence-complete");
 
@@ -103,6 +115,26 @@ class JobEvidenceReportServiceTests {
                         1000,
                         0,
                         SubtitleReviewSegmentStatus.ALIGNED
+                ))
+        );
+    }
+
+    private SubtitleDraftSummaryVo subtitleDraft() {
+        return new SubtitleDraftSummaryVo(
+                "job-evidence-triage",
+                "zh-CN",
+                2,
+                1,
+                Instant.parse("2026-06-28T09:30:00Z"),
+                List.of(new SubtitleDraftSegmentVo(
+                        0,
+                        0,
+                        1000,
+                        "raw source text",
+                        "raw target text",
+                        "raw draft text",
+                        true,
+                        Instant.parse("2026-06-28T09:30:00Z")
                 ))
         );
     }

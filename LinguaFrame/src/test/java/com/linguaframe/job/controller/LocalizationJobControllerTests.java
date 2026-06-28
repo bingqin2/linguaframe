@@ -53,8 +53,10 @@ import java.util.zip.ZipInputStream;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -109,6 +111,7 @@ class LocalizationJobControllerTests {
     void cleanDatabase() {
         jdbcClient.sql("DELETE FROM quality_evaluations").update();
         jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM subtitle_draft_segments").update();
         jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
         jdbcClient.sql("DELETE FROM job_artifacts").update();
@@ -1091,6 +1094,93 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segments[1].status").value("TIMING_MISMATCH"))
                 .andExpect(jsonPath("$.segments[2].targetText").doesNotExist())
                 .andExpect(jsonPath("$.segments[2].status").value("MISSING_TARGET"));
+    }
+
+    @Test
+    void updatesAndExportsSubtitleDraftForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:00:00Z");
+        createJob("job-controller-video-draft", "job-controller-job-draft", createdAt);
+        transcriptService.replaceTranscript("job-controller-job-draft", new TranscriptionResultBo(List.of(
+                new TranscriptionSegmentBo(0, 0L, 1_000L, "First source line"),
+                new TranscriptionSegmentBo(1, 1_200L, 2_800L, "Second source line")
+        )));
+        subtitleService.replaceSubtitles("job-controller-job-draft", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行"),
+                new TranslationSegmentBo(1, 1_200L, 2_800L, "第二行")
+        )));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-draft")
+                        .param("language", "zh-CN")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {"index": 1, "text": "修正后的第二行"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-draft"))
+                .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.editedSegmentCount").value(1))
+                .andExpect(jsonPath("$.segments[0].sourceText").value("First source line"))
+                .andExpect(jsonPath("$.segments[0].generatedText").value("第一行"))
+                .andExpect(jsonPath("$.segments[0].draftText").value("第一行"))
+                .andExpect(jsonPath("$.segments[0].edited").value(false))
+                .andExpect(jsonPath("$.segments[1].sourceText").value("Second source line"))
+                .andExpect(jsonPath("$.segments[1].generatedText").value("第二行"))
+                .andExpect(jsonPath("$.segments[1].draftText").value("修正后的第二行"))
+                .andExpect(jsonPath("$.segments[1].edited").value(true));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/subtitle-draft/export", "job-controller-job-draft")
+                        .param("language", "zh-CN")
+                        .param("format", "srt"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"corrected-subtitles.zh-CN.srt\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("00:00:01,200 --> 00:00:02,800")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("修正后的第二行")));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/subtitle-draft/export", "job-controller-job-draft")
+                        .param("language", "zh-CN")
+                        .param("format", "json"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"corrected-subtitles.zh-CN.json\"")))
+                .andExpect(jsonPath("$.language").value("zh-CN"))
+                .andExpect(jsonPath("$.segments[1].text").value("修正后的第二行"));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/subtitles/{language}", "job-controller-job-draft", "zh-CN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[1].text").value("第二行"));
+
+        mockMvc.perform(delete("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-draft")
+                        .param("language", "zh-CN"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.editedSegmentCount").value(0))
+                .andExpect(jsonPath("$.segments[1].draftText").value("第二行"))
+                .andExpect(jsonPath("$.segments[1].edited").value(false));
+    }
+
+    @Test
+    void rejectsSubtitleDraftUpdateForUnknownSegmentIndex() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:15:00Z");
+        createJob("job-controller-video-draft-invalid", "job-controller-job-draft-invalid", createdAt);
+        subtitleService.replaceSubtitles("job-controller-job-draft-invalid", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行")
+        )));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-draft-invalid")
+                        .param("language", "zh-CN")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {"index": 9, "text": "无效行"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Subtitle draft segment index does not exist: 9"));
     }
 
     @Test

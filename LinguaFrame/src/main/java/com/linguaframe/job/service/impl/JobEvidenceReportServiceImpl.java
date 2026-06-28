@@ -8,28 +8,34 @@ import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.SubtitleDraftService;
 import com.linguaframe.job.service.SubtitleReviewService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
 
     private final LocalizationJobQueryService queryService;
     private final SubtitleReviewService subtitleReviewService;
+    private final SubtitleDraftService subtitleDraftService;
 
     public JobEvidenceReportServiceImpl(
             LocalizationJobQueryService queryService,
-            SubtitleReviewService subtitleReviewService
+            SubtitleReviewService subtitleReviewService,
+            SubtitleDraftService subtitleDraftService
     ) {
         this.queryService = queryService;
         this.subtitleReviewService = subtitleReviewService;
+        this.subtitleDraftService = subtitleDraftService;
     }
 
     @Override
@@ -97,6 +103,7 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Subtitle review quality: " + formatSubtitleReviewQuality(subtitleReview));
         lines.add("- Subtitle review downloadable subtitle artifacts: "
                 + subtitleReview.downloadableSubtitleArtifactCount());
+        addSubtitleDraftEvidence(lines, job);
 
         if (!job.timelineEvents().isEmpty()) {
             lines.add("");
@@ -150,6 +157,23 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         }
         return subtitleReview.qualityScore() + " / 100, "
                 + valueOrDefault(subtitleReview.qualityVerdict(), "No verdict");
+    }
+
+    private void addSubtitleDraftEvidence(List<String> lines, LocalizationJobVo job) {
+        try {
+            SubtitleDraftSummaryVo subtitleDraft = subtitleDraftService.getDraft(
+                    job.jobId(),
+                    job.targetLanguage()
+            );
+            lines.add("- Subtitle draft segments: " + subtitleDraft.segmentCount());
+            lines.add("- Subtitle draft edited segments: " + subtitleDraft.editedSegmentCount());
+            lines.add("- Subtitle draft last updated: "
+                    + valueOrDefault(subtitleDraft.lastUpdatedAt(), "Not saved"));
+        } catch (NoSuchElementException ex) {
+            lines.add("- Subtitle draft segments: 0");
+            lines.add("- Subtitle draft edited segments: 0");
+            lines.add("- Subtitle draft last updated: Not saved");
+        }
     }
 
     private boolean hasText(String value) {

@@ -11,9 +11,11 @@ import type {
   RetentionCleanupResult,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
+  SubtitleDraftSummary,
   SubtitleReviewSummary,
   SubtitleSegment,
-  TranscriptSegment
+  TranscriptSegment,
+  UpdateSubtitleDraftRequest
 } from '../domain/jobTypes';
 
 export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
@@ -181,6 +183,59 @@ export async function getSubtitleReview(
   );
 }
 
+export async function getSubtitleDraft(
+  jobId: string,
+  language: string
+): Promise<SubtitleDraftSummary> {
+  const query = new URLSearchParams({ language });
+  return requestJson<SubtitleDraftSummary>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-draft?${query.toString()}`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function updateSubtitleDraft(
+  jobId: string,
+  language: string,
+  request: UpdateSubtitleDraftRequest
+): Promise<SubtitleDraftSummary> {
+  const query = new URLSearchParams({ language });
+  return requestJson<SubtitleDraftSummary>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-draft?${query.toString()}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
+export async function clearSubtitleDraft(
+  jobId: string,
+  language: string
+): Promise<SubtitleDraftSummary> {
+  const query = new URLSearchParams({ language });
+  return requestJson<SubtitleDraftSummary>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-draft?${query.toString()}`,
+    {
+      method: 'DELETE'
+    }
+  );
+}
+
+export function subtitleDraftExportUrl(
+  jobId: string,
+  language: string,
+  format: 'json' | 'srt' | 'vtt'
+): string {
+  const query = new URLSearchParams({ language, format });
+  return `/api/jobs/${encodeURIComponent(jobId)}/subtitle-draft/export?${query.toString()}`;
+}
+
 export function artifactDownloadUrl(jobId: string, artifactId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/artifacts/${encodeURIComponent(
     artifactId
@@ -227,6 +282,10 @@ export const linguaFrameApi = {
   listTranscript,
   listSubtitles,
   getSubtitleReview,
+  getSubtitleDraft,
+  updateSubtitleDraft,
+  clearSubtitleDraft,
+  subtitleDraftExportUrl,
   artifactDownloadUrl,
   artifactArchiveDownloadUrl,
   jobDiagnosticsDownloadUrl,

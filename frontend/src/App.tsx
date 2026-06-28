@@ -17,6 +17,7 @@ import type {
   RuntimeDependencySummary,
   RuntimeLiveCheckName,
   RuntimeLiveCheckSummary,
+  SubtitleDraftSummary,
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment
@@ -85,6 +86,11 @@ interface DemoEvidence {
     qualityScore: number | null;
     qualityVerdict: string | null;
     downloadableSubtitleArtifactCount: number;
+  } | null;
+  subtitleDraft: {
+    segmentCount: number;
+    editedSegmentCount: number;
+    lastUpdatedAt: string | null;
   } | null;
   usage: {
     modelCallCount: number;
@@ -212,6 +218,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
   const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
+  const [subtitleDraft, setSubtitleDraft] = useState<SubtitleDraftSummary | null>(null);
+  const [subtitleDraftError, setSubtitleDraftError] = useState<string | null>(null);
+  const [subtitleDraftStatus, setSubtitleDraftStatus] = useState<string | null>(null);
+  const [isSavingSubtitleDraft, setIsSavingSubtitleDraft] = useState(false);
+  const [isClearingSubtitleDraft, setIsClearingSubtitleDraft] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -359,11 +370,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, transcriptResult, subtitleResult, reviewResult] = await Promise.allSettled([
+    const [artifactResult, transcriptResult, subtitleResult, reviewResult, draftResult] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.listTranscript(jobId),
       linguaFrameApi.listSubtitles(jobId, language),
-      linguaFrameApi.getSubtitleReview(jobId, language)
+      linguaFrameApi.getSubtitleReview(jobId, language),
+      linguaFrameApi.getSubtitleDraft(jobId, language)
     ]);
 
     if (artifactResult.status === 'fulfilled') {
@@ -392,6 +404,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setSubtitleReview(null);
       errors.push(`Subtitle review: ${toErrorMessage(reviewResult.reason)}`);
+    }
+
+    if (draftResult.status === 'fulfilled') {
+      setSubtitleDraft(draftResult.value);
+      setSubtitleDraftError(null);
+      setSubtitleDraftStatus(null);
+    } else {
+      setSubtitleDraft(null);
+      setSubtitleDraftError(toErrorMessage(draftResult.reason));
+      errors.push(`Subtitle draft: ${toErrorMessage(draftResult.reason)}`);
     }
 
     setPreviewErrors(errors);
@@ -660,6 +682,40 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setCacheReplayError(toErrorMessage(comparisonLoadError));
     } finally {
       setIsLoadingCacheReplayComparison(false);
+    }
+  }
+
+  async function handleSaveSubtitleDraft(segments: Array<{ index: number; text: string }>) {
+    if (!job) {
+      return;
+    }
+    setIsSavingSubtitleDraft(true);
+    try {
+      const updated = await linguaFrameApi.updateSubtitleDraft(job.jobId, selectedLanguage, { segments });
+      setSubtitleDraft(updated);
+      setSubtitleDraftError(null);
+      setSubtitleDraftStatus('Draft saved.');
+    } catch (draftError) {
+      setSubtitleDraftError(toErrorMessage(draftError));
+    } finally {
+      setIsSavingSubtitleDraft(false);
+    }
+  }
+
+  async function handleClearSubtitleDraft() {
+    if (!job) {
+      return;
+    }
+    setIsClearingSubtitleDraft(true);
+    try {
+      const cleared = await linguaFrameApi.clearSubtitleDraft(job.jobId, selectedLanguage);
+      setSubtitleDraft(cleared);
+      setSubtitleDraftError(null);
+      setSubtitleDraftStatus('Draft cleared.');
+    } catch (draftError) {
+      setSubtitleDraftError(toErrorMessage(draftError));
+    } finally {
+      setIsClearingSubtitleDraft(false);
     }
   }
 
@@ -960,8 +1016,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               canCancel={canCancel}
               canRetry={canRetry}
               isCancelling={isCancelling}
+              isClearingSubtitleDraft={isClearingSubtitleDraft}
               isLoadingJob={isLoadingJob}
               isRetrying={isRetrying}
+              isSavingSubtitleDraft={isSavingSubtitleDraft}
               artifacts={artifacts}
               job={job}
               cacheReplayBaseline={cacheReplayBaseline}
@@ -972,11 +1030,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               cacheReplayError={cacheReplayError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               onCancel={handleCancel}
+              onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onRetry={handleRetry}
+              onSaveSubtitleDraft={handleSaveSubtitleDraft}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
+              subtitleDraft={subtitleDraft}
+              subtitleDraftError={subtitleDraftError}
+              subtitleDraftStatus={subtitleDraftStatus}
               subtitleReview={subtitleReview}
               subtitles={subtitles}
               transcript={transcript}
@@ -1536,8 +1599,10 @@ function JobDetail({
   canCancel,
   canRetry,
   isCancelling,
+  isClearingSubtitleDraft,
   isLoadingJob,
   isRetrying,
+  isSavingSubtitleDraft,
   artifacts,
   job,
   cacheReplayBaseline,
@@ -1548,11 +1613,16 @@ function JobDetail({
   cacheReplayError,
   isLoadingCacheReplayComparison,
   onCancel,
+  onClearSubtitleDraft,
   onPinCacheReplayBaseline,
   onSelectCacheReplayComparison,
   onRetry,
+  onSaveSubtitleDraft,
   previewErrors,
   selectedLanguage,
+  subtitleDraft,
+  subtitleDraftError,
+  subtitleDraftStatus,
   subtitleReview,
   subtitles,
   transcript
@@ -1560,8 +1630,10 @@ function JobDetail({
   canCancel: boolean;
   canRetry: boolean;
   isCancelling: boolean;
+  isClearingSubtitleDraft: boolean;
   isLoadingJob: boolean;
   isRetrying: boolean;
+  isSavingSubtitleDraft: boolean;
   artifacts: JobArtifact[];
   job: LocalizationJob;
   cacheReplayBaseline: CacheReplayBaseline | null;
@@ -1572,11 +1644,16 @@ function JobDetail({
   cacheReplayError: string | null;
   isLoadingCacheReplayComparison: boolean;
   onCancel: () => void;
+  onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onRetry: () => void;
+  onSaveSubtitleDraft: (segments: Array<{ index: number; text: string }>) => void;
   previewErrors: string[];
   selectedLanguage: string;
+  subtitleDraft: SubtitleDraftSummary | null;
+  subtitleDraftError: string | null;
+  subtitleDraftStatus: string | null;
   subtitleReview: SubtitleReviewSummary | null;
   subtitles: SubtitleSegment[];
   transcript: TranscriptSegment[];
@@ -1588,8 +1665,8 @@ function JobDetail({
     [artifacts, subtitles.length, transcript.length]
   );
   const demoEvidence = useMemo(
-    () => buildDemoEvidence(job, artifacts, transcript.length, subtitles.length, selectedLanguage, subtitleReview),
-    [artifacts, job, selectedLanguage, subtitleReview, subtitles.length, transcript.length]
+    () => buildDemoEvidence(job, artifacts, transcript.length, subtitles.length, selectedLanguage, subtitleReview, subtitleDraft),
+    [artifacts, job, selectedLanguage, subtitleDraft, subtitleReview, subtitles.length, transcript.length]
   );
   const demoEvidenceMarkdown = useMemo(
     () => formatDemoEvidenceMarkdown(demoEvidence),
@@ -1698,6 +1775,17 @@ function JobDetail({
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
 
       <SubtitleReviewPanel review={subtitleReview} />
+
+      <SubtitleDraftEditorPanel
+        draft={subtitleDraft}
+        error={subtitleDraftError}
+        isClearing={isClearingSubtitleDraft}
+        isSaving={isSavingSubtitleDraft}
+        jobId={job.jobId}
+        onClear={onClearSubtitleDraft}
+        onSave={onSaveSubtitleDraft}
+        status={subtitleDraftStatus}
+      />
 
       <section className="panel" aria-label="Timeline">
         <h3>Timeline</h3>
@@ -2469,6 +2557,163 @@ function SubtitleReviewPanel({ review }: { review: SubtitleReviewSummary | null 
   );
 }
 
+function SubtitleDraftEditorPanel({
+  draft,
+  error,
+  isClearing,
+  isSaving,
+  jobId,
+  onClear,
+  onSave,
+  status
+}: {
+  draft: SubtitleDraftSummary | null;
+  error: string | null;
+  isClearing: boolean;
+  isSaving: boolean;
+  jobId: string;
+  onClear: () => void;
+  onSave: (segments: Array<{ index: number; text: string }>) => void;
+  status: string | null;
+}) {
+  const [draftTextByIndex, setDraftTextByIndex] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    if (!draft) {
+      setDraftTextByIndex({});
+      return;
+    }
+    setDraftTextByIndex(
+      Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText]))
+    );
+  }, [draft]);
+
+  const dirtySegments = useMemo(() => {
+    if (!draft) {
+      return [];
+    }
+    return draft.segments
+      .filter((segment) => (draftTextByIndex[segment.index] ?? segment.draftText) !== segment.draftText)
+      .map((segment) => ({
+        index: segment.index,
+        text: draftTextByIndex[segment.index] ?? segment.draftText
+      }));
+  }, [draft, draftTextByIndex]);
+
+  const handleReset = useCallback(() => {
+    if (!draft) {
+      return;
+    }
+    setDraftTextByIndex(
+      Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText]))
+    );
+  }, [draft]);
+
+  if (!draft) {
+    return (
+      <section className="panel" aria-label="Subtitle draft editor">
+        <h3>Subtitle draft editor</h3>
+        {error ? <p className="muted">{error}</p> : <p className="muted">No editable subtitle draft loaded yet.</p>}
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel" aria-label="Subtitle draft editor">
+      <div className="panel-heading">
+        <h3>Subtitle draft editor</h3>
+        <span className="status-pill">{draft.targetLanguage}</span>
+      </div>
+      <dl className="status-grid compact-status-grid">
+        <div>
+          <dt>Segments</dt>
+          <dd>{draft.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Saved edits</dt>
+          <dd>{draft.editedSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Unsaved edits</dt>
+          <dd>{dirtySegments.length}</dd>
+        </div>
+        <div>
+          <dt>Last saved</dt>
+          <dd>{draft.lastUpdatedAt ? formatIsoDateTime(draft.lastUpdatedAt) : 'Not saved'}</dd>
+        </div>
+      </dl>
+      {error ? <p className="failure-text">{error}</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      <div className="panel-actions">
+        <button
+          type="button"
+          onClick={() => onSave(dirtySegments)}
+          disabled={dirtySegments.length === 0 || isSaving}
+        >
+          {isSaving ? 'Saving...' : 'Save draft'}
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={handleReset}
+          disabled={dirtySegments.length === 0 || isSaving}
+        >
+          Reset unsaved
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={onClear}
+          disabled={draft.editedSegmentCount === 0 || isClearing}
+        >
+          {isClearing ? 'Clearing...' : 'Clear draft'}
+        </button>
+        <a className="secondary-link" href={linguaFrameApi.subtitleDraftExportUrl(jobId, draft.targetLanguage, 'json')}>
+          Download corrected JSON
+        </a>
+        <a className="secondary-link" href={linguaFrameApi.subtitleDraftExportUrl(jobId, draft.targetLanguage, 'srt')}>
+          Download corrected SRT
+        </a>
+        <a className="secondary-link" href={linguaFrameApi.subtitleDraftExportUrl(jobId, draft.targetLanguage, 'vtt')}>
+          Download corrected VTT
+        </a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Source</th>
+            <th>Generated</th>
+            <th>Draft</th>
+          </tr>
+        </thead>
+        <tbody>
+          {draft.segments.map((segment) => (
+            <tr key={segment.index}>
+              <td>{formatTimeRange(segment.startMs, segment.endMs)}</td>
+              <td>{segment.sourceText}</td>
+              <td>{segment.generatedText}</td>
+              <td>
+                <textarea
+                  aria-label={`Draft text ${segment.index}`}
+                  value={draftTextByIndex[segment.index] ?? segment.draftText}
+                  onChange={(event) =>
+                    setDraftTextByIndex((current) => ({
+                      ...current,
+                      [segment.index]: event.target.value
+                    }))
+                  }
+                  rows={3}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 function SegmentList({
   segments
 }: {
@@ -2541,7 +2786,8 @@ function buildDemoEvidence(
   transcriptSegmentCount: number,
   subtitleSegmentCount: number,
   selectedLanguage: string,
-  subtitleReview: SubtitleReviewSummary | null
+  subtitleReview: SubtitleReviewSummary | null,
+  subtitleDraft: SubtitleDraftSummary | null
 ): DemoEvidence {
   return {
     generatedAt: new Date().toISOString(),
@@ -2569,6 +2815,13 @@ function buildDemoEvidence(
           qualityScore: subtitleReview.qualityScore,
           qualityVerdict: subtitleReview.qualityVerdict,
           downloadableSubtitleArtifactCount: subtitleReview.downloadableSubtitleArtifactCount
+      }
+      : null,
+    subtitleDraft: subtitleDraft
+      ? {
+          segmentCount: subtitleDraft.segmentCount,
+          editedSegmentCount: subtitleDraft.editedSegmentCount,
+          lastUpdatedAt: subtitleDraft.lastUpdatedAt
         }
       : null,
     usage: {
@@ -2673,6 +2926,13 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
           : `${evidence.subtitleReview.qualityScore} / 100, ${evidence.subtitleReview.qualityVerdict ?? 'No verdict'}`
       }`,
       `- Subtitle review downloadable subtitle artifacts: ${evidence.subtitleReview.downloadableSubtitleArtifactCount}`
+    );
+  }
+  if (evidence.subtitleDraft) {
+    lines.push(
+      `- Subtitle draft segments: ${evidence.subtitleDraft.segmentCount}`,
+      `- Subtitle draft edited segments: ${evidence.subtitleDraft.editedSegmentCount}`,
+      `- Subtitle draft last updated: ${evidence.subtitleDraft.lastUpdatedAt ?? 'Not saved'}`
     );
   }
   if (evidence.timeline.length > 0) {

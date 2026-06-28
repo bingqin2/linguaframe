@@ -16,6 +16,7 @@ import type {
   RetentionCleanupResult,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
+  SubtitleDraftSummary,
   SubtitleReviewSummary
 } from './domain/jobTypes';
 
@@ -53,6 +54,7 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'listPromptTemplates').mockResolvedValue(promptTemplateFixtures());
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
+    vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
   });
 
   test('shows demo readiness configuration in the sidebar', async () => {
@@ -87,7 +89,7 @@ describe('App', () => {
     const readiness = await screen.findByRole('region', { name: /demo readiness/i });
     expect(within(readiness).getByText('Protected')).toBeInTheDocument();
     expect(within(readiness).getByText('0.0.1-SNAPSHOT')).toBeInTheDocument();
-    expect(within(readiness).getByText('V18')).toBeInTheDocument();
+    expect(within(readiness).getByText('V19')).toBeInTheDocument();
     expect(within(readiness).getByText('300 seconds')).toBeInTheDocument();
     expect(within(readiness).getByText('COMBINED')).toBeInTheDocument();
     expect(within(readiness).getByText('FFmpeg audio')).toBeInTheDocument();
@@ -1171,6 +1173,15 @@ describe('App', () => {
     expect(within(review).getByText('88 / 100 · NEEDS_REVIEW')).toBeInTheDocument();
     expect(within(review).getByText('3 files')).toBeInTheDocument();
 
+    const draftEditor = screen.getByRole('region', { name: /subtitle draft editor/i });
+    expect(within(draftEditor).getByText('Saved edits')).toBeInTheDocument();
+    expect(within(draftEditor).getByText('Unsaved edits')).toBeInTheDocument();
+    expect(within(draftEditor).getByDisplayValue('修正后的第二行字幕')).toBeInTheDocument();
+    expect(within(draftEditor).getByRole('link', { name: /download corrected srt/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/artifact-job/subtitle-draft/export?language=zh-CN&format=srt'
+    );
+
     const delivery = screen.getByRole('region', { name: /result delivery/i });
     expect(within(delivery).getByText('3 generated')).toBeInTheDocument();
     expect(within(delivery).getByText('1 reused')).toBeInTheDocument();
@@ -1218,6 +1229,69 @@ describe('App', () => {
       'src',
       '/api/jobs/artifact-job/artifacts/artifact-video/download'
     );
+  });
+
+  test('edits, saves, resets, and clears subtitle draft rows', async () => {
+    const updateDraft = vi.spyOn(linguaFrameApi, 'updateSubtitleDraft').mockResolvedValue(
+      subtitleDraftFixture({
+        editedSegmentCount: 2,
+        segments: [
+          ...subtitleDraftFixture().segments.slice(0, 1),
+          {
+            ...subtitleDraftFixture().segments[1],
+            draftText: '人工修正后的字幕',
+            edited: true
+          }
+        ]
+      })
+    );
+    const clearDraft = vi.spyOn(linguaFrameApi, 'clearSubtitleDraft').mockResolvedValue(
+      subtitleDraftFixture({
+        editedSegmentCount: 0,
+        lastUpdatedAt: null,
+        segments: subtitleDraftFixture().segments.map((segment) => ({
+          ...segment,
+          draftText: segment.generatedText,
+          edited: false,
+          updatedAt: null
+        }))
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'draft-job', videoId: 'draft-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(
+      subtitleDraftFixture({ jobId: 'draft-job' })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'draft-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const draftEditor = await screen.findByRole('region', { name: /subtitle draft editor/i });
+    const secondDraft = within(draftEditor).getByLabelText('Draft text 1');
+    await userEvent.clear(secondDraft);
+    await userEvent.type(secondDraft, '人工修正后的字幕');
+    expect(within(draftEditor).getByText('Unsaved edits').nextElementSibling).toHaveTextContent('1');
+
+    await userEvent.click(within(draftEditor).getByRole('button', { name: /save draft/i }));
+    expect(updateDraft).toHaveBeenCalledWith('draft-job', 'zh-CN', {
+      segments: [{ index: 1, text: '人工修正后的字幕' }]
+    });
+    expect(await within(draftEditor).findByText('Draft saved.')).toBeInTheDocument();
+
+    await userEvent.clear(within(draftEditor).getByLabelText('Draft text 1'));
+    await userEvent.type(within(draftEditor).getByLabelText('Draft text 1'), '未保存文本');
+    await userEvent.click(within(draftEditor).getByRole('button', { name: /reset unsaved/i }));
+    expect(within(draftEditor).getByDisplayValue('人工修正后的字幕')).toBeInTheDocument();
+
+    await userEvent.click(within(draftEditor).getByRole('button', { name: /clear draft/i }));
+    expect(clearDraft).toHaveBeenCalledWith('draft-job', 'zh-CN');
+    expect(await within(draftEditor).findByText('Draft cleared.')).toBeInTheDocument();
   });
 
   test('exports safe browser demo evidence for a selected job', async () => {
@@ -1289,6 +1363,24 @@ describe('App', () => {
         ]
       })
     );
+    vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(
+      subtitleDraftFixture({
+        jobId: 'evidence-job',
+        editedSegmentCount: 1,
+        segments: [
+          {
+            index: 0,
+            startMs: 0,
+            endMs: 1200,
+            sourceText: 'Sensitive draft source line that must not be exported',
+            generatedText: '敏感生成字幕不能导出',
+            draftText: '敏感草稿字幕不能导出',
+            edited: true,
+            updatedAt: '2026-06-28T10:00:00Z'
+          }
+        ]
+      })
+    );
 
     render(<App />);
 
@@ -1307,6 +1399,8 @@ describe('App', () => {
     expect(evidenceText).toContain('Subtitle review segments: 2');
     expect(evidenceText).toContain('Subtitle review timing mismatches: 1');
     expect(evidenceText).toContain('Subtitle review quality: 88 / 100, NEEDS_REVIEW');
+    expect(evidenceText).toContain('Subtitle draft segments: 2');
+    expect(evidenceText).toContain('Subtitle draft edited segments: 1');
     expect(evidenceText).toContain('Pipeline current stage: TARGET_SUBTITLE_EXPORT');
     expect(evidenceText).toContain('Pipeline completed: 2 / 10');
     expect(evidenceText).toContain('Pipeline slowest stage: TARGET_SUBTITLE_EXPORT (1.5 s)');
@@ -1324,6 +1418,9 @@ describe('App', () => {
     expect(evidenceText).not.toContain('敏感字幕');
     expect(evidenceText).not.toContain('Sensitive review source line');
     expect(evidenceText).not.toContain('敏感审核字幕');
+    expect(evidenceText).not.toContain('Sensitive draft source line');
+    expect(evidenceText).not.toContain('敏感生成字幕');
+    expect(evidenceText).not.toContain('敏感草稿字幕');
     expect(evidenceText).not.toContain('source-vtt-artifact');
 
     await userEvent.click(within(evidence).getByRole('button', { name: /copy evidence/i }));
@@ -1331,6 +1428,7 @@ describe('App', () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('- Job: evidence-job'));
     expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive source line'));
     expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('Sensitive review source line'));
+    expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining('敏感草稿字幕'));
     expect(await within(evidence).findByText('Evidence copied.')).toBeInTheDocument();
 
     await userEvent.click(within(evidence).getByRole('button', { name: /download evidence json/i }));
@@ -1783,7 +1881,7 @@ function runtimeDependenciesFixture(
   return {
     runtime: {
       appVersion: '0.0.1-SNAPSHOT',
-      latestMigrationVersion: 18,
+      latestMigrationVersion: 19,
       requiredRoutes: [
         '/api/runtime/dependencies',
         '/api/media/uploads',
@@ -2018,6 +2116,41 @@ function subtitleReviewFixture(
         durationMs: 1600,
         timingDeltaMs: 400,
         status: 'TIMING_MISMATCH'
+      }
+    ],
+    ...overrides
+  };
+}
+
+function subtitleDraftFixture(
+  overrides: Partial<SubtitleDraftSummary> = {}
+): SubtitleDraftSummary {
+  return {
+    jobId: 'job-1',
+    targetLanguage: 'zh-CN',
+    segmentCount: 2,
+    editedSegmentCount: 1,
+    lastUpdatedAt: '2026-06-28T10:00:00Z',
+    segments: [
+      {
+        index: 0,
+        startMs: 0,
+        endMs: 1200,
+        sourceText: 'First source line',
+        generatedText: '第一行字幕',
+        draftText: '第一行字幕',
+        edited: false,
+        updatedAt: null
+      },
+      {
+        index: 1,
+        startMs: 1200,
+        endMs: 2800,
+        sourceText: 'Second source line',
+        generatedText: '第二行字幕',
+        draftText: '修正后的第二行字幕',
+        edited: true,
+        updatedAt: '2026-06-28T10:00:00Z'
       }
     ],
     ...overrides

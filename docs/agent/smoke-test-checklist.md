@@ -267,6 +267,8 @@ Expected:
 - Output includes `estimatedCostUsd=0E-8` with `.env.example` cost rates.
 - Output includes `subtitleReviewSegmentCount`, `subtitleReviewMissingTargetCount`, `subtitleReviewTimingMismatchCount`, `subtitleReviewQuality`, and `subtitleReviewSubtitleArtifactCount`.
 - Terminal subtitle-review output excludes raw transcript text, raw subtitle text, object keys, local paths, provider payloads, API keys, and demo tokens.
+- Output includes `subtitleDraftSegmentCount`, `subtitleDraftEditedSegmentCount`, and `subtitleDraftLastUpdated`.
+- Terminal subtitle-draft output excludes raw transcript text, raw generated subtitle text, raw corrected draft text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.
