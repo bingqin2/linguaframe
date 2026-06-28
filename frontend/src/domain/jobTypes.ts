@@ -605,6 +605,55 @@ export interface DeliveryManifest {
   links: DeliveryManifestLink[];
 }
 
+export interface JobComparisonSettingDiff {
+  field: string;
+  baselineValue: string;
+  comparisonValue: string;
+}
+
+export interface JobComparisonDelta {
+  qualityScore: number | null;
+  modelCallCount: number;
+  estimatedCostUsd: number;
+  artifactCacheHitCount: number;
+  generatedArtifactCount: number;
+  providerCacheHitCount: number;
+}
+
+export interface JobComparisonJob {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  ttsVoice: string | null;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
+  subtitlePolishingMode: string;
+  status: LocalizationJobStatus;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  estimatedCostUsd: number;
+  artifactCacheHitCount: number;
+  generatedArtifactCount: number;
+  providerCacheHitCount: number;
+  handoffReady: boolean;
+}
+
+export interface JobComparison {
+  baselineJobId: string;
+  comparisonJobId: string;
+  sameSourceVideo: boolean;
+  generatedAt: string;
+  baseline: JobComparisonJob;
+  comparison: JobComparisonJob;
+  delta: JobComparisonDelta;
+  settingDiffs: JobComparisonSettingDiff[];
+}
+
 export interface SubtitleReviewSegment {
   index: number;
   startMs: number;

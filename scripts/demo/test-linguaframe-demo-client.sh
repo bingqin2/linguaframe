@@ -122,6 +122,99 @@ test_upload_demo_video_explicit_env_overrides_profile() {
   [[ "$output" == *"translationStyle=CONCISE"* ]] || fail "upload_demo_video did not let explicit style override profile"
 }
 
+test_download_job_comparison_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_job_comparison_json "http://example.test" "baseline job" "comparison/job" "$TMPDIR/comparison.json" >"$TMPDIR/comparison-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_job_comparison_markdown "http://example.test" "baseline job" "comparison/job" "$TMPDIR/comparison.md" >"$TMPDIR/comparison-markdown-curl.out"
+
+  local json_output markdown_output
+  json_output="$(cat "$TMPDIR/comparison-json-curl.out")"
+  markdown_output="$(cat "$TMPDIR/comparison-markdown-curl.out")"
+
+  [[ "$json_output" == *"http://example.test/api/jobs/baseline%20job/comparison/comparison%2Fjob"* ]] || fail "comparison JSON helper used wrong route"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/baseline%20job/comparison/comparison%2Fjob/markdown/download"* ]] || fail "comparison Markdown helper used wrong route"
+}
+
+test_print_job_comparison_summary_is_metadata_only() {
+  cat >"$TMPDIR/job-comparison.json" <<'JSON'
+{
+  "baselineJobId": "baseline-job",
+  "comparisonJobId": "showcase-job",
+  "sameSourceVideo": true,
+  "baseline": {
+    "jobId": "baseline-job",
+    "videoId": "video-demo",
+    "targetLanguage": "zh-CN",
+    "demoProfileId": "quick-baseline",
+    "status": "COMPLETED",
+    "qualityScore": 80,
+    "modelCallCount": 2,
+    "estimatedCostUsd": 0.000012,
+    "artifactCacheHitCount": 0,
+    "providerCacheHitCount": 0,
+    "generatedArtifactCount": 8,
+    "handoffReady": true
+  },
+  "comparison": {
+    "jobId": "showcase-job",
+    "videoId": "video-demo",
+    "targetLanguage": "zh-CN",
+    "demoProfileId": "tears-showcase",
+    "status": "COMPLETED",
+    "qualityScore": 91,
+    "modelCallCount": 3,
+    "estimatedCostUsd": 0.000090,
+    "artifactCacheHitCount": 2,
+    "providerCacheHitCount": 1,
+    "generatedArtifactCount": 9,
+    "handoffReady": true
+  },
+  "delta": {
+    "qualityScore": 11,
+    "modelCallCount": 1,
+    "estimatedCostUsd": 0.000078,
+    "artifactCacheHitCount": 2,
+    "providerCacheHitCount": 1,
+    "generatedArtifactCount": 1
+  },
+  "settingDiffs": [
+    {
+      "field": "demoProfileId",
+      "baselineValue": "quick-baseline",
+      "comparisonValue": "tears-showcase"
+    },
+    {
+      "field": "translationGlossary",
+      "baselineValue": "",
+      "comparisonValue": "raw glossary text /Users/example/private.mov sk-test"
+    }
+  ]
+}
+JSON
+
+  print_job_comparison_summary_file "$TMPDIR/job-comparison.json" >"$TMPDIR/job-comparison.out"
+  local output
+  output="$(cat "$TMPDIR/job-comparison.out")"
+
+  [[ "$output" == *"comparisonBaselineJobId=baseline-job"* ]] || fail "comparison summary missed baseline job"
+  [[ "$output" == *"comparisonJobId=showcase-job"* ]] || fail "comparison summary missed comparison job"
+  [[ "$output" == *"comparisonSameSourceVideo=true"* ]] || fail "comparison summary missed source match"
+  [[ "$output" == *"comparisonBaselineProfile=quick-baseline"* ]] || fail "comparison summary missed baseline profile"
+  [[ "$output" == *"comparisonProfile=tears-showcase"* ]] || fail "comparison summary missed comparison profile"
+  [[ "$output" == *"comparisonQualityDelta=11"* ]] || fail "comparison summary missed quality delta"
+  [[ "$output" == *"comparisonModelCallDelta=1"* ]] || fail "comparison summary missed model-call delta"
+  [[ "$output" == *"comparisonEstimatedCostDeltaUsd=0.000078"* ]] || fail "comparison summary missed cost delta"
+  [[ "$output" == *"comparisonSettingDiff=demoProfileId:quick-baseline->tears-showcase"* ]] || fail "comparison summary missed setting diff"
+  [[ "$output" == *"comparisonSettingDiff=translationGlossary:[empty]->[present]"* ]] || fail "comparison summary did not redact glossary values"
+  [[ "$output" != *"raw glossary text"* ]] || fail "comparison summary exposed glossary text"
+  [[ "$output" != *"/Users/example"* ]] || fail "comparison summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "comparison summary exposed token"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -1006,6 +1099,8 @@ test_demo_base_url_uses_backend_port_from_env_file
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile
+test_download_job_comparison_helpers_use_backend_routes
+test_print_job_comparison_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

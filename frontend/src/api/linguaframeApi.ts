@@ -1,5 +1,6 @@
 import type {
   JobArtifact,
+  JobComparison,
   DemoRunProfile,
   DemoSessionStatus,
   DeliveryManifest,
@@ -132,6 +133,15 @@ export async function getDeliveryManifest(jobId: string): Promise<DeliveryManife
   return requestJson<DeliveryManifest>(`/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest`, {
     method: 'GET'
   });
+}
+
+export async function getJobComparison(jobId: string, comparisonJobId: string): Promise<JobComparison> {
+  return requestJson<JobComparison>(
+    `/api/jobs/${encodeURIComponent(jobId)}/comparison/${encodeURIComponent(comparisonJobId)}`,
+    {
+      method: 'GET'
+    }
+  );
 }
 
 export async function listJobs(params: ListJobsParams = {}): Promise<LocalizationJobList> {
@@ -355,6 +365,12 @@ export function deliveryManifestMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest/markdown/download`;
 }
 
+export function jobComparisonMarkdownDownloadUrl(jobId: string, comparisonJobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/comparison/${encodeURIComponent(
+    comparisonJobId
+  )}/markdown/download`;
+}
+
 export function jobEventsUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/events`;
 }
@@ -370,6 +386,7 @@ export const linguaFrameApi = {
   listJobs,
   getJob,
   getDeliveryManifest,
+  getJobComparison,
   retryJob,
   cancelJob,
   listArtifacts,
@@ -399,6 +416,7 @@ export const linguaFrameApi = {
   aiAuditPackageDownloadUrl,
   sourceMediaDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
+  jobComparisonMarkdownDownloadUrl,
   jobEventsUrl,
   readDemoToken,
   writeDemoToken

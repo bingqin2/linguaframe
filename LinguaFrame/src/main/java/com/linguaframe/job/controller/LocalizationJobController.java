@@ -15,6 +15,7 @@ import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
+import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
@@ -30,6 +31,7 @@ import com.linguaframe.job.service.DemoRunPackageService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.JobHandoffPackageService;
+import com.linguaframe.job.service.JobComparisonService;
 import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -80,6 +82,7 @@ public class LocalizationJobController {
     private final JobHandoffPackageService handoffPackageService;
     private final DemoRunPackageService demoRunPackageService;
     private final AiAuditPackageService aiAuditPackageService;
+    private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
@@ -100,6 +103,7 @@ public class LocalizationJobController {
             JobHandoffPackageService handoffPackageService,
             DemoRunPackageService demoRunPackageService,
             AiAuditPackageService aiAuditPackageService,
+            JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
@@ -119,6 +123,7 @@ public class LocalizationJobController {
         this.handoffPackageService = handoffPackageService;
         this.demoRunPackageService = demoRunPackageService;
         this.aiAuditPackageService = aiAuditPackageService;
+        this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
@@ -341,6 +346,50 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(aiAuditPackage.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/comparison/{comparisonJobId}")
+    @Operation(summary = "Compare two localization jobs using safe demo metadata")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Job comparison was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for one of the supplied job ids.")
+    })
+    public JobComparisonVo compareJobs(
+            @Parameter(in = ParameterIn.PATH, description = "Baseline localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(in = ParameterIn.PATH, description = "Comparison localization job id.", required = true)
+            @PathVariable String comparisonJobId
+    ) {
+        return jobComparisonService.compareJobs(jobId, comparisonJobId);
+    }
+
+    @GetMapping("/{jobId}/comparison/{comparisonJobId}/markdown/download")
+    @Operation(summary = "Download a safe Markdown comparison for two localization jobs")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Job comparison Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for one of the supplied job ids.")
+    })
+    public ResponseEntity<byte[]> downloadJobComparisonMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Baseline localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(in = ParameterIn.PATH, description = "Comparison localization job id.", required = true)
+            @PathVariable String comparisonJobId
+    ) {
+        byte[] body = jobComparisonService.buildMarkdownComparison(jobId, comparisonJobId)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-vs-" + comparisonJobId + "-comparison.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping("/{jobId}/delivery-manifest")

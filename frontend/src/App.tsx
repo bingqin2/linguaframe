@@ -5,6 +5,7 @@ import type {
   DeliveryManifest,
   FailureTriage,
   JobArtifact,
+  JobComparison,
   DemoRunProfile,
   DemoSessionStatus,
   LocalizationJob,
@@ -353,6 +354,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [cacheReplayComparisonArtifacts, setCacheReplayComparisonArtifacts] = useState<JobArtifact[]>([]);
   const [cacheReplayError, setCacheReplayError] = useState<string | null>(null);
   const [isLoadingCacheReplayComparison, setIsLoadingCacheReplayComparison] = useState(false);
+  const [demoComparisonJobId, setDemoComparisonJobId] = useState('');
+  const [demoComparison, setDemoComparison] = useState<JobComparison | null>(null);
+  const [demoComparisonError, setDemoComparisonError] = useState<string | null>(null);
+  const [isLoadingDemoComparison, setIsLoadingDemoComparison] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
   const canRetry = job?.status === 'FAILED';
@@ -388,6 +393,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       try {
         const nextJob = await linguaFrameApi.getJob(jobId);
         setJob(nextJob);
+        if (!options.silent) {
+          setDemoComparisonJobId('');
+          setDemoComparison(null);
+          setDemoComparisonError(null);
+        }
         setIsSseUnavailable(false);
         setError(null);
         return nextJob;
@@ -902,6 +912,25 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleSelectDemoComparison(jobId: string) {
+    setDemoComparisonJobId(jobId);
+    setDemoComparison(null);
+    setDemoComparisonError(null);
+    if (!job || !jobId) {
+      return;
+    }
+
+    setIsLoadingDemoComparison(true);
+    try {
+      const comparison = await linguaFrameApi.getJobComparison(job.jobId, jobId);
+      setDemoComparison(comparison);
+    } catch (comparisonError) {
+      setDemoComparisonError(toErrorMessage(comparisonError));
+    } finally {
+      setIsLoadingDemoComparison(false);
+    }
+  }
+
   async function handleSaveSubtitleDraft(segments: Array<{ index: number; text: string }>) {
     if (!job) {
       return;
@@ -1348,11 +1377,16 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               cacheReplayComparisonJob={cacheReplayComparisonJob}
               cacheReplayComparisonJobId={cacheReplayComparisonJobId}
               cacheReplayError={cacheReplayError}
+              demoComparison={demoComparison}
+              demoComparisonError={demoComparisonError}
+              demoComparisonJobId={demoComparisonJobId}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
+              isLoadingDemoComparison={isLoadingDemoComparison}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
+              onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
@@ -2185,11 +2219,16 @@ function JobDetail({
   cacheReplayComparisonJob,
   cacheReplayComparisonJobId,
   cacheReplayError,
+  demoComparison,
+  demoComparisonError,
+  demoComparisonJobId,
   isLoadingCacheReplayComparison,
+  isLoadingDemoComparison,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
   onSelectCacheReplayComparison,
+  onSelectDemoComparison,
   onRetry,
   onPublishReviewedSubtitles,
   onSaveSubtitleDraft,
@@ -2222,11 +2261,16 @@ function JobDetail({
   cacheReplayComparisonJob: LocalizationJob | null;
   cacheReplayComparisonJobId: string;
   cacheReplayError: string | null;
+  demoComparison: JobComparison | null;
+  demoComparisonError: string | null;
+  demoComparisonJobId: string;
   isLoadingCacheReplayComparison: boolean;
+  isLoadingDemoComparison: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
+  onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean) => void;
   onSaveSubtitleDraft: (segments: Array<{ index: number; text: string }>) => void;
@@ -2378,6 +2422,16 @@ function JobDetail({
       <DemoSessionReportPanel report={demoSessionReport} jobId={job.jobId} />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
+
+      <DemoComparisonPanel
+        candidates={cacheReplayCandidates}
+        comparison={demoComparison}
+        comparisonJobId={demoComparisonJobId}
+        error={demoComparisonError}
+        isLoading={isLoadingDemoComparison}
+        selectedJob={job}
+        onSelectComparison={onSelectDemoComparison}
+      />
 
       <CacheReplayPanel
         baseline={cacheReplayBaseline}
@@ -3464,6 +3518,120 @@ function CacheReplayPanel({
               <ul>
                 {evidence.providerCacheHitStages.map((stage) => (
                   <li key={stage}>{stage}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoComparisonPanel({
+  candidates,
+  comparison,
+  comparisonJobId,
+  error,
+  isLoading,
+  selectedJob,
+  onSelectComparison
+}: {
+  candidates: CacheReplayCandidate[];
+  comparison: JobComparison | null;
+  comparisonJobId: string;
+  error: string | null;
+  isLoading: boolean;
+  selectedJob: LocalizationJob;
+  onSelectComparison: (jobId: string) => void;
+}) {
+  const markdownHref = comparison
+    ? linguaFrameApi.jobComparisonMarkdownDownloadUrl(selectedJob.jobId, comparison.comparisonJobId)
+    : null;
+
+  return (
+    <section className="panel demo-comparison-panel" aria-label="Demo comparison">
+      <div className="panel-heading">
+        <h3>Demo comparison</h3>
+        <div className="panel-actions">
+          {markdownHref ? (
+            <a className="secondary-link" href={markdownHref}>
+              Download Markdown
+            </a>
+          ) : null}
+        </div>
+      </div>
+
+      <label>
+        Comparison job
+        <select
+          value={comparisonJobId}
+          onChange={(event) => void onSelectComparison(event.target.value)}
+        >
+          <option value="">Choose a completed demo job</option>
+          {candidates.map((candidate) => (
+            <option key={candidate.jobId} value={candidate.jobId}>
+              {candidate.filename} · {candidate.jobId} · {candidate.status}
+            </option>
+          ))}
+        </select>
+      </label>
+      {candidates.length === 0 ? <p className="muted">No comparison candidates loaded yet.</p> : null}
+      {isLoading ? <p className="muted">Loading comparison...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+
+      {comparison ? (
+        <>
+          {!comparison.sameSourceVideo ? (
+            <p className="muted">These jobs use different source videos; compare demo outcomes carefully.</p>
+          ) : null}
+          <dl className="metrics-grid demo-comparison-grid">
+            <div>
+              <dt>Baseline</dt>
+              <dd>{comparison.baseline.jobId}</dd>
+            </div>
+            <div>
+              <dt>Comparison</dt>
+              <dd>{comparison.comparison.jobId}</dd>
+            </div>
+            <div>
+              <dt>Source video</dt>
+              <dd>{comparison.baseline.videoId}</dd>
+            </div>
+            <div>
+              <dt>Comparison profile</dt>
+              <dd>{formatDemoProfileId(comparison.comparison.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Quality delta</dt>
+              <dd>{formatNullableSignedInteger(comparison.delta.qualityScore)}</dd>
+            </div>
+            <div>
+              <dt>Cost delta</dt>
+              <dd>{formatSignedCost(comparison.delta.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Model calls</dt>
+              <dd>{formatSignedInteger(comparison.delta.modelCallCount)} calls</dd>
+            </div>
+            <div>
+              <dt>Provider cache</dt>
+              <dd>{formatSignedInteger(comparison.delta.providerCacheHitCount)} hits</dd>
+            </div>
+          </dl>
+          <div className="comparison-setting-list">
+            <h4>Setting differences</h4>
+            {comparison.settingDiffs.length === 0 ? (
+              <p className="muted">No tracked settings changed between these jobs.</p>
+            ) : (
+              <ul>
+                {comparison.settingDiffs.map((diff) => (
+                  <li key={diff.field}>
+                    <strong>{diff.field}</strong>
+                    <span>
+                      {formatNullableSetting(diff.baselineValue)} -&gt; {formatNullableSetting(diff.comparisonValue)}
+                    </span>
+                  </li>
                 ))}
               </ul>
             )}
@@ -4810,6 +4978,14 @@ function formatSignedInteger(value: number): string {
     return `+${value}`;
   }
   return String(value);
+}
+
+function formatNullableSignedInteger(value: number | null): string {
+  return value === null ? 'N/A' : formatSignedInteger(value);
+}
+
+function formatNullableSetting(value: string | null): string {
+  return value && value.trim().length > 0 ? value : 'None';
 }
 
 function formatDurationMs(durationMs: number): string {

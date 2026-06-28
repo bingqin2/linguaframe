@@ -17,6 +17,7 @@ Environment:
   LINGUAFRAME_FULL_DEMO_OUTPUT_DIR          Default: /tmp/linguaframe-demo/tears-of-steel-full
   LINGUAFRAME_FULL_DEMO_WAIT_ATTEMPTS       Default: 240
   LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS  Default: 5
+  LINGUAFRAME_COMPARISON_BASELINE_JOB_ID    Optional completed baseline job to compare against
 USAGE
 }
 
@@ -33,6 +34,7 @@ SAMPLE_PATH="${LINGUAFRAME_TEARS_SAMPLE_PATH:-/Users/wangbingqin/Downloads/tos_c
 OUTPUT_DIR="${LINGUAFRAME_FULL_DEMO_OUTPUT_DIR:-/tmp/linguaframe-demo/tears-of-steel-full}"
 WAIT_ATTEMPTS="${LINGUAFRAME_FULL_DEMO_WAIT_ATTEMPTS:-240}"
 WAIT_DELAY_SECONDS="${LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS:-5}"
+COMPARISON_BASELINE_JOB_ID="${LINGUAFRAME_COMPARISON_BASELINE_JOB_ID:-}"
 
 if [[ ! -s "$SAMPLE_PATH" ]]; then
   echo "Missing Tears of Steel sample: $SAMPLE_PATH" >&2
@@ -71,6 +73,14 @@ download_artifact_by_type "$BASE_URL" "$job_id" TARGET_SUBTITLE_VTT "$OUTPUT_DIR
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 download_artifact_archive "$BASE_URL" "$job_id" "$OUTPUT_DIR/artifacts.zip"
 print_zip_entries "$OUTPUT_DIR/artifacts.zip"
+
+if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
+  echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
+  download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"
+  download_job_comparison_markdown "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.md"
+  print_job_comparison_summary_file "$OUTPUT_DIR/job-comparison.json"
+  echo "Downloaded comparison evidence to $OUTPUT_DIR/job-comparison.json and $OUTPUT_DIR/job-comparison.md"
+fi
 
 if download_optional_artifact_by_type "$BASE_URL" "$job_id" BURNED_VIDEO "$OUTPUT_DIR/burned-video.mp4"; then
   echo "Downloaded burned video to $OUTPUT_DIR/burned-video.mp4"

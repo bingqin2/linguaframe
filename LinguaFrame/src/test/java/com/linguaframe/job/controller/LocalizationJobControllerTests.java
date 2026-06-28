@@ -1804,6 +1804,83 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void comparesTwoLocalizationJobsAsSafeDemoEvidence() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T15:30:00Z");
+        createJob("job-controller-video-comparison", "job-controller-comparison-baseline", "comparison.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        jobRepository.save(new LocalizationJobRecord(
+                "job-controller-comparison-showcase",
+                "job-controller-video-comparison",
+                "zh-CN",
+                LocalizationJobStatus.COMPLETED,
+                createdAt.plusSeconds(10)
+        ));
+        updateComparisonSettings(
+                "job-controller-comparison-baseline",
+                "quick-baseline",
+                "NATURAL",
+                "STANDARD",
+                0,
+                "",
+                "OFF"
+        );
+        updateComparisonSettings(
+                "job-controller-comparison-showcase",
+                "tears-showcase",
+                "FORMAL",
+                "HIGH_CONTRAST",
+                3,
+                "abc123",
+                "BALANCED"
+        );
+        modelCallAuditService.recordSuccess(modelCall("job-controller-comparison-baseline", 100, 100, 80, "0.00006300"));
+        modelCallAuditService.recordSuccess(modelCall("job-controller-comparison-showcase", 100, 100, 80, "0.00006300"));
+        modelCallAuditService.recordSuccess(modelCall("job-controller-comparison-showcase", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-comparison-baseline", "job-controller-comparison-baseline", 82, createdAt.plusSeconds(20)));
+        qualityEvaluationRepository.save(quality("quality-comparison-showcase", "job-controller-comparison-showcase", 91, createdAt.plusSeconds(21)));
+        artifactRepository.save(reviewedArtifact("comparison-baseline-json", "job-controller-comparison-baseline", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("comparison-baseline-srt", "job-controller-comparison-baseline", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("comparison-baseline-vtt", "job-controller-comparison-baseline", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/comparison/{comparisonJobId}",
+                        "job-controller-comparison-baseline",
+                        "job-controller-comparison-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.baseline.jobId").value("job-controller-comparison-baseline"))
+                .andExpect(jsonPath("$.comparison.jobId").value("job-controller-comparison-showcase"))
+                .andExpect(jsonPath("$.sameVideo").value(true))
+                .andExpect(jsonPath("$.baseline.demoProfileId").value("quick-baseline"))
+                .andExpect(jsonPath("$.comparison.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.baseline.handoffReady").value(true))
+                .andExpect(jsonPath("$.comparison.handoffReady").value(false))
+                .andExpect(jsonPath("$.delta.qualityScore").value(9))
+                .andExpect(jsonPath("$.delta.modelCallCount").value(1))
+                .andExpect(jsonPath("$.settingDiffs[0].field").value("demoProfileId"))
+                .andExpect(jsonPath("$.settingDiffs[1].field").value("translationStyle"));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/comparison/{comparisonJobId}/markdown/download",
+                        "job-controller-comparison-baseline",
+                        "job-controller-comparison-showcase"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
+                        startsWith("attachment; filename=\"linguaframe-job-job-controller-comparison-baseline-vs-job-controller-comparison-showcase-comparison.md\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown).contains("- Baseline demo profile: quick-baseline");
+        assertThat(markdown).contains("- Comparison demo profile: tears-showcase");
+        assertThat(markdown).contains("- Quality score delta: +9");
+        assertThat(markdown).doesNotContain("source-videos/");
+        assertThat(markdown).doesNotContain("provider payload");
+        assertThat(markdown).doesNotContain("OPENAI_API_KEY");
+    }
+
+    @Test
     void returnsNotFoundWhenArtifactDoesNotBelongToJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-26T23:30:00Z");
         createJob("job-controller-video-artifact-owner", "job-controller-job-artifact-owner", createdAt);
@@ -1911,5 +1988,93 @@ class LocalizationJobControllerTests {
                 status,
                 createdAt
         ));
+    }
+
+    private void updateComparisonSettings(
+            String jobId,
+            String profile,
+            String translationStyle,
+            String subtitleStylePreset,
+            int glossaryCount,
+            String glossaryHash,
+            String polishingMode
+    ) {
+        jdbcClient.sql("""
+                        UPDATE localization_jobs
+                        SET demo_profile_id = :profile,
+                            translation_style = :translationStyle,
+                            subtitle_style_preset = :subtitleStylePreset,
+                            translation_glossary_entry_count = :glossaryCount,
+                            translation_glossary_hash = :glossaryHash,
+                            subtitle_polishing_mode = :polishingMode
+                        WHERE id = :jobId
+                        """)
+                .param("profile", profile)
+                .param("translationStyle", translationStyle)
+                .param("subtitleStylePreset", subtitleStylePreset)
+                .param("glossaryCount", glossaryCount)
+                .param("glossaryHash", glossaryHash)
+                .param("polishingMode", polishingMode)
+                .param("jobId", jobId)
+                .update();
+    }
+
+    private CreateModelCallRecordCommand modelCall(
+            String jobId,
+            long latencyMs,
+            int inputTokens,
+            int outputTokens,
+            String estimatedCostUsd
+    ) {
+        return new CreateModelCallRecordCommand(
+                jobId,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-test",
+                "openai-subtitle-translation-v1",
+                latencyMs,
+                inputTokens,
+                outputTokens,
+                new BigDecimal(estimatedCostUsd),
+                null,
+                "target=zh-CN, segments=2, sourceChars=61",
+                "segments=2, targetChars=29"
+        );
+    }
+
+    private QualityEvaluationRecord quality(String evaluationId, String jobId, int score, Instant createdAt) {
+        return new QualityEvaluationRecord(
+                evaluationId,
+                jobId,
+                "zh-CN",
+                score,
+                "GOOD",
+                score,
+                score,
+                score,
+                score,
+                List.of(),
+                List.of(),
+                QualityEvaluationStatus.SUCCEEDED,
+                null,
+                createdAt
+        );
+    }
+
+    private JobArtifactRecord reviewedArtifact(String artifactId, String jobId, JobArtifactType type) {
+        return new JobArtifactRecord(
+                artifactId,
+                jobId,
+                type,
+                "job-artifacts/" + jobId + "/" + artifactId + "/reviewed-subtitles.zh-CN.json",
+                "reviewed-subtitles.zh-CN.json",
+                "application/json",
+                42L,
+                artifactId + "-hash",
+                false,
+                null,
+                Instant.parse("2026-06-27T15:40:00Z")
+        );
     }
 }
