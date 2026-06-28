@@ -462,6 +462,29 @@ for artifact in manifest.get("reviewedArtifacts", []):
 '
 }
 
+print_media_delivery_summary() {
+  python3 -c '
+import json
+import sys
+
+media_types = {"DUBBING_AUDIO", "BURNED_VIDEO", "REVIEWED_BURNED_VIDEO"}
+artifacts = [artifact for artifact in json.load(sys.stdin) if artifact.get("type") in media_types]
+print("mediaDeliveryReadyCount=" + str(len(artifacts)))
+for artifact in artifacts:
+    cache_state = "Reused" if artifact.get("cacheHit") else "Generated"
+    print(
+        "mediaDeliveryArtifact="
+        + artifact.get("type", "UNKNOWN")
+        + ":"
+        + artifact.get("filename", "unnamed")
+        + ":"
+        + artifact.get("contentType", "unknown")
+        + ":"
+        + cache_state
+    )
+'
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"
