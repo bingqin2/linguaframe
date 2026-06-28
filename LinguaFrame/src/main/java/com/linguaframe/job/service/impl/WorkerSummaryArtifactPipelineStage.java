@@ -63,6 +63,7 @@ public class WorkerSummaryArtifactPipelineStage implements LocalizationPipelineS
         json.put("jobId", context.job().id());
         json.put("videoId", context.job().videoId());
         json.put("targetLanguage", context.job().targetLanguage());
+        json.put("demoProfileId", context.job().demoProfileId());
         json.put("subtitleStylePreset", context.job().subtitleStylePreset());
         json.put("translationGlossaryEntryCount", context.job().translationGlossaryEntryCount());
         json.put("translationGlossaryHash", context.job().translationGlossaryHash());

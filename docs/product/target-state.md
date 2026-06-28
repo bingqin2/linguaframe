@@ -12,6 +12,7 @@ The project should stay focused on video localization:
 - Upload-time translation style control for natural, formal, or concise subtitle localization.
 - Upload-time translation glossary control for names, product terms, and demo vocabulary.
 - Upload-time subtitle polishing control for disabled, balanced, or strict subtitle cleanup.
+- Reusable demo run profiles that apply a complete localization preset while preserving manual overrides.
 - TTS dubbing audio.
 - Subtitle-burned preview video.
 - Cost, retry, and failure observability.

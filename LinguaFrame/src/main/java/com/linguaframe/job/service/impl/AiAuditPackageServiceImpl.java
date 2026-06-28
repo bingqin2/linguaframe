@@ -108,6 +108,7 @@ public class AiAuditPackageServiceImpl implements AiAuditPackageService {
         manifest.put("jobId", job.jobId());
         manifest.put("videoId", job.videoId());
         manifest.put("targetLanguage", job.targetLanguage());
+        manifest.put("demoProfileId", job.demoProfileId());
         manifest.put("subtitleStylePreset", job.subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", job.translationGlossaryHash());

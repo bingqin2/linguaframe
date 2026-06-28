@@ -252,12 +252,13 @@ Suggested ExecPlan:
 
 Goal: make the system demonstrable without terminal inspection.
 
-Status: in progress. The repository now includes a React + Vite demo workspace with upload, server-backed job history, manual job opening, guided demo review, source media evidence, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, demo session report, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
+Status: in progress. The repository now includes a React + Vite demo workspace with upload, reusable demo run profiles, server-backed job history, manual job opening, guided demo review, source media evidence, status/timeline, pipeline progress, previews, media delivery playback, demo handoff checklist, demo session report, subtitle review, subtitle draft editing and corrected subtitle export, artifacts, one-click result bundle download, retry, cost/model-call visibility, one-click diagnostics report download, an operator dashboard for demo health, stage timing, and manual retention cleanup, and a read-only demo readiness panel with budget guard visibility.
 
 Build:
 
 - React + Vite + TypeScript frontend.
 - Upload page.
+- Demo run profile selector. Status: implemented with read-only built-in profiles that populate upload fields, persist selected profile metadata, and keep manual field overrides available.
 - Job list.
 - Job detail.
 - Status timeline.
@@ -344,7 +345,7 @@ Suggested ExecPlan:
 
 Goal: make OpenAI usage reproducible and inspectable instead of hidden inside pipeline stages.
 
-Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation/polishing prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity. Upload-time translation glossary control is implemented with strict parsing, OpenAI request payload support, cache-key isolation, browser form/history/detail metadata, and safe evidence metadata. Upload-time subtitle polishing control is implemented for `OFF`, `BALANCED`, and `STRICT` jobs, including a separate audited stage, provider cache identity, browser/demo controls, and evidence metadata.
+Status: in progress. Model-call audit records are implemented with safe input/output summaries, active OpenAI translation/evaluation/polishing prompt templates are registered in code, used by providers, exposed through `GET /api/prompt-templates`, shown in the React demo, and packaged into a safe per-job AI audit ZIP. A separate OpenAI smoke profile now verifies provider-backed model calls and evidence generation without making `.env.example` a paid default. Upload-time translation style control is implemented for `NATURAL`, `FORMAL`, and `CONCISE` jobs, including provider prompt payloads and cache identity. Upload-time translation glossary control is implemented with strict parsing, OpenAI request payload support, cache-key isolation, browser form/history/detail metadata, and safe evidence metadata. Upload-time subtitle polishing control is implemented for `OFF`, `BALANCED`, and `STRICT` jobs, including a separate audited stage, provider cache identity, browser/demo controls, and evidence metadata. Demo run profiles now package these upload-time controls into repeatable presets while cache identity stays based on the resolved settings.
 
 Build:
 
@@ -354,6 +355,7 @@ Build:
 - Safe input and output summaries. Status: implemented with count-only summaries for transcription, translation, quality evaluation, and TTS.
 - Translation style control. Status: implemented across upload, job metadata, OpenAI translation payloads, safe summaries, provider cache keys, React demo controls, and demo scripts.
 - Subtitle polishing control. Status: implemented across upload, job metadata, OpenAI polishing payloads, safe summaries, provider cache keys, React demo controls, and demo scripts.
+- Demo run profiles. Status: implemented as read-only presets exposed by `GET /api/demo-run-profiles`, React upload selection, terminal `LINGUAFRAME_DEMO_PROFILE_ID`, persisted job metadata, and safe evidence/package metadata.
 - Latency, token, audio, character, and estimated-cost fields. Status: implemented.
 - Job detail API for model calls. Status: implemented.
 - Frontend model-call panel. Status: implemented.

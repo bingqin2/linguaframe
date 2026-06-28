@@ -16,6 +16,7 @@ public record QueuedLocalizationJobMessage(
         String translationGlossaryHash,
         int translationGlossaryEntryCount,
         String subtitlePolishingMode,
+        String demoProfileId,
         Instant createdAt,
         LocalizationJobStage startStage
 ) {
@@ -47,6 +48,12 @@ public record QueuedLocalizationJobMessage(
         } else {
             subtitlePolishingMode = subtitlePolishingMode.trim().toUpperCase();
         }
+        if (demoProfileId != null) {
+            demoProfileId = demoProfileId.trim();
+            if (demoProfileId.isBlank()) {
+                demoProfileId = null;
+            }
+        }
         if (startStage == null) {
             startStage = LocalizationJobStage.WORKER_SMOKE;
         }
@@ -62,7 +69,7 @@ public record QueuedLocalizationJobMessage(
             Instant createdAt,
             LocalizationJobStage startStage
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, "OFF", createdAt, startStage);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, "OFF", null, createdAt, startStage);
     }
 
     public QueuedLocalizationJobMessage(
@@ -74,7 +81,7 @@ public record QueuedLocalizationJobMessage(
             Instant createdAt,
             LocalizationJobStage startStage
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, "NATURAL", "STANDARD", "[]", "", 0, "OFF", createdAt, startStage);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, "NATURAL", "STANDARD", "[]", "", 0, "OFF", null, createdAt, startStage);
     }
 
     public QueuedLocalizationJobMessage(
@@ -87,7 +94,7 @@ public record QueuedLocalizationJobMessage(
             String subtitleStylePreset,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, "[]", "", 0, "OFF", createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, "[]", "", 0, "OFF", null, createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -103,7 +110,7 @@ public record QueuedLocalizationJobMessage(
             int translationGlossaryEntryCount,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, "OFF", createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, "OFF", null, createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -120,7 +127,25 @@ public record QueuedLocalizationJobMessage(
             String subtitlePolishingMode,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, subtitlePolishingMode, createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, subtitlePolishingMode, null, createdAt, LocalizationJobStage.WORKER_SMOKE);
+    }
+
+    public QueuedLocalizationJobMessage(
+            String jobId,
+            String videoId,
+            String sourceObjectKey,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossaryJson,
+            String translationGlossaryHash,
+            int translationGlossaryEntryCount,
+            String subtitlePolishingMode,
+            String demoProfileId,
+            Instant createdAt
+    ) {
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, subtitlePolishingMode, demoProfileId, createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -132,7 +157,7 @@ public record QueuedLocalizationJobMessage(
             String translationStyle,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, "OFF", createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, "OFF", null, createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -142,7 +167,7 @@ public record QueuedLocalizationJobMessage(
             String targetLanguage,
             Instant createdAt
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, "OFF", createdAt, LocalizationJobStage.WORKER_SMOKE);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, "OFF", null, createdAt, LocalizationJobStage.WORKER_SMOKE);
     }
 
     public QueuedLocalizationJobMessage(
@@ -153,6 +178,6 @@ public record QueuedLocalizationJobMessage(
             Instant createdAt,
             LocalizationJobStage startStage
     ) {
-        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, "OFF", createdAt, startStage);
+        this(jobId, videoId, sourceObjectKey, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, "OFF", null, createdAt, startStage);
     }
 }

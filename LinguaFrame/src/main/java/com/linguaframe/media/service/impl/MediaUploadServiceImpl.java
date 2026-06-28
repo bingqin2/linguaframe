@@ -10,6 +10,8 @@ import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
 import com.linguaframe.job.service.impl.TranslationGlossaryParser;
+import com.linguaframe.demo.service.DemoRunProfileService;
+import com.linguaframe.demo.service.impl.InMemoryDemoRunProfileService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
@@ -28,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 
@@ -42,6 +45,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final LocalizationJobRepository jobRepository;
     private final JobDispatchOutboxService dispatchOutboxService;
     private final TranslationGlossaryParser translationGlossaryParser;
+    private final DemoRunProfileService demoRunProfileService;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -50,7 +54,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService());
     }
 
     @Autowired
@@ -60,7 +64,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             VideoRepository videoRepository,
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService,
-            TranslationGlossaryParser translationGlossaryParser
+            TranslationGlossaryParser translationGlossaryParser,
+            DemoRunProfileService demoRunProfileService
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
@@ -68,6 +73,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         this.jobRepository = jobRepository;
         this.dispatchOutboxService = dispatchOutboxService;
         this.translationGlossaryParser = translationGlossaryParser;
+        this.demoRunProfileService = demoRunProfileService;
     }
 
     @Override
@@ -79,11 +85,13 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             String translationStyle,
             String subtitleStylePreset,
             String translationGlossary,
-            String subtitlePolishingMode
+            String subtitlePolishingMode,
+            String demoProfileId
     ) {
         String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
         String normalizedSubtitleStylePreset = SubtitleStylePreset.parse(subtitleStylePreset).name();
         String normalizedSubtitlePolishingMode = SubtitlePolishingMode.parse(subtitlePolishingMode).name();
+        String normalizedDemoProfileId = normalizeDemoProfileId(demoProfileId);
         TranslationGlossaryBo parsedGlossary = translationGlossaryParser.parse(translationGlossary);
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
@@ -130,6 +138,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 parsedGlossary.hash(),
                 parsedGlossary.entryCount(),
                 normalizedSubtitlePolishingMode,
+                normalizedDemoProfileId,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -154,6 +163,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 parsedGlossary.entryCount(),
                 parsedGlossary.hash(),
                 normalizedSubtitlePolishingMode,
+                normalizedDemoProfileId,
                 createdAt
         );
     }
@@ -197,5 +207,15 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             return null;
         }
         return ttsVoice.trim();
+    }
+
+    private String normalizeDemoProfileId(String demoProfileId) {
+        if (!StringUtils.hasText(demoProfileId)) {
+            return null;
+        }
+        DemoRunProfileService profileService = demoRunProfileService == null
+                ? new InMemoryDemoRunProfileService()
+                : demoRunProfileService;
+        return profileService.normalizeProfileId(demoProfileId.trim().toLowerCase(Locale.ROOT));
     }
 }

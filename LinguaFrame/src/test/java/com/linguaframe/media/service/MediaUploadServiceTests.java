@@ -234,6 +234,56 @@ class MediaUploadServiceTests {
     }
 
     @Test
+    void createsJobWithExplicitDemoProfileId() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "profile.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(
+                file,
+                "zh-CN",
+                "verse",
+                "formal",
+                "high_contrast",
+                "Maya => 玛雅",
+                "balanced",
+                " tears-showcase "
+        );
+
+        assertThat(result.demoProfileId()).isEqualTo("tears-showcase");
+        assertThat(jobRepository.findById(result.jobId()))
+                .get()
+                .satisfies(job -> assertThat(job.demoProfileId()).isEqualTo("tears-showcase"));
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
+                .get()
+                .satisfies(event -> assertThat(event.payloadJson()).contains("\"demoProfileId\":\"tears-showcase\""));
+    }
+
+    @Test
+    void rejectsUnknownDemoProfileIdBeforeStorage() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper)
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "profile.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(file, "zh-CN", null, null, null, null, null, "unknown-profile"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unknown demo profile");
+        assertThat(storageService.lastCommand).isNull();
+    }
+
+    @Test
     void defaultsBlankSubtitlePolishingModeToOff() {
         RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
         MediaUploadService service = new MediaUploadServiceImpl(

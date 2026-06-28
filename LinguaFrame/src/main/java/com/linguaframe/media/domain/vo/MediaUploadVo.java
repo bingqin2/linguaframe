@@ -22,6 +22,7 @@ public record MediaUploadVo(
         int translationGlossaryEntryCount,
         String translationGlossaryHash,
         String subtitlePolishingMode,
+        String demoProfileId,
         Instant createdAt
 ) {
     public MediaUploadVo(
@@ -57,6 +58,7 @@ public record MediaUploadVo(
                 0,
                 "",
                 "OFF",
+                null,
                 createdAt
         );
     }

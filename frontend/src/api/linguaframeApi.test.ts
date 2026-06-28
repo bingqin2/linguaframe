@@ -23,6 +23,7 @@ import {
   getRuntimeLiveChecks,
   getDemoSession,
   getDeliveryManifest,
+  listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
@@ -240,6 +241,62 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('subtitlePolishingMode')).toBe('BALANCED');
+  });
+
+  test('uploads media with selected demo profile id when provided', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        demoProfileId: 'tears-showcase',
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' }),
+      'zh',
+      'verse',
+      'formal',
+      'high_contrast',
+      'Maya => 玛雅',
+      'balanced',
+      ' tears-showcase '
+    );
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('demoProfileId')).toBe('tears-showcase');
+  });
+
+  test('lists demo run profiles', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse([
+        {
+          id: 'quick-baseline',
+          label: 'Quick baseline',
+          description: 'Fast default demo run.',
+          targetLanguage: 'zh-CN',
+          ttsVoice: '',
+          translationStyle: 'NATURAL',
+          subtitleStylePreset: 'STANDARD',
+          subtitlePolishingMode: 'OFF',
+          translationGlossary: ''
+        }
+      ])
+    );
+
+    const profiles = await listDemoRunProfiles();
+
+    expect(profiles[0]?.id).toBe('quick-baseline');
+    expect(fetchMock).toHaveBeenCalledWith('/api/demo-run-profiles', { method: 'GET' });
   });
 
   test('fetches uploaded source media metadata without object keys', async () => {

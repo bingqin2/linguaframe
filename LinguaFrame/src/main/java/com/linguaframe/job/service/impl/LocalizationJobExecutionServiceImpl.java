@@ -258,6 +258,7 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
                 currentMessage.translationGlossaryHash(),
                 currentMessage.translationGlossaryEntryCount(),
                 currentMessage.subtitlePolishingMode(),
+                currentMessage.demoProfileId(),
                 currentMessage.createdAt(),
                 nextStage
         );

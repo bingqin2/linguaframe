@@ -11,17 +11,19 @@ export interface RecentJob {
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
+  demoProfileId: string | null;
   filename: string;
   createdAt: string;
 }
 
-type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset' | 'translationGlossaryEntryCount' | 'translationGlossaryHash' | 'subtitlePolishingMode'> & {
+type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset' | 'translationGlossaryEntryCount' | 'translationGlossaryHash' | 'subtitlePolishingMode' | 'demoProfileId'> & {
   ttsVoice?: string | null;
   translationStyle?: string | null;
   subtitleStylePreset?: string | null;
   translationGlossaryEntryCount?: number | null;
   translationGlossaryHash?: string | null;
   subtitlePolishingMode?: string | null;
+  demoProfileId?: string | null;
 };
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
@@ -53,7 +55,8 @@ export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[
     subtitleStylePreset: normalizeSubtitleStylePreset(job.subtitleStylePreset),
     translationGlossaryEntryCount: normalizeGlossaryEntryCount(job.translationGlossaryEntryCount),
     translationGlossaryHash: normalizeGlossaryHash(job.translationGlossaryHash),
-    subtitlePolishingMode: normalizeSubtitlePolishingMode(job.subtitlePolishingMode)
+    subtitlePolishingMode: normalizeSubtitlePolishingMode(job.subtitlePolishingMode),
+    demoProfileId: normalizeDemoProfileId(job.demoProfileId)
   };
   const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
@@ -97,6 +100,7 @@ function toRecentJob(value: unknown): RecentJob | null {
     translationGlossaryEntryCount: normalizeGlossaryEntryCount(candidate.translationGlossaryEntryCount),
     translationGlossaryHash: normalizeGlossaryHash(candidate.translationGlossaryHash),
     subtitlePolishingMode: normalizeSubtitlePolishingMode(candidate.subtitlePolishingMode),
+    demoProfileId: normalizeDemoProfileId(candidate.demoProfileId),
     filename: candidate.filename,
     createdAt: candidate.createdAt
   };
@@ -129,4 +133,11 @@ function normalizeSubtitlePolishingMode(value: unknown): string {
     return 'OFF';
   }
   return value.trim().toUpperCase();
+}
+
+function normalizeDemoProfileId(value: unknown): string | null {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null;
+  }
+  return value.trim();
 }

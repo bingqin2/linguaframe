@@ -87,6 +87,41 @@ test_upload_demo_video_includes_subtitle_polishing_mode() {
   [[ "$output" == *"subtitlePolishingMode=BALANCED"* ]] || fail "upload_demo_video missed subtitle polishing mode"
 }
 
+test_upload_demo_video_applies_tears_showcase_profile() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  local sample_path="$TMPDIR/sample.mp4"
+  printf 'demo' >"$sample_path"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_PROFILE_ID="tears-showcase" \
+    upload_demo_video "http://example.test" "$sample_path" >"$TMPDIR/upload-demo-profile.out"
+
+  local output
+  output="$(cat "$TMPDIR/upload-demo-profile.out")"
+  [[ "$output" == *"demoProfileId=tears-showcase"* ]] || fail "upload_demo_video missed demo profile id"
+  [[ "$output" == *"translationStyle=FORMAL"* ]] || fail "upload_demo_video missed profile translation style"
+  [[ "$output" == *"subtitleStylePreset=HIGH_CONTRAST"* ]] || fail "upload_demo_video missed profile subtitle style"
+  [[ "$output" == *"subtitlePolishingMode=BALANCED"* ]] || fail "upload_demo_video missed profile polishing mode"
+  [[ "$output" == *"Tears of Steel"* ]] || fail "upload_demo_video missed profile glossary"
+}
+
+test_upload_demo_video_explicit_env_overrides_profile() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  local sample_path="$TMPDIR/sample.mp4"
+  printf 'demo' >"$sample_path"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_PROFILE_ID="tears-showcase" \
+  LINGUAFRAME_DEMO_TRANSLATION_STYLE="CONCISE" \
+    upload_demo_video "http://example.test" "$sample_path" >"$TMPDIR/upload-demo-profile-override.out"
+
+  local output
+  output="$(cat "$TMPDIR/upload-demo-profile-override.out")"
+  [[ "$output" == *"translationStyle=CONCISE"* ]] || fail "upload_demo_video did not let explicit style override profile"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -969,6 +1004,8 @@ test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_upload_demo_video_includes_subtitle_polishing_mode
+test_upload_demo_video_applies_tears_showcase_profile
+test_upload_demo_video_explicit_env_overrides_profile
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

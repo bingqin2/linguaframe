@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo run profiles workspace in `docs/plans/092-demo-run-profiles-workspace.md`.
+- Added a read-only backend demo profile catalog and `GET /api/demo-run-profiles`.
+- Added optional `demoProfileId` upload metadata with validation and persistence through job detail, summaries, queued messages, worker summaries, diagnostics, evidence, delivery manifests, handoff packages, demo run packages, AI audit manifests, and browser cache replay evidence.
+- Added a React `Demo profile` selector that applies built-in presets while keeping manual field edits available.
+- Added terminal `LINGUAFRAME_DEMO_PROFILE_ID` support with explicit env override precedence.
+- Updated README, Docker E2E guide, roadmap, target state, decisions, and this execution log with demo profile behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunProfileControllerTests,MediaUploadServiceTests,RuntimeDependencyControllerTests test` passed with `Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/domain/recentJobs.test.ts src/App.test.tsx -t "demo run profile|uploads a video|stores profile metadata"` passed with `Tests 3 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `cd frontend && npm test -- --run` passed with `Tests 109 passed`.
+- `cd frontend && npm run build` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 459, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the subtitle polishing control workspace in `docs/plans/091-subtitle-polishing-control-workspace.md`.
 - Added upload-time `subtitlePolishingMode` with `OFF`, `BALANCED`, and `STRICT` values.
 - Added a separate `SUBTITLE_POLISHING` pipeline stage after target subtitle export, with OpenAI/demo providers, prompt template registration, model-call audit records, provider cache identity, and safe evidence metadata.

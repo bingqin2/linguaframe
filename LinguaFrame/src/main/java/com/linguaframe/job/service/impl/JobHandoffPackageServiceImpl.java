@@ -107,6 +107,7 @@ public class JobHandoffPackageServiceImpl implements JobHandoffPackageService {
         manifest.put("jobId", diagnostics.job().jobId());
         manifest.put("videoId", diagnostics.job().videoId());
         manifest.put("targetLanguage", diagnostics.job().targetLanguage());
+        manifest.put("demoProfileId", diagnostics.job().demoProfileId());
         manifest.put("subtitleStylePreset", diagnostics.job().subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", diagnostics.job().translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", diagnostics.job().translationGlossaryHash());
