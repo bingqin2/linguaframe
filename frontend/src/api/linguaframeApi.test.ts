@@ -17,6 +17,7 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getPrivateDemoEvidenceGallery,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoOperations,
   getRetentionCleanupPreview,
@@ -688,6 +689,32 @@ describe('linguaframeApi', () => {
     expect(rehearsal.recommendedNextStepId).toBe('openai-preflight');
     expect(rehearsal.steps[0]?.id).toBe('deploy-preflight');
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/launch-rehearsal', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches private demo evidence gallery with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-28T08:00:00Z',
+        overallStatus: 'READY',
+        completedJobCount: 1,
+        handoffReadyCount: 1,
+        recommendedJobId: 'job-gallery',
+        jobs: [],
+        galleryDownloads: [],
+        galleryNotesMarkdown: '# Gallery'
+      })
+    );
+
+    const gallery = await getPrivateDemoEvidenceGallery(10);
+
+    expect(gallery.recommendedJobId).toBe('job-gallery');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/private-demo/evidence-gallery?limit=10', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

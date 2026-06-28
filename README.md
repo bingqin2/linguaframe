@@ -196,6 +196,14 @@ The script writes `/tmp/linguaframe-demo/private-demo-operations-report.md` by d
 
 Use the adjacent `Private demo launch rehearsal` panel when you need the ordered presentation gate. It calls `GET /api/operator/private-demo/launch-rehearsal`, shows the recommended next step, lists manual commands for deploy preflight, stack startup, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence exports, and provides metadata-only launch notes.
 
+After one or more demo jobs complete, use the `Private demo evidence gallery` panel to pick the best completed run without opening every job manually. It calls `GET /api/operator/private-demo/evidence-gallery`, marks the recommended job, shows handoff readiness, quality, cost, cache evidence, and links to safe packages such as demo run, handoff, AI audit, presenter pack, and evidence bundle. The terminal report writes the same metadata-only index:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-evidence-gallery.sh
+```
+
+The script writes `evidence-gallery.json` and `evidence-gallery.md` under `/tmp/linguaframe-demo/private-demo-evidence-gallery/` by default. It does not upload media, call OpenAI, run Docker, create backups, restore data, publish subtitles, or clean storage.
+
 For a selected job, the browser demo includes a `Demo review guide` panel near the top of the job view. It orders the walkthrough into input, pipeline, review, delivery, evidence, and handoff steps, shows whether the run is presentation-ready, links to the existing detailed panels, and exports metadata-only presenter notes. The guide does not replace diagnostics, evidence bundle, demo session report, delivery manifest, or handoff package; it is the browser navigation layer for presenting them in a coherent order.
 
 The selected job view also includes a `Source media` panel. It shows safe uploaded-input metadata such as filename, content type, size, duration, upload status, created time, video id, job id, and target language, plus a `Download source video` link backed by `GET /api/media/uploads/{videoId}/source/download`. The metadata API does not expose source object keys or local paths; source bytes move only through the explicit download route.

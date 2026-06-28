@@ -476,6 +476,14 @@ Impact: `GET /api/demo-run-profiles`, the React upload selector, and `LINGUAFRAM
 
 ## 2026-06-28
 
+Decision: Keep private-demo evidence gallery read-only and derived from existing job/package evidence instead of adding persistent curation state.
+
+Reason: After a private demo, the owner needs a fast way to select completed runs and safe handoff packages, but storing another curated gallery would duplicate job, manifest, presenter pack, evidence, and audit state. A derived view keeps the feature reversible and avoids accidental mutation after presentation.
+
+Impact: `GET /api/operator/private-demo/evidence-gallery`, the browser panel, and `scripts/demo/private-demo-evidence-gallery.sh` aggregate recent completed jobs, handoff readiness, recommended run selection, and safe package routes without uploading media, calling providers, publishing subtitles, copying media bytes, or exposing secrets and raw text.
+
+## 2026-06-28
+
 Decision: Use a separate OpenAI demo profile instead of making `.env.example` provider-backed.
 
 Reason: The project needs a credible real-API demo path, but the default local demo must stay deterministic, cheap, and runnable without credentials. A separate no-secret template keeps paid behavior explicit and makes preflight responsible for proving credentials and model access before upload.

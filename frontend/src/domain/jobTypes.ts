@@ -386,6 +386,47 @@ export interface PrivateDemoLaunchRehearsalStep {
   blocking: boolean;
 }
 
+export interface PrivateDemoEvidenceGallery {
+  generatedAt: string;
+  overallStatus: PrivateDemoEvidenceGalleryStatus;
+  completedJobCount: number;
+  handoffReadyCount: number;
+  recommendedJobId: string | null;
+  jobs: PrivateDemoEvidenceGalleryJob[];
+  galleryDownloads: PrivateDemoEvidenceGalleryDownload[];
+  galleryNotesMarkdown: string;
+}
+
+export type PrivateDemoEvidenceGalleryStatus = 'READY' | 'ATTENTION' | 'EMPTY';
+
+export interface PrivateDemoEvidenceGalleryJob {
+  jobId: string;
+  videoId: string;
+  filename: string;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  status: LocalizationJobStatus;
+  createdAt: string;
+  completedAt: string;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  estimatedCostUsd: string;
+  modelCallCount: number;
+  providerCacheHitCount: number;
+  handoffReady: boolean;
+  presenterPackReady: boolean;
+  recommended: boolean;
+  attentionReasons: string[];
+  downloads: PrivateDemoEvidenceGalleryDownload[];
+}
+
+export interface PrivateDemoEvidenceGalleryDownload {
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export interface RuntimeDependencySummary {
   runtime: RuntimeContract;
   database: NetworkDependency;

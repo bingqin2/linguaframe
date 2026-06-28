@@ -1,9 +1,11 @@
 package com.linguaframe.operator.controller;
 
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
+import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.service.OperatorDashboardService;
+import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,15 +25,18 @@ public class OperatorDashboardController {
     private final OperatorDashboardService dashboardService;
     private final PrivateDemoOperationsService operationsService;
     private final PrivateDemoLaunchRehearsalService launchRehearsalService;
+    private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
             PrivateDemoOperationsService operationsService,
-            PrivateDemoLaunchRehearsalService launchRehearsalService
+            PrivateDemoLaunchRehearsalService launchRehearsalService,
+            PrivateDemoEvidenceGalleryService evidenceGalleryService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
         this.launchRehearsalService = launchRehearsalService;
+        this.evidenceGalleryService = evidenceGalleryService;
     }
 
     @GetMapping("/dashboard")
@@ -61,5 +67,17 @@ public class OperatorDashboardController {
     })
     public PrivateDemoLaunchRehearsalVo privateDemoLaunchRehearsal() {
         return launchRehearsalService.launchRehearsal();
+    }
+
+    @GetMapping("/private-demo/evidence-gallery")
+    @Operation(summary = "Get private demo evidence gallery")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo evidence gallery was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public PrivateDemoEvidenceGalleryVo privateDemoEvidenceGallery(
+            @RequestParam(required = false) Integer limit
+    ) {
+        return evidenceGalleryService.evidenceGallery(limit);
     }
 }

@@ -1331,6 +1331,99 @@ JSON
   [[ "$output" != *"raw transcript text"* ]] || fail "launch report exposed transcript"
 }
 
+test_private_demo_evidence_gallery_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_private_demo_evidence_gallery_json "http://example.test" "$TMPDIR/private-demo-evidence-gallery-route.json" 7 \
+    >"$TMPDIR/private-demo-evidence-gallery-curl.out"
+  local curl_output
+  curl_output="$(cat "$TMPDIR/private-demo-evidence-gallery-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/operator/private-demo/evidence-gallery?limit=7"* ]] || fail "evidence gallery helper used wrong route"
+
+  cat >"$TMPDIR/private-demo-evidence-gallery.json" <<'JSON'
+{
+  "generatedAt": "2026-06-28T08:45:00Z",
+  "overallStatus": "READY",
+  "completedJobCount": 2,
+  "handoffReadyCount": 1,
+  "recommendedJobId": "job-gallery-best",
+  "jobs": [
+    {
+      "jobId": "job-gallery-best",
+      "videoId": "video-gallery",
+      "filename": "tears-demo.mp4",
+      "targetLanguage": "zh-CN",
+      "demoProfileId": "tears-showcase",
+      "status": "COMPLETED",
+      "qualityScore": 94,
+      "qualityVerdict": "EXCELLENT",
+      "estimatedCostUsd": 0.40,
+      "modelCallCount": 5,
+      "providerCacheHitCount": 1,
+      "handoffReady": true,
+      "presenterPackReady": true,
+      "recommended": true,
+      "attentionReasons": [],
+      "downloads": [
+        {
+          "label": "Demo run package",
+          "href": "/api/jobs/job-gallery-best/demo-run-package/download",
+          "description": "Complete safe demo run package."
+        },
+        {
+          "label": "AI audit package",
+          "href": "/api/jobs/job-gallery-best/ai-audit-package/download",
+          "description": "Prompt and model-call audit package."
+        }
+      ],
+      "unsafeToken": "OPENAI_API_KEY",
+      "unsafePath": "/Users/example/private.mov",
+      "unsafePayload": "provider payload"
+    }
+  ],
+  "galleryDownloads": [
+    {
+      "label": "Demo run package",
+      "href": "/api/jobs/job-gallery-best/demo-run-package/download",
+      "description": "Complete safe demo run package."
+    }
+  ],
+  "galleryNotesMarkdown": "# LinguaFrame Private Demo Evidence Gallery\nraw transcript text /Users/example/private.mov private-demo-token provider payload"
+}
+JSON
+
+  print_private_demo_evidence_gallery_summary_file \
+    "$TMPDIR/private-demo-evidence-gallery.json" \
+    >"$TMPDIR/private-demo-evidence-gallery.out"
+  local summary
+  summary="$(cat "$TMPDIR/private-demo-evidence-gallery.out")"
+  [[ "$summary" == *"privateDemoEvidenceGalleryOverall=READY"* ]] || fail "gallery summary missed overall"
+  [[ "$summary" == *"privateDemoEvidenceGalleryRecommendedJobId=job-gallery-best"* ]] || fail "gallery summary missed recommendation"
+  [[ "$summary" == *"privateDemoEvidenceGalleryJob=job-gallery-best:tears-showcase:handoff=true:quality=94"* ]] || fail "gallery summary missed job"
+  [[ "$summary" == *"privateDemoEvidenceGalleryDownload=Demo run package:/api/jobs/job-gallery-best/demo-run-package/download"* ]] || fail "gallery summary missed download"
+  [[ "$summary" != *"OPENAI_API_KEY"* ]] || fail "gallery summary exposed API key"
+  [[ "$summary" != *"/Users/example"* ]] || fail "gallery summary exposed local path"
+  [[ "$summary" != *"provider payload"* ]] || fail "gallery summary exposed provider payload"
+
+  write_private_demo_evidence_gallery_report \
+    "$TMPDIR/private-demo-evidence-gallery.json" \
+    "$TMPDIR/private-demo-evidence-gallery.md"
+  local output
+  output="$(cat "$TMPDIR/private-demo-evidence-gallery.md")"
+  [[ "$output" == *"# LinguaFrame Private Demo Evidence Gallery"* ]] || fail "gallery report missed title"
+  [[ "$output" == *"- Overall: READY"* ]] || fail "gallery report missed overall"
+  [[ "$output" == *"- Recommended job: job-gallery-best"* ]] || fail "gallery report missed recommendation"
+  [[ "$output" == *"tears-showcase"* ]] || fail "gallery report missed profile"
+  [[ "$output" == *"/api/jobs/job-gallery-best/demo-run-package/download"* ]] || fail "gallery report missed package route"
+  [[ "$output" != *"private-demo-token"* ]] || fail "gallery report exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "gallery report exposed API key"
+  [[ "$output" != *"/Users/example"* ]] || fail "gallery report exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "gallery report exposed provider payload"
+  [[ "$output" != *"raw transcript text"* ]] || fail "gallery report exposed transcript"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -1359,5 +1452,6 @@ test_print_source_media_summary_is_metadata_only
 test_write_demo_session_report_markdown_is_metadata_only
 test_write_private_demo_operations_report_is_metadata_only
 test_private_demo_launch_rehearsal_helpers_are_metadata_only
+test_private_demo_evidence_gallery_helpers_are_metadata_only
 
 echo "linguaframe-demo client tests passed"

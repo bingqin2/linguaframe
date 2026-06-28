@@ -1140,6 +1140,105 @@ with open(output_path, "w", encoding="utf-8") as handle:
 PY
 }
 
+download_private_demo_evidence_gallery_json() {
+  local base_url="$1"
+  local output_path="$2"
+  local limit="${3:-20}"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/evidence-gallery?limit=$limit" -o "$output_path"
+}
+
+print_private_demo_evidence_gallery_summary_file() {
+  local gallery_path="$1"
+
+  python3 - "$gallery_path" <<'PY'
+import json
+import sys
+
+gallery = json.load(open(sys.argv[1], encoding="utf-8"))
+print("privateDemoEvidenceGalleryOverall=" + gallery.get("overallStatus", "UNKNOWN"))
+print("privateDemoEvidenceGalleryCompletedJobCount=" + str(gallery.get("completedJobCount", 0)))
+print("privateDemoEvidenceGalleryHandoffReadyCount=" + str(gallery.get("handoffReadyCount", 0)))
+print("privateDemoEvidenceGalleryRecommendedJobId=" + str(gallery.get("recommendedJobId") or ""))
+for job in gallery.get("jobs", []):
+    print(
+        "privateDemoEvidenceGalleryJob="
+        + str(job.get("jobId", ""))
+        + ":"
+        + str(job.get("demoProfileId") or "manual")
+        + ":handoff="
+        + ("true" if job.get("handoffReady") else "false")
+        + ":quality="
+        + str(job.get("qualityScore") if job.get("qualityScore") is not None else "none")
+    )
+    for reason in job.get("attentionReasons", []):
+        print("privateDemoEvidenceGalleryAttention=" + str(job.get("jobId", "")) + ":" + str(reason))
+for download in gallery.get("galleryDownloads", []):
+    print(
+        "privateDemoEvidenceGalleryDownload="
+        + str(download.get("label", ""))
+        + ":"
+        + str(download.get("href", ""))
+    )
+PY
+}
+
+write_private_demo_evidence_gallery_report() {
+  local gallery_path="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$gallery_path" "$output_path" <<'PY'
+import json
+import sys
+
+gallery = json.load(open(sys.argv[1], encoding="utf-8"))
+output_path = sys.argv[2]
+
+lines = [
+    "# LinguaFrame Private Demo Evidence Gallery",
+    "",
+    f"- Overall: {gallery.get('overallStatus', 'UNKNOWN')}",
+    f"- Generated at: {gallery.get('generatedAt', 'unknown')}",
+    f"- Completed jobs: {gallery.get('completedJobCount', 0)}",
+    f"- Handoff ready: {gallery.get('handoffReadyCount', 0)}",
+    f"- Recommended job: {gallery.get('recommendedJobId') or 'none'}",
+    "",
+    "## Completed Runs",
+]
+
+for job in gallery.get("jobs", []):
+    job_id = job.get("jobId", "")
+    lines.append(f"- {job_id}: {job.get('filename', '')}")
+    lines.append(f"  Profile: {job.get('demoProfileId') or 'manual'}")
+    lines.append(f"  Target language: {job.get('targetLanguage', '')}")
+    lines.append(f"  Handoff ready: {str(bool(job.get('handoffReady'))).lower()}")
+    quality = job.get("qualityScore")
+    lines.append(f"  Quality score: {quality if quality is not None else 'not available'}")
+    lines.append(f"  Estimated cost USD: {job.get('estimatedCostUsd', 0)}")
+    lines.append(f"  Model calls: {job.get('modelCallCount', 0)}")
+    lines.append(f"  Provider cache hits: {job.get('providerCacheHitCount', 0)}")
+    for reason in job.get("attentionReasons", []):
+        lines.append(f"  Attention: {reason}")
+    for download in job.get("downloads", []):
+        label = download.get("label")
+        href = download.get("href")
+        if label and href:
+            lines.append(f"  {label}: {href}")
+
+lines.extend(["", "## Recommended Downloads"])
+for download in gallery.get("galleryDownloads", []):
+    label = download.get("label")
+    href = download.get("href")
+    if label and href:
+        lines.append(f"- {label}: {href}")
+
+with open(output_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(lines) + "\n")
+PY
+}
+
 fetch_source_media_metadata() {
   local base_url="$1"
   local video_id="$2"
