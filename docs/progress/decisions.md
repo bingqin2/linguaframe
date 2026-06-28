@@ -540,6 +540,14 @@ Impact: `.env.openai-demo.example`, `scripts/demo/openai-demo-preflight.sh`, and
 
 ## 2026-06-28
 
+Decision: Treat the local account bearer token as an owner workspace boundary, not just a login indicator.
+
+Reason: The previous bridge proved that one configured account could receive a JWT, but product safety depends on every owner-facing read resolving through the active owner identity. Adding public accounts or roles remains out of scope, but the private demo needs credible isolation for jobs, media, artifacts, diagnostics, evidence, and operator views.
+
+Impact: Bearer auth and demo-token compatibility now scope job history/detail, media metadata/source downloads, artifact list/download/archive, diagnostics/evidence, and operator dashboard recent rows to the active owner. Browser UI shows auth ownership scope and refreshes history on sign-in/sign-out, while `scripts/demo/owner-workspace-smoke.sh` verifies the bearer owner workspace without printing secrets or media internals.
+
+## 2026-06-28
+
 Decision: Keep failed-job triage advisory instead of changing retry semantics.
 
 Reason: Retry transitions already have backend ownership, bounded retry counts, cache eviction, and dispatch side effects. The next demo gap is explaining likely causes and next actions safely across browser, diagnostics, evidence, and terminal scripts, not adding another automatic recovery path.

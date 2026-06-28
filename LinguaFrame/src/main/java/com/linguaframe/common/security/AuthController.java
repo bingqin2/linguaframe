@@ -96,6 +96,7 @@ public class AuthController {
                 false,
                 ownerIdentityService.currentOwnerId(),
                 auth.getOwnerUsername(),
+                ownerIdentityService.ownershipScope(),
                 mode
         );
     }
@@ -107,6 +108,7 @@ public class AuthController {
                 true,
                 claims.ownerId(),
                 claims.username(),
+                "LOCAL_AUTH_OWNER",
                 "LOCAL_AUTH_ACTIVE"
         );
     }

@@ -158,6 +158,128 @@ JSON
   [[ "$output" != *"private-demo-token"* ]] || fail "local auth summary exposed demo token"
 }
 
+test_owner_workspace_smoke_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_owner_workspace_jobs_json "http://example.test" "jwt-token" "$TMPDIR/owner-workspace-jobs.json" >"$TMPDIR/owner-workspace-jobs-curl.out"
+  local jobs_curl_output
+  jobs_curl_output="$(cat "$TMPDIR/owner-workspace-jobs-curl.out")"
+  [[ "$jobs_curl_output" == *"Authorization: Bearer jwt-token"* ]] || fail "owner workspace jobs helper missed bearer header"
+  [[ "$jobs_curl_output" == *"http://example.test/api/jobs?limit=20&offset=0"* ]] || fail "owner workspace jobs helper used wrong route"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_owner_workspace_upload_readiness_json "http://example.test" "jwt-token" "tears-showcase" "$TMPDIR/owner-workspace-readiness.json" >"$TMPDIR/owner-workspace-readiness-curl.out"
+  local readiness_curl_output
+  readiness_curl_output="$(cat "$TMPDIR/owner-workspace-readiness-curl.out")"
+  [[ "$readiness_curl_output" == *"Authorization: Bearer jwt-token"* ]] || fail "owner workspace readiness helper missed bearer header"
+  [[ "$readiness_curl_output" == *"http://example.test/api/media/uploads/readiness?demoProfileId=tears-showcase"* ]] || fail "owner workspace readiness helper used wrong route"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_owner_workspace_runtime_dependencies_json "http://example.test" "jwt-token" "$TMPDIR/owner-workspace-runtime.json" >"$TMPDIR/owner-workspace-runtime-curl.out"
+  local runtime_curl_output
+  runtime_curl_output="$(cat "$TMPDIR/owner-workspace-runtime-curl.out")"
+  [[ "$runtime_curl_output" == *"Authorization: Bearer jwt-token"* ]] || fail "owner workspace runtime helper missed bearer header"
+  [[ "$runtime_curl_output" == *"http://example.test/api/runtime/dependencies"* ]] || fail "owner workspace runtime helper used wrong route"
+
+  cat >"$TMPDIR/owner-workspace-session.json" <<'JSON'
+{
+  "enabled": true,
+  "configured": true,
+  "authenticated": true,
+  "ownerId": "owner-alpha",
+  "username": "owner",
+  "ownershipScope": "LOCAL_AUTH_OWNER",
+  "authMode": "LOCAL_AUTH_ACTIVE",
+  "token": "jwt-token",
+  "password": "owner-password"
+}
+JSON
+  cat >"$TMPDIR/owner-workspace-jobs.json" <<'JSON'
+{
+  "jobs": [
+    { "jobId": "job-alpha", "filename": "alpha.mp4", "ownerId": "owner-alpha" }
+  ],
+  "total": 1,
+  "limit": 20,
+  "offset": 0,
+  "sourceObjectKey": "uploads/video-1/source.mp4"
+}
+JSON
+  cat >"$TMPDIR/owner-workspace-readiness.json" <<'JSON'
+{
+  "overallStatus": "READY",
+  "ownerId": "owner-alpha",
+  "demoProfileId": "tears-showcase",
+  "generatedAt": "2026-06-28T08:00:00Z",
+  "checks": [],
+  "requiredActions": [],
+  "evidenceRoutes": [],
+  "localPath": "/Users/example/private.mov"
+}
+JSON
+
+  print_owner_workspace_summary_files \
+    "$TMPDIR/owner-workspace-session.json" \
+    "$TMPDIR/owner-workspace-jobs.json" \
+    "$TMPDIR/owner-workspace-readiness.json" \
+    >"$TMPDIR/owner-workspace.out"
+  local output
+  output="$(cat "$TMPDIR/owner-workspace.out")"
+  [[ "$output" == *"ownerWorkspaceAuthMode=LOCAL_AUTH_ACTIVE"* ]] || fail "owner workspace summary missed auth mode"
+  [[ "$output" == *"ownerWorkspaceOwnerId=owner-alpha"* ]] || fail "owner workspace summary missed owner id"
+  [[ "$output" == *"ownerWorkspaceOwnershipScope=LOCAL_AUTH_OWNER"* ]] || fail "owner workspace summary missed ownership scope"
+  [[ "$output" == *"ownerWorkspaceJobCount=1"* ]] || fail "owner workspace summary missed job count"
+  [[ "$output" == *"ownerWorkspaceUploadReadiness=READY"* ]] || fail "owner workspace summary missed upload readiness"
+  [[ "$output" != *"jwt-token"* ]] || fail "owner workspace summary exposed bearer token"
+  [[ "$output" != *"owner-password"* ]] || fail "owner workspace summary exposed password"
+  [[ "$output" != *"uploads/video-1/source.mp4"* ]] || fail "owner workspace summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "owner workspace summary exposed local path"
+  [[ "$output" != *"alpha.mp4"* ]] || fail "owner workspace summary exposed filename"
+}
+
+test_owner_workspace_smoke_script_skips_when_auth_unconfigured() {
+  local fake_curl="$TMPDIR/fake-owner-workspace-curl"
+  cat >"$fake_curl" <<'SH'
+#!/usr/bin/env bash
+output_path=""
+while [[ "$#" -gt 0 ]]; do
+  case "$1" in
+    -o)
+      output_path="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+cat >"$output_path" <<'JSON'
+{
+  "enabled": false,
+  "configured": false,
+  "authenticated": false,
+  "ownerId": "demo-owner",
+  "username": "owner",
+  "ownershipScope": "CONFIGURED_DEMO_OWNER",
+  "authMode": "LOCAL_AUTH_DISABLED"
+}
+JSON
+SH
+  chmod +x "$fake_curl"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_BASE_URL="http://example.test" \
+  LINGUAFRAME_OWNER_WORKSPACE_OUTPUT_DIR="$TMPDIR/owner-workspace-skip" \
+    "$SCRIPT_DIR/owner-workspace-smoke.sh" >"$TMPDIR/owner-workspace-skip.out"
+
+  local output
+  output="$(cat "$TMPDIR/owner-workspace-skip.out")"
+  [[ "$output" == *"ownerWorkspaceAuthMode=LOCAL_AUTH_DISABLED"* ]] || fail "owner workspace skip missed auth mode"
+  [[ "$output" == *"Local auth is disabled or unconfigured; bearer workspace smoke skipped."* ]] || fail "owner workspace script did not skip unconfigured auth"
+}
+
 test_owner_quota_preflight_helpers_are_metadata_only() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1873,6 +1995,8 @@ test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
 test_demo_session_owner_summary_is_metadata_only
 test_local_auth_helpers_are_metadata_only
+test_owner_workspace_smoke_helpers_are_metadata_only
+test_owner_workspace_smoke_script_skips_when_auth_unconfigured
 test_owner_quota_preflight_helpers_are_metadata_only
 test_owner_quota_preflight_script_exits_on_blocked_state
 test_upload_readiness_helpers_are_metadata_only

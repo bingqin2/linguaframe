@@ -377,6 +377,68 @@ download_runtime_dependencies_json() {
   demo_curl -fsS "$base_url/api/runtime/dependencies" -o "$output_path"
 }
 
+download_owner_workspace_jobs_json() {
+  local base_url="$1"
+  local bearer_token="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  auth_curl "$bearer_token" -fsS "$base_url/api/jobs?limit=20&offset=0" -o "$output_path"
+}
+
+download_owner_workspace_upload_readiness_json() {
+  local base_url="$1"
+  local bearer_token="$2"
+  local demo_profile_id="$3"
+  local output_path="$4"
+  local query=""
+
+  if [[ -n "${demo_profile_id//[[:space:]]/}" ]]; then
+    query="?demoProfileId=$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$demo_profile_id")"
+  fi
+
+  mkdir -p "$(dirname "$output_path")"
+  auth_curl "$bearer_token" -fsS "$base_url/api/media/uploads/readiness$query" -o "$output_path"
+}
+
+download_owner_workspace_runtime_dependencies_json() {
+  local base_url="$1"
+  local bearer_token="$2"
+  local output_path="$3"
+
+  mkdir -p "$(dirname "$output_path")"
+  auth_curl "$bearer_token" -fsS "$base_url/api/runtime/dependencies" -o "$output_path"
+}
+
+print_owner_workspace_summary_files() {
+  local session_path="$1"
+  local jobs_path="$2"
+  local readiness_path="$3"
+
+  python3 - "$session_path" "$jobs_path" "$readiness_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    session_body = json.load(handle)
+with open(sys.argv[2], encoding="utf-8") as handle:
+    jobs = json.load(handle)
+with open(sys.argv[3], encoding="utf-8") as handle:
+    readiness = json.load(handle)
+
+session = session_body.get("session") if isinstance(session_body.get("session"), dict) else session_body
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("ownerWorkspaceAuthMode=" + text(session.get("authMode")))
+print("ownerWorkspaceOwnerId=" + text(session.get("ownerId")))
+print("ownerWorkspaceOwnershipScope=" + text(session.get("ownershipScope")))
+print("ownerWorkspaceJobCount=" + text(jobs.get("total", len(jobs.get("jobs", [])))))
+print("ownerWorkspaceUploadReadiness=" + text(readiness.get("overallStatus")))
+PY
+}
+
 print_upload_readiness_summary_file() {
   local readiness_path="$1"
 

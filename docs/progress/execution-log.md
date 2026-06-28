@@ -6,6 +6,32 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the authenticated owner access workspace in `docs/plans/105-authenticated-owner-access-workspace.md`.
+- Scoped bearer-token and demo-token job history/detail, media metadata/source downloads, artifact list/download/archive, diagnostics/evidence, and operator dashboard metadata through the active owner identity.
+- Added `ownershipScope` to local auth session status and owner metadata to the operator dashboard response.
+- Updated the React header to show auth owner/scope and refresh job history after local account sign-in/sign-out.
+- Added `scripts/demo/owner-workspace-smoke.sh` and helper tests for metadata-only bearer owner workspace verification.
+- Updated README, private demo deployment docs, smoke checklist, product docs, decisions, and this execution log.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests,AuthenticatedOwnerMediaAccessTests,LocalAuthControllerTests test` first failed because `ownershipScope` was missing and job list still used a hardcoded owner, then passed.
+- `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests test` first failed because artifact list/download leaked cross-owner jobs, then passed after artifact service owner checks.
+- `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerOperatorDashboardTests,OperatorDashboardControllerTests test` first failed because dashboard SQL was global and then because `status` was ambiguous after the owner join, then passed.
+- `mvn -pl LinguaFrame -Dtest=AuthenticatedOwnerJobAccessTests,AuthenticatedOwnerOperatorDashboardTests,OperatorDashboardControllerTests test` passed.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts App.test.tsx -t "local account|owner workspace|bearer token"` passed with `Tests 6 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because the owner workspace skip path did not print `ownerWorkspaceAuthMode`, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/owner-workspace-smoke.sh` passed.
+- `mvn -pl LinguaFrame test` first failed because media controller test cleanup did not delete `job_timeline_events` left by dashboard tests, then passed with `Tests run: 544, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` passed with `Tests 136 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the local account JWT auth workspace in `docs/plans/104-local-account-jwt-auth-workspace.md`.
 - Added configured local auth properties, HMAC-signed short-lived bearer tokens, sanitized `/api/auth/session`, `/api/auth/login`, and `/api/auth/logout` endpoints, and a request interceptor that accepts either bearer auth or existing demo-token access.
 - Added React local account sign-in/sign-out, bearer-token storage/header injection, Swagger `BearerAuth`, `scripts/demo/auth-smoke.sh`, local auth summary helpers, and env template settings.

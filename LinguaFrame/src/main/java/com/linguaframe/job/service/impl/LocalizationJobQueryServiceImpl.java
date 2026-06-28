@@ -58,31 +58,6 @@ public class LocalizationJobQueryServiceImpl implements LocalizationJobQueryServ
             QualityEvaluationService qualityEvaluationService,
             LocalizationJobStatusCacheService jobStatusCacheService,
             FailureTriageService failureTriageService,
-            JobPipelineProgressService pipelineProgressService
-    ) {
-        this(
-                jobRepository,
-                artifactRepository,
-                dispatchEventRepository,
-                timelineEventRepository,
-                modelCallAuditService,
-                qualityEvaluationService,
-                jobStatusCacheService,
-                failureTriageService,
-                pipelineProgressService,
-                () -> "demo-owner"
-        );
-    }
-
-    public LocalizationJobQueryServiceImpl(
-            LocalizationJobRepository jobRepository,
-            JobArtifactRepository artifactRepository,
-            JobDispatchEventRepository dispatchEventRepository,
-            JobTimelineEventRepository timelineEventRepository,
-            ModelCallAuditService modelCallAuditService,
-            QualityEvaluationService qualityEvaluationService,
-            LocalizationJobStatusCacheService jobStatusCacheService,
-            FailureTriageService failureTriageService,
             JobPipelineProgressService pipelineProgressService,
             DemoOwnerIdentityService ownerIdentityService
     ) {

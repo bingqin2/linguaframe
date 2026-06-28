@@ -124,6 +124,7 @@ export interface AuthSessionStatus {
   authenticated: boolean;
   ownerId: string;
   username: string;
+  ownershipScope: string;
   authMode: AuthSessionMode;
 }
 
@@ -335,6 +336,8 @@ export interface PromptTemplate {
 }
 
 export interface OperatorDashboard {
+  ownerId: string;
+  ownershipScope: string;
   statusCounts: OperatorJobStatusCount[];
   recentFailures: OperatorRecentFailure[];
   modelCalls: OperatorModelCallSummary;

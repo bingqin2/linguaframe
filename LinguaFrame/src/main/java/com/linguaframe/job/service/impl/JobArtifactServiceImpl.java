@@ -7,6 +7,7 @@ import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.service.JobArtifactService;
+import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.service.ObjectStorageService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,12 +34,21 @@ public class JobArtifactServiceImpl implements JobArtifactService {
 
     private final JobArtifactRepository artifactRepository;
     private final ObjectStorageService objectStorageService;
+    private final LocalizationJobQueryService jobQueryService;
     private final ObjectMapper objectMapper;
     private final Clock clock;
 
-    @Autowired
     public JobArtifactServiceImpl(JobArtifactRepository artifactRepository, ObjectStorageService objectStorageService) {
-        this(artifactRepository, objectStorageService, new ObjectMapper(), Clock.systemUTC());
+        this(artifactRepository, objectStorageService, null, new ObjectMapper(), Clock.systemUTC());
+    }
+
+    @Autowired
+    public JobArtifactServiceImpl(
+            JobArtifactRepository artifactRepository,
+            ObjectStorageService objectStorageService,
+            LocalizationJobQueryService jobQueryService
+    ) {
+        this(artifactRepository, objectStorageService, jobQueryService, new ObjectMapper(), Clock.systemUTC());
     }
 
     public JobArtifactServiceImpl(
@@ -46,17 +56,19 @@ public class JobArtifactServiceImpl implements JobArtifactService {
             ObjectStorageService objectStorageService,
             Clock clock
     ) {
-        this(artifactRepository, objectStorageService, new ObjectMapper(), clock);
+        this(artifactRepository, objectStorageService, null, new ObjectMapper(), clock);
     }
 
     public JobArtifactServiceImpl(
             JobArtifactRepository artifactRepository,
             ObjectStorageService objectStorageService,
+            LocalizationJobQueryService jobQueryService,
             ObjectMapper objectMapper,
             Clock clock
     ) {
         this.artifactRepository = artifactRepository;
         this.objectStorageService = objectStorageService;
+        this.jobQueryService = jobQueryService;
         this.objectMapper = objectMapper;
         this.clock = clock;
     }
@@ -110,6 +122,7 @@ public class JobArtifactServiceImpl implements JobArtifactService {
 
     @Override
     public List<JobArtifactVo> listArtifacts(String jobId) {
+        requireOwnedJob(jobId);
         return artifactRepository.findByJobId(jobId)
                 .stream()
                 .map(this::toVo)
@@ -118,6 +131,7 @@ public class JobArtifactServiceImpl implements JobArtifactService {
 
     @Override
     public StoredObjectResourceBo openArtifact(String jobId, String artifactId) {
+        requireOwnedJob(jobId);
         JobArtifactRecord record = artifactRepository.findById(artifactId)
                 .filter(artifact -> artifact.jobId().equals(jobId))
                 .orElseThrow(() -> new NoSuchElementException("Job artifact not found."));
@@ -131,6 +145,7 @@ public class JobArtifactServiceImpl implements JobArtifactService {
 
     @Override
     public StoredArtifactArchiveBo openArtifactArchive(String jobId) {
+        requireOwnedJob(jobId);
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId(jobId);
         ByteArrayOutputStream archiveBytes = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(archiveBytes)) {
@@ -153,6 +168,12 @@ public class JobArtifactServiceImpl implements JobArtifactService {
                 content.length,
                 new ByteArrayInputStream(content)
         );
+    }
+
+    private void requireOwnedJob(String jobId) {
+        if (jobQueryService != null) {
+            jobQueryService.getJob(jobId);
+        }
     }
 
     private JobArtifactVo toVo(JobArtifactRecord record) {

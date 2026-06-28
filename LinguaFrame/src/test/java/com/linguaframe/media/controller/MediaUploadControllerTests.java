@@ -57,6 +57,8 @@ class MediaUploadControllerTests {
     @BeforeEach
     void cleanDatabaseAndResetQuota() {
         jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM job_artifacts").update();
+        jdbcClient.sql("DELETE FROM job_timeline_events").update();
         jdbcClient.sql("DELETE FROM job_dispatch_events").update();
         jdbcClient.sql("DELETE FROM localization_jobs").update();
         jdbcClient.sql("DELETE FROM videos").update();

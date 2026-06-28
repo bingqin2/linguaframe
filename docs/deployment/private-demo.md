@@ -66,6 +66,14 @@ When a token is configured, `/api/**` requires the demo token. Enter it in the b
 
 When local account auth is configured, the browser `Local account` form can sign in and use `Authorization: Bearer ...` for protected APIs. Demo-token header and cookie compatibility remain available for scripts, Swagger, downloads, previews, and SSE.
 
+Validate the bearer owner workspace from the terminal:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/owner-workspace-smoke.sh
+```
+
+The script logs in with `LINGUAFRAME_AUTH_USERNAME` and `LINGUAFRAME_AUTH_PASSWORD`, then fetches job history, upload readiness, and runtime dependencies with bearer auth. It prints only owner workspace metadata and never prints bearer tokens, passwords, JWT secrets, demo tokens, object keys, local paths, provider payloads, transcript text, subtitle text, or media bytes. If local auth is disabled or unconfigured, it exits 0 and reports that bearer validation was skipped.
+
 ## Operations Readiness Report
 
 Use the browser `Private demo operations` panel before uploading media or running provider-backed demos. It is a read-only aggregate of the access gate, runtime contract, live dependency checks, provider readiness, budget controls, storage/recovery guidance, retention cleanup preview, and demo evidence.
