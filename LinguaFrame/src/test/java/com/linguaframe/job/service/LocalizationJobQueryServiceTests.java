@@ -3,6 +3,7 @@ package com.linguaframe.job.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
@@ -56,8 +57,15 @@ class LocalizationJobQueryServiceTests {
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
     @Test
-    void getJobReturnsCachedSnapshotWithoutRepositoryReads() {
+    void getJobReturnsCachedSnapshotAfterOwnerValidation() {
         LocalizationJobVo cachedJob = job("job-query-cache-hit", LocalizationJobStatus.PROCESSING);
+        when(jobRepository.findByIdAndOwnerId("job-query-cache-hit", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
+                "job-query-cache-hit",
+                "video-query-cache-hit",
+                "zh-CN",
+                LocalizationJobStatus.PROCESSING,
+                Instant.parse("2026-06-27T05:30:00Z")
+        )));
         when(cacheService.get("job-query-cache-hit")).thenReturn(Optional.of(cachedJob));
         LocalizationJobQueryServiceImpl service = service();
 
@@ -69,10 +77,79 @@ class LocalizationJobQueryServiceTests {
     }
 
     @Test
+    void listJobsUsesCurrentDemoOwnerScope() {
+        LocalizationJobQueryServiceImpl service = service(new FixedDemoOwnerIdentityService("owner-alpha"));
+
+        service.listJobs(LocalizationJobStatus.COMPLETED, 5, 0);
+
+        verify(jobRepository).findSummariesByOwnerId("owner-alpha", LocalizationJobStatus.COMPLETED, 5, 0);
+        verify(jobRepository).countSummariesByOwnerId("owner-alpha", LocalizationJobStatus.COMPLETED);
+        verify(jobRepository, never()).findSummaries(LocalizationJobStatus.COMPLETED, 5, 0);
+    }
+
+    @Test
+    void listJobsByVideoIdUsesCurrentDemoOwnerScope() {
+        LocalizationJobQueryServiceImpl service = service(new FixedDemoOwnerIdentityService("owner-alpha"));
+
+        service.listJobsByVideoId("video-owner-alpha", 5);
+
+        verify(jobRepository).findSummariesByVideoIdAndOwnerId("video-owner-alpha", "owner-alpha", 5);
+        verify(jobRepository).countSummariesByVideoIdAndOwnerId("video-owner-alpha", "owner-alpha");
+        verify(jobRepository, never()).findSummariesByVideoId("video-owner-alpha", 5);
+    }
+
+    @Test
+    void getJobValidatesOwnerBeforeReturningCachedSnapshot() {
+        LocalizationJobVo cachedJob = job("job-query-cache-owner", LocalizationJobStatus.PROCESSING);
+        when(cacheService.get("job-query-cache-owner")).thenReturn(Optional.of(cachedJob));
+        when(jobRepository.findByIdAndOwnerId("job-query-cache-owner", "owner-alpha")).thenReturn(Optional.empty());
+        LocalizationJobQueryServiceImpl service = service(new FixedDemoOwnerIdentityService("owner-alpha"));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getJob("job-query-cache-owner"))
+                .isInstanceOf(java.util.NoSuchElementException.class)
+                .hasMessageContaining("Localization job not found");
+    }
+
+    @Test
+    void getJobReadsDatabaseByOwnerWhenCacheMisses() {
+        Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
+        when(cacheService.get("job-query-owner-miss")).thenReturn(Optional.empty());
+        when(jobRepository.findByIdAndOwnerId("job-query-owner-miss", "owner-alpha")).thenReturn(Optional.of(new LocalizationJobRecord(
+                "job-query-owner-miss",
+                "video-query-owner-miss",
+                "owner-alpha",
+                "zh-CN",
+                null,
+                "NATURAL",
+                "STANDARD",
+                "[]",
+                "",
+                0,
+                "OFF",
+                null,
+                LocalizationJobStatus.QUEUED,
+                createdAt
+        )));
+        when(dispatchEventRepository.findLatestByJobId("job-query-owner-miss")).thenReturn(Optional.empty());
+        when(artifactRepository.findByJobId("job-query-owner-miss")).thenReturn(List.of());
+        when(timelineEventRepository.findByJobId("job-query-owner-miss")).thenReturn(List.of());
+        when(modelCallAuditService.summarizeJob("job-query-owner-miss")).thenReturn(emptyUsage());
+        when(modelCallAuditService.listModelCalls("job-query-owner-miss")).thenReturn(List.of());
+        when(qualityEvaluationService.latestForJob("job-query-owner-miss")).thenReturn(Optional.empty());
+        LocalizationJobQueryServiceImpl service = service(new FixedDemoOwnerIdentityService("owner-alpha"));
+
+        LocalizationJobVo result = service.getJob("job-query-owner-miss");
+
+        assertThat(result.jobId()).isEqualTo("job-query-owner-miss");
+        verify(jobRepository).findByIdAndOwnerId("job-query-owner-miss", "owner-alpha");
+        verify(jobRepository, never()).findById("job-query-owner-miss");
+    }
+
+    @Test
     void getJobCachesSnapshotAfterDatabaseReadOnMiss() {
         Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
         when(cacheService.get("job-query-cache-miss")).thenReturn(Optional.empty());
-        when(jobRepository.findById("job-query-cache-miss")).thenReturn(Optional.of(new LocalizationJobRecord(
+        when(jobRepository.findByIdAndOwnerId("job-query-cache-miss", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
                 "job-query-cache-miss",
                 "video-query-cache-miss",
                 "zh-CN",
@@ -98,7 +175,7 @@ class LocalizationJobQueryServiceTests {
     void cacheReadFailureFallsBackToDatabaseReadAndCachesFreshSnapshot() {
         Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
         when(cacheService.get("job-query-cache-error")).thenThrow(new IllegalStateException("cache unavailable"));
-        when(jobRepository.findById("job-query-cache-error")).thenReturn(Optional.of(new LocalizationJobRecord(
+        when(jobRepository.findByIdAndOwnerId("job-query-cache-error", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
                 "job-query-cache-error",
                 "video-query-cache-error",
                 "zh-CN",
@@ -124,7 +201,7 @@ class LocalizationJobQueryServiceTests {
     void cacheWriteFailureDoesNotBreakJobRead() {
         Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
         when(cacheService.get("job-query-cache-write-error")).thenReturn(Optional.empty());
-        when(jobRepository.findById("job-query-cache-write-error")).thenReturn(Optional.of(new LocalizationJobRecord(
+        when(jobRepository.findByIdAndOwnerId("job-query-cache-write-error", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
                 "job-query-cache-write-error",
                 "video-query-cache-write-error",
                 "zh-CN",
@@ -151,7 +228,7 @@ class LocalizationJobQueryServiceTests {
         Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
         Instant artifactCreatedAt = Instant.parse("2026-06-27T05:35:00Z");
         when(cacheService.get("job-diagnostics-complete")).thenReturn(Optional.empty());
-        when(jobRepository.findById("job-diagnostics-complete")).thenReturn(Optional.of(new LocalizationJobRecord(
+        when(jobRepository.findByIdAndOwnerId("job-diagnostics-complete", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
                 "job-diagnostics-complete",
                 "video-diagnostics-complete",
                 "zh-CN",
@@ -257,6 +334,13 @@ class LocalizationJobQueryServiceTests {
 
     @Test
     void diagnosticsReportSerializationExcludesPrivateStorageAndRawPayloadData() throws JsonProcessingException {
+        when(jobRepository.findByIdAndOwnerId("job-diagnostics-safe", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
+                "job-diagnostics-safe",
+                "video-diagnostics-safe",
+                "zh-CN",
+                LocalizationJobStatus.FAILED,
+                Instant.parse("2026-06-27T05:30:00Z")
+        )));
         when(cacheService.get("job-diagnostics-safe")).thenReturn(Optional.of(job(
                 "job-diagnostics-safe",
                 LocalizationJobStatus.FAILED
@@ -293,7 +377,7 @@ class LocalizationJobQueryServiceTests {
     void getJobIncludesFailureTriageForFailedJobs() {
         Instant createdAt = Instant.parse("2026-06-27T05:30:00Z");
         when(cacheService.get("job-query-triage")).thenReturn(Optional.empty());
-        when(jobRepository.findById("job-query-triage")).thenReturn(Optional.of(new LocalizationJobRecord(
+        when(jobRepository.findByIdAndOwnerId("job-query-triage", "demo-owner")).thenReturn(Optional.of(new LocalizationJobRecord(
                 "job-query-triage",
                 "video-query-triage",
                 "zh-CN",
@@ -345,6 +429,10 @@ class LocalizationJobQueryServiceTests {
     }
 
     private LocalizationJobQueryServiceImpl service() {
+        return service(new FixedDemoOwnerIdentityService("demo-owner"));
+    }
+
+    private LocalizationJobQueryServiceImpl service(DemoOwnerIdentityService ownerIdentityService) {
         return new LocalizationJobQueryServiceImpl(
                 jobRepository,
                 artifactRepository,
@@ -354,7 +442,8 @@ class LocalizationJobQueryServiceTests {
                 qualityEvaluationService,
                 cacheService,
                 failureTriageService,
-                pipelineProgressService
+                pipelineProgressService,
+                ownerIdentityService
         );
     }
 
@@ -387,5 +476,13 @@ class LocalizationJobQueryServiceTests {
 
     private JobUsageSummaryVo emptyUsage() {
         return new JobUsageSummaryVo(0, 0, 0, BigDecimal.ZERO, null, null, null, null);
+    }
+
+    private record FixedDemoOwnerIdentityService(String ownerId) implements DemoOwnerIdentityService {
+
+        @Override
+        public String currentOwnerId() {
+            return ownerId;
+        }
     }
 }

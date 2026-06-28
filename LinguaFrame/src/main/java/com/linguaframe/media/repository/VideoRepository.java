@@ -21,6 +21,7 @@ public class VideoRepository {
         jdbcClient.sql("""
                         INSERT INTO videos (
                             id,
+                            owner_id,
                             original_filename,
                             content_type,
                             file_size_bytes,
@@ -31,6 +32,7 @@ public class VideoRepository {
                         )
                         VALUES (
                             :id,
+                            :ownerId,
                             :originalFilename,
                             :contentType,
                             :fileSizeBytes,
@@ -41,6 +43,7 @@ public class VideoRepository {
                         )
                         """)
                 .param("id", record.id())
+                .param("ownerId", record.ownerId())
                 .param("originalFilename", record.originalFilename())
                 .param("contentType", record.contentType())
                 .param("fileSizeBytes", record.fileSizeBytes())
@@ -55,6 +58,7 @@ public class VideoRepository {
         return jdbcClient.sql("""
                         SELECT
                             id,
+                            owner_id,
                             original_filename,
                             content_type,
                             file_size_bytes,
@@ -68,6 +72,39 @@ public class VideoRepository {
                 .param("id", id)
                 .query((rs, rowNum) -> new VideoRecord(
                         rs.getString("id"),
+                        rs.getString("owner_id"),
+                        rs.getString("original_filename"),
+                        rs.getString("content_type"),
+                        rs.getLong("file_size_bytes"),
+                        rs.getObject("duration_seconds", Integer.class),
+                        rs.getString("source_object_key"),
+                        MediaUploadStatus.valueOf(rs.getString("status")),
+                        rs.getTimestamp("created_at").toInstant()
+                ))
+                .optional();
+    }
+
+    public Optional<VideoRecord> findByIdAndOwnerId(String id, String ownerId) {
+        return jdbcClient.sql("""
+                        SELECT
+                            id,
+                            owner_id,
+                            original_filename,
+                            content_type,
+                            file_size_bytes,
+                            duration_seconds,
+                            source_object_key,
+                            status,
+                            created_at
+                        FROM videos
+                        WHERE id = :id
+                          AND owner_id = :ownerId
+                        """)
+                .param("id", id)
+                .param("ownerId", ownerId)
+                .query((rs, rowNum) -> new VideoRecord(
+                        rs.getString("id"),
+                        rs.getString("owner_id"),
                         rs.getString("original_filename"),
                         rs.getString("content_type"),
                         rs.getLong("file_size_bytes"),

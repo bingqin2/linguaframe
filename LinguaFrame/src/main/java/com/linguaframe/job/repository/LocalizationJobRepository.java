@@ -33,6 +33,7 @@ public class LocalizationJobRepository {
                         INSERT INTO localization_jobs (
                             id,
                             video_id,
+                            owner_id,
                             target_language,
                             tts_voice,
                             translation_style,
@@ -55,6 +56,7 @@ public class LocalizationJobRepository {
                         VALUES (
                             :id,
                             :videoId,
+                            :ownerId,
                             :targetLanguage,
                             :ttsVoice,
                             :translationStyle,
@@ -77,6 +79,7 @@ public class LocalizationJobRepository {
                         """)
                 .param("id", record.id())
                 .param("videoId", record.videoId())
+                .param("ownerId", record.ownerId())
                 .param("targetLanguage", record.targetLanguage())
                 .param("ttsVoice", record.ttsVoice())
                 .param("translationStyle", record.translationStyle())
@@ -103,6 +106,7 @@ public class LocalizationJobRepository {
                         SELECT
                             id,
                             video_id,
+                            owner_id,
                             target_language,
                             tts_voice,
                             translation_style,
@@ -125,6 +129,40 @@ public class LocalizationJobRepository {
                         WHERE id = :id
                         """)
                 .param("id", id)
+                .query(this::mapRow)
+                .optional();
+    }
+
+    public Optional<LocalizationJobRecord> findByIdAndOwnerId(String id, String ownerId) {
+        return jdbcClient.sql("""
+                        SELECT
+                            id,
+                            video_id,
+                            owner_id,
+                            target_language,
+                            tts_voice,
+                            translation_style,
+                            subtitle_style_preset,
+                            translation_glossary_json,
+                            translation_glossary_hash,
+                            translation_glossary_entry_count,
+                            subtitle_polishing_mode,
+                            demo_profile_id,
+                            status,
+                            created_at,
+                            started_at,
+                            completed_at,
+                            failed_at,
+                            failure_stage,
+                            failure_reason,
+                            retry_count,
+                            updated_at
+                        FROM localization_jobs
+                        WHERE id = :id
+                          AND owner_id = :ownerId
+                        """)
+                .param("id", id)
+                .param("ownerId", ownerId)
                 .query(this::mapRow)
                 .optional();
     }
@@ -204,6 +242,36 @@ public class LocalizationJobRepository {
         return count == null ? 0 : count;
     }
 
+    public List<LocalizationJobSummaryVo> findSummariesByOwnerId(
+            String ownerId,
+            LocalizationJobStatus status,
+            int limit,
+            int offset
+    ) {
+        String ownerStatusFilter = ownerStatusFilter(status);
+        return jdbcClient.sql(summarySql(ownerStatusFilter, "LIMIT :limit OFFSET :offset"))
+                .param("ownerId", ownerId)
+                .param("status", status == null ? null : status.name())
+                .param("limit", limit)
+                .param("offset", offset)
+                .query(this::mapSummaryRow)
+                .list();
+    }
+
+    public int countSummariesByOwnerId(String ownerId, LocalizationJobStatus status) {
+        String ownerStatusFilter = ownerStatusFilter(status);
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs jobs
+                        %s
+                        """.formatted(ownerStatusFilter))
+                .param("ownerId", ownerId)
+                .param("status", status == null ? null : status.name())
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
     public List<LocalizationJobSummaryVo> findSummariesByVideoId(String videoId, int limit) {
         return jdbcClient.sql("""
                         SELECT
@@ -267,6 +335,29 @@ public class LocalizationJobRepository {
                         WHERE jobs.video_id = :videoId
                         """)
                 .param("videoId", videoId)
+                .query(Integer.class)
+                .single();
+        return count == null ? 0 : count;
+    }
+
+    public List<LocalizationJobSummaryVo> findSummariesByVideoIdAndOwnerId(String videoId, String ownerId, int limit) {
+        return jdbcClient.sql(summarySql("WHERE jobs.video_id = :videoId AND jobs.owner_id = :ownerId", "LIMIT :limit"))
+                .param("videoId", videoId)
+                .param("ownerId", ownerId)
+                .param("limit", limit)
+                .query(this::mapSummaryRow)
+                .list();
+    }
+
+    public int countSummariesByVideoIdAndOwnerId(String videoId, String ownerId) {
+        Integer count = jdbcClient.sql("""
+                        SELECT COUNT(*)
+                        FROM localization_jobs jobs
+                        WHERE jobs.video_id = :videoId
+                          AND jobs.owner_id = :ownerId
+                        """)
+                .param("videoId", videoId)
+                .param("ownerId", ownerId)
                 .query(Integer.class)
                 .single();
         return count == null ? 0 : count;
@@ -448,6 +539,7 @@ public class LocalizationJobRepository {
         return new LocalizationJobRecord(
                 rs.getString("id"),
                 rs.getString("video_id"),
+                rs.getString("owner_id"),
                 rs.getString("target_language"),
                 rs.getString("tts_voice"),
                 rs.getString("translation_style"),
@@ -498,6 +590,65 @@ public class LocalizationJobRepository {
 
     private String statusFilter(LocalizationJobStatus status) {
         return status == null ? "" : "WHERE jobs.status = :status";
+    }
+
+    private String ownerStatusFilter(LocalizationJobStatus status) {
+        if (status == null) {
+            return "WHERE jobs.owner_id = :ownerId";
+        }
+        return "WHERE jobs.owner_id = :ownerId AND jobs.status = :status";
+    }
+
+    private String summarySql(String whereClause, String limitClause) {
+        return """
+                SELECT
+                    jobs.id AS job_id,
+                    jobs.video_id,
+                    videos.original_filename,
+                    jobs.target_language,
+                    jobs.tts_voice,
+                    jobs.translation_style,
+                    jobs.subtitle_style_preset,
+                    jobs.translation_glossary_hash,
+                    jobs.translation_glossary_entry_count,
+                    jobs.subtitle_polishing_mode,
+                    jobs.demo_profile_id,
+                    jobs.status,
+                    jobs.created_at,
+                    jobs.started_at,
+                    jobs.completed_at,
+                    jobs.failed_at,
+                    jobs.failure_stage,
+                    jobs.failure_reason,
+                    jobs.retry_count,
+                    COALESCE(SUM(model_call_records.estimated_cost_usd), 0) AS estimated_cost_usd
+                FROM localization_jobs jobs
+                JOIN videos ON videos.id = jobs.video_id
+                LEFT JOIN model_call_records ON model_call_records.job_id = jobs.id
+                %s
+                GROUP BY
+                    jobs.id,
+                    jobs.video_id,
+                    videos.original_filename,
+                    jobs.target_language,
+                    jobs.tts_voice,
+                    jobs.translation_style,
+                    jobs.subtitle_style_preset,
+                    jobs.translation_glossary_hash,
+                    jobs.translation_glossary_entry_count,
+                    jobs.subtitle_polishing_mode,
+                    jobs.demo_profile_id,
+                    jobs.status,
+                    jobs.created_at,
+                    jobs.started_at,
+                    jobs.completed_at,
+                    jobs.failed_at,
+                    jobs.failure_stage,
+                    jobs.failure_reason,
+                    jobs.retry_count
+                ORDER BY jobs.created_at DESC, jobs.id DESC
+                %s
+                """.formatted(whereClause, limitClause);
     }
 
     private Timestamp timestampOrNull(Instant instant) {

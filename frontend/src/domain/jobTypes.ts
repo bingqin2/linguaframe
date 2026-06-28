@@ -69,6 +69,8 @@ export interface DemoSessionStatus {
   authenticated: boolean;
   headerName: string;
   mode: DemoSessionMode;
+  ownerId: string;
+  ownershipScope: string;
 }
 
 export type LocalizationJobStatus =

@@ -118,6 +118,21 @@ td {
   min-width: 280px;
 }
 
+.demo-session-summary {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.owner-boundary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px 10px;
+  color: #657482;
+  font-size: 0.78rem;
+}
+
 .demo-token-form {
   display: grid;
   grid-template-columns: minmax(180px, 260px) auto;
@@ -983,9 +998,14 @@ video {
   }
 
   .header-tools,
+  .demo-session-summary,
   .demo-token-form {
     justify-items: stretch;
     width: 100%;
+  }
+
+  .owner-boundary {
+    justify-content: flex-start;
   }
 
   .demo-token-form {

@@ -261,10 +261,11 @@ Private demo access is optional. With the default empty token, local browser and
 ```bash
 LINGUAFRAME_DEMO_ACCESS_TOKEN=replace-with-long-random-token
 LINGUAFRAME_DEMO_ACCESS_HEADER_NAME=X-LinguaFrame-Demo-Token
+LINGUAFRAME_DEMO_OWNER_ID=demo-owner
 docker compose --env-file .env up -d --force-recreate linguaframe-backend linguaframe-frontend
 ```
 
-Then open `http://localhost:5173`, enter the same value in `Owner access token`, and choose `Start session`. The backend validates the configured token and sets a same-site `LinguaFrame-Demo-Token` owner-session cookie for browser API calls, job progress streams, downloads, and media previews. Choose `End session` to clear it. This is a single-owner private demo gate, not public authentication, accounts, JWT, or billing. Do not commit real demo tokens.
+Then open `http://localhost:5173`, enter the same value in `Owner access token`, and choose `Start session`. The backend validates the configured token and sets a same-site `LinguaFrame-Demo-Token` owner-session cookie for browser API calls, job progress streams, downloads, and media previews. Choose `End session` to clear it. `LINGUAFRAME_DEMO_OWNER_ID` is the persisted owner boundary for uploaded videos and jobs; it defaults to `demo-owner` and should stay a stable non-secret label for the private demo. This is a single-owner private demo gate plus data ownership boundary, not public authentication, accounts, JWT, or billing. Do not commit real demo tokens.
 
 Terminal, script, and Swagger flows can still use the header fallback:
 

@@ -628,13 +628,17 @@ describe('App', () => {
       demoSessionStatusFixture({
         accessGateEnabled: false,
         authenticated: true,
-        mode: 'OPEN'
+        mode: 'OPEN',
+        ownerId: 'demo-owner',
+        ownershipScope: 'CONFIGURED_DEMO_OWNER'
       })
     );
 
     render(<App />);
 
     expect(await screen.findByText('Open demo')).toBeInTheDocument();
+    expect(await screen.findByText('Owner: demo-owner')).toBeInTheDocument();
+    expect(screen.getByText('Scope: CONFIGURED_DEMO_OWNER')).toBeInTheDocument();
   });
 
   test('creates and clears a private demo owner session', async () => {
@@ -3134,6 +3138,8 @@ function demoSessionStatusFixture(overrides: Partial<DemoSessionStatus> = {}): D
     authenticated: true,
     headerName: 'X-LinguaFrame-Demo-Token',
     mode: 'OPEN',
+    ownerId: 'demo-owner',
+    ownershipScope: 'CONFIGURED_DEMO_OWNER',
     ...overrides
   };
 }

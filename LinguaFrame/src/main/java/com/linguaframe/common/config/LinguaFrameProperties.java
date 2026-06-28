@@ -266,10 +266,15 @@ public class LinguaFrameProperties {
 
     public static class Demo {
 
+        private static final String DEFAULT_OWNER_ID = "demo-owner";
+
         private String accessToken = "";
 
         @NotBlank
         private String accessHeaderName = "X-LinguaFrame-Demo-Token";
+
+        @NotBlank
+        private String ownerId = DEFAULT_OWNER_ID;
 
         public String getAccessToken() {
             return accessToken;
@@ -285,6 +290,18 @@ public class LinguaFrameProperties {
 
         public void setAccessHeaderName(String accessHeaderName) {
             this.accessHeaderName = accessHeaderName;
+        }
+
+        public String getOwnerId() {
+            return ownerId;
+        }
+
+        public void setOwnerId(String ownerId) {
+            if (ownerId == null || ownerId.isBlank()) {
+                this.ownerId = DEFAULT_OWNER_ID;
+                return;
+            }
+            this.ownerId = ownerId.trim();
         }
 
         public boolean isAccessGateEnabled() {

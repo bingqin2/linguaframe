@@ -41,14 +41,19 @@ class DemoSessionControllerTests {
                     .andExpect(jsonPath("$.accessGateEnabled").value(false))
                     .andExpect(jsonPath("$.authenticated").value(true))
                     .andExpect(jsonPath("$.headerName").value("X-LinguaFrame-Demo-Token"))
-                    .andExpect(jsonPath("$.mode").value("OPEN"));
+                    .andExpect(jsonPath("$.mode").value("OPEN"))
+                    .andExpect(jsonPath("$.ownerId").value("demo-owner"))
+                    .andExpect(jsonPath("$.ownershipScope").value("CONFIGURED_DEMO_OWNER"));
         }
     }
 
     @Nested
     @SpringBootTest(
             classes = LinguaFrameApplication.class,
-            properties = "linguaframe.demo.access-token=test-token"
+            properties = {
+                    "linguaframe.demo.access-token=test-token",
+                    "linguaframe.demo.owner-id=owner-alpha"
+            }
     )
     @AutoConfigureMockMvc
     @ActiveProfiles("test")
@@ -66,6 +71,8 @@ class DemoSessionControllerTests {
                     .andExpect(jsonPath("$.authenticated").value(false))
                     .andExpect(jsonPath("$.headerName").value("X-LinguaFrame-Demo-Token"))
                     .andExpect(jsonPath("$.mode").value("OWNER_SESSION_REQUIRED"))
+                    .andExpect(jsonPath("$.ownerId").value("owner-alpha"))
+                    .andExpect(jsonPath("$.ownershipScope").value("CONFIGURED_DEMO_OWNER"))
                     .andExpect(content().string(not(containsString("test-token"))));
         }
 
@@ -78,6 +85,7 @@ class DemoSessionControllerTests {
                     .andExpect(jsonPath("$.accessGateEnabled").value(true))
                     .andExpect(jsonPath("$.authenticated").value(false))
                     .andExpect(jsonPath("$.mode").value("OWNER_SESSION_REQUIRED"))
+                    .andExpect(jsonPath("$.ownerId").value("owner-alpha"))
                     .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE))
                     .andExpect(content().string(not(containsString("test-token"))));
         }
@@ -91,6 +99,7 @@ class DemoSessionControllerTests {
                     .andExpect(jsonPath("$.accessGateEnabled").value(true))
                     .andExpect(jsonPath("$.authenticated").value(true))
                     .andExpect(jsonPath("$.mode").value("OWNER_SESSION_ACTIVE"))
+                    .andExpect(jsonPath("$.ownerId").value("owner-alpha"))
                     .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("LinguaFrame-Demo-Token=test-token")))
                     .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("HttpOnly")))
                     .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("SameSite=Lax")))

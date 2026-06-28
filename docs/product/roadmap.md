@@ -310,7 +310,7 @@ Suggested ExecPlan:
 
 Goal: prepare a controlled hosted demo after the local pipeline is stable.
 
-Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, and a completed-run evidence gallery with browser and terminal metadata-only reports.
+Status: in progress. The backend now supports an optional owner-only demo access token for `/api/**`, browser owner-session login/logout on top of that token, a configured demo owner boundary persisted on videos and localization jobs, configurable upload limits, Redis-backed upload rate limiting, a default-off retention cleanup policy for terminal demo jobs and artifacts, a browser operator panel for manual retention cleanup, budget guard demo evidence, a local preflight runbook for private demo readiness, browser-visible configuration readiness, bounded live dependency checks through the React demo, private-demo operations readiness, launch rehearsal, and a completed-run evidence gallery with browser and terminal metadata-only reports.
 
 Build:
 
@@ -329,6 +329,7 @@ Build:
 - Conservative upload limits. Status: implemented with configurable size and 5-minute duration gates.
 - Redis upload rate limiting. Status: implemented for upload and upload-validation `POST` APIs, disabled by default.
 - Owner-only private URL access gate. Status: implemented with optional demo token, React owner-session login/logout, and header-token compatibility for Swagger, curl, and scripts.
+- Demo owner data boundary. Status: implemented with `LINGUAFRAME_DEMO_OWNER_ID`, persisted `owner_id` columns for videos/jobs, owner-scoped upload/job/media reads, browser-visible owner metadata, and terminal-safe owner summary output.
 
 Do not build yet:
 

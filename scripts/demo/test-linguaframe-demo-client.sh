@@ -72,6 +72,32 @@ test_demo_base_url_uses_backend_port_from_env_file() {
   assert_equals "http://localhost:18080" "$url" "demo_base_url"
 }
 
+test_demo_session_owner_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-session.json" <<'JSON'
+{
+  "accessGateEnabled": true,
+  "authenticated": true,
+  "headerName": "X-LinguaFrame-Demo-Token",
+  "mode": "OWNER_SESSION_ACTIVE",
+  "ownerId": "owner-alpha",
+  "ownershipScope": "CONFIGURED_DEMO_OWNER",
+  "token": "sk-test-secret",
+  "localPath": "/Users/example/private.mov"
+}
+JSON
+
+  print_demo_session_owner_summary_file "$TMPDIR/demo-session.json" >"$TMPDIR/demo-session.out"
+  local output
+  output="$(cat "$TMPDIR/demo-session.out")"
+
+  [[ "$output" == *"demoSessionMode=OWNER_SESSION_ACTIVE"* ]] || fail "demo session summary missed mode"
+  [[ "$output" == *"demoSessionAuthenticated=true"* ]] || fail "demo session summary missed authenticated state"
+  [[ "$output" == *"demoOwnerId=owner-alpha"* ]] || fail "demo session summary missed owner id"
+  [[ "$output" == *"demoOwnershipScope=CONFIGURED_DEMO_OWNER"* ]] || fail "demo session summary missed ownership scope"
+  [[ "$output" != *"sk-test-secret"* ]] || fail "demo session summary exposed token"
+  [[ "$output" != *"/Users/example"* ]] || fail "demo session summary exposed local path"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1427,6 +1453,7 @@ JSON
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
+test_demo_session_owner_summary_is_metadata_only
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

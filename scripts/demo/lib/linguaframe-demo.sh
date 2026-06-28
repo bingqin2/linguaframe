@@ -204,6 +204,31 @@ download_job_detail() {
   demo_curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
 }
 
+download_demo_session_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/demo-session" -o "$output_path"
+}
+
+print_demo_session_owner_summary_file() {
+  local session_json_path="$1"
+
+  python3 - "$session_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    session = json.load(handle)
+
+print(f"demoSessionMode={session.get('mode', '')}")
+print(f"demoSessionAuthenticated={str(bool(session.get('authenticated'))).lower()}")
+print(f"demoOwnerId={session.get('ownerId', '')}")
+print(f"demoOwnershipScope={session.get('ownershipScope', '')}")
+PY
+}
+
 url_encode_path_segment() {
   python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$1"
 }

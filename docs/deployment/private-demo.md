@@ -24,6 +24,7 @@ Edit `.env.private-demo`:
 
 - Set `LINGUAFRAME_PUBLIC_DOMAIN` to the demo domain that points at the server.
 - Set `LINGUAFRAME_DEMO_ACCESS_TOKEN` to a long random value.
+- Set `LINGUAFRAME_DEMO_OWNER_ID` to a stable non-secret owner label such as `demo-owner`; uploads, jobs, and owner-facing media/job APIs are scoped to this value.
 - Replace database, RabbitMQ, and MinIO placeholder passwords.
 - Keep upload limits conservative, for example `LINGUAFRAME_MEDIA_MAX_DURATION_SECONDS=300`.
 - Enable OpenAI providers only when you are ready to spend API credits.

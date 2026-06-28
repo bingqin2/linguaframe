@@ -80,6 +80,7 @@ Stage 2 goals:
 - Use a private-demo reverse proxy that exposes only the public web entry point while keeping app and dependency ports internal.
 - Support controlled uploads from the project owner.
 - Let the owner start and end a browser session with the configured private demo token, while keeping Swagger, curl, and scripts compatible with the demo access header.
+- Persist a configured demo owner id on uploaded videos and localization jobs, and scope owner-facing media/job APIs to that owner before public authentication exists.
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
