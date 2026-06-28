@@ -1718,6 +1718,108 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsReviewedSubtitleWorkflowCockpitForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:22:00Z");
+        createJob("job-controller-video-workflow", "job-controller-job-workflow", "workflow.mp4", LocalizationJobStatus.COMPLETED, createdAt);
+        transcriptService.replaceTranscript("job-controller-job-workflow", new TranscriptionResultBo(List.of(
+                new TranscriptionSegmentBo(0, 0L, 1_000L, "First source line"),
+                new TranscriptionSegmentBo(1, 1_200L, 2_800L, "Second source line")
+        )));
+        subtitleService.replaceSubtitles("job-controller-job-workflow", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行")
+        )));
+        artifactRepository.save(new JobArtifactRecord(
+                "workflow-target-json",
+                "job-controller-job-workflow",
+                JobArtifactType.TARGET_SUBTITLE_JSON,
+                "job-artifacts/job-controller-job-workflow/target-subtitles.json",
+                "target-subtitles.zh-CN.json",
+                "application/json",
+                10L,
+                "workflow-json-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "workflow-target-srt",
+                "job-controller-job-workflow",
+                JobArtifactType.TARGET_SUBTITLE_SRT,
+                "job-artifacts/job-controller-job-workflow/target-subtitles.srt",
+                "target-subtitles.zh-CN.srt",
+                "application/x-subrip",
+                10L,
+                "workflow-srt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "workflow-target-vtt",
+                "job-controller-job-workflow",
+                JobArtifactType.TARGET_SUBTITLE_VTT,
+                "job-artifacts/job-controller-job-workflow/target-subtitles.vtt",
+                "target-subtitles.zh-CN.vtt",
+                "text/vtt",
+                10L,
+                "workflow-vtt-hash",
+                false,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+
+        String reviewNeededJson = mockMvc.perform(get("/api/jobs/{jobId}/reviewed-subtitle-workflow", "job-controller-job-workflow"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-workflow"))
+                .andExpect(jsonPath("$.overallStatus").value("ATTENTION"))
+                .andExpect(jsonPath("$.phase").value("REVIEW_NEEDED"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.missingTargetCount").value(1))
+                .andExpect(jsonPath("$.generatedSubtitleArtifactCount").value(3))
+                .andExpect(jsonPath("$.links[?(@.kind == 'SUBTITLE_REVIEW')]").exists())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(reviewNeededJson)
+                .doesNotContain("First source line")
+                .doesNotContain("第一行")
+                .doesNotContain("job-artifacts/job-controller-job-workflow");
+
+        subtitleService.replaceSubtitles("job-controller-job-workflow", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行"),
+                new TranslationSegmentBo(1, 1_200L, 2_800L, "第二行")
+        )));
+        mockMvc.perform(put("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-workflow")
+                        .param("language", "zh-CN")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {"index": 1, "text": "补齐后的第二行"}
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/jobs/{jobId}/subtitle-draft/publish", "job-controller-job-workflow")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "language": "zh-CN",
+                                  "includeBurnedVideo": false
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/jobs/{jobId}/reviewed-subtitle-workflow", "job-controller-job-workflow"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.phase").value("HANDOFF_READY"))
+                .andExpect(jsonPath("$.reviewedSubtitleArtifactCount").value(3))
+                .andExpect(jsonPath("$.handoffReady").value(true))
+                .andExpect(jsonPath("$.links[?(@.kind == 'HANDOFF_PACKAGE')]").exists());
+    }
+
+    @Test
     void returnsDeliveryManifestJsonAndMarkdownForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:25:00Z");
         createJob("job-controller-video-manifest", "job-controller-job-manifest", "manifest.mp4", LocalizationJobStatus.COMPLETED, createdAt);

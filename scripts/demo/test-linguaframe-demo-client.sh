@@ -1971,6 +1971,92 @@ JSON
   [[ "$output" != *"raw corrected subtitle"* ]] || fail "reviewed publish summary exposed corrected text"
 }
 
+test_reviewed_subtitle_workflow_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_reviewed_subtitle_workflow_json "http://example.test" "job-workflow" "$TMPDIR/reviewed-workflow.json" \
+    >"$TMPDIR/reviewed-workflow-curl.out"
+  local curl_output
+  curl_output="$(cat "$TMPDIR/reviewed-workflow-curl.out")"
+  [[ "$curl_output" == *"http://example.test/api/jobs/job-workflow/reviewed-subtitle-workflow"* ]] || fail "reviewed subtitle workflow helper used wrong route"
+
+  cat >"$TMPDIR/reviewed-workflow.json" <<'JSON'
+{
+  "jobId": "job-workflow",
+  "videoId": "video-workflow",
+  "targetLanguage": "zh-CN",
+  "generatedAt": "2026-06-29T14:00:00Z",
+  "overallStatus": "ATTENTION",
+  "phase": "PUBLISH_READY",
+  "recommendedNextAction": "Publish reviewed subtitles.",
+  "segmentCount": 2,
+  "missingTargetCount": 0,
+  "timingMismatchCount": 0,
+  "qualityScore": 91,
+  "qualityVerdict": "GOOD",
+  "qualityIssueCount": 0,
+  "qualitySuggestedFixCount": 0,
+  "editedSegmentCount": 1,
+  "draftLastUpdatedAt": "2026-06-29T13:50:00Z",
+  "generatedSubtitleArtifactCount": 3,
+  "reviewedSubtitleArtifactCount": 0,
+  "reviewedBurnedVideoAvailable": false,
+  "handoffReady": false,
+  "checks": [],
+  "links": [],
+  "safetyNotes": [
+    "Metadata-only workflow."
+  ],
+  "sourceObjectKey": "job-artifacts/job-workflow/raw.txt",
+  "unsafeText": "raw transcript text",
+  "unsafeToken": "private-demo-token"
+}
+JSON
+
+  if print_reviewed_subtitle_workflow_summary_file "$TMPDIR/reviewed-workflow.json" >"$TMPDIR/reviewed-workflow.out" 2>"$TMPDIR/reviewed-workflow.err"; then
+    fail "reviewed subtitle workflow summary accepted unsafe JSON"
+  fi
+
+  cat >"$TMPDIR/reviewed-workflow.json" <<'JSON'
+{
+  "jobId": "job-workflow",
+  "videoId": "video-workflow",
+  "targetLanguage": "zh-CN",
+  "generatedAt": "2026-06-29T14:00:00Z",
+  "overallStatus": "READY",
+  "phase": "HANDOFF_READY",
+  "recommendedNextAction": "Download the handoff package.",
+  "segmentCount": 2,
+  "missingTargetCount": 0,
+  "timingMismatchCount": 0,
+  "qualityScore": 91,
+  "qualityVerdict": "GOOD",
+  "qualityIssueCount": 0,
+  "qualitySuggestedFixCount": 0,
+  "editedSegmentCount": 1,
+  "draftLastUpdatedAt": "2026-06-29T13:50:00Z",
+  "generatedSubtitleArtifactCount": 3,
+  "reviewedSubtitleArtifactCount": 3,
+  "reviewedBurnedVideoAvailable": true,
+  "handoffReady": true,
+  "checks": [],
+  "links": [],
+  "safetyNotes": []
+}
+JSON
+
+  print_reviewed_subtitle_workflow_summary_file "$TMPDIR/reviewed-workflow.json" >"$TMPDIR/reviewed-workflow.out"
+  local summary
+  summary="$(cat "$TMPDIR/reviewed-workflow.out")"
+  [[ "$summary" == *"reviewedSubtitleWorkflowJobId=job-workflow"* ]] || fail "reviewed workflow summary missed job id"
+  [[ "$summary" == *"reviewedSubtitleWorkflowStatus=READY"* ]] || fail "reviewed workflow summary missed status"
+  [[ "$summary" == *"reviewedSubtitleWorkflowPhase=HANDOFF_READY"* ]] || fail "reviewed workflow summary missed phase"
+  [[ "$summary" == *"reviewedSubtitleWorkflowReviewedSubtitleArtifactCount=3"* ]] || fail "reviewed workflow summary missed reviewed count"
+  [[ "$summary" == *"reviewedSubtitleWorkflowHandoffReady=true"* ]] || fail "reviewed workflow summary missed handoff readiness"
+}
+
 test_print_delivery_manifest_summary_is_metadata_only() {
   cat >"$TMPDIR/delivery-manifest.json" <<'JSON'
 {
@@ -2927,6 +3013,7 @@ test_quality_evaluation_evidence_helpers_are_metadata_only
 test_print_subtitle_review_summary_is_metadata_only
 test_print_subtitle_draft_summary_is_metadata_only
 test_print_reviewed_publish_summary_is_metadata_only
+test_reviewed_subtitle_workflow_helpers_are_metadata_only
 test_print_delivery_manifest_summary_is_metadata_only
 test_print_media_delivery_summary_is_metadata_only
 test_print_demo_handoff_checklist_summary_is_metadata_only

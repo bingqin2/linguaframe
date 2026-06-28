@@ -207,6 +207,49 @@ export interface DemoPresentationCockpitLink {
   url: string;
 }
 
+export type ReviewedSubtitleWorkflowStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface ReviewedSubtitleWorkflow {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  generatedAt: string;
+  overallStatus: ReviewedSubtitleWorkflowStatus;
+  phase: string;
+  recommendedNextAction: string;
+  segmentCount: number;
+  missingTargetCount: number;
+  timingMismatchCount: number;
+  qualityScore: number | null;
+  qualityVerdict: string | null;
+  qualityIssueCount: number;
+  qualitySuggestedFixCount: number;
+  editedSegmentCount: number;
+  draftLastUpdatedAt: string | null;
+  generatedSubtitleArtifactCount: number;
+  reviewedSubtitleArtifactCount: number;
+  reviewedBurnedVideoAvailable: boolean;
+  handoffReady: boolean;
+  checks: ReviewedSubtitleWorkflowCheck[];
+  links: ReviewedSubtitleWorkflowLink[];
+  safetyNotes: string[];
+}
+
+export interface ReviewedSubtitleWorkflowCheck {
+  key: string;
+  label: string;
+  status: ReviewedSubtitleWorkflowStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface ReviewedSubtitleWorkflowLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
 export interface MediaUploadDetail {
   videoId: string;
   filename: string;

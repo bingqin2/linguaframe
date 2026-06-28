@@ -697,3 +697,11 @@ Decision: Add a read-only demo presentation cockpit instead of turning existing 
 Reason: A run-day operator needs one next-action surface before upload, during processing, and after completion, but starting Docker, uploading media, retrying jobs, creating packages, or calling OpenAI from a cockpit would hide cost and state changes.
 
 Impact: `GET /api/operator/demo-presentation-cockpit`, the browser `Demo presentation cockpit` panel, and `scripts/demo/demo-presentation-cockpit.sh` compose launcher, upload readiness, live checks, private-demo operations, active run monitor, recommended run archive, acceptance gate, and safe evidence links. The cockpit remains metadata-only and does not upload media, start Docker, call providers, mutate jobs, create artifacts, expose local paths, print secrets, or embed raw transcript/subtitle text.
+
+## 2026-06-29
+
+Decision: Add a reviewed subtitle workflow cockpit as a derived read-only aggregate instead of persisting review sessions.
+
+Reason: Subtitle review, draft edits, reviewed artifact publishing, reviewed burned-video creation, delivery manifest readiness, and handoff package export were already implemented, but reviewers still had to inspect several panels to know the next step.
+
+Impact: `GET /api/jobs/{jobId}/reviewed-subtitle-workflow`, the browser `Reviewed subtitle workflow` panel, and `scripts/demo/reviewed-subtitle-workflow.sh` compose existing job, subtitle review, draft, artifact, and manifest state into `READY`, `ATTENTION`, or `BLOCKED` with actionable checks and safe links. The cockpit is metadata-only and does not edit drafts, publish artifacts, create media, call providers, expose raw text, reveal local paths, or embed media bytes.

@@ -303,6 +303,12 @@ The selected job view also includes a `Demo session report` panel. It turns the 
 
 The selected job view also includes a read-only `Subtitle review` panel. It derives source/target rows from persisted transcript and subtitle segments, flags missing target rows and timing mismatches over 250 ms, shows quality score/verdict when available, and counts downloadable target subtitle artifacts. It does not edit subtitles or change generated media.
 
+The selected job view also includes a read-only `Reviewed subtitle workflow` panel. It calls `GET /api/jobs/{jobId}/reviewed-subtitle-workflow` and combines job status, subtitle-review counts, draft edit status, generated subtitle artifacts, reviewed JSON/SRT/VTT readiness, optional reviewed burned video availability, delivery manifest readiness, handoff links, and the next recommended action. Use this cockpit to decide whether to keep reviewing, export a draft, publish reviewed subtitles, create a reviewed burned video, or download handoff evidence; it returns metadata only and excludes transcript text, subtitle text, corrected draft text, object keys, local paths, provider payloads, tokens, and media bytes. Terminal export is available with:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/reviewed-subtitle-workflow.sh
+```
+
 The selected job view also includes a `Subtitle draft editor` panel. Use it to correct generated target subtitles by segment, save a draft overlay, reset unsaved edits, clear saved edits, export corrected JSON/SRT/VTT, and publish reviewed JSON/SRT/VTT artifacts. Reviewed artifacts are explicit handoff outputs and appear in result delivery, artifact downloads, archives, diagnostics, evidence, and demo scripts. The optional reviewed burned video checkbox creates a separate `reviewed-burned-video.mp4` only when requested and FFmpeg burn-in is enabled; it does not regenerate TTS audio or replace generated artifacts.
 
 The selected job view also includes a `Pipeline progress` panel derived from durable timeline events. It shows current stage, completed stage count, failed/skipped/cache-hit counts, terminal state, total measured stage duration, slowest stage, and per-stage status/duration rows. The existing `Timeline` panel remains the event-level source of truth. The operator dashboard also shows compact stage timing rows for the slowest recent stages.
@@ -720,6 +726,8 @@ Job detail reads use an optional Redis cache-aside layer. MySQL remains the sour
 `GET /api/jobs/{jobId}/handoff-package/download` returns an on-demand ZIP for reviewer delivery. It includes `manifest.json`, `delivery-manifest.md`, `evidence.md`, `diagnostics.json`, reviewed subtitle JSON/SRT/VTT artifacts, and optional reviewed burned video. It excludes uploaded source video, extracted audio, generated transcript and target subtitle artifacts, generated burned video, worker summary, object keys, local paths, provider payloads, credentials, demo tokens, and unrelated audit artifacts.
 
 `GET /api/jobs/{jobId}/subtitle-review?language=zh-CN` returns a read-only subtitle review summary derived from persisted transcript segments, target subtitle segments, the latest quality evaluation, and generated target subtitle artifacts. The response includes source and target text for the selected job viewer, but browser evidence, backend Markdown evidence, and terminal script summaries only export metadata counts.
+
+`GET /api/jobs/{jobId}/reviewed-subtitle-workflow` returns a metadata-only cockpit for moving from generated subtitles to reviewed handoff. It reports `READY`, `ATTENTION`, or `BLOCKED`, a phase such as `REVIEW_NEEDED`, `PUBLISH_READY`, or `HANDOFF_READY`, actionable checks, draft/reviewed artifact counts, delivery readiness, and safe links to review, draft export, publish, manifest, handoff package, and evidence routes.
 
 `GET /api/jobs/{jobId}/diagnostics/download` returns a metadata-only JSON diagnostics report for the job. It includes sanitized job detail, pipeline progress, timeline events, model-call summaries, quality evaluation, failure triage, and artifact hashes/counts, but excludes object storage keys, local media paths, raw transcript or subtitle text, provider payloads, credentials, and uploaded bytes. The React demo exposes this as `Download diagnostics` in the selected job header.
 

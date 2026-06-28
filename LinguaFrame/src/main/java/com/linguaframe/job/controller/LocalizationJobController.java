@@ -28,6 +28,7 @@ import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -55,6 +56,7 @@ import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.QualityEvaluationEvidenceService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
+import com.linguaframe.job.service.ReviewedSubtitleWorkflowService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.SubtitleDraftService;
 import com.linguaframe.job.service.SubtitleReviewService;
@@ -113,6 +115,7 @@ public class LocalizationJobController {
     private final SubtitleService subtitleService;
     private final SubtitleDraftService subtitleDraftService;
     private final ReviewedSubtitleDeliveryService reviewedSubtitleDeliveryService;
+    private final ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService;
     private final SubtitleReviewService subtitleReviewService;
     private final ObjectMapper objectMapper;
 
@@ -142,6 +145,7 @@ public class LocalizationJobController {
             SubtitleService subtitleService,
             SubtitleDraftService subtitleDraftService,
             ReviewedSubtitleDeliveryService reviewedSubtitleDeliveryService,
+            ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService,
             SubtitleReviewService subtitleReviewService,
             ObjectMapper objectMapper
     ) {
@@ -170,6 +174,7 @@ public class LocalizationJobController {
         this.subtitleService = subtitleService;
         this.subtitleDraftService = subtitleDraftService;
         this.reviewedSubtitleDeliveryService = reviewedSubtitleDeliveryService;
+        this.reviewedSubtitleWorkflowService = reviewedSubtitleWorkflowService;
         this.subtitleReviewService = subtitleReviewService;
         this.objectMapper = objectMapper;
     }
@@ -758,6 +763,20 @@ public class LocalizationJobController {
             @RequestParam(defaultValue = "zh-CN") String language
     ) {
         return subtitleReviewService.buildReview(jobId, language);
+    }
+
+    @GetMapping("/{jobId}/reviewed-subtitle-workflow")
+    @Operation(summary = "Build a read-only reviewed subtitle workflow cockpit for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Reviewed subtitle workflow cockpit was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ReviewedSubtitleWorkflowVo reviewedSubtitleWorkflow(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return reviewedSubtitleWorkflowService.workflow(jobId);
     }
 
     @GetMapping("/{jobId}/subtitle-draft")

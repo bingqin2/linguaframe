@@ -445,6 +445,7 @@ Build:
 - Browser-visible cache replay evidence. Status: implemented by composing existing safe job detail and artifact APIs in the React demo without adding a backend aggregate endpoint.
 - Pre-upload demo readiness workspace. Status: implemented with `GET /api/media/uploads/readiness`, a browser `Upload readiness` panel, and `scripts/demo/upload-readiness.sh` for metadata-only terminal go/no-go checks.
 - Demo run launcher workspace. Status: implemented as a metadata-only operator aggregate that connects sample selection, the `tears-showcase` profile, upload-readiness gates, the full Tears command, and expected post-run evidence outputs before paid or full-video execution.
+- Reviewed subtitle workflow cockpit. Status: implemented as a metadata-only selected-job aggregate that connects subtitle review, draft edits, reviewed artifact readiness, optional reviewed burned-video availability, delivery manifest readiness, safe handoff links, browser UI, and terminal export.
 
 Do not build yet:
 
