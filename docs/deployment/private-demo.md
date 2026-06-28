@@ -84,6 +84,18 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-launch-rehearsa
 
 The script writes `launch-rehearsal.json` and `launch-rehearsal.md` under `/tmp/linguaframe-demo/private-demo-launch-rehearsal/` by default. It is read-only: it does not start Docker, upload media, call OpenAI, create backups, restore data, or run cleanup. `READY` and `ATTENTION` exit with status 0; `BLOCKED` exits non-zero.
 
+## Evidence Gallery
+
+Use the browser `Private demo evidence gallery` panel after demo jobs complete. It is the post-run selection workspace: operations readiness explains current health, launch rehearsal orders the go/no-go path, and evidence gallery picks completed outputs for presentation or handoff.
+
+Generate the same gallery from the terminal:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-evidence-gallery.sh
+```
+
+The script writes `evidence-gallery.json` and `evidence-gallery.md` under `/tmp/linguaframe-demo/private-demo-evidence-gallery/` by default. It is read-only and metadata-only: it does not upload media, call OpenAI, start Docker, publish subtitles, create backups, restore data, run cleanup, or copy media bytes.
+
 ## Safety Defaults
 
 - Backend and frontend host ports are removed in the private overlay; traffic enters through Caddy.

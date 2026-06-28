@@ -17,6 +17,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PromptTemplate,
@@ -345,6 +346,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     null
   );
   const [isLoadingPrivateDemoLaunchRehearsal, setIsLoadingPrivateDemoLaunchRehearsal] = useState(false);
+  const [privateDemoEvidenceGallery, setPrivateDemoEvidenceGallery] =
+    useState<PrivateDemoEvidenceGallery | null>(null);
+  const [privateDemoEvidenceGalleryError, setPrivateDemoEvidenceGalleryError] = useState<string | null>(
+    null
+  );
+  const [isLoadingPrivateDemoEvidenceGallery, setIsLoadingPrivateDemoEvidenceGallery] = useState(false);
   const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
   const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
   const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
@@ -531,6 +538,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadPrivateDemoEvidenceGallery = useCallback(async () => {
+    setIsLoadingPrivateDemoEvidenceGallery(true);
+    try {
+      const gallery = await linguaFrameApi.getPrivateDemoEvidenceGallery(20);
+      setPrivateDemoEvidenceGallery(gallery);
+      setPrivateDemoEvidenceGalleryError(null);
+    } catch (galleryLoadError) {
+      setPrivateDemoEvidenceGallery(null);
+      setPrivateDemoEvidenceGalleryError(toErrorMessage(galleryLoadError));
+    } finally {
+      setIsLoadingPrivateDemoEvidenceGallery(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -651,6 +672,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadPrivateDemoLaunchRehearsal();
   }, [loadPrivateDemoLaunchRehearsal]);
+
+  useEffect(() => {
+    void loadPrivateDemoEvidenceGallery();
+  }, [loadPrivateDemoEvidenceGallery]);
 
   useEffect(() => {
     void loadRuntimeDependencies();
@@ -1401,6 +1426,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={privateDemoLaunchRehearsalError}
             isLoading={isLoadingPrivateDemoLaunchRehearsal}
             onRefresh={loadPrivateDemoLaunchRehearsal}
+          />
+
+          <PrivateDemoEvidenceGalleryPanel
+            gallery={privateDemoEvidenceGallery}
+            error={privateDemoEvidenceGalleryError}
+            isLoading={isLoadingPrivateDemoEvidenceGallery}
+            onRefresh={loadPrivateDemoEvidenceGallery}
           />
 
           <RetentionCleanupPanel
@@ -2302,6 +2334,156 @@ function PrivateDemoLaunchRehearsalPanel({
   );
 }
 
+function PrivateDemoEvidenceGalleryPanel({
+  gallery,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  gallery: PrivateDemoEvidenceGallery | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = gallery ? formatPrivateDemoEvidenceGalleryNotes(gallery) : '';
+  const recommendedJob = gallery?.jobs.find((job) => job.recommended) ?? gallery?.jobs[0] ?? null;
+
+  const handleCopy = async () => {
+    if (!gallery || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Evidence gallery notes copied.');
+  };
+
+  const handleDownload = () => {
+    if (!gallery) {
+      return;
+    }
+    const blob = new Blob([notes], { type: 'text/markdown;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = 'linguaframe-private-demo-evidence-gallery.md';
+    link.click();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Evidence gallery notes downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-evidence-gallery-panel" aria-label="Private demo evidence gallery">
+      <div className="panel-heading">
+        <h2>Private demo evidence gallery</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Evidence gallery unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !gallery ? <p className="muted">Loading evidence gallery...</p> : null}
+      {gallery ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>
+                <span className={evidenceGalleryStatusClassName(gallery.overallStatus)}>
+                  {gallery.overallStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Recommended</dt>
+              <dd>{gallery.recommendedJobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{gallery.completedJobCount} completed</dd>
+            </div>
+            <div>
+              <dt>Handoff</dt>
+              <dd>{gallery.handoffReadyCount} handoff ready</dd>
+            </div>
+          </dl>
+          {recommendedJob ? (
+            <div className="evidence-gallery-recommended">
+              <h3>Recommended run</h3>
+              <p>
+                <strong>{recommendedJob.jobId}</strong> · {recommendedJob.filename} ·{' '}
+                {recommendedJob.demoProfileId ?? 'manual'}
+              </p>
+              <ul className="inline-evidence-list">
+                <li>{recommendedJob.qualityScore === null ? 'Quality unavailable' : `Quality ${recommendedJob.qualityScore}`}</li>
+                <li>{formatGalleryCost(recommendedJob.estimatedCostUsd)}</li>
+                <li>{recommendedJob.modelCallCount} model calls</li>
+                <li>{recommendedJob.providerCacheHitCount} provider cache hit</li>
+              </ul>
+            </div>
+          ) : (
+            <p className="muted">No completed demo jobs are available yet.</p>
+          )}
+          {gallery.jobs.length > 0 ? (
+            <ul className="operations-section-list evidence-gallery-job-list" aria-label="Completed demo runs">
+              {gallery.jobs.map((job) => (
+                <li key={job.jobId}>
+                  <div className="operations-section-heading">
+                    <strong>{job.jobId}</strong>
+                    <span className={job.handoffReady ? 'status-pill' : 'status-pill warning'}>
+                      {job.handoffReady ? 'HANDOFF READY' : 'ATTENTION'}
+                    </span>
+                  </div>
+                  <p>
+                    {job.filename} · {job.demoProfileId ?? 'manual'} · {job.targetLanguage}
+                  </p>
+                  <small>
+                    {job.qualityScore === null ? 'Quality unavailable' : `Quality ${job.qualityScore}`}
+                    {' · '}
+                    {formatGalleryCost(job.estimatedCostUsd)}
+                    {' · '}
+                    {job.providerCacheHitCount} provider cache hit
+                  </small>
+                  {job.attentionReasons.length > 0 ? (
+                    <ul className="compact-list">
+                      {job.attentionReasons.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <ul className="link-list">
+                    {job.downloads.map((download) => (
+                      <li key={download.href}>
+                        <a href={download.href}>{download.label}</a>
+                        <small>{download.description}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy evidence gallery notes
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownload}>
+              Download evidence gallery notes
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function formatPrivateDemoOperationsReport(operations: PrivateDemoOperations): string {
   const lines = [
     '# LinguaFrame Private Demo Operations Report',
@@ -2357,12 +2539,46 @@ function formatPrivateDemoLaunchRehearsalNotes(rehearsal: PrivateDemoLaunchRehea
   return `${lines.join('\n')}\n`;
 }
 
+function formatPrivateDemoEvidenceGalleryNotes(gallery: PrivateDemoEvidenceGallery): string {
+  if (gallery.galleryNotesMarkdown.trim().length > 0) {
+    return `${gallery.galleryNotesMarkdown.trim()}\n`;
+  }
+  const lines = [
+    '# LinguaFrame Private Demo Evidence Gallery',
+    '',
+    `- Overall: ${gallery.overallStatus}`,
+    `- Generated at: ${gallery.generatedAt}`,
+    `- Completed jobs: ${gallery.completedJobCount}`,
+    `- Handoff ready: ${gallery.handoffReadyCount}`,
+    `- Recommended job: ${gallery.recommendedJobId ?? 'none'}`,
+    '',
+    '## Runs'
+  ];
+  gallery.jobs.forEach((job) => {
+    lines.push(`- ${job.jobId}: ${job.filename}`);
+    lines.push(`  Profile: ${job.demoProfileId ?? 'manual'}`);
+    lines.push(`  Handoff ready: ${job.handoffReady}`);
+    lines.push(`  Demo run package: /api/jobs/${job.jobId}/demo-run-package/download`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
 function operationsStatusClassName(status: PrivateDemoOperations['overallStatus']): string {
   if (status === 'BLOCKED') {
     return 'status-pill danger';
   }
   if (status === 'ATTENTION') {
     return 'status-pill warning';
+  }
+  return 'status-pill';
+}
+
+function evidenceGalleryStatusClassName(status: PrivateDemoEvidenceGallery['overallStatus']): string {
+  if (status === 'ATTENTION') {
+    return 'status-pill warning';
+  }
+  if (status === 'EMPTY') {
+    return 'status-pill muted-pill';
   }
   return 'status-pill';
 }
@@ -5479,6 +5695,14 @@ function sanitizeFilename(value: string): string {
 
 function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
+}
+
+function formatGalleryCost(value: string): string {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return '$0.00';
+  }
+  return `$${parsed.toFixed(2)}`;
 }
 
 function formatSignedCost(value: number): string {

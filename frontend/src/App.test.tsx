@@ -18,6 +18,7 @@ import type {
   DemoRunProfile,
   DemoSessionStatus,
   OperatorDashboard,
+  PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PromptTemplate,
@@ -74,6 +75,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getPrivateDemoLaunchRehearsal').mockResolvedValue(
       privateDemoLaunchRehearsalFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoEvidenceGallery').mockResolvedValue(
+      privateDemoEvidenceGalleryFixture()
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -436,6 +440,43 @@ describe('App', () => {
       name: /private demo launch rehearsal/i
     });
     expect(within(rehearsal).getAllByText('Launch rehearsal unavailable').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows private demo evidence gallery with recommended run and export actions', async () => {
+    render(<App />);
+
+    const gallery = await screen.findByRole('region', {
+      name: /private demo evidence gallery/i
+    });
+    expect(within(gallery).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(gallery).getAllByText('job-gallery-best').length).toBeGreaterThan(0);
+    expect(within(gallery).getByText('1 handoff ready')).toBeInTheDocument();
+    expect(within(gallery).getAllByText(/tears-showcase/).length).toBeGreaterThan(0);
+    expect(within(gallery).getAllByText('Quality 94').length).toBeGreaterThan(0);
+    expect(within(gallery).getAllByText('$0.40').length).toBeGreaterThan(0);
+    expect(within(gallery).getAllByText('1 provider cache hit').length).toBeGreaterThan(0);
+    expect(within(gallery).getByRole('link', { name: /demo run package/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/demo-run-package/download');
+    expect(within(gallery).getByRole('link', { name: /ai audit package/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/ai-audit-package/download');
+    expect(within(gallery).getByRole('button', { name: /copy evidence gallery notes/i }))
+      .toBeEnabled();
+    expect(within(gallery).getByRole('button', { name: /download evidence gallery notes/i }))
+      .toBeEnabled();
+  });
+
+  test('keeps upload controls usable when private demo evidence gallery fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoEvidenceGallery').mockRejectedValue(
+      new Error('Evidence gallery unavailable')
+    );
+
+    render(<App />);
+
+    const gallery = await screen.findByRole('region', {
+      name: /private demo evidence gallery/i
+    });
+    expect(within(gallery).getAllByText('Evidence gallery unavailable').length).toBeGreaterThan(0);
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
 
@@ -2178,7 +2219,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/open job id/i), 'evidence-job');
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
-    const evidence = await screen.findByRole('region', { name: /demo evidence/i });
+    const evidence = await screen.findByRole('region', { name: /^demo evidence$/i });
     const evidencePreview = evidence.querySelector('.evidence-preview');
     expect(evidencePreview).not.toBeNull();
     const evidenceText = evidencePreview?.textContent ?? '';
@@ -2267,7 +2308,7 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/open job id/i), 'no-clipboard-job');
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
-    const evidence = await screen.findByRole('region', { name: /demo evidence/i });
+    const evidence = await screen.findByRole('region', { name: /^demo evidence$/i });
     expect(within(evidence).getByText('Clipboard copy is unavailable in this browser.')).toBeInTheDocument();
     expect(within(evidence).getByRole('button', { name: /copy evidence/i })).toBeDisabled();
   });
@@ -2943,6 +2984,63 @@ function privateDemoLaunchRehearsalFixture(
       '/api/jobs/{jobId}/demo-presenter-pack'
     ],
     rehearsalNotesMarkdown: '# LinguaFrame Private Demo Launch Rehearsal\n',
+    ...overrides
+  };
+}
+
+function privateDemoEvidenceGalleryFixture(
+  overrides: Partial<PrivateDemoEvidenceGallery> = {}
+): PrivateDemoEvidenceGallery {
+  return {
+    generatedAt: '2026-06-28T08:45:00Z',
+    overallStatus: 'READY',
+    completedJobCount: 2,
+    handoffReadyCount: 1,
+    recommendedJobId: 'job-gallery-best',
+    jobs: [
+      {
+        jobId: 'job-gallery-best',
+        videoId: 'video-gallery',
+        filename: 'tears-demo.mp4',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        status: 'COMPLETED',
+        createdAt: '2026-06-28T08:00:00Z',
+        completedAt: '2026-06-28T08:30:00Z',
+        qualityScore: 94,
+        qualityVerdict: 'EXCELLENT',
+        estimatedCostUsd: '0.40',
+        modelCallCount: 5,
+        providerCacheHitCount: 1,
+        handoffReady: true,
+        presenterPackReady: true,
+        recommended: true,
+        attentionReasons: [],
+        downloads: [
+          {
+            label: 'Demo run package',
+            href: '/api/jobs/job-gallery-best/demo-run-package/download',
+            contentType: 'application/zip',
+            description: 'Complete safe demo run package.'
+          },
+          {
+            label: 'AI audit package',
+            href: '/api/jobs/job-gallery-best/ai-audit-package/download',
+            contentType: 'application/zip',
+            description: 'Prompt and model-call audit package.'
+          }
+        ]
+      }
+    ],
+    galleryDownloads: [
+      {
+        label: 'Demo run package',
+        href: '/api/jobs/job-gallery-best/demo-run-package/download',
+        contentType: 'application/zip',
+        description: 'Complete safe demo run package.'
+      }
+    ],
+    galleryNotesMarkdown: '# LinguaFrame Private Demo Evidence Gallery\n',
     ...overrides
   };
 }

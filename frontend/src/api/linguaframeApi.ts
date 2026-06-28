@@ -13,6 +13,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   OperatorDashboard,
+  PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PublishReviewedSubtitlesRequest,
@@ -215,6 +216,17 @@ export async function getPrivateDemoOperations(): Promise<PrivateDemoOperations>
 
 export async function getPrivateDemoLaunchRehearsal(): Promise<PrivateDemoLaunchRehearsal> {
   return requestJson<PrivateDemoLaunchRehearsal>('/api/operator/private-demo/launch-rehearsal', {
+    method: 'GET'
+  });
+}
+
+export async function getPrivateDemoEvidenceGallery(limit?: number): Promise<PrivateDemoEvidenceGallery> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<PrivateDemoEvidenceGallery>(`/api/operator/private-demo/evidence-gallery${suffix}`, {
     method: 'GET'
   });
 }
@@ -422,6 +434,7 @@ export const linguaFrameApi = {
   getOperatorDashboard,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
+  getPrivateDemoEvidenceGallery,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
   getRetentionCleanupPreview,

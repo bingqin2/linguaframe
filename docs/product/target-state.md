@@ -83,6 +83,7 @@ Stage 2 goals:
 - Persist job history and artifacts across restarts.
 - Provide an operator backup and restore path for private-demo migration or server rebuilds.
 - Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
+- Provide a read-only evidence gallery that selects completed demo runs for presentation and handoff from safe metadata and package links.
 - Keep file size and duration limits conservative.
 - Show repeatable demo input and output.
 
@@ -124,13 +125,14 @@ A user should be able to:
 16. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
 17. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
 18. Open a presenter pack that combines handoff readiness, recommended run IDs, safe package links, and copy/download presenter notes for one selected job.
-19. Play the generated dubbing audio with visible file metadata and download evidence.
-20. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-21. Inspect cost and processing time.
-22. Retry the job if a step fails.
-23. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-24. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-23. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+19. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
+20. Play the generated dubbing audio with visible file metadata and download evidence.
+21. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+22. Inspect cost and processing time.
+23. Retry the job if a step fails.
+24. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+25. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+26. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
@@ -185,6 +187,7 @@ The backend should provide:
 - OpenAPI documentation.
 - Structured logs with job and stage identifiers.
 - A private-demo operations readiness workspace that safely aggregates access gate, runtime contract, live dependency, provider, cost, storage/recovery, retention, and demo-evidence checks for browser and terminal handoff.
+- A private-demo evidence gallery that safely aggregates recent completed jobs, handoff readiness, recommended run selection, and package links for browser and terminal handoff.
 
 ## Pipeline Target
 

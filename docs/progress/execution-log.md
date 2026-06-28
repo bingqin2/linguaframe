@@ -6,6 +6,30 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the private demo evidence gallery workspace in `docs/plans/097-private-demo-evidence-gallery-workspace.md`.
+- Added `GET /api/operator/private-demo/evidence-gallery` to aggregate recent completed jobs, handoff readiness, presenter-pack readiness, quality, cost, cache evidence, recommended run selection, and safe package links.
+- Added a React `Private demo evidence gallery` panel with recommended run metadata, handoff-ready counts, safe package links, and copy/download notes actions.
+- Added `scripts/demo/private-demo-evidence-gallery.sh` plus reusable demo-client helpers to write `evidence-gallery.json` and `evidence-gallery.md`.
+- Updated README, private-demo deployment docs, Docker E2E guide, roadmap, target state, decisions, and this execution log with the post-run gallery workflow.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoEvidenceGalleryServiceTests test` first failed because the gallery service and VO types did not exist, then passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=OperatorDashboardControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts -t "private demo evidence gallery"` first failed because `getPrivateDemoEvidenceGallery` did not exist, then passed.
+- `cd frontend && npm test -- --run src/App.test.tsx -t "private demo evidence gallery"` first failed because the panel did not exist, then passed with `Tests 2 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_private_demo_evidence_gallery_json` did not exist, then passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/private-demo-evidence-gallery.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 477, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run` first failed because broad `/demo evidence/i` test selectors also matched the new `Private demo evidence gallery` region, then passed after scoping those assertions to the exact `Demo evidence` region with `Tests 121 passed`.
+- `cd frontend && npm run build` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-28
+
+Work:
+
 - Planned the private demo launch rehearsal workspace in `docs/plans/096-private-demo-launch-rehearsal-workspace.md`.
 - Added `GET /api/operator/private-demo/launch-rehearsal` for an ordered private-demo go/no-go checklist.
 - Added launch rehearsal aggregation from private-demo operations readiness, runtime contract routes, safe command templates, evidence routes, and metadata-only launch notes.

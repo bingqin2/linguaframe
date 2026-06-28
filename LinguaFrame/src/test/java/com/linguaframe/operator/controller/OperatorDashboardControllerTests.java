@@ -148,6 +148,26 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsPrivateDemoEvidenceGallery() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:00:00Z");
+            createJob("gallery-controller-video", "gallery-controller-job", "gallery.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/private-demo/evidence-gallery").param("limit", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.completedJobCount").value(1))
+                    .andExpect(jsonPath("$.recommendedJobId").value("gallery-controller-job"))
+                    .andExpect(jsonPath("$.jobs[0].jobId").value("gallery-controller-job"))
+                    .andExpect(jsonPath("$.jobs[0].filename").value("gallery.mp4"))
+                    .andExpect(jsonPath("$.jobs[0].downloads[?(@.href == '/api/jobs/gallery-controller-job/demo-run-package/download')]").exists())
+                    .andExpect(jsonPath("$.jobs[0].downloads[?(@.href == '/api/jobs/gallery-controller-job/ai-audit-package/download')]").exists())
+                    .andExpect(jsonPath("$.galleryNotesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Private Demo Evidence Gallery"
+                    )));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -197,6 +217,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/private-demo/launch-rehearsal")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/private-demo/evidence-gallery"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/private-demo/evidence-gallery")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }
