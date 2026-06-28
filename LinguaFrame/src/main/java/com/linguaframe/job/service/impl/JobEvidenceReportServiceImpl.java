@@ -52,6 +52,7 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Video: " + job.videoId());
         lines.add("- Target language: " + job.targetLanguage());
         lines.add("- Subtitle style: " + job.subtitleStylePreset());
+        lines.add("- Subtitle polishing: " + job.subtitlePolishingMode());
         lines.add("- Translation glossary: " + job.translationGlossaryEntryCount()
                 + " entries / " + valueOrDefault(job.translationGlossaryHash(), "none"));
         lines.add("- Status: " + job.status());

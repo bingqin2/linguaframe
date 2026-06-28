@@ -58,6 +58,11 @@ const SUBTITLE_STYLE_PRESET_OPTIONS = [
   { value: 'LARGE', label: 'Large subtitles' },
   { value: 'HIGH_CONTRAST', label: 'High contrast' }
 ];
+const SUBTITLE_POLISHING_MODE_OPTIONS = [
+  { value: 'OFF', label: 'No polishing' },
+  { value: 'BALANCED', label: 'Balanced polishing' },
+  { value: 'STRICT', label: 'Strict cleanup' }
+];
 
 type DeliverableStatus = 'Ready' | 'Preview only' | 'Missing';
 
@@ -92,6 +97,7 @@ interface DemoEvidence {
     subtitleStylePreset: string;
     translationGlossaryEntryCount: number;
     translationGlossaryHash: string;
+    subtitlePolishingMode: string;
     status: LocalizationJobStatus;
     retryCount: number;
     failureStage: string | null;
@@ -202,6 +208,7 @@ interface CacheReplayCandidate {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
 }
 
 interface CacheReplayBaseline {
@@ -218,6 +225,7 @@ interface CacheReplayEvidenceJob {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   modelCallCount: number;
   estimatedCostUsd: number;
   artifactCacheHitCount: number;
@@ -268,6 +276,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [ttsVoice, setTtsVoice] = useState('');
   const [translationStyle, setTranslationStyle] = useState('NATURAL');
   const [subtitleStylePreset, setSubtitleStylePreset] = useState('STANDARD');
+  const [subtitlePolishingMode, setSubtitlePolishingMode] = useState('OFF');
   const [translationGlossary, setTranslationGlossary] = useState('');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
@@ -696,7 +705,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         ttsVoice,
         translationStyle,
         subtitleStylePreset,
-        translationGlossary
+        translationGlossary,
+        subtitlePolishingMode
       );
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
@@ -770,6 +780,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(recentJob.ttsVoice ?? '');
     setTranslationStyle(recentJob.translationStyle);
     setSubtitleStylePreset(recentJob.subtitleStylePreset);
+    setSubtitlePolishingMode(recentJob.subtitlePolishingMode);
     setTranslationGlossary('');
     const nextJob = await loadJob(recentJob.jobId);
     await loadSourceMedia(nextJob.videoId);
@@ -783,6 +794,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(historyJob.ttsVoice ?? '');
     setTranslationStyle(historyJob.translationStyle);
     setSubtitleStylePreset(historyJob.subtitleStylePreset);
+    setSubtitlePolishingMode(historyJob.subtitlePolishingMode);
     setTranslationGlossary('');
     const nextJob = await loadJob(historyJob.jobId);
     await loadSourceMedia(nextJob.videoId);
@@ -798,6 +810,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setTtsVoice(nextJob.ttsVoice ?? '');
     setTranslationStyle(nextJob.translationStyle ?? 'NATURAL');
     setSubtitleStylePreset(nextJob.subtitleStylePreset ?? 'STANDARD');
+    setSubtitlePolishingMode(nextJob.subtitlePolishingMode ?? 'OFF');
     setTranslationGlossary('');
     await loadSourceMedia(nextJob.videoId);
     await loadPreviewData(failure.jobId, language);
@@ -1077,6 +1090,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               />
             </label>
             <label>
+              Subtitle polishing
+              <select
+                value={subtitlePolishingMode}
+                onChange={(event) => setSubtitlePolishingMode(event.target.value)}
+              >
+                {SUBTITLE_POLISHING_MODE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
               Subtitle style
               <select
                 value={subtitleStylePreset}
@@ -1168,6 +1194,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                         {historyJob.targetLanguage} · {formatVoice(historyJob.ttsVoice)} ·
                         {formatTranslationStyle(historyJob.translationStyle)} ·
                         {formatSubtitleStylePreset(historyJob.subtitleStylePreset)} ·
+                        {formatSubtitlePolishingMode(historyJob.subtitlePolishingMode)} ·
                         {formatGlossaryMetadata(historyJob.translationGlossaryEntryCount, historyJob.translationGlossaryHash)} ·
                         {formatCost(historyJob.estimatedCostUsd)} ·
                         retry {historyJob.retryCount}
@@ -1218,6 +1245,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                         {recentJob.targetLanguage} · {formatVoice(recentJob.ttsVoice)} ·
                         {formatTranslationStyle(recentJob.translationStyle)} ·
                         {formatSubtitleStylePreset(recentJob.subtitleStylePreset)} ·
+                        {formatSubtitlePolishingMode(recentJob.subtitlePolishingMode)} ·
                         {formatGlossaryMetadata(recentJob.translationGlossaryEntryCount, recentJob.translationGlossaryHash)}
                       </span>
                       <small>{recentJob.jobId}</small>
@@ -1383,6 +1411,10 @@ function SourceMediaPanel({
           <div>
             <dt>Subtitle style</dt>
             <dd>{formatSubtitleStylePreset(job.subtitleStylePreset)}</dd>
+          </div>
+          <div>
+            <dt>Subtitle polishing</dt>
+            <dd>{formatSubtitlePolishingMode(job.subtitlePolishingMode)}</dd>
           </div>
           <div>
             <dt>Translation glossary</dt>
@@ -2670,6 +2702,10 @@ function DeliveryHandoffPanel({
           <dt>Audit artifacts</dt>
           <dd>{manifest.generatedArtifactCount} files</dd>
         </div>
+        <div>
+          <dt>Subtitle polishing</dt>
+          <dd>{formatSubtitlePolishingMode(manifest.subtitlePolishingMode)}</dd>
+        </div>
       </dl>
 
       <ManifestArtifactList title="Reviewed handoff artifacts" artifacts={manifest.reviewedArtifacts} />
@@ -3783,6 +3819,7 @@ function toRecentJob(upload: MediaUpload): RecentJob {
     subtitleStylePreset: upload.subtitleStylePreset,
     translationGlossaryEntryCount: upload.translationGlossaryEntryCount,
     translationGlossaryHash: upload.translationGlossaryHash,
+    subtitlePolishingMode: upload.subtitlePolishingMode,
     filename: upload.filename,
     createdAt: upload.createdAt
   };
@@ -4219,6 +4256,7 @@ function buildDemoEvidence(
       subtitleStylePreset: job.subtitleStylePreset,
       translationGlossaryEntryCount: job.translationGlossaryEntryCount,
       translationGlossaryHash: job.translationGlossaryHash,
+      subtitlePolishingMode: job.subtitlePolishingMode,
       status: job.status,
       retryCount: job.retryCount,
       failureStage: job.failureStage,
@@ -4301,6 +4339,7 @@ function formatQualityEvaluationEvidence(job: LocalizationJob): string {
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
+    `- Subtitle polishing: ${formatSubtitlePolishingMode(job.subtitlePolishingMode)}`,
     `- Translation glossary: ${formatGlossaryMetadata(job.translationGlossaryEntryCount, job.translationGlossaryHash)}`,
     `- Job status: ${job.status}`,
     `- Created at: ${job.createdAt}`,
@@ -4515,6 +4554,7 @@ function formatDemoReviewPresenterNotes(
     `- Target language: ${job.targetLanguage}`,
     `- Translation style: ${formatTranslationStyle(job.translationStyle)}`,
     `- Subtitle style: ${formatSubtitleStylePreset(job.subtitleStylePreset)}`,
+    `- Subtitle polishing: ${formatSubtitlePolishingMode(job.subtitlePolishingMode)}`,
     `- Translation glossary: ${formatGlossaryMetadata(job.translationGlossaryEntryCount, job.translationGlossaryHash)}`,
     `- Overall: ${ready ? 'READY' : 'ATTENTION'}`,
     '',
@@ -4550,7 +4590,8 @@ function buildCacheReplayCandidates(
         translationStyle: job.translationStyle,
         subtitleStylePreset: job.subtitleStylePreset,
         translationGlossaryEntryCount: job.translationGlossaryEntryCount,
-        translationGlossaryHash: job.translationGlossaryHash
+        translationGlossaryHash: job.translationGlossaryHash,
+        subtitlePolishingMode: job.subtitlePolishingMode
       });
     }
   });
@@ -4565,7 +4606,8 @@ function buildCacheReplayCandidates(
         translationStyle: job.translationStyle,
         subtitleStylePreset: job.subtitleStylePreset,
         translationGlossaryEntryCount: job.translationGlossaryEntryCount,
-        translationGlossaryHash: job.translationGlossaryHash
+        translationGlossaryHash: job.translationGlossaryHash,
+        subtitlePolishingMode: job.subtitlePolishingMode
       });
     }
   });
@@ -4612,6 +4654,7 @@ function cacheReplayEvidenceJob(
     subtitleStylePreset: formatSubtitleStylePreset(job.subtitleStylePreset),
     translationGlossaryEntryCount: job.translationGlossaryEntryCount,
     translationGlossaryHash: job.translationGlossaryHash,
+    subtitlePolishingMode: formatSubtitlePolishingMode(job.subtitlePolishingMode),
     modelCallCount: modelCallCount(job),
     estimatedCostUsd: jobEstimatedCost(job),
     artifactCacheHitCount,
@@ -4638,6 +4681,8 @@ function formatCacheReplayEvidenceMarkdown(evidence: CacheReplayEvidence): strin
     `- Comparison provider cache hits: ${evidence.comparison.providerCacheHitCount}`,
     `- Baseline subtitle style: ${evidence.baseline.subtitleStylePreset}`,
     `- Comparison subtitle style: ${evidence.comparison.subtitleStylePreset}`,
+    `- Baseline subtitle polishing: ${evidence.baseline.subtitlePolishingMode}`,
+    `- Comparison subtitle polishing: ${evidence.comparison.subtitlePolishingMode}`,
     `- Baseline translation glossary: ${formatGlossaryMetadata(evidence.baseline.translationGlossaryEntryCount, evidence.baseline.translationGlossaryHash)}`,
     `- Comparison translation glossary: ${formatGlossaryMetadata(evidence.comparison.translationGlossaryEntryCount, evidence.comparison.translationGlossaryHash)}`,
     `- Baseline result bundle: ${evidence.links.baselineResultBundle}`,
@@ -4713,6 +4758,12 @@ function formatTranslationStyle(value: string | null | undefined): string {
 function formatSubtitleStylePreset(value: string | null | undefined): string {
   const normalized = value?.trim().toUpperCase() || 'STANDARD';
   const option = SUBTITLE_STYLE_PRESET_OPTIONS.find((candidate) => candidate.value === normalized);
+  return option?.label ?? normalized;
+}
+
+function formatSubtitlePolishingMode(value: string | null | undefined): string {
+  const normalized = value?.trim().toUpperCase() || 'OFF';
+  const option = SUBTITLE_POLISHING_MODE_OPTIONS.find((candidate) => candidate.value === normalized);
   return option?.label ?? normalized;
 }
 

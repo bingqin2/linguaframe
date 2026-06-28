@@ -253,6 +253,11 @@ public class LocalizationJobExecutionServiceImpl implements LocalizationJobExecu
                 currentMessage.targetLanguage(),
                 currentMessage.ttsVoice(),
                 currentMessage.translationStyle(),
+                currentMessage.subtitleStylePreset(),
+                currentMessage.translationGlossaryJson(),
+                currentMessage.translationGlossaryHash(),
+                currentMessage.translationGlossaryEntryCount(),
+                currentMessage.subtitlePolishingMode(),
                 currentMessage.createdAt(),
                 nextStage
         );

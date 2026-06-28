@@ -4,6 +4,7 @@ import com.linguaframe.job.domain.bo.TranslationGlossaryBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.SubtitlePolishingMode;
 import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
@@ -77,10 +78,12 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             String ttsVoice,
             String translationStyle,
             String subtitleStylePreset,
-            String translationGlossary
+            String translationGlossary,
+            String subtitlePolishingMode
     ) {
         String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
         String normalizedSubtitleStylePreset = SubtitleStylePreset.parse(subtitleStylePreset).name();
+        String normalizedSubtitlePolishingMode = SubtitlePolishingMode.parse(subtitlePolishingMode).name();
         TranslationGlossaryBo parsedGlossary = translationGlossaryParser.parse(translationGlossary);
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
@@ -126,6 +129,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 parsedGlossary.json(),
                 parsedGlossary.hash(),
                 parsedGlossary.entryCount(),
+                normalizedSubtitlePolishingMode,
                 LocalizationJobStatus.QUEUED,
                 createdAt
         );
@@ -149,6 +153,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 normalizedSubtitleStylePreset,
                 parsedGlossary.entryCount(),
                 parsedGlossary.hash(),
+                normalizedSubtitlePolishingMode,
                 createdAt
         );
     }

@@ -407,7 +407,7 @@ The backend can validate and accept a source video upload:
 
 ```bash
 curl -F "file=@sample.mp4" http://localhost:8080/api/media/uploads/validate
-curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" -F "subtitleStylePreset=HIGH_CONTRAST" -F $'translationGlossary=Maya => 玛雅\nTears of Steel = 钢铁之泪' http://localhost:8080/api/media/uploads
+curl -F "file=@sample.mp4" -F "targetLanguage=zh-CN" -F "translationStyle=FORMAL" -F "subtitleStylePreset=HIGH_CONTRAST" -F "subtitlePolishingMode=BALANCED" -F $'translationGlossary=Maya => 玛雅\nTears of Steel = 钢铁之泪' http://localhost:8080/api/media/uploads
 ```
 
 The default upload duration limit is 300 seconds, or 5 minutes. Videos above the configured limit are rejected before storage, queue dispatch, FFmpeg worker stages, or model calls. Accepted videos are stored as the original uploaded bytes and processed in full; LinguaFrame does not clip or trim an accepted source file to fit the limit.
@@ -419,6 +419,8 @@ Uploads may include `translationStyle=NATURAL`, `FORMAL`, or `CONCISE`. Blank va
 Uploads may include an optional `translationGlossary` with one mapping per line, using either `source term => target term` or `source term = target term`. Blank values default to no glossary. Invalid entries are rejected before storage. The glossary is stored as normalized metadata, sent to OpenAI under `glossary`, included in translation cache identity, and shown in browser/backend evidence as entry count plus hash. Demo scripts accept `LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY=$'Maya => 玛雅\nTears of Steel => 钢铁之泪'` or `LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE=/path/to/glossary.txt`; inline text wins when both are set.
 
 Uploads may also include `subtitleStylePreset=STANDARD`, `LARGE`, or `HIGH_CONTRAST`. Blank values default to `STANDARD`; invalid presets are rejected before storage. The selected preset is stored on the job, shown in the browser demo and safe evidence, applied to FFmpeg subtitle burn-in, and included in `BURNED_VIDEO` artifact cache reuse so different visual outputs are not mixed.
+
+Uploads may include `subtitlePolishingMode=OFF`, `BALANCED`, or `STRICT`. Blank values default to `OFF` so uploads do not trigger extra paid model calls by surprise. `BALANCED` and `STRICT` run a separate subtitle-polishing stage after target subtitle export and before quality evaluation, TTS, burn-in, and review. The mode is stored on the job, shown in browser/backend evidence, audited as `SUBTITLE_POLISHING`, and included in subtitle-polishing provider cache identity. Demo scripts accept `LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE=BALANCED`.
 
 The React demo exposes the same validation as browser upload preflight. Choose a file and use `Validate file` to inspect filename, content type, size, duration, limits, validation code, and message before upload. The `Upload` button also runs validation first and only creates a job after a `READY` response.
 

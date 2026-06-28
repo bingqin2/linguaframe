@@ -31,6 +31,7 @@ public class WorkerStageRouterImpl implements WorkerStageRouter {
         OWNED_STAGES.put(WorkerRole.OPENAI, EnumSet.of(
                 LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
                 LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                LocalizationJobStage.SUBTITLE_POLISHING,
                 LocalizationJobStage.TRANSLATION_QUALITY_EVALUATION,
                 LocalizationJobStage.DUBBING_AUDIO_GENERATION
         ));

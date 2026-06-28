@@ -31,9 +31,13 @@ class PromptTemplateControllerTests {
                 .andExpect(jsonPath("$[0].systemPrompt").isNotEmpty())
                 .andExpect(jsonPath("$[0].outputContract").value("Return JSON with segments[{index,text}] preserving order and timing."))
                 .andExpect(jsonPath("$[0].active").value(true))
-                .andExpect(jsonPath("$[1].purpose").value("TRANSLATION_QUALITY_EVALUATION"))
-                .andExpect(jsonPath("$[1].version").value("openai-translation-quality-evaluation-v1"))
-                .andExpect(jsonPath("$[1].outputContract").value("Return JSON with score, verdict, completeness, readability, timingPreservation, naturalness, issues, and suggestedFixes."))
-                .andExpect(jsonPath("$[1].active").value(true));
+                .andExpect(jsonPath("$[1].purpose").value("SUBTITLE_POLISHING"))
+                .andExpect(jsonPath("$[1].version").value("openai-subtitle-polishing-v1"))
+                .andExpect(jsonPath("$[1].outputContract").value("Return JSON with segments[{index,text}] and do not add or remove segments."))
+                .andExpect(jsonPath("$[1].active").value(true))
+                .andExpect(jsonPath("$[2].purpose").value("TRANSLATION_QUALITY_EVALUATION"))
+                .andExpect(jsonPath("$[2].version").value("openai-translation-quality-evaluation-v1"))
+                .andExpect(jsonPath("$[2].outputContract").value("Return JSON with score, verdict, completeness, readability, timingPreservation, naturalness, issues, and suggestedFixes."))
+                .andExpect(jsonPath("$[2].active").value(true));
     }
 }

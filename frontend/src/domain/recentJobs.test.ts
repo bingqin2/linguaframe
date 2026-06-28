@@ -31,6 +31,7 @@ describe('recentJobs', () => {
         subtitleStylePreset: 'STANDARD',
         translationGlossaryEntryCount: 0,
         translationGlossaryHash: '',
+        subtitlePolishingMode: 'OFF',
         filename: 'updated.mp4',
         createdAt: '2026-06-26T10:01:00Z'
       }
@@ -89,6 +90,7 @@ describe('recentJobs', () => {
         subtitleStylePreset: 'STANDARD',
         translationGlossaryEntryCount: 0,
         translationGlossaryHash: '',
+        subtitlePolishingMode: 'OFF',
         filename: 'legacy.mp4',
         createdAt: '2026-06-26T10:00:00Z'
       }
@@ -113,6 +115,22 @@ describe('recentJobs', () => {
       translationGlossaryHash: 'abc123'
     });
     expect(storage.getItem('linguaframe.recentJobs.v1')).not.toContain('Maya');
+  });
+
+  test('persists subtitle polishing mode as safe metadata', () => {
+    const storage = new MemoryStorage();
+
+    const jobs = saveRecentJob(storage, {
+      jobId: 'job-polished',
+      videoId: 'video-polished',
+      targetLanguage: 'zh-CN',
+      filename: 'polished.mp4',
+      subtitlePolishingMode: ' balanced ',
+      createdAt: '2026-06-26T10:00:00Z'
+    });
+
+    expect(jobs[0]?.subtitlePolishingMode).toBe('BALANCED');
+    expect(storage.getItem('linguaframe.recentJobs.v1')).toContain('"subtitlePolishingMode":"BALANCED"');
   });
 
   test('removes a recent job by id', () => {

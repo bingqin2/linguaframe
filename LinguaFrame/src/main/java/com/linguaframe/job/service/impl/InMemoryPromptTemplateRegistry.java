@@ -33,11 +33,22 @@ public class InMemoryPromptTemplateRegistry implements PromptTemplateRegistry {
             true
     );
 
+    private static final PromptTemplateVo SUBTITLE_POLISHING_TEMPLATE = new PromptTemplateVo(
+            "openai-subtitle-polishing-v1",
+            PromptTemplatePurpose.SUBTITLE_POLISHING,
+            "OPENAI",
+            "responses",
+            "You polish translated subtitle segments for video localization. Preserve meaning, timing, and segment order. Return JSON only.",
+            "Return JSON with segments[{index,text}] and do not add or remove segments.",
+            true
+    );
+
     private final Map<PromptTemplatePurpose, PromptTemplateVo> activeTemplates;
 
     public InMemoryPromptTemplateRegistry() {
         EnumMap<PromptTemplatePurpose, PromptTemplateVo> templates = new EnumMap<>(PromptTemplatePurpose.class);
         templates.put(SUBTITLE_TRANSLATION_TEMPLATE.purpose(), SUBTITLE_TRANSLATION_TEMPLATE);
+        templates.put(SUBTITLE_POLISHING_TEMPLATE.purpose(), SUBTITLE_POLISHING_TEMPLATE);
         templates.put(TRANSLATION_QUALITY_EVALUATION_TEMPLATE.purpose(), TRANSLATION_QUALITY_EVALUATION_TEMPLATE);
         this.activeTemplates = Map.copyOf(templates);
     }
@@ -55,6 +66,7 @@ public class InMemoryPromptTemplateRegistry implements PromptTemplateRegistry {
     public List<PromptTemplateVo> listActiveTemplates() {
         return List.of(
                 activeTemplate(PromptTemplatePurpose.SUBTITLE_TRANSLATION),
+                activeTemplate(PromptTemplatePurpose.SUBTITLE_POLISHING),
                 activeTemplate(PromptTemplatePurpose.TRANSLATION_QUALITY_EVALUATION)
         );
     }

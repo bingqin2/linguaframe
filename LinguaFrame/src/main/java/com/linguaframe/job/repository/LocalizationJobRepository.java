@@ -40,6 +40,7 @@ public class LocalizationJobRepository {
                             translation_glossary_json,
                             translation_glossary_hash,
                             translation_glossary_entry_count,
+                            subtitle_polishing_mode,
                             status,
                             created_at,
                             started_at,
@@ -60,6 +61,7 @@ public class LocalizationJobRepository {
                             :translationGlossaryJson,
                             :translationGlossaryHash,
                             :translationGlossaryEntryCount,
+                            :subtitlePolishingMode,
                             :status,
                             :createdAt,
                             :startedAt,
@@ -80,6 +82,7 @@ public class LocalizationJobRepository {
                 .param("translationGlossaryJson", record.translationGlossaryJson())
                 .param("translationGlossaryHash", record.translationGlossaryHash())
                 .param("translationGlossaryEntryCount", record.translationGlossaryEntryCount())
+                .param("subtitlePolishingMode", record.subtitlePolishingMode())
                 .param("status", record.status().name())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("startedAt", timestampOrNull(record.startedAt()))
@@ -104,6 +107,7 @@ public class LocalizationJobRepository {
                             translation_glossary_json,
                             translation_glossary_hash,
                             translation_glossary_entry_count,
+                            subtitle_polishing_mode,
                             status,
                             created_at,
                             started_at,
@@ -138,6 +142,7 @@ public class LocalizationJobRepository {
                             jobs.subtitle_style_preset,
                             jobs.translation_glossary_hash,
                             jobs.translation_glossary_entry_count,
+                            jobs.subtitle_polishing_mode,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -161,6 +166,7 @@ public class LocalizationJobRepository {
                             jobs.subtitle_style_preset,
                             jobs.translation_glossary_hash,
                             jobs.translation_glossary_entry_count,
+                            jobs.subtitle_polishing_mode,
                             jobs.status,
                             jobs.created_at,
                             jobs.started_at,
@@ -375,6 +381,7 @@ public class LocalizationJobRepository {
                 rs.getString("translation_glossary_json"),
                 rs.getString("translation_glossary_hash"),
                 rs.getInt("translation_glossary_entry_count"),
+                rs.getString("subtitle_polishing_mode"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),
@@ -400,6 +407,7 @@ public class LocalizationJobRepository {
                 rs.getString("subtitle_style_preset"),
                 rs.getInt("translation_glossary_entry_count"),
                 rs.getString("translation_glossary_hash"),
+                rs.getString("subtitle_polishing_mode"),
                 LocalizationJobStatus.valueOf(rs.getString("status")),
                 rs.getTimestamp("created_at").toInstant(),
                 instantOrNull(rs.getTimestamp("started_at")),

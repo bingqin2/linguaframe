@@ -452,6 +452,14 @@ Impact: Failed or cancelled job detail can include `failureTriage` with category
 
 ## 2026-06-28
 
+Decision: Treat subtitle polishing as an explicit upload-time pipeline stage instead of hiding it inside translation.
+
+Reason: Demo runs need to prove when subtitles were only translated versus when an extra model call refined readability. Keeping polishing separate also prevents surprise paid calls when the default mode is `OFF`.
+
+Impact: Jobs store `subtitlePolishingMode`, the worker runs `SUBTITLE_POLISHING` after target subtitle export only for enabled modes, OpenAI/demo providers record separate `SUBTITLE_POLISHING` model-call audits, and provider cache keys include the selected mode before quality evaluation, TTS, burn-in, review, and handoff evidence consume the final subtitles.
+
+## 2026-06-28
+
 Decision: Store subtitle corrections as a draft overlay separate from generated subtitle artifacts.
 
 Reason: Human review needs editable corrected subtitles, but saving a text correction should not imply that LinguaFrame has regenerated TTS audio, burned video, artifact cache entries, or provider outputs.

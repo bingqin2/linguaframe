@@ -15,6 +15,7 @@ public record LocalizationJobRecord(
         String translationGlossaryJson,
         String translationGlossaryHash,
         int translationGlossaryEntryCount,
+        String subtitlePolishingMode,
         LocalizationJobStatus status,
         Instant createdAt,
         Instant startedAt,
@@ -32,7 +33,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, null, "NATURAL", "STANDARD", "[]", "", 0, "OFF", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -43,7 +44,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, "NATURAL", "STANDARD", "[]", "", 0, "OFF", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -55,7 +56,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, "STANDARD", "[]", "", 0, "OFF", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -68,7 +69,7 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, "[]", "", 0, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, "[]", "", 0, "OFF", status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -84,7 +85,24 @@ public record LocalizationJobRecord(
             LocalizationJobStatus status,
             Instant createdAt
     ) {
-        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, status, createdAt, null, null, null, null, null, 0, createdAt);
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, "OFF", status, createdAt, null, null, null, null, null, 0, createdAt);
+    }
+
+    public LocalizationJobRecord(
+            String id,
+            String videoId,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossaryJson,
+            String translationGlossaryHash,
+            int translationGlossaryEntryCount,
+            String subtitlePolishingMode,
+            LocalizationJobStatus status,
+            Instant createdAt
+    ) {
+        this(id, videoId, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossaryJson, translationGlossaryHash, translationGlossaryEntryCount, subtitlePolishingMode, status, createdAt, null, null, null, null, null, 0, createdAt);
     }
 
     public LocalizationJobRecord(
@@ -112,6 +130,7 @@ public record LocalizationJobRecord(
                 "[]",
                 "",
                 0,
+                "OFF",
                 status,
                 createdAt,
                 startedAt,
@@ -148,6 +167,7 @@ public record LocalizationJobRecord(
                 "[]",
                 "",
                 0,
+                "OFF",
                 status,
                 createdAt,
                 startedAt,

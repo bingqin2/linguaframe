@@ -10,16 +10,18 @@ export interface RecentJob {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   filename: string;
   createdAt: string;
 }
 
-type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset' | 'translationGlossaryEntryCount' | 'translationGlossaryHash'> & {
+type RecentJobInput = Omit<RecentJob, 'ttsVoice' | 'translationStyle' | 'subtitleStylePreset' | 'translationGlossaryEntryCount' | 'translationGlossaryHash' | 'subtitlePolishingMode'> & {
   ttsVoice?: string | null;
   translationStyle?: string | null;
   subtitleStylePreset?: string | null;
   translationGlossaryEntryCount?: number | null;
   translationGlossaryHash?: string | null;
+  subtitlePolishingMode?: string | null;
 };
 
 export function loadRecentJobs(storage: Storage): RecentJob[] {
@@ -50,7 +52,8 @@ export function saveRecentJob(storage: Storage, job: RecentJobInput): RecentJob[
     translationStyle: normalizeTranslationStyle(job.translationStyle),
     subtitleStylePreset: normalizeSubtitleStylePreset(job.subtitleStylePreset),
     translationGlossaryEntryCount: normalizeGlossaryEntryCount(job.translationGlossaryEntryCount),
-    translationGlossaryHash: normalizeGlossaryHash(job.translationGlossaryHash)
+    translationGlossaryHash: normalizeGlossaryHash(job.translationGlossaryHash),
+    subtitlePolishingMode: normalizeSubtitlePolishingMode(job.subtitlePolishingMode)
   };
   const jobs = [normalizedJob, ...loadRecentJobs(storage).filter((existing) => existing.jobId !== job.jobId)]
     .sort(compareNewestFirst)
@@ -93,6 +96,7 @@ function toRecentJob(value: unknown): RecentJob | null {
     subtitleStylePreset: normalizeSubtitleStylePreset(candidate.subtitleStylePreset),
     translationGlossaryEntryCount: normalizeGlossaryEntryCount(candidate.translationGlossaryEntryCount),
     translationGlossaryHash: normalizeGlossaryHash(candidate.translationGlossaryHash),
+    subtitlePolishingMode: normalizeSubtitlePolishingMode(candidate.subtitlePolishingMode),
     filename: candidate.filename,
     createdAt: candidate.createdAt
   };
@@ -118,4 +122,11 @@ function normalizeGlossaryEntryCount(value: unknown): number {
 
 function normalizeGlossaryHash(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalizeSubtitlePolishingMode(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return 'OFF';
+  }
+  return value.trim().toUpperCase();
 }

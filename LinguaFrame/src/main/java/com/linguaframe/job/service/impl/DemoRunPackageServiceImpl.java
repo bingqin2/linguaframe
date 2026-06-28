@@ -148,6 +148,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         manifest.put("subtitleStylePreset", job.subtitleStylePreset());
         manifest.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
         manifest.put("translationGlossaryHash", job.translationGlossaryHash());
+        manifest.put("subtitlePolishingMode", job.subtitlePolishingMode());
         manifest.put("status", job.status().name());
         manifest.put("artifactCount", diagnostics.artifactCount());
         manifest.put("entries", entries);
@@ -172,6 +173,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         value.put("subtitleStylePreset", job.subtitleStylePreset());
         value.put("translationGlossaryEntryCount", job.translationGlossaryEntryCount());
         value.put("translationGlossaryHash", job.translationGlossaryHash());
+        value.put("subtitlePolishingMode", job.subtitlePolishingMode());
         value.put("ttsVoice", job.ttsVoice());
         value.put("status", job.status().name());
         value.put("createdAt", job.createdAt());
@@ -210,6 +212,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
                 "- Video: " + job.videoId(),
                 "- Target language: " + job.targetLanguage(),
                 "- Subtitle style: " + job.subtitleStylePreset(),
+                "- Subtitle polishing: " + job.subtitlePolishingMode(),
                 "- Status: " + job.status(),
                 "- Generated at: " + Instant.now(),
                 "",
@@ -276,6 +279,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
         lines.add("- Video: " + job.videoId());
         lines.add("- Target language: " + job.targetLanguage());
         lines.add("- Subtitle style: " + job.subtitleStylePreset());
+        lines.add("- Subtitle polishing: " + job.subtitlePolishingMode());
         lines.add("- Status: " + job.status());
         lines.add("- Artifacts: " + diagnostics.artifactCount());
         lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleCount);

@@ -13,6 +13,7 @@ export interface MediaUpload {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   createdAt: string;
 }
 
@@ -74,6 +75,7 @@ export interface LocalizationJob {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -147,6 +149,7 @@ export interface LocalizationJobSummary {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   status: LocalizationJobStatus;
   createdAt: string;
   startedAt: string | null;
@@ -171,6 +174,7 @@ export type LocalizationJobStage =
   | 'AUDIO_EXTRACTION'
   | 'TRANSCRIPT_SUBTITLE_EXPORT'
   | 'TARGET_SUBTITLE_EXPORT'
+  | 'SUBTITLE_POLISHING'
   | 'TRANSLATION_QUALITY_EVALUATION'
   | 'DUBBING_AUDIO_GENERATION'
   | 'SUBTITLE_BURN_IN'
@@ -208,7 +212,7 @@ export interface ModelCall {
   modelCallId: string;
   jobId: string;
   stage: LocalizationJobStage;
-  operation: 'TRANSCRIPTION' | 'TRANSLATION' | 'EVALUATION' | 'TTS';
+  operation: 'TRANSCRIPTION' | 'TRANSLATION' | 'SUBTITLE_POLISHING' | 'EVALUATION' | 'TTS';
   provider: 'DEMO' | 'OPENAI';
   model: string;
   promptVersion: string;
@@ -573,6 +577,7 @@ export interface DeliveryManifest {
   subtitleStylePreset: string;
   translationGlossaryEntryCount: number;
   translationGlossaryHash: string;
+  subtitlePolishingMode: string;
   status: LocalizationJobStatus;
   generatedAt: string;
   handoffReady: boolean;

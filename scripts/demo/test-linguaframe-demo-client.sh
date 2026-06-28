@@ -72,6 +72,21 @@ test_demo_base_url_uses_backend_port_from_env_file() {
   assert_equals "http://localhost:18080" "$url" "demo_base_url"
 }
 
+test_upload_demo_video_includes_subtitle_polishing_mode() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  local sample_path="$TMPDIR/sample.mp4"
+  printf 'demo' >"$sample_path"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE="BALANCED" \
+    upload_demo_video "http://example.test" "$sample_path" >"$TMPDIR/upload-demo.out"
+
+  local output
+  output="$(cat "$TMPDIR/upload-demo.out")"
+  [[ "$output" == *"subtitlePolishingMode=BALANCED"* ]] || fail "upload_demo_video missed subtitle polishing mode"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -953,6 +968,7 @@ JSON
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
+test_upload_demo_video_includes_subtitle_polishing_mode
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only
