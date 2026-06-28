@@ -2311,3 +2311,13 @@ Validation so far:
 - `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
+
+Post-merge verification:
+
+- Merged `reviewed-subtitle-delivery` back to `main` with merge commit.
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleDeliveryServiceTests,LocalizationJobControllerTests,JobEvidenceReportServiceTests,OpenApiDocumentationTests test` passed on `main` with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm run test:run -- App linguaFrameApi` passed on `main` with `Tests 80 passed`.
+- `cd frontend && npm run build` passed on `main`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `git diff --check` passed on `main`.
