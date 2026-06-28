@@ -1037,6 +1037,18 @@ test_download_demo_replay_card_helper_uses_backend_route() {
   [[ "$output" == *"http://example.test/api/jobs/replay%20job%2Fslash/demo-replay-card"* ]] || fail "demo replay card helper used wrong route"
 }
 
+test_download_demo_completion_certificate_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_completion_certificate_json "http://example.test" "certificate job/slash" "$TMPDIR/demo-completion-certificate.json" >"$TMPDIR/completion-certificate-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/completion-certificate-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/certificate%20job%2Fslash/demo-completion-certificate"* ]] || fail "demo completion certificate helper used wrong route"
+}
+
 test_download_demo_share_sheet_helpers_use_backend_routes() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1406,6 +1418,82 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "replay card summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "replay card summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "replay card summary exposed provider payload"
+}
+
+test_print_demo_completion_certificate_summary_is_metadata_only() {
+  cat >"$TMPDIR/demo-completion-certificate.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-29T10:45:00Z",
+  "certificateStatus": "READY",
+  "jobStatus": "COMPLETED",
+  "targetLanguage": "zh-CN",
+  "demoProfileId": "tears-showcase",
+  "headline": "tears-showcase completion certificate",
+  "summary": "raw transcript text /Users/example/private.mov sk-test provider payload",
+  "recommendedNextAction": "Use the completion certificate and demo run package as final demo handoff evidence.",
+  "recommendedBaselineJobId": "baseline-job",
+  "bestQualityJobId": "showcase-job",
+  "lowestCostJobId": "baseline-job",
+  "checks": [
+    {
+      "key": "JOB_COMPLETED",
+      "label": "Job completed",
+      "status": "PASS",
+      "detail": "Job status is COMPLETED.",
+      "blocking": false
+    },
+    {
+      "key": "UNSAFE_FIXTURE",
+      "label": "Unsafe fixture",
+      "status": "WARN",
+      "detail": "raw transcript text /Users/example/private.mov sk-test provider payload",
+      "blocking": false
+    }
+  ],
+  "sections": [
+    {
+      "key": "REPRODUCIBILITY",
+      "title": "Reproducibility",
+      "status": "READY",
+      "facts": [
+        "raw transcript text /Users/example/private.mov sk-test provider payload"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "kind": "CERTIFICATE_JSON",
+      "label": "Completion certificate JSON",
+      "url": "/api/jobs/showcase-job/demo-completion-certificate"
+    },
+    {
+      "kind": "UNSAFE_LINK",
+      "label": "Unsafe link",
+      "url": "/Users/example/private.mov?token=sk-test&payload=provider payload"
+    }
+  ],
+  "safetyNotes": [
+    "Metadata-only certificate: only IDs, status, readiness, costs, counts, safe routes, and replay commands are included."
+  ]
+}
+JSON
+
+  print_demo_completion_certificate_summary_file "$TMPDIR/demo-completion-certificate.json" >"$TMPDIR/demo-completion-certificate.out"
+  local output
+  output="$(cat "$TMPDIR/demo-completion-certificate.out")"
+
+  [[ "$output" == *"demoCompletionCertificateJobId=showcase-job"* ]] || fail "completion certificate summary missed job"
+  [[ "$output" == *"demoCompletionCertificateVideoId=video-demo"* ]] || fail "completion certificate summary missed video"
+  [[ "$output" == *"demoCompletionCertificateStatus=READY"* ]] || fail "completion certificate summary missed status"
+  [[ "$output" == *"demoCompletionCertificateCheck=JOB_COMPLETED:PASS:blocking=false"* ]] || fail "completion certificate summary missed check"
+  [[ "$output" == *"demoCompletionCertificateSection=REPRODUCIBILITY:READY"* ]] || fail "completion certificate summary missed section"
+  [[ "$output" == *"demoCompletionCertificateLink=CERTIFICATE_JSON:/api/jobs/showcase-job/demo-completion-certificate"* ]] || fail "completion certificate summary missed link"
+  [[ "$output" != *"raw transcript text"* ]] || fail "completion certificate summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "completion certificate summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "completion certificate summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "completion certificate summary exposed provider payload"
 }
 
 test_print_job_summary_includes_failure_triage() {
@@ -2632,12 +2720,14 @@ test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
 test_download_demo_replay_card_helper_uses_backend_route
+test_download_demo_completion_certificate_helper_uses_backend_route
 test_download_demo_share_sheet_helpers_use_backend_routes
 test_download_demo_run_monitor_helpers_use_backend_routes
 test_print_demo_run_monitor_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_demo_replay_card_summary_is_metadata_only
+test_print_demo_completion_certificate_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

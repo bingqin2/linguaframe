@@ -8,6 +8,7 @@ import type {
   AuthLoginResponse,
   AuthSessionStatus,
   DeliveryManifest,
+  DemoCompletionCertificate,
   DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoRunMonitor,
@@ -117,6 +118,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
     vi.spyOn(linguaFrameApi, 'getDemoReplayCard').mockResolvedValue(demoReplayCardFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoCompletionCertificate').mockResolvedValue(demoCompletionCertificateFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunSnapshot').mockResolvedValue(demoRunSnapshotFixture());
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
@@ -2981,6 +2983,47 @@ describe('App', () => {
     expect(linguaFrameApi.getDemoReplayCard).toHaveBeenCalledWith('replay-showcase-job');
   });
 
+  test('shows a demo completion certificate for selected jobs', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'certificate-showcase-job',
+        videoId: 'certificate-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoCompletionCertificate').mockResolvedValue(
+      demoCompletionCertificateFixture({
+        jobId: 'certificate-showcase-job',
+        videoId: 'certificate-video'
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'certificate-showcase-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const certificate = await screen.findByRole('region', { name: /demo completion certificate/i });
+    expect(within(certificate).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(certificate).getByText('tears-showcase completion certificate for zh-CN (READY)')).toBeInTheDocument();
+    expect(within(certificate).getByText(/final demo handoff evidence/i)).toBeInTheDocument();
+    expect(within(certificate).getByText('Reproducibility')).toBeInTheDocument();
+    expect(within(certificate).getByText('Export this replay card: LINGUAFRAME_DEMO_JOB_ID=certificate-showcase-job scripts/demo/demo-replay-card.sh')).toBeInTheDocument();
+    expect(within(certificate).getByRole('link', { name: /completion certificate json/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/certificate-showcase-job/demo-completion-certificate'
+    );
+    expect(within(certificate).getByRole('link', { name: /demo run package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/certificate-showcase-job/demo-run-package/download'
+    );
+    expect(linguaFrameApi.getDemoCompletionCertificate).toHaveBeenCalledWith('certificate-showcase-job');
+  });
+
   test('shows a demo share sheet for selected jobs', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({
@@ -4465,6 +4508,83 @@ function demoReplayCardFixture(overrides: Partial<DemoReplayCard> = {}): DemoRep
     safetyNotes: [
       'Metadata only: no API keys, object storage credentials, raw prompts, or media bytes are included.',
       'Local source paths are intentionally omitted; choose the source file again before replaying.'
+    ],
+    ...overrides
+  };
+}
+
+function demoCompletionCertificateFixture(
+  overrides: Partial<DemoCompletionCertificate> = {}
+): DemoCompletionCertificate {
+  const jobId = overrides.jobId ?? 'certificate-showcase-job';
+  return {
+    jobId,
+    videoId: overrides.videoId ?? 'certificate-video',
+    generatedAt: '2026-06-29T10:45:00Z',
+    certificateStatus: 'READY',
+    jobStatus: 'COMPLETED',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    headline: 'tears-showcase completion certificate for zh-CN (READY)',
+    summary: `Job ${jobId} is COMPLETED with certificateStatus=READY.`,
+    recommendedNextAction: 'Use the completion certificate, demo run package, and snapshot as final demo handoff evidence.',
+    recommendedBaselineJobId: 'certificate-baseline-job',
+    bestQualityJobId: jobId,
+    lowestCostJobId: 'certificate-baseline-job',
+    checks: [
+      {
+        key: 'JOB_COMPLETED',
+        label: 'Job completed',
+        status: 'PASS',
+        detail: 'Job status is COMPLETED.',
+        blocking: false
+      },
+      {
+        key: 'HANDOFF_READY',
+        label: 'Reviewed handoff ready',
+        status: 'PASS',
+        detail: 'Delivery manifest handoffReady=true.',
+        blocking: false
+      }
+    ],
+    sections: [
+      {
+        key: 'RUN_IDENTITY',
+        title: 'Run identity',
+        status: 'READY',
+        facts: [`Job: ${jobId}`, 'Video: certificate-video', 'Target language: zh-CN']
+      },
+      {
+        key: 'REPRODUCIBILITY',
+        title: 'Reproducibility',
+        status: 'READY',
+        facts: [
+          'Replay readiness: READY',
+          `Export this replay card: LINGUAFRAME_DEMO_JOB_ID=${jobId} scripts/demo/demo-replay-card.sh`
+        ]
+      },
+      {
+        key: 'EVIDENCE',
+        title: 'Evidence packages',
+        status: 'READY',
+        facts: ['Presenter downloads: 10', 'Snapshot entries: 11']
+      }
+    ],
+    links: [
+      {
+        kind: 'CERTIFICATE_JSON',
+        label: 'Completion certificate JSON',
+        url: `/api/jobs/${jobId}/demo-completion-certificate`
+      },
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        url: `/api/jobs/${jobId}/demo-run-package/download`
+      }
+    ],
+    safetyNotes: [
+      'Metadata-only certificate: only IDs, status, readiness, costs, counts, safe routes, and replay commands are included.',
+      'The certificate is generated on demand from existing safe evidence routes and does not create new artifacts.'
     ],
     ...overrides
   };

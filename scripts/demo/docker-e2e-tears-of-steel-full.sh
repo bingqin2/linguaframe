@@ -89,6 +89,11 @@ download_demo_replay_card_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-replay-ca
 print_demo_replay_card_summary_file "$OUTPUT_DIR/demo-replay-card.json"
 echo "Downloaded demo replay card to $OUTPUT_DIR/demo-replay-card.json"
 
+echo "Demo completion certificate:"
+download_demo_completion_certificate_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-completion-certificate.json"
+print_demo_completion_certificate_summary_file "$OUTPUT_DIR/demo-completion-certificate.json"
+echo "Downloaded demo completion certificate to $OUTPUT_DIR/demo-completion-certificate.json"
+
 echo "Demo run monitor:"
 download_demo_run_monitor_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.json"
 download_demo_run_monitor_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.md"

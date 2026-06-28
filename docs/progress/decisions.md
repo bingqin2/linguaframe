@@ -673,3 +673,11 @@ Decision: Generate demo replay cards on demand from existing job evidence instea
 Reason: Presenters need a reliable way to reproduce or compare a selected job, but automatically replaying uploads would hide cost, state changes, and unavailable local media paths.
 
 Impact: `/api/jobs/{jobId}/demo-replay-card`, the browser `Demo replay card` panel, and `scripts/demo/demo-replay-card.sh` expose safe settings, recommended replay commands, baseline comparison guidance, and package links. The card is read-only, omits local source paths and secrets, and reuses job detail, run matrix, presenter pack, and evidence routes.
+
+## 2026-06-29
+
+Decision: Generate demo completion certificates on demand from existing safe evidence surfaces.
+
+Reason: A completed public demo needs one final proof surface, but persisting another artifact would duplicate state already represented by delivery manifests, presenter packs, replay cards, share sheets, snapshots, run matrices, and package routes.
+
+Impact: `/api/jobs/{jobId}/demo-completion-certificate`, the browser `Demo completion certificate` panel, and `scripts/demo/demo-completion-certificate.sh` aggregate completion status, blocking checks, handoff readiness, reproducibility, evidence links, and safe next action. The certificate is read-only, metadata-only, and does not create artifacts, call providers, expose raw text, reveal local paths, or embed media bytes.

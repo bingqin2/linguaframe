@@ -3287,3 +3287,25 @@ Post-merge verification:
 - `npm --prefix frontend test -- --run App.test.tsx` passed on `main` with `Test Files 1 passed` and `Tests 83 passed`.
 - `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned the demo completion certificate workspace in `docs/plans/112-demo-completion-certificate-workspace.md`.
+- Added backend `GET /api/jobs/{jobId}/demo-completion-certificate` with completion status, blocking checks, proof sections, safe links, and next action.
+- Added a React `Demo completion certificate` panel with readiness, checks, proof sections, package links, safety notes, and refresh.
+- Added `scripts/demo/demo-completion-certificate.sh`, shared demo-client helpers, and full Tears export of `demo-completion-certificate.json`.
+- Updated README, Docker E2E guide, and decisions with completion-certificate usage and read-only behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoCompletionCertificateServiceTests,LocalizationJobControllerTests test` first failed on an over-broad sensitive-marker assertion, then passed with `Tests run: 48, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run App.test.tsx` first failed on an ambiguous `READY` assertion, then passed with `Test Files 1 passed` and `Tests 84 passed`.
+- `bash -n scripts/demo/demo-completion-certificate.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=DemoCompletionCertificateServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed with `Tests run: 53, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 581, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 149 passed`.

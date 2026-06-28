@@ -1101,6 +1101,47 @@ export interface DemoReplayCard {
   safetyNotes: string[];
 }
 
+export interface DemoCompletionCertificateCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  blocking: boolean;
+}
+
+export interface DemoCompletionCertificateSection {
+  key: string;
+  title: string;
+  status: string;
+  facts: string[];
+}
+
+export interface DemoCompletionCertificateLink {
+  kind: string;
+  label: string;
+  url: string;
+}
+
+export interface DemoCompletionCertificate {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  certificateStatus: string;
+  jobStatus: LocalizationJobStatus;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  headline: string;
+  summary: string;
+  recommendedNextAction: string;
+  recommendedBaselineJobId: string | null;
+  bestQualityJobId: string | null;
+  lowestCostJobId: string | null;
+  checks: DemoCompletionCertificateCheck[];
+  sections: DemoCompletionCertificateSection[];
+  links: DemoCompletionCertificateLink[];
+  safetyNotes: string[];
+}
+
 export interface DemoShareSheetLink {
   kind: string;
   label: string;
