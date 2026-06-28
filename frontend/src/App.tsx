@@ -17,6 +17,7 @@ import type {
   RuntimeDependencySummary,
   RuntimeLiveCheckName,
   RuntimeLiveCheckSummary,
+  SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment
 } from './domain/jobTypes';
@@ -77,6 +78,14 @@ interface DemoEvidence {
     subtitleSegmentCount: number;
     subtitleLanguage: string;
   };
+  subtitleReview: {
+    segmentCount: number;
+    missingTargetCount: number;
+    timingMismatchCount: number;
+    qualityScore: number | null;
+    qualityVerdict: string | null;
+    downloadableSubtitleArtifactCount: number;
+  } | null;
   usage: {
     modelCallCount: number;
     failedModelCallCount: number;
@@ -202,6 +211,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [artifacts, setArtifacts] = useState<JobArtifact[]>([]);
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [subtitles, setSubtitles] = useState<SubtitleSegment[]>([]);
+  const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -349,10 +359,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, transcriptResult, subtitleResult] = await Promise.allSettled([
+    const [artifactResult, transcriptResult, subtitleResult, reviewResult] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.listTranscript(jobId),
-      linguaFrameApi.listSubtitles(jobId, language)
+      linguaFrameApi.listSubtitles(jobId, language),
+      linguaFrameApi.getSubtitleReview(jobId, language)
     ]);
 
     if (artifactResult.status === 'fulfilled') {
@@ -374,6 +385,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setSubtitles([]);
       errors.push(`Subtitles: ${toErrorMessage(subtitleResult.reason)}`);
+    }
+
+    if (reviewResult.status === 'fulfilled') {
+      setSubtitleReview(reviewResult.value);
+    } else {
+      setSubtitleReview(null);
+      errors.push(`Subtitle review: ${toErrorMessage(reviewResult.reason)}`);
     }
 
     setPreviewErrors(errors);
@@ -959,6 +977,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRetry={handleRetry}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
+              subtitleReview={subtitleReview}
               subtitles={subtitles}
               transcript={transcript}
             />
@@ -1534,6 +1553,7 @@ function JobDetail({
   onRetry,
   previewErrors,
   selectedLanguage,
+  subtitleReview,
   subtitles,
   transcript
 }: {
@@ -1557,6 +1577,7 @@ function JobDetail({
   onRetry: () => void;
   previewErrors: string[];
   selectedLanguage: string;
+  subtitleReview: SubtitleReviewSummary | null;
   subtitles: SubtitleSegment[];
   transcript: TranscriptSegment[];
 }) {
@@ -1567,8 +1588,8 @@ function JobDetail({
     [artifacts, subtitles.length, transcript.length]
   );
   const demoEvidence = useMemo(
-    () => buildDemoEvidence(job, artifacts, transcript.length, subtitles.length, selectedLanguage),
-    [artifacts, job, selectedLanguage, subtitles.length, transcript.length]
+    () => buildDemoEvidence(job, artifacts, transcript.length, subtitles.length, selectedLanguage, subtitleReview),
+    [artifacts, job, selectedLanguage, subtitleReview, subtitles.length, transcript.length]
   );
   const demoEvidenceMarkdown = useMemo(
     () => formatDemoEvidenceMarkdown(demoEvidence),
@@ -1675,6 +1696,8 @@ function JobDetail({
       />
 
       <QualityEvaluationPanel evaluation={job.qualityEvaluation} />
+
+      <SubtitleReviewPanel review={subtitleReview} />
 
       <section className="panel" aria-label="Timeline">
         <h3>Timeline</h3>
@@ -2360,6 +2383,92 @@ function QualityEvaluationPanel({
   );
 }
 
+function SubtitleReviewPanel({ review }: { review: SubtitleReviewSummary | null }) {
+  if (!review) {
+    return (
+      <section className="panel" aria-label="Subtitle review">
+        <h3>Subtitle review</h3>
+        <p className="muted">No subtitle review summary loaded yet.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="panel" aria-label="Subtitle review">
+      <div className="panel-heading">
+        <h3>Subtitle review</h3>
+        <span className="status-pill">{review.targetLanguage}</span>
+      </div>
+      <dl className="status-grid compact-status-grid">
+        <div>
+          <dt>Segments</dt>
+          <dd>{review.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Missing targets</dt>
+          <dd>{review.missingTargetCount}</dd>
+        </div>
+        <div>
+          <dt>Timing mismatches</dt>
+          <dd>{review.timingMismatchCount}</dd>
+        </div>
+        <div>
+          <dt>Average duration</dt>
+          <dd>{formatDurationMs(review.averageDurationMs)}</dd>
+        </div>
+        <div>
+          <dt>Max duration</dt>
+          <dd>{formatDurationMs(review.maxDurationMs)}</dd>
+        </div>
+        <div>
+          <dt>Quality</dt>
+          <dd>
+            {review.qualityScore === null
+              ? 'Not evaluated'
+              : `${review.qualityScore} / 100 · ${review.qualityVerdict ?? 'No verdict'}`}
+          </dd>
+        </div>
+        <div>
+          <dt>Quality notes</dt>
+          <dd>
+            {review.qualityIssueCount} issues / {review.qualitySuggestedFixCount} fixes
+          </dd>
+        </div>
+        <div>
+          <dt>Subtitle artifacts</dt>
+          <dd>{review.downloadableSubtitleArtifactCount} files</dd>
+        </div>
+      </dl>
+      {review.segments.length === 0 ? (
+        <p className="muted">No transcript segments are available for review.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Source</th>
+              <th>Target</th>
+              <th>Delta</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {review.segments.map((segment) => (
+              <tr key={segment.index}>
+                <td>{formatTimeRange(segment.startMs, segment.endMs)}</td>
+                <td>{segment.sourceText}</td>
+                <td>{segment.targetText ?? '-'}</td>
+                <td>{formatDurationMs(segment.timingDeltaMs)}</td>
+                <td>{formatReviewStatus(segment.status)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 function SegmentList({
   segments
 }: {
@@ -2431,7 +2540,8 @@ function buildDemoEvidence(
   artifacts: JobArtifact[],
   transcriptSegmentCount: number,
   subtitleSegmentCount: number,
-  selectedLanguage: string
+  selectedLanguage: string,
+  subtitleReview: SubtitleReviewSummary | null
 ): DemoEvidence {
   return {
     generatedAt: new Date().toISOString(),
@@ -2451,6 +2561,16 @@ function buildDemoEvidence(
       subtitleSegmentCount,
       subtitleLanguage: selectedLanguage
     },
+    subtitleReview: subtitleReview
+      ? {
+          segmentCount: subtitleReview.segmentCount,
+          missingTargetCount: subtitleReview.missingTargetCount,
+          timingMismatchCount: subtitleReview.timingMismatchCount,
+          qualityScore: subtitleReview.qualityScore,
+          qualityVerdict: subtitleReview.qualityVerdict,
+          downloadableSubtitleArtifactCount: subtitleReview.downloadableSubtitleArtifactCount
+        }
+      : null,
     usage: {
       modelCallCount: job.usageSummary?.modelCallCount ?? job.modelCalls.length,
       failedModelCallCount: job.usageSummary?.failedModelCallCount ?? 0,
@@ -2540,6 +2660,19 @@ function formatDemoEvidenceMarkdown(evidence: DemoEvidence): string {
   if (evidence.qualityEvaluation) {
     lines.push(
       `- Quality: ${evidence.qualityEvaluation.score} / 100, ${evidence.qualityEvaluation.verdict}, ${evidence.qualityEvaluation.status}`
+    );
+  }
+  if (evidence.subtitleReview) {
+    lines.push(
+      `- Subtitle review segments: ${evidence.subtitleReview.segmentCount}`,
+      `- Subtitle review missing targets: ${evidence.subtitleReview.missingTargetCount}`,
+      `- Subtitle review timing mismatches: ${evidence.subtitleReview.timingMismatchCount}`,
+      `- Subtitle review quality: ${
+        evidence.subtitleReview.qualityScore === null
+          ? 'Not evaluated'
+          : `${evidence.subtitleReview.qualityScore} / 100, ${evidence.subtitleReview.qualityVerdict ?? 'No verdict'}`
+      }`,
+      `- Subtitle review downloadable subtitle artifacts: ${evidence.subtitleReview.downloadableSubtitleArtifactCount}`
     );
   }
   if (evidence.timeline.length > 0) {
@@ -2698,6 +2831,16 @@ function formatDurationMs(durationMs: number): string {
     return `${durationMs} ms`;
   }
   return `${(durationMs / 1000).toFixed(1)} s`;
+}
+
+function formatReviewStatus(status: SubtitleReviewSummary['segments'][number]['status']): string {
+  if (status === 'MISSING_TARGET') {
+    return 'Missing target';
+  }
+  if (status === 'TIMING_MISMATCH') {
+    return 'Timing mismatch';
+  }
+  return 'Aligned';
 }
 
 function formatVoice(value: string | null | undefined): string {

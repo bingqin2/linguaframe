@@ -11,6 +11,7 @@ import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.JobEvidenceBundleService;
@@ -20,6 +21,7 @@ import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.SubtitleService;
+import com.linguaframe.job.service.SubtitleReviewService;
 import com.linguaframe.job.service.TranscriptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -56,6 +58,7 @@ public class LocalizationJobController {
     private final JobEvidenceReportService evidenceReportService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
+    private final SubtitleReviewService subtitleReviewService;
     private final ObjectMapper objectMapper;
 
     public LocalizationJobController(
@@ -68,6 +71,7 @@ public class LocalizationJobController {
             JobEvidenceReportService evidenceReportService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
+            SubtitleReviewService subtitleReviewService,
             ObjectMapper objectMapper
     ) {
         this.queryService = queryService;
@@ -79,6 +83,7 @@ public class LocalizationJobController {
         this.evidenceReportService = evidenceReportService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
+        this.subtitleReviewService = subtitleReviewService;
         this.objectMapper = objectMapper;
     }
 
@@ -275,6 +280,22 @@ public class LocalizationJobController {
             @PathVariable String language
     ) {
         return subtitleService.listSubtitles(jobId, language);
+    }
+
+    @GetMapping("/{jobId}/subtitle-review")
+    @Operation(summary = "Build a read-only subtitle review summary for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle review summary was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public SubtitleReviewSummaryVo subtitleReview(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Target subtitle language such as zh-CN.")
+            @RequestParam(defaultValue = "zh-CN") String language
+    ) {
+        return subtitleReviewService.buildReview(jobId, language);
     }
 
     @GetMapping("/{jobId}/artifacts/{artifactId}/download")

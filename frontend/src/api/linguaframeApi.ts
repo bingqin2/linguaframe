@@ -11,6 +11,7 @@ import type {
   RetentionCleanupResult,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
+  SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment
 } from '../domain/jobTypes';
@@ -167,6 +168,19 @@ export async function listSubtitles(
   );
 }
 
+export async function getSubtitleReview(
+  jobId: string,
+  language: string
+): Promise<SubtitleReviewSummary> {
+  const query = new URLSearchParams({ language });
+  return requestJson<SubtitleReviewSummary>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review?${query.toString()}`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export function artifactDownloadUrl(jobId: string, artifactId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/artifacts/${encodeURIComponent(
     artifactId
@@ -212,6 +226,7 @@ export const linguaFrameApi = {
   runRetentionCleanup,
   listTranscript,
   listSubtitles,
+  getSubtitleReview,
   artifactDownloadUrl,
   artifactArchiveDownloadUrl,
   jobDiagnosticsDownloadUrl,

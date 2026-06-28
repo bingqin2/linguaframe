@@ -200,7 +200,10 @@ Expected browser behavior:
 - The `Result delivery` panel renders expected deliverables with `Ready`, `Preview only`, and `Missing` states.
 - The `Result delivery` panel shows generated/reused/missing counts, model-call count, estimated cost, short SHA-256 hashes, and generated versus reused cache state.
 - The `Result delivery` panel includes `Download result bundle`, `Download diagnostics`, and direct download links for ready deliverables only.
-- The `Demo evidence` panel renders a safe Markdown evidence preview with job status, timeline stages, usage, cache counts, artifact hashes, result bundle URL, diagnostics URL, backend evidence URL, and evidence bundle URL.
+- The read-only `Subtitle review` panel shows segment count, missing target count, timing mismatch count, average/max duration, quality score/verdict when available, and downloadable subtitle artifact count.
+- The `Subtitle review` panel renders source/target comparison rows with timing range, delta, and `Aligned`, `Missing target`, or `Timing mismatch` status.
+- Subtitle-review API failures appear as non-blocking preview errors, while job detail, transcript preview, subtitle preview, and artifacts remain usable.
+- The `Demo evidence` panel renders a safe Markdown evidence preview with job status, subtitle-review metadata, timeline stages, usage, cache counts, artifact hashes, result bundle URL, diagnostics URL, backend evidence URL, and evidence bundle URL.
 - `Copy evidence` copies the safe Markdown summary when the browser Clipboard API is available; otherwise the panel explains that clipboard copy is unavailable.
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
@@ -262,6 +265,8 @@ Expected:
 - Output includes `modelCallCount=2` by default and `modelCallCount=3` when TTS is enabled.
 - Output includes `failedModelCallCount=0`.
 - Output includes `estimatedCostUsd=0E-8` with `.env.example` cost rates.
+- Output includes `subtitleReviewSegmentCount`, `subtitleReviewMissingTargetCount`, `subtitleReviewTimingMismatchCount`, `subtitleReviewQuality`, and `subtitleReviewSubtitleArtifactCount`.
+- Terminal subtitle-review output excludes raw transcript text, raw subtitle text, object keys, local paths, provider payloads, API keys, and demo tokens.
 - Output includes `MODEL_CALL TRANSCRIPTION DEMO demo-transcription SUCCEEDED`.
 - Output includes `MODEL_CALL TRANSLATION DEMO demo-translation SUCCEEDED`.
 - Output includes `MODEL_CALL TTS DEMO demo-tts SUCCEEDED` only when TTS is enabled.

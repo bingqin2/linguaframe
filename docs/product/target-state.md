@@ -106,6 +106,7 @@ A user should be able to:
 9. Inspect cost and processing time.
 10. Retry the job if a step fails.
 11. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+12. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
@@ -121,6 +122,7 @@ Target screens:
 - Pipeline timeline.
 - Pipeline progress and stage timing summary.
 - Transcript and subtitle table.
+- Read-only subtitle review workspace.
 - Artifact preview and downloads.
 - Cost and usage summary.
 - Failure and retry panel.
@@ -145,6 +147,7 @@ The backend should provide:
 - Prompt template versioning for translation, polishing, and evaluation prompts.
 - Model-call audit records with model, prompt version, usage, latency, cost, status, and safe errors.
 - Timeline-derived pipeline progress and stage timing summaries.
+- Read-only subtitle review summary derived from transcript segments, target subtitle segments, quality evaluation, and subtitle artifacts.
 - Content-hash caching hooks for repeated transcription and translation work.
 - Per-job and per-user budget checks before expensive stages.
 - SRT and VTT export.

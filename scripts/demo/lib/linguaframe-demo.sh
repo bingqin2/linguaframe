@@ -347,6 +347,32 @@ get_job_subtitles() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/subtitles/$language"
 }
 
+get_job_subtitle_review() {
+  local base_url="$1"
+  local job_id="$2"
+  local language="$3"
+
+  demo_curl -fsS "$base_url/api/jobs/$job_id/subtitle-review?language=$language"
+}
+
+print_subtitle_review_summary() {
+  python3 -c '
+import json
+import sys
+
+review = json.load(sys.stdin)
+score = review.get("qualityScore")
+verdict = review.get("qualityVerdict") or "No verdict"
+print("subtitleReviewJobId=" + review["jobId"])
+print("subtitleReviewLanguage=" + review["targetLanguage"])
+print("subtitleReviewSegmentCount=" + str(review.get("segmentCount", 0)))
+print("subtitleReviewMissingTargetCount=" + str(review.get("missingTargetCount", 0)))
+print("subtitleReviewTimingMismatchCount=" + str(review.get("timingMismatchCount", 0)))
+print("subtitleReviewQuality=" + ("Not evaluated" if score is None else str(score) + " / 100, " + verdict))
+print("subtitleReviewSubtitleArtifactCount=" + str(review.get("downloadableSubtitleArtifactCount", 0)))
+'
+}
+
 download_first_artifact() {
   local base_url="$1"
   local job_id="$2"

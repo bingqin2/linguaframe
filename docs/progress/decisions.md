@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Keep subtitle review read-only before adding subtitle editing workflows.
+
+Reason: The current demo needs a trustworthy inspection surface that explains generated transcript/subtitle alignment, quality evaluation, and downloadable subtitle artifacts without introducing versioning, re-export, cache invalidation, or media regeneration semantics.
+
+Impact: `GET /api/jobs/{jobId}/subtitle-review` derives its summary from persisted transcript segments, target subtitle segments, quality evaluation, and artifacts. Browser and terminal evidence export only metadata counts, while future editing will need a separate plan for draft subtitle state and regeneration.
+
+## 2026-06-28
+
 Decision: Derive pipeline progress and stage timing from durable timeline events instead of adding a separate progress table.
 
 Reason: `job_timeline_events` already captures stage, status, timestamps, duration, and safe messages. Reusing it keeps progress advisory, avoids another consistency boundary, and makes diagnostics, evidence, browser UI, and terminal scripts agree with the same source of truth.
