@@ -33,6 +33,7 @@ import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.bo.DubbedVideoBo;
 import com.linguaframe.media.repository.VideoRepository;
 import com.linguaframe.media.service.FfmpegAudioReplacementService;
+import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.FfmpegTimedAudioBedService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
@@ -119,6 +120,9 @@ class LocalizationJobControllerTests {
     private FfmpegAudioReplacementService ffmpegAudioReplacementService;
 
     @MockitoBean
+    private FfmpegNarratedVideoMixService ffmpegNarratedVideoMixService;
+
+    @MockitoBean
     private FfmpegTimedAudioBedService ffmpegTimedAudioBedService;
 
     @BeforeEach
@@ -139,6 +143,9 @@ class LocalizationJobControllerTests {
             return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
         });
         when(ffmpegAudioReplacementService.replaceAudio(any())).thenReturn(
+                new DubbedVideoBo("narrated-video.mp4", "video/mp4", new byte[] {9, 9, 9})
+        );
+        when(ffmpegNarratedVideoMixService.mixNarration(any())).thenReturn(
                 new DubbedVideoBo("narrated-video.mp4", "video/mp4", new byte[] {9, 9, 9})
         );
         when(ffmpegTimedAudioBedService.createAudioBed(any())).thenReturn(
@@ -2075,6 +2082,9 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.sizeBytes").value(3))
                 .andExpect(jsonPath("$.baseVideoType").value("BURNED_VIDEO"))
                 .andExpect(jsonPath("$.narrationAudioArtifactId").value("job-controller-narrated-audio"))
+                .andExpect(jsonPath("$.mixMode").value("DUCKED_ORIGINAL_AUDIO"))
+                .andExpect(jsonPath("$.duckingVolume").value(0.35))
+                .andExpect(jsonPath("$.narrationWindowCount").value(0))
                 .andExpect(jsonPath("$.status").value("READY"));
 
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId("job-controller-job-narrated");

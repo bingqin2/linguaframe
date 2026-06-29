@@ -1,5 +1,7 @@
 package com.linguaframe.job.domain.vo;
 
+import java.math.BigDecimal;
+
 public record NarratedVideoGenerationVo(
         String jobId,
         String artifactId,
@@ -8,6 +10,9 @@ public record NarratedVideoGenerationVo(
         long sizeBytes,
         String baseVideoType,
         String narrationAudioArtifactId,
+        String mixMode,
+        BigDecimal duckingVolume,
+        int narrationWindowCount,
         String status
 ) {
 }

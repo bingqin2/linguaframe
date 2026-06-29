@@ -10,6 +10,8 @@ Work:
 - Added an FFmpeg timed narration audio bed boundary that delays segment audio to saved start times, mixes delayed inputs with `amix`, and returns `narration-audio.mp3`.
 - Changed narration audio generation from one continuous timestamped TTS request to per-segment TTS files mixed into a timed `NARRATION_AUDIO` bed.
 - Extended narration audio generation responses with `audioLayout=TIMED_AUDIO_BED`, `timeAligned=true`, and `ttsCallCount`.
+- Added an FFmpeg narrated-video mix boundary that preserves base video audio, ducks it to `0.35` during narration windows, mixes in `NARRATION_AUDIO`, and falls back to narration-only audio when the base video has no audio stream.
+- Changed narrated-video generation to use saved narration segment windows and return `mixMode=DUCKED_ORIGINAL_AUDIO`, `duckingVolume=0.35`, and `narrationWindowCount`.
 
 Validation so far:
 
@@ -19,6 +21,10 @@ Validation so far:
 - `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
 - `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` first failed because the controller test context still exercised the real timed audio bed FFmpeg boundary with fake MP3 bytes; the test was updated to mock the new FFmpeg boundary.
 - `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests` first failed because the narrated video mix command, narration-window value object, service interface, implementation, generation metadata, and service dependencies did not exist.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests` passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` first failed because the controller test context still mocked the old audio-replacement boundary while production code used the new narrated-video mix service; the test now mocks the new boundary and asserts mix metadata.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests` passed with `Tests run: 75, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-29
 

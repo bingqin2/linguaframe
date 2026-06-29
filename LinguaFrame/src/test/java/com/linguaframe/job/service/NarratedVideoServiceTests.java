@@ -11,10 +11,10 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.service.impl.NarratedVideoServiceImpl;
 import com.linguaframe.media.domain.bo.DubbedVideoBo;
-import com.linguaframe.media.domain.bo.ReplaceVideoAudioCommand;
+import com.linguaframe.media.domain.bo.MixNarratedVideoCommand;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
-import com.linguaframe.media.service.FfmpegAudioReplacementService;
+import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import org.junit.jupiter.api.Test;
@@ -38,7 +38,7 @@ class NarratedVideoServiceTests {
     private final RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
     private final RecordingLocalizationJobQueryService queryService = new RecordingLocalizationJobQueryService();
     private final RecordingMediaUploadService mediaUploadService = new RecordingMediaUploadService();
-    private final RecordingFfmpegAudioReplacementService audioReplacementService = new RecordingFfmpegAudioReplacementService();
+    private final RecordingFfmpegNarratedVideoMixService narratedVideoMixService = new RecordingFfmpegNarratedVideoMixService();
 
     @TempDir
     private Path tempDir;
@@ -53,15 +53,22 @@ class NarratedVideoServiceTests {
 
         assertThat(workDirectoryService.createdJobIds).containsExactly("job-narrated");
         assertThat(workDirectoryService.cleanedDirectories).containsExactly(workDirectoryService.workDirectory);
-        assertThat(Files.readAllBytes(audioReplacementService.command.inputVideoPath())).containsExactly(1, 2, 3);
-        assertThat(Files.readAllBytes(audioReplacementService.command.inputAudioPath())).containsExactly(4, 5, 6);
-        assertThat(audioReplacementService.command.outputVideoPath()).isEqualTo(workDirectoryService.workDirectory.resolve("narrated-video.mp4"));
-        assertThat(audioReplacementService.command.outputFilename()).isEqualTo("narrated-video.mp4");
+        assertThat(Files.readAllBytes(narratedVideoMixService.command.inputVideoPath())).containsExactly(1, 2, 3);
+        assertThat(Files.readAllBytes(narratedVideoMixService.command.narrationAudioPath())).containsExactly(4, 5, 6);
+        assertThat(narratedVideoMixService.command.outputVideoPath()).isEqualTo(workDirectoryService.workDirectory.resolve("narrated-video.mp4"));
+        assertThat(narratedVideoMixService.command.outputFilename()).isEqualTo("narrated-video.mp4");
+        assertThat(narratedVideoMixService.command.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(narratedVideoMixService.command.narrationWindows()).hasSize(2);
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).startSeconds()).isEqualByComparingTo("15.000");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).endSeconds()).isEqualByComparingTo("28.000");
         assertThat(result.jobId()).isEqualTo("job-narrated");
         assertThat(result.filename()).isEqualTo("narrated-video.mp4");
         assertThat(result.contentType()).isEqualTo("video/mp4");
         assertThat(result.baseVideoType()).isEqualTo("BURNED_VIDEO");
         assertThat(result.narrationAudioArtifactId()).isEqualTo("narration");
+        assertThat(result.mixMode()).isEqualTo("DUCKED_ORIGINAL_AUDIO");
+        assertThat(result.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(result.narrationWindowCount()).isEqualTo(2);
         assertThat(result.status()).isEqualTo("READY");
         assertThat(artifactService.createdCommands).hasSize(1);
         CreateJobArtifactCommand created = artifactService.createdCommands.getFirst();
@@ -79,7 +86,7 @@ class NarratedVideoServiceTests {
         var result = service(new RecordingMediaWorkDirectoryService(tempDir)).generateVideo("job-narrated");
 
         assertThat(result.baseVideoType()).isEqualTo("REVIEWED_BURNED_VIDEO");
-        assertThat(audioReplacementService.command.inputVideoPath().getFileName().toString()).isEqualTo("base-video.mp4");
+        assertThat(narratedVideoMixService.command.inputVideoPath().getFileName().toString()).isEqualTo("base-video.mp4");
     }
 
     @Test
@@ -90,7 +97,7 @@ class NarratedVideoServiceTests {
         var result = service(workDirectoryService).generateVideo("job-narrated");
 
         assertThat(result.baseVideoType()).isEqualTo("SOURCE_VIDEO");
-        assertThat(Files.readAllBytes(audioReplacementService.command.inputVideoPath())).containsExactly(9, 8, 7);
+        assertThat(Files.readAllBytes(narratedVideoMixService.command.inputVideoPath())).containsExactly(9, 8, 7);
     }
 
     @Test
@@ -100,7 +107,7 @@ class NarratedVideoServiceTests {
         assertThatThrownBy(() -> service(new RecordingMediaWorkDirectoryService(tempDir)).generateVideo("job-narrated"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Narration audio is required before generating narrated video.");
-        assertThat(audioReplacementService.command).isNull();
+        assertThat(narratedVideoMixService.command).isNull();
         assertThat(artifactService.createdCommands).isEmpty();
     }
 
@@ -112,7 +119,7 @@ class NarratedVideoServiceTests {
         assertThatThrownBy(() -> service(new RecordingMediaWorkDirectoryService(tempDir)).generateVideo("job-narrated"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("A source or generated video is required before generating narrated video.");
-        assertThat(audioReplacementService.command).isNull();
+        assertThat(narratedVideoMixService.command).isNull();
         assertThat(artifactService.createdCommands).isEmpty();
     }
 
@@ -120,7 +127,7 @@ class NarratedVideoServiceTests {
     void cleansWorkDirectoryWhenFfmpegFails() {
         artifactService.artifacts.add(artifact("burned", JobArtifactType.BURNED_VIDEO, "burned-video.mp4", 1));
         artifactService.artifacts.add(artifact("narration", JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3", 2));
-        audioReplacementService.failure = new IllegalStateException("ffmpeg failed");
+        narratedVideoMixService.failure = new IllegalStateException("ffmpeg failed");
         RecordingMediaWorkDirectoryService workDirectoryService = new RecordingMediaWorkDirectoryService(tempDir);
 
         assertThatThrownBy(() -> service(workDirectoryService).generateVideo("job-narrated"))
@@ -136,7 +143,8 @@ class NarratedVideoServiceTests {
                 queryService,
                 mediaUploadService,
                 workDirectoryService,
-                audioReplacementService
+                narratedVideoMixService,
+                new RecordingNarrationSegmentRepository()
         );
     }
 
@@ -311,18 +319,51 @@ class NarratedVideoServiceTests {
         }
     }
 
-    private static final class RecordingFfmpegAudioReplacementService implements FfmpegAudioReplacementService {
+    private static final class RecordingFfmpegNarratedVideoMixService implements FfmpegNarratedVideoMixService {
 
-        private ReplaceVideoAudioCommand command;
+        private MixNarratedVideoCommand command;
         private RuntimeException failure;
 
         @Override
-        public DubbedVideoBo replaceAudio(ReplaceVideoAudioCommand command) {
+        public DubbedVideoBo mixNarration(MixNarratedVideoCommand command) {
             this.command = command;
             if (failure != null) {
                 throw failure;
             }
             return new DubbedVideoBo(command.outputFilename(), "video/mp4", new byte[] {7, 8, 9});
+        }
+    }
+
+    private static final class RecordingNarrationSegmentRepository implements com.linguaframe.job.repository.NarrationSegmentRepository {
+
+        @Override
+        public void replaceSegments(String jobId, List<com.linguaframe.job.domain.entity.NarrationSegmentRecord> segments) {
+        }
+
+        @Override
+        public List<com.linguaframe.job.domain.entity.NarrationSegmentRecord> findByJobId(String jobId) {
+            return List.of(
+                    segment(0, "15.000", "28.000"),
+                    segment(1, "55.000", "70.500")
+            );
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
+
+        private com.linguaframe.job.domain.entity.NarrationSegmentRecord segment(int index, String start, String end) {
+            return new com.linguaframe.job.domain.entity.NarrationSegmentRecord(
+                    "narration-segment-" + index,
+                    "job-narrated",
+                    index,
+                    new java.math.BigDecimal(start),
+                    new java.math.BigDecimal(end),
+                    "Narration " + index,
+                    "alloy",
+                    Instant.parse("2026-06-29T12:00:00Z"),
+                    Instant.parse("2026-06-29T12:00:00Z")
+            );
         }
     }
 }

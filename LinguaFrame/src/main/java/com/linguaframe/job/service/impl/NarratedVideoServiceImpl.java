@@ -2,22 +2,26 @@ package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
+import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
+import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarratedVideoService;
 import com.linguaframe.media.domain.bo.DubbedVideoBo;
-import com.linguaframe.media.domain.bo.ReplaceVideoAudioCommand;
-import com.linguaframe.media.service.FfmpegAudioReplacementService;
+import com.linguaframe.media.domain.bo.MixNarratedVideoCommand;
+import com.linguaframe.media.domain.bo.NarrationWindowBo;
+import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -28,24 +32,30 @@ import java.util.Optional;
 @Service
 public class NarratedVideoServiceImpl implements NarratedVideoService {
 
+    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
+    private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
+
     private final JobArtifactService artifactService;
     private final LocalizationJobQueryService queryService;
     private final MediaUploadService mediaUploadService;
     private final MediaWorkDirectoryService workDirectoryService;
-    private final FfmpegAudioReplacementService audioReplacementService;
+    private final FfmpegNarratedVideoMixService narratedVideoMixService;
+    private final NarrationSegmentRepository narrationSegmentRepository;
 
     public NarratedVideoServiceImpl(
             JobArtifactService artifactService,
             LocalizationJobQueryService queryService,
             MediaUploadService mediaUploadService,
             MediaWorkDirectoryService workDirectoryService,
-            FfmpegAudioReplacementService audioReplacementService
+            FfmpegNarratedVideoMixService narratedVideoMixService,
+            NarrationSegmentRepository narrationSegmentRepository
     ) {
         this.artifactService = artifactService;
         this.queryService = queryService;
         this.mediaUploadService = mediaUploadService;
         this.workDirectoryService = workDirectoryService;
-        this.audioReplacementService = audioReplacementService;
+        this.narratedVideoMixService = narratedVideoMixService;
+        this.narrationSegmentRepository = narrationSegmentRepository;
     }
 
     @Override
@@ -63,12 +73,15 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
             Path outputVideoPath = workDirectory.resolve("narrated-video.mp4");
             copyBaseVideo(jobId, baseVideo, inputVideoPath);
             copyArtifact(jobId, narrationAudio, inputAudioPath);
-            DubbedVideoBo narratedVideo = audioReplacementService.replaceAudio(new ReplaceVideoAudioCommand(
+            List<NarrationWindowBo> narrationWindows = narrationWindows(jobId);
+            DubbedVideoBo narratedVideo = narratedVideoMixService.mixNarration(new MixNarratedVideoCommand(
                     jobId,
                     inputVideoPath,
                     inputAudioPath,
                     outputVideoPath,
-                    "narrated-video.mp4"
+                    "narrated-video.mp4",
+                    DEFAULT_DUCKING_VOLUME,
+                    narrationWindows
             ));
             JobArtifactVo artifact = artifactService.createArtifact(new CreateJobArtifactCommand(
                     jobId,
@@ -85,6 +98,9 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
                     artifact.sizeBytes(),
                     baseVideo.type(),
                     narrationAudio.artifactId(),
+                    DUCKED_ORIGINAL_AUDIO,
+                    DEFAULT_DUCKING_VOLUME,
+                    narrationWindows.size(),
                     "READY"
             );
         } finally {
@@ -137,6 +153,13 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
         } catch (IOException ex) {
             throw new IllegalStateException(failureMessage, ex);
         }
+    }
+
+    private List<NarrationWindowBo> narrationWindows(String jobId) {
+        return narrationSegmentRepository.findByJobId(jobId).stream()
+                .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
+                .map(segment -> new NarrationWindowBo(segment.startSeconds(), segment.endSeconds()))
+                .toList();
     }
 
     private record BaseVideoSelection(

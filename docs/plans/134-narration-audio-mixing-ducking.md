@@ -80,16 +80,16 @@
 - `FfmpegNarratedVideoMixService.mixNarration(MixNarratedVideoCommand command): DubbedVideoBo`
 - Extend `NarratedVideoGenerationVo` with `String mixMode`, `BigDecimal duckingVolume`, and `int narrationWindowCount`.
 
-- [ ] Implement an FFmpeg mix command that maps video from input 0, mixes base audio with narration audio, lowers base audio to `0.35` during narration windows, and keeps original volume outside those windows.
-- [ ] Use existing base video preference order: `REVIEWED_BURNED_VIDEO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, source video.
-- [ ] Read narration windows from saved narration segments instead of deriving them from raw narration text.
-- [ ] Replace the current `FfmpegAudioReplacementService` call in `NarratedVideoServiceImpl` with `FfmpegNarratedVideoMixService`.
-- [ ] Preserve fallback behavior for base videos without an audio track by outputting video plus narration audio without failing the whole generation.
-- [ ] Store output as `NARRATED_VIDEO` filename `narrated-video.mp4`.
-- [ ] Return `mixMode=DUCKED_ORIGINAL_AUDIO`, `duckingVolume=0.35`, and `narrationWindowCount=segmentCount`.
-- [ ] Add tests for command filter graph, ducking windows, missing narration audio rejection, missing base video rejection, source-video fallback, reviewed-video preference, artifact isolation, and work-directory cleanup.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Implement an FFmpeg mix command that maps video from input 0, mixes base audio with narration audio, lowers base audio to `0.35` during narration windows, and keeps original volume outside those windows.
+- [x] Use existing base video preference order: `REVIEWED_BURNED_VIDEO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, source video.
+- [x] Read narration windows from saved narration segments instead of deriving them from raw narration text.
+- [x] Replace the current `FfmpegAudioReplacementService` call in `NarratedVideoServiceImpl` with `FfmpegNarratedVideoMixService`.
+- [x] Preserve fallback behavior for base videos without an audio track by outputting video plus narration audio without failing the whole generation.
+- [x] Store output as `NARRATED_VIDEO` filename `narrated-video.mp4`.
+- [x] Return `mixMode=DUCKED_ORIGINAL_AUDIO`, `duckingVolume=0.35`, and `narrationWindowCount=segmentCount`.
+- [x] Add tests for command filter graph, ducking windows, missing narration audio rejection, missing base video rejection, source-video fallback, reviewed-video preference, artifact isolation, and work-directory cleanup.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 4: Evidence, Handoff, And Runtime Metadata
 
