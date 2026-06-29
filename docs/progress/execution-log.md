@@ -3398,3 +3398,11 @@ Validation so far:
 - `git diff --check` passed.
 - `mvn -pl LinguaFrame test` passed with `Tests run: 598, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run` passed with `Test Files 3 passed` and `Tests 154 passed`.
+
+Post-merge verification:
+
+- Merged `reviewed-subtitle-workflow-cockpit` back to `main`.
+- `mvn -pl LinguaFrame -Dtest=ReviewedSubtitleWorkflowServiceTests,LocalizationJobControllerTests,OpenApiDocumentationTests,RuntimeDependencyControllerTests test` passed on `main` with `Tests run: 57, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed on `main` with `Test Files 2 passed` and `Tests 147 passed`.
+- `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
+- `git diff --check` passed on `main`.
