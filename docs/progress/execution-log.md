@@ -73,6 +73,18 @@ Validation:
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started the narration timeline drag editing workbench feature slice.
+- Added pure frontend timeline editing helpers for moving, resizing, snapping, clamping, duration normalization, and local timeline recomputation.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationTimelineEditing.test.ts` first failed because `frontend/src/domain/narrationTimelineEditing.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationTimelineEditing.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
 - `bash -n scripts/demo/narration-demo-render.sh` first failed because the render script did not exist.
 - After adding the render script and full Tears integration, `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.

@@ -38,9 +38,9 @@
   - `export function buildLocalNarrationTimeline(segments: NarrationWorkspace['segments']): NarrationWorkspace['timeline']`
 - Consumes: `NarrationWorkspace` types from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests for moving a segment by pixels, resizing start, resizing end, clamping at timeline start/end, enforcing a minimum `0.25` second duration, snapping to `0.25` seconds, preserving text/voice/index fields, and recomputing local timeline percentages.
-- [ ] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts` and verify it fails because `narrationTimelineEditing.ts` does not exist.
-- [ ] Implement `editNarrationTimelineSegment` with deterministic math:
+- [x] Write failing tests for moving a segment by pixels, resizing start, resizing end, clamping at timeline start/end, enforcing a minimum `0.25` second duration, snapping to `0.25` seconds, preserving text/voice/index fields, and recomputing local timeline percentages.
+- [x] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts` and verify it fails because `narrationTimelineEditing.ts` does not exist.
+- [x] Implement `editNarrationTimelineSegment` with deterministic math:
   - `secondsPerPixel = (timelineEndSeconds - timelineStartSeconds) / trackWidthPx`
   - default `minDurationSeconds = 0.25`
   - default `snapSeconds = 0.25`
@@ -48,9 +48,9 @@
   - `resize-start` changes only start, clamped to `timelineStartSeconds` and `endSeconds - minDurationSeconds`.
   - `resize-end` changes only end, clamped to `startSeconds + minDurationSeconds` and `timelineEndSeconds`.
   - `durationSeconds` is recalculated from rounded start/end.
-- [ ] Implement `buildLocalNarrationTimeline` by sorting a copy of segments by `startSeconds`, computing start/end/span/covered/gaps/overlap, and assigning `leftPercent`/`widthPercent` for each segment.
-- [ ] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Implement `buildLocalNarrationTimeline` by sorting a copy of segments by `startSeconds`, computing start/end/span/covered/gaps/overlap, and assigning `leftPercent`/`widthPercent` for each segment.
+- [x] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration timeline editing helpers`.
 
 ## Task 2: Interactive Timeline Workbench UI
