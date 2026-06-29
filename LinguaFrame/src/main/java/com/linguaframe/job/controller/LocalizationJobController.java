@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredAiAuditPackageBo;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredDemoEvidenceClosurePackageBo;
+import com.linguaframe.job.domain.bo.StoredDemoReviewerWorkspacePackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunPackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunSnapshotPackageBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
@@ -21,6 +22,7 @@ import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoEvidenceClosurePackageVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
+import com.linguaframe.job.domain.vo.DemoReviewerWorkspaceVo;
 import com.linguaframe.job.domain.vo.DemoRunVarianceReportVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
@@ -45,6 +47,7 @@ import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
 import com.linguaframe.job.service.DemoEvidenceClosurePackageService;
 import com.linguaframe.job.service.DemoPresenterPackService;
+import com.linguaframe.job.service.DemoReviewerWorkspaceService;
 import com.linguaframe.job.service.DemoRunVarianceReportService;
 import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunMonitorService;
@@ -113,6 +116,7 @@ public class LocalizationJobController {
     private final DemoCompletionCertificateService demoCompletionCertificateService;
     private final DemoEvidenceClosurePackageService demoEvidenceClosurePackageService;
     private final DemoPresenterPackService demoPresenterPackService;
+    private final DemoReviewerWorkspaceService demoReviewerWorkspaceService;
     private final DemoRunVarianceReportService demoRunVarianceReportService;
     private final DemoRunMonitorService demoRunMonitorService;
     private final DemoReplayCardService demoReplayCardService;
@@ -146,6 +150,7 @@ public class LocalizationJobController {
             DemoCompletionCertificateService demoCompletionCertificateService,
             DemoEvidenceClosurePackageService demoEvidenceClosurePackageService,
             DemoPresenterPackService demoPresenterPackService,
+            DemoReviewerWorkspaceService demoReviewerWorkspaceService,
             DemoRunVarianceReportService demoRunVarianceReportService,
             DemoRunMonitorService demoRunMonitorService,
             DemoReplayCardService demoReplayCardService,
@@ -178,6 +183,7 @@ public class LocalizationJobController {
         this.demoCompletionCertificateService = demoCompletionCertificateService;
         this.demoEvidenceClosurePackageService = demoEvidenceClosurePackageService;
         this.demoPresenterPackService = demoPresenterPackService;
+        this.demoReviewerWorkspaceService = demoReviewerWorkspaceService;
         this.demoRunVarianceReportService = demoRunVarianceReportService;
         this.demoRunMonitorService = demoRunMonitorService;
         this.demoReplayCardService = demoReplayCardService;
@@ -765,6 +771,70 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(body);
+    }
+
+    @GetMapping("/{jobId}/demo-reviewer-workspace")
+    @Operation(summary = "Get a safe reviewer workspace for a completed demo job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo reviewer workspace was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoReviewerWorkspaceVo getDemoReviewerWorkspace(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoReviewerWorkspaceService.getWorkspace(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-reviewer-workspace/markdown/download")
+    @Operation(summary = "Download demo reviewer workspace Markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo reviewer workspace Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoReviewerWorkspaceMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = demoReviewerWorkspaceService.renderMarkdown(jobId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-demo-reviewer-workspace.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @GetMapping("/{jobId}/demo-reviewer-workspace/download")
+    @Operation(summary = "Download a safe demo reviewer workspace ZIP")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo reviewer workspace ZIP bytes were generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadDemoReviewerWorkspacePackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredDemoReviewerWorkspacePackageBo reviewerPackage = demoReviewerWorkspaceService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(reviewerPackage.contentType()))
+                .contentLength(reviewerPackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(reviewerPackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(reviewerPackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/comparison/{comparisonJobId}")

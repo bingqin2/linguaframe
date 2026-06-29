@@ -100,6 +100,8 @@ Check the `Demo run monitor` panel while a job is queued, running, or complete. 
 
 Use the demo run package when a reviewer wants one safe ZIP workspace for a single run. `GET /api/jobs/{jobId}/demo-run-package/download` should include `manifest.json`, `README.md`, `job-detail.json`, `diagnostics.json`, `evidence.md`, `quality-evidence.md`, `delivery-manifest.md`, `demo-handoff-checklist.md`, and `demo-session-report.md`. It should not include uploaded media, generated media bytes, raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, or API keys.
 
+Use the `Demo reviewer workspace` panel when a reviewer needs the quickest consolidated handoff for one completed run. It calls `GET /api/jobs/{jobId}/demo-reviewer-workspace`, shows `READY`, `ATTENTION`, or `BLOCKED`, required and optional checks, safe evidence links, package entries, safety notes, and Markdown/ZIP download actions. The terminal equivalent is `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-reviewer-workspace.sh`, which writes `demo-reviewer-workspace.json`, `.md`, and `.zip` under `/tmp/linguaframe-demo/demo-reviewer-workspace/`. Use reviewer workspace for the top-level handoff, acceptance gate for final go/no-go, completion certificate for proof details, OpenAI smoke proof for provider-backed proof, demo run package for detailed per-job evidence, and evidence closure when tying the run back to pre-upload approval and variance.
+
 Use the demo run snapshot when a reviewer wants an offline entry point for one run. `GET /api/jobs/{jobId}/demo-run-snapshot` previews readiness, sections, entries, exclusion policy, and safe links. `GET /api/jobs/{jobId}/demo-run-snapshot/download`, the browser `Demo snapshot` panel, and `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-run-snapshot.sh` should produce a ZIP with `index.html`, `manifest.json`, `README.md`, share sheet, run monitor, presenter pack JSON, delivery manifest, diagnostics, and evidence. It should not include media bytes, raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, or API keys.
 
 Use the demo acceptance gate as the final go/no-go check before presenting. `GET /api/jobs/{jobId}/demo-acceptance-gate`, the browser `Demo acceptance gate` panel, `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-acceptance-gate.sh`, and the full Tears script output `demo-acceptance-gate.json` should summarize required checks, warning checks, safe evidence metrics, package links, and recommended next action as `READY`, `ATTENTION`, or `BLOCKED`. It should not include media bytes, raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, or API keys.
@@ -277,6 +279,9 @@ The script downloads generated artifacts to:
 /tmp/linguaframe-demo/burned-video.mp4
 /tmp/linguaframe-demo/worker-summary.json
 /tmp/linguaframe-demo/quality-evidence.md
+/tmp/linguaframe-demo/demo-reviewer-workspace.json
+/tmp/linguaframe-demo/demo-reviewer-workspace.md
+/tmp/linguaframe-demo/demo-reviewer-workspace.zip
 ```
 
 `dubbing-audio.mp3` is downloaded only when TTS is enabled.
@@ -393,7 +398,7 @@ Override the input path when needed:
 LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
-The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video, `demo-presenter-pack.json`, `demo-acceptance-gate.json`, `demo-run-snapshot.json`, and `demo-run-snapshot.zip` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, acceptance readiness, snapshot entries, and safe download routes. `BURNED_VIDEO`, `DUBBING_AUDIO`, and `DUBBED_VIDEO` are optional because burn-in and TTS can be disabled for stable local runs.
+The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video, `demo-presenter-pack.json`, `demo-acceptance-gate.json`, `demo-run-snapshot.json`, `demo-run-snapshot.zip`, `demo-reviewer-workspace.json`, `demo-reviewer-workspace.md`, and `demo-reviewer-workspace.zip` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, acceptance readiness, snapshot entries, reviewer workspace status, and safe download routes. `BURNED_VIDEO`, `DUBBING_AUDIO`, and `DUBBED_VIDEO` are optional because burn-in and TTS can be disabled for stable local runs.
 
 To compare two complete Tears of Steel runs, first run a baseline profile and keep the completed job id:
 
@@ -449,7 +454,7 @@ LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
 scripts/demo/docker-e2e-openai-smoke.sh
 ```
 
-Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, AI audit package, OpenAI smoke proof JSON/Markdown, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
+Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, AI audit package, OpenAI smoke proof JSON/Markdown, demo reviewer workspace JSON/Markdown/ZIP, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
 
 For an already completed smoke job, export only the post-run proof:
 

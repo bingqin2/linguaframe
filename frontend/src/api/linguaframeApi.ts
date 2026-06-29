@@ -7,6 +7,7 @@ import type {
   DemoSessionCommandCenter,
   DemoCompletionCertificate,
   DemoRunLauncher,
+  DemoReviewerWorkspace,
   JobArtifact,
   JobComparison,
   DemoEvidenceClosurePackage,
@@ -743,6 +744,24 @@ export async function downloadOpenAiSmokeProofMarkdown(jobId: string): Promise<B
   });
 }
 
+export async function getDemoReviewerWorkspace(jobId: string): Promise<DemoReviewerWorkspace> {
+  return requestJson<DemoReviewerWorkspace>(`/api/jobs/${encodeURIComponent(jobId)}/demo-reviewer-workspace`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoReviewerWorkspaceMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-reviewer-workspace/markdown/download`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoReviewerWorkspaceZip(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-reviewer-workspace/download`, {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -993,6 +1012,9 @@ export const linguaFrameApi = {
   downloadOpenAiReadinessEvidenceMarkdown,
   getOpenAiSmokeProof,
   downloadOpenAiSmokeProofMarkdown,
+  getDemoReviewerWorkspace,
+  downloadDemoReviewerWorkspaceMarkdown,
+  downloadDemoReviewerWorkspaceZip,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

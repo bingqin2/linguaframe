@@ -1,6 +1,6 @@
 # Demo Reviewer Workspace Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a single reviewer-facing workspace for a completed demo job that summarizes whether the run is ready to share and exports one safe review package.
 
@@ -33,13 +33,13 @@
 - `DemoReviewerWorkspaceVo getWorkspace(String jobId)` returns `jobId`, `overallStatus`, `phase`, `recommendedNextAction`, `completedAt`, `targetLanguage`, sections, checks, safe links, package entries, and safety notes.
 - `String renderMarkdown(String jobId)` returns the same workspace as metadata-only Markdown.
 
-- [ ] Compose workspace from existing job detail, acceptance gate, completion certificate, delivery manifest, and OpenAI smoke proof services.
-- [ ] Add required checks for terminal completed status, transcript/subtitle artifacts, delivery links, diagnostics/evidence links, and package availability.
-- [ ] Add optional checks for quality evaluation, TTS/dubbed media, reviewed subtitle handoff, OpenAI smoke proof, AI audit package, and demo run package.
-- [ ] Derive `READY`, `ATTENTION`, or `BLOCKED` from required/optional checks with deterministic rules.
-- [ ] Render Markdown with a reviewer summary, checklist, safe links, package inventory, and safety notes.
-- [ ] Add tests for `READY`, `ATTENTION`, `BLOCKED`, missing job propagation, and unsafe marker exclusion.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests`.
+- [x] Compose workspace from existing job detail, acceptance gate, completion certificate, delivery manifest, and OpenAI smoke proof services.
+- [x] Add required checks for terminal completed status, transcript/subtitle artifacts, delivery links, diagnostics/evidence links, and package availability.
+- [x] Add optional checks for quality evaluation, TTS/dubbed media, reviewed subtitle handoff, OpenAI smoke proof, AI audit package, and demo run package.
+- [x] Derive `READY`, `ATTENTION`, or `BLOCKED` from required/optional checks with deterministic rules.
+- [x] Render Markdown with a reviewer summary, checklist, safe links, package inventory, and safety notes.
+- [x] Add tests for `READY`, `ATTENTION`, `BLOCKED`, missing job propagation, and unsafe marker exclusion.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests`.
 
 ## Task 2: Job API Endpoints And Runtime Contract
 
@@ -54,11 +54,11 @@
 - `GET /api/jobs/{jobId}/demo-reviewer-workspace/markdown/download`
 - `GET /api/jobs/{jobId}/demo-reviewer-workspace/download`
 
-- [ ] Add JSON, Markdown, and ZIP endpoints beside existing selected-job evidence routes.
-- [ ] ZIP should include `manifest.json`, `reviewer-workspace.md`, and safety README only; it should link to existing packages instead of embedding media artifacts.
-- [ ] Add the new routes to the runtime required-route contract.
-- [ ] Add MockMvc tests for JSON status, Markdown headers, ZIP entries, auth behavior, route contract, and unsafe marker exclusion.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests`.
+- [x] Add JSON, Markdown, and ZIP endpoints beside existing selected-job evidence routes.
+- [x] ZIP should include `manifest.json`, `reviewer-workspace.md`, and safety README only; it should link to existing packages instead of embedding media artifacts.
+- [x] Add the new routes to the runtime required-route contract.
+- [x] Add MockMvc tests for JSON status, Markdown headers, ZIP entries, auth behavior, route contract, and unsafe marker exclusion.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests`.
 
 ## Task 3: React Selected-Job Reviewer Panel
 
@@ -74,14 +74,14 @@
 - `downloadDemoReviewerWorkspaceMarkdown(jobId: string): Promise<Blob>`
 - `downloadDemoReviewerWorkspaceZip(jobId: string): Promise<Blob>`
 
-- [ ] Add TypeScript types matching the backend reviewer workspace.
-- [ ] Add API helpers using the existing owner-session token and bearer-header behavior.
-- [ ] Load the workspace whenever a selected job is loaded, refreshed, retried, cancelled, selected from history, or updated through SSE/polling.
-- [ ] Add a `Demo reviewer workspace` panel near the top of selected-job evidence with status, phase, required checks, optional checks, safe package links, and Markdown/ZIP download actions.
-- [ ] Keep selected-job details usable if reviewer workspace loading fails.
-- [ ] Add Vitest coverage for API paths, panel rendering, failure state, Markdown/ZIP downloads, and unsafe marker absence.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript types matching the backend reviewer workspace.
+- [x] Add API helpers using the existing owner-session token and bearer-header behavior.
+- [x] Load the workspace whenever a selected job is loaded, refreshed, retried, cancelled, selected from history, or updated through SSE/polling.
+- [x] Add a `Demo reviewer workspace` panel near the top of selected-job evidence with status, phase, required checks, optional checks, safe package links, and Markdown/ZIP download actions.
+- [x] Keep selected-job details usable if reviewer workspace loading fails.
+- [x] Add Vitest coverage for API paths, panel rendering, failure state, Markdown/ZIP downloads, and unsafe marker absence.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script, Docker Export, And Docs
 
@@ -100,28 +100,28 @@
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-reviewer-workspace.sh`
 - Default output directory: `/tmp/linguaframe-demo/demo-reviewer-workspace/`.
 
-- [ ] Add helper functions for reviewer workspace JSON, Markdown, and ZIP downloads.
-- [ ] Implement a script that writes `demo-reviewer-workspace.json`, `.md`, and `.zip`, prints metadata-only summary keys, and exits non-zero on `BLOCKED` unless `LINGUAFRAME_DEMO_REVIEWER_WORKSPACE_REPORT_ONLY=true`.
-- [ ] Extend success/OpenAI/full-video E2E scripts to export reviewer workspace files after job completion.
-- [ ] Document when to use reviewer workspace versus acceptance gate, completion certificate, OpenAI smoke proof, closure package, and session evidence package.
-- [ ] Update smoke checklist with expected browser panel, terminal script, ZIP entries, and safety exclusions.
-- [ ] Run `bash -n scripts/demo/demo-reviewer-workspace.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Add helper functions for reviewer workspace JSON, Markdown, and ZIP downloads.
+- [x] Implement a script that writes `demo-reviewer-workspace.json`, `.md`, and `.zip`, prints metadata-only summary keys, and exits non-zero on `BLOCKED` unless `LINGUAFRAME_DEMO_REVIEWER_WORKSPACE_REPORT_ONLY=true`.
+- [x] Extend success/OpenAI/full-video E2E scripts to export reviewer workspace files after job completion.
+- [x] Document when to use reviewer workspace versus acceptance gate, completion certificate, OpenAI smoke proof, closure package, and session evidence package.
+- [x] Update smoke checklist with expected browser panel, terminal script, ZIP entries, and safety exclusions.
+- [x] Run `bash -n scripts/demo/demo-reviewer-workspace.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/129-demo-reviewer-workspace.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`
   `npm run build`
   `bash -n scripts/demo/demo-reviewer-workspace.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run full safety checks:
+- [x] Run full safety checks:
   `mvn -pl LinguaFrame test`
   `npm test -- --run`
   `git diff --check`
-- [ ] Commit as `Add demo reviewer workspace`.
-- [ ] Merge the feature branch back to `main` after validation passes.
+- [x] Commit as `Add demo reviewer workspace`.
+- [x] Merge the feature branch back to `main` after validation passes.

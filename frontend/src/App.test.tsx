@@ -11,6 +11,7 @@ import type {
   DemoAcceptanceGate,
   DemoCompletionCertificate,
   DemoPresentationCockpit,
+  DemoReviewerWorkspace,
   DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
@@ -1673,8 +1674,15 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'getOpenAiSmokeProof').mockResolvedValue(openAiSmokeProofFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoReviewerWorkspace').mockResolvedValue(demoReviewerWorkspaceFixture());
     const downloadSmokeProof = vi.spyOn(linguaFrameApi, 'downloadOpenAiSmokeProofMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame OpenAI Smoke Proof'], { type: 'text/markdown' })
+    );
+    const downloadReviewerMarkdown = vi.spyOn(linguaFrameApi, 'downloadDemoReviewerWorkspaceMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Reviewer Workspace'], { type: 'text/markdown' })
+    );
+    const downloadReviewerZip = vi.spyOn(linguaFrameApi, 'downloadDemoReviewerWorkspaceZip').mockResolvedValue(
+      new Blob(['zip'], { type: 'application/zip' })
     );
 
     render(<App />);
@@ -1715,6 +1723,16 @@ describe('App', () => {
     expect(within(smokeProof).queryByText('raw transcript text')).not.toBeInTheDocument();
     await userEvent.click(within(smokeProof).getByRole('button', { name: /download smoke proof/i }));
     await waitFor(() => expect(downloadSmokeProof).toHaveBeenCalledWith('job-1'));
+    const reviewerWorkspace = screen.getByRole('region', { name: /demo reviewer workspace/i });
+    expect(within(reviewerWorkspace).getByText('REVIEW_PACKAGE_READY')).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByText(/Job completed/)).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByText('Demo run package')).toBeInTheDocument();
+    expect(within(reviewerWorkspace).queryByText('raw transcript text')).not.toBeInTheDocument();
+    expect(within(reviewerWorkspace).queryByText('provider request payload')).not.toBeInTheDocument();
+    await userEvent.click(within(reviewerWorkspace).getByRole('button', { name: /download reviewer markdown/i }));
+    await waitFor(() => expect(downloadReviewerMarkdown).toHaveBeenCalledWith('job-1'));
+    await userEvent.click(within(reviewerWorkspace).getByRole('button', { name: /download reviewer zip/i }));
+    await waitFor(() => expect(downloadReviewerZip).toHaveBeenCalledWith('job-1'));
     const failureTriage = screen.getByRole('region', { name: /failure triage/i });
     expect(within(failureTriage).getByText('OPENAI_AUTH_OR_MODEL')).toBeInTheDocument();
     expect(within(failureTriage).getByText('OpenAI rejected the configured credentials or model.')).toBeInTheDocument();
@@ -5650,5 +5668,58 @@ function openAiSmokeProofFixture(): OpenAiSmokeProof {
       }
     ],
     safetyNotes: ['Metadata only; sensitive content is excluded.']
+  };
+}
+
+function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    generatedAt: '2026-06-26T10:00:05Z',
+    overallStatus: 'READY',
+    phase: 'REVIEW_PACKAGE_READY',
+    recommendedNextAction: 'Share this metadata-only reviewer workspace with demo reviewers.',
+    completedAt: '2026-06-26T10:00:04Z',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'openai-smoke',
+    sections: [
+      {
+        key: 'run',
+        title: 'Run summary',
+        status: 'READY',
+        facts: ['Completed job job-1.', 'Target language zh-CN.']
+      }
+    ],
+    checks: [
+      {
+        key: 'job-completed',
+        label: 'Job completed',
+        status: 'READY',
+        detail: 'Job reached COMPLETED.',
+        nextAction: 'No action required.',
+        required: true
+      },
+      {
+        key: 'openai-smoke-proof',
+        label: 'OpenAI smoke proof',
+        status: 'READY',
+        detail: 'Provider-backed model calls are recorded.',
+        nextAction: 'No action required.',
+        required: false
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'package',
+        label: 'Demo run package',
+        href: '/api/jobs/job-1/demo-run-package/download',
+        contentType: 'application/zip',
+        description: 'Metadata and links for the completed demo run.'
+      }
+    ],
+    packageEntries: ['manifest.json', 'reviewer-workspace.md', 'README.md'],
+    safetyNotes: [
+      'Metadata only: no media bytes, transcript bodies, subtitle bodies, local filesystem paths, object storage keys, provider request or response bodies, credentials, bearer tokens, or demo tokens are included.'
+    ]
   };
 }

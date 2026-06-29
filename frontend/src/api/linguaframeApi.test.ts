@@ -37,6 +37,9 @@ import {
   downloadOpenAiReadinessEvidenceMarkdown,
   getOpenAiSmokeProof,
   downloadOpenAiSmokeProofMarkdown,
+  getDemoReviewerWorkspace,
+  downloadDemoReviewerWorkspaceMarkdown,
+  downloadDemoReviewerWorkspaceZip,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -1287,6 +1290,74 @@ describe('linguaframeApi', () => {
     expect(await result.text()).toContain('OpenAI Smoke Proof');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/jobs/job%20with%20spaces%2Fslash/openai-smoke-proof/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('fetches demo reviewer workspace with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(demoReviewerWorkspaceFixture())
+    );
+
+    const workspace = await getDemoReviewerWorkspace('job with spaces/slash');
+
+    expect(workspace.overallStatus).toBe('READY');
+    expect(workspace.checks[0]?.key).toBe('JOB_COMPLETED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/demo-reviewer-workspace', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads demo reviewer workspace markdown with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Demo Reviewer Workspace', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadDemoReviewerWorkspaceMarkdown('job with spaces/slash');
+
+    expect(await result.text()).toContain('Demo Reviewer Workspace');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/demo-reviewer-workspace/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('downloads demo reviewer workspace zip with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadDemoReviewerWorkspaceZip('job with spaces/slash');
+
+    expect(await result.text()).toContain('zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/demo-reviewer-workspace/download',
       {
         method: 'GET',
         headers: {
@@ -3038,6 +3109,49 @@ function openAiSmokeProofFixture() {
         description: 'Prompt, model-call, usage, and cost audit package.'
       }
     ],
+    safetyNotes: ['Metadata only.']
+  };
+}
+
+function demoReviewerWorkspaceFixture() {
+  return {
+    jobId: 'job-reviewer',
+    videoId: 'video-reviewer',
+    generatedAt: '2026-06-29T13:00:00Z',
+    overallStatus: 'READY',
+    phase: 'REVIEW_PACKAGE_READY',
+    recommendedNextAction: 'Download the reviewer workspace ZIP and share it with the demo evidence links.',
+    completedAt: '2026-06-29T12:59:30Z',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    sections: [
+      {
+        key: 'RUN_SUMMARY',
+        title: 'Run summary',
+        status: 'COMPLETED',
+        facts: ['Job status: COMPLETED', 'Model calls: 4']
+      }
+    ],
+    checks: [
+      {
+        key: 'JOB_COMPLETED',
+        label: 'Job completed',
+        status: 'READY',
+        detail: 'Job reached COMPLETED.',
+        nextAction: 'Keep the completed job id with reviewer evidence.',
+        required: true
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'DEMO_RUN_PACKAGE',
+        label: 'Demo run package',
+        href: '/api/jobs/job-reviewer/demo-run-package/download',
+        contentType: 'application/zip',
+        description: 'Detailed safe job package.'
+      }
+    ],
+    packageEntries: ['manifest.json', 'reviewer-workspace.md', 'README.md'],
     safetyNotes: ['Metadata only.']
   };
 }

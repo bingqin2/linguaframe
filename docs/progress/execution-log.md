@@ -6,6 +6,27 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo reviewer workspace in `docs/plans/129-demo-reviewer-workspace.md`.
+- Added backend `GET /api/jobs/{jobId}/demo-reviewer-workspace`, Markdown download, and ZIP download for a metadata-only reviewer handoff.
+- Added React selected-job `Demo reviewer workspace` panel with status, phase, required checks, optional evidence, safe links, package entries, refresh, and Markdown/ZIP downloads.
+- Added `scripts/demo/demo-reviewer-workspace.sh` and extended deterministic, OpenAI smoke, and full Tears scripts to export reviewer workspace JSON/Markdown/ZIP after completion.
+- Updated README, Docker E2E guide, and smoke checklist with reviewer workspace usage and safety exclusions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=DemoReviewerWorkspaceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests` passed with `Tests run: 65, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/App.test.tsx -t "renders timeline"` first failed because the selected-job panel was intentionally missing, then passed after adding `Demo reviewer workspace`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 175 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/demo-reviewer-workspace.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 675, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 182 passed`.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned OpenAI smoke proof workspace in `docs/plans/128-openai-smoke-proof-workspace.md`.
 - Added backend `GET /api/jobs/{jobId}/openai-smoke-proof` and Markdown download for post-run OpenAI smoke evidence.
 - Added browser selected-job `OpenAI smoke proof` panel with required checks, OpenAI call rows, artifacts, safe links, refresh, and Markdown download.
