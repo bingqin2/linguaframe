@@ -35,6 +35,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   NarrationDemoPreset,
+  NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationScriptPackage,
   ImportNarrationScriptPackageRequest,
@@ -419,12 +420,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
   const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
+  const [narrationDemoRenderResult, setNarrationDemoRenderResult] = useState<NarrationDemoRenderResult | null>(null);
   const [narrationError, setNarrationError] = useState<string | null>(null);
   const [narrationStatus, setNarrationStatus] = useState<string | null>(null);
   const [isSavingNarration, setIsSavingNarration] = useState(false);
   const [isClearingNarration, setIsClearingNarration] = useState(false);
   const [isGeneratingNarration, setIsGeneratingNarration] = useState(false);
   const [isGeneratingNarratedVideo, setIsGeneratingNarratedVideo] = useState(false);
+  const [isRenderingNarrationDemo, setIsRenderingNarrationDemo] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -1146,6 +1149,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     if (narrationWorkspaceResult.status === 'fulfilled') {
       setNarrationWorkspace(narrationWorkspaceResult.value);
+      setNarrationDemoRenderResult(null);
       setNarrationError(null);
       setNarrationStatus(null);
     } else {
@@ -2151,6 +2155,37 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleRenderNarrationDemo(presetId: string, generateNarratedVideo: boolean) {
+    if (!job) {
+      return;
+    }
+    setIsRenderingNarrationDemo(true);
+    try {
+      const result = await linguaFrameApi.renderNarrationDemo(job.jobId, {
+        presetId,
+        replaceExisting: true,
+        generateNarratedVideo
+      });
+      const [refreshedWorkspace, refreshedEvidence, refreshedScriptPackage, refreshedArtifacts] = await Promise.all([
+        linguaFrameApi.getNarrationWorkspace(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId),
+        linguaFrameApi.getNarrationScriptPackage(job.jobId),
+        linguaFrameApi.listArtifacts(job.jobId)
+      ]);
+      setNarrationDemoRenderResult(result);
+      setNarrationWorkspace(refreshedWorkspace ?? result.presetApply?.workspace ?? narrationWorkspace);
+      setNarrationEvidence(refreshedEvidence ?? result.narrationEvidence);
+      setNarrationScriptPackage(refreshedScriptPackage ?? result.scriptPackage);
+      setArtifacts(refreshedArtifacts);
+      setNarrationError(null);
+      setNarrationStatus(`Rendered narration demo ${result.presetId}: ${result.status}.`);
+    } catch (renderError) {
+      setNarrationError(toErrorMessage(renderError));
+    } finally {
+      setIsRenderingNarrationDemo(false);
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -2810,6 +2845,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingOpenAiSmokeProof={isLoadingOpenAiSmokeProof}
               isLoadingDemoReviewerWorkspace={isLoadingDemoReviewerWorkspace}
               isLoadingDemoHandoffPortal={isLoadingDemoHandoffPortal}
+              isRenderingNarrationDemo={isRenderingNarrationDemo}
               onCancel={handleCancel}
               onClearNarrationWorkspace={handleClearNarrationWorkspace}
               onClearSubtitleDraft={handleClearSubtitleDraft}
@@ -2836,10 +2872,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
               onImportNarrationScriptPackage={handleImportNarrationScriptPackage}
               onApplyNarrationDemoPreset={handleApplyNarrationDemoPreset}
+              onRenderNarrationDemo={handleRenderNarrationDemo}
               onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
+              narrationDemoRenderResult={narrationDemoRenderResult}
               narrationEvidence={narrationEvidence}
               narrationScriptPackage={narrationScriptPackage}
               narrationDemoPresets={narrationDemoPresets}
@@ -5707,6 +5745,7 @@ function JobDetail({
   isLoadingOpenAiSmokeProof,
   isLoadingDemoReviewerWorkspace,
   isLoadingDemoHandoffPortal,
+  isRenderingNarrationDemo,
   isGeneratingNarratedVideo,
   onCancel,
   onClearNarrationWorkspace,
@@ -5733,11 +5772,13 @@ function JobDetail({
   onRetry,
   onApplyNarrationDemoPreset,
   onImportNarrationScriptPackage,
+  onRenderNarrationDemo,
   onPublishReviewedSubtitles,
   onSaveNarrationMixSettings,
   onSaveNarrationWorkspace,
   onSaveSubtitleDraft,
   narrationError,
+  narrationDemoRenderResult,
   narrationEvidence,
   narrationDemoPresets,
   narrationScriptPackage,
@@ -5826,6 +5867,7 @@ function JobDetail({
   isLoadingOpenAiSmokeProof: boolean;
   isLoadingDemoReviewerWorkspace: boolean;
   isLoadingDemoHandoffPortal: boolean;
+  isRenderingNarrationDemo: boolean;
   onCancel: () => void;
   onClearNarrationWorkspace: () => void;
   onClearSubtitleDraft: () => void;
@@ -5851,6 +5893,7 @@ function JobDetail({
   onRetry: () => void;
   onApplyNarrationDemoPreset: (presetId: string) => void;
   onImportNarrationScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
+  onRenderNarrationDemo: (presetId: string, generateNarratedVideo: boolean) => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
   onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onSaveNarrationWorkspace: (segments: NarrationWorkspace['segments']) => void;
@@ -5862,6 +5905,7 @@ function JobDetail({
     reviewerNote: string | null;
   }>) => void;
   narrationError: string | null;
+  narrationDemoRenderResult: NarrationDemoRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
   narrationDemoPresets: NarrationDemoPreset[];
   narrationScriptPackage: NarrationScriptPackage | null;
@@ -6160,6 +6204,7 @@ function JobDetail({
         isClearing={isClearingNarration}
         isGenerating={isGeneratingNarration}
         isGeneratingVideo={isGeneratingNarratedVideo}
+        isRenderingDemo={isRenderingNarrationDemo}
         isSaving={isSavingNarration}
         jobId={job.jobId}
         onClear={onClearNarrationWorkspace}
@@ -6168,10 +6213,12 @@ function JobDetail({
         onApplyDemoPreset={onApplyNarrationDemoPreset}
         onImportScriptPackage={onImportNarrationScriptPackage}
         onRefreshEvidence={onRefreshNarrationEvidence}
+        onRenderDemo={onRenderNarrationDemo}
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
         scriptPackage={narrationScriptPackage}
         demoPresets={narrationDemoPresets}
+        renderResult={narrationDemoRenderResult}
         status={narrationStatus}
         workspace={narrationWorkspace}
       />
@@ -9172,6 +9219,7 @@ function NarrationWorkspacePanel({
   isClearing,
   isGenerating,
   isGeneratingVideo,
+  isRenderingDemo,
   isSaving,
   jobId,
   demoPresets,
@@ -9181,8 +9229,10 @@ function NarrationWorkspacePanel({
   onGenerateVideo,
   onImportScriptPackage,
   onRefreshEvidence,
+  onRenderDemo,
   onSave,
   onSaveMixSettings,
+  renderResult,
   scriptPackage,
   status,
   workspace
@@ -9192,6 +9242,7 @@ function NarrationWorkspacePanel({
   isClearing: boolean;
   isGenerating: boolean;
   isGeneratingVideo: boolean;
+  isRenderingDemo: boolean;
   isSaving: boolean;
   jobId: string;
   demoPresets: NarrationDemoPreset[];
@@ -9201,8 +9252,10 @@ function NarrationWorkspacePanel({
   onGenerateVideo: () => void;
   onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onRefreshEvidence: () => void;
+  onRenderDemo: (presetId: string, generateNarratedVideo: boolean) => void;
   onSave: (segments: NarrationWorkspace['segments']) => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+  renderResult: NarrationDemoRenderResult | null;
   scriptPackage: NarrationScriptPackage | null;
   status: string | null;
   workspace: NarrationWorkspace | null;
@@ -9323,6 +9376,13 @@ function NarrationWorkspacePanel({
           presets={demoPresets}
           workspace={workspace}
           onApplyPreset={onApplyDemoPreset}
+        />
+        <NarrationDemoRenderPanel
+          isRendering={isRenderingDemo}
+          presets={demoPresets}
+          result={renderResult}
+          workspace={workspace}
+          onRender={onRenderDemo}
         />
       </div>
     </section>
@@ -9699,6 +9759,127 @@ function NarrationDemoPresetPanel({
           </button>
         </>
       ) : null}
+    </section>
+  );
+}
+
+function NarrationDemoRenderPanel({
+  isRendering,
+  onRender,
+  presets,
+  result,
+  workspace
+}: {
+  isRendering: boolean;
+  onRender: (presetId: string, generateNarratedVideo: boolean) => void;
+  presets: NarrationDemoPreset[];
+  result: NarrationDemoRenderResult | null;
+  workspace: NarrationWorkspace | null;
+}) {
+  const [selectedPresetId, setSelectedPresetId] = useState(presets[0]?.id ?? '');
+  const [replaceCurrentWorkspace, setReplaceCurrentWorkspace] = useState(false);
+  const [acknowledgeProviderCost, setAcknowledgeProviderCost] = useState(false);
+  const [generateNarratedVideo, setGenerateNarratedVideo] = useState(true);
+
+  useEffect(() => {
+    if (presets.length > 0 && !presets.some((preset) => preset.id === selectedPresetId)) {
+      setSelectedPresetId(presets[0].id);
+    }
+  }, [presets, selectedPresetId]);
+
+  const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0] ?? null;
+  const canRender = Boolean(selectedPreset) && replaceCurrentWorkspace && acknowledgeProviderCost && !isRendering;
+
+  return (
+    <section className="nested-panel" aria-label="Render narration demo">
+      <div className="panel-heading compact">
+        <div>
+          <h4>Render narration demo</h4>
+          <p className="muted">Apply preset, generate narration audio, optionally generate narrated video, then refresh evidence.</p>
+        </div>
+        {result ? <span className={`status-pill ${result.status === 'READY' ? 'ready' : result.status === 'PARTIAL' ? 'warning' : 'failed'}`}>{result.status}</span> : null}
+      </div>
+      {selectedPreset ? (
+        <>
+          <label>
+            Preset
+            <select
+              aria-label="Narration demo render preset"
+              value={selectedPreset.id}
+              onChange={(event) => {
+                setSelectedPresetId(event.target.value);
+                setReplaceCurrentWorkspace(false);
+                setAcknowledgeProviderCost(false);
+              }}
+            >
+              {presets.map((preset) => (
+                <option key={preset.id} value={preset.id}>{preset.label}</option>
+              ))}
+            </select>
+          </label>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Preset</dt>
+              <dd>{selectedPreset.label}</dd>
+            </div>
+            <div>
+              <dt>Workspace</dt>
+              <dd>{workspace?.status ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Outputs</dt>
+              <dd>{generateNarratedVideo ? 'Audio + video' : 'Audio only'}</dd>
+            </div>
+            <div>
+              <dt>Artifacts</dt>
+              <dd>{result ? result.generatedArtifactCount : 0}</dd>
+            </div>
+          </dl>
+          <label className="inline-checkbox">
+            <input
+              aria-label="Replace current narration workspace before rendering"
+              checked={replaceCurrentWorkspace}
+              type="checkbox"
+              onChange={(event) => setReplaceCurrentWorkspace(event.target.checked)}
+            />
+            Replace current narration workspace before rendering
+          </label>
+          <label className="inline-checkbox">
+            <input
+              aria-label="I understand this can call TTS providers"
+              checked={acknowledgeProviderCost}
+              type="checkbox"
+              onChange={(event) => setAcknowledgeProviderCost(event.target.checked)}
+            />
+            I understand this can call TTS providers
+          </label>
+          <label className="inline-checkbox">
+            <input
+              aria-label="Generate narrated video"
+              checked={generateNarratedVideo}
+              type="checkbox"
+              onChange={(event) => setGenerateNarratedVideo(event.target.checked)}
+            />
+            Generate narrated video
+          </label>
+          <button
+            type="button"
+            disabled={!canRender}
+            onClick={() => onRender(selectedPreset.id, generateNarratedVideo)}
+          >
+            {isRendering ? 'Rendering...' : 'Render narration demo'}
+          </button>
+          {result ? (
+            <ul className="compact-list">
+              {result.steps.map((step) => (
+                <li key={step.key}>{step.key}: {step.status}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : (
+        <p className="muted">No narration demo presets are available.</p>
+      )}
     </section>
   );
 }

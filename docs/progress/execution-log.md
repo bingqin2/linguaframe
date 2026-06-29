@@ -10,12 +10,18 @@ Work:
 - Added backend narration demo render orchestration records and service.
 - Added `POST /api/jobs/{jobId}/narration-demo/render` to apply a preset, generate narration audio, optionally generate narrated video, refresh script package/evidence, and return step-by-step render status.
 - Render orchestration preserves partial progress: if narrated-video generation fails after audio succeeds, the generated `NARRATION_AUDIO` artifact remains and the response returns `PARTIAL`.
+- Added frontend render request/result types and `renderNarrationDemo` API helper.
+- Added a `Render narration demo` panel inside the selected-job narration workspace with explicit replace confirmation, paid-provider acknowledgement, optional narrated-video generation, step rows, refreshed workspace/evidence/package/artifact state, and compact panel styling.
 
 Validation:
 
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` first failed at test compilation because `RenderNarrationDemoDto`, `NarrationDemoRenderVo`, `NarrationDemoRenderService`, and `NarrationDemoRenderServiceImpl` did not exist.
 - After adding the render service and controller route, the same command failed because the controller test used an overlong video id and because dynamic narration-audio artifact reads were not stubbed.
 - After shortening the test id and adding a safe object-storage open stub, the same command passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because `renderNarrationDemo` was not implemented on the API module.
+- After adding frontend API/types/UI, the same command failed because the render panel test queried duplicate preset label text across the select option and metrics row.
+- After tightening the assertion to accept duplicated visible preset labels, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
 
 ## 2026-06-30
 

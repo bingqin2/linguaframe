@@ -512,6 +512,63 @@ td {
   margin: 3px 0 0;
 }
 
+.nested-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 280px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.panel-heading.compact {
+  align-items: start;
+  margin: 0;
+}
+
+.nested-panel h4 {
+  margin: 0;
+}
+
+.nested-panel .muted {
+  margin: 3px 0 0;
+}
+
+.compact-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.compact-metrics div {
+  min-width: 0;
+  border: 1px solid #dfe7ed;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.compact-metrics dt {
+  color: #657482;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.compact-metrics dd {
+  margin: 3px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.compact-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .script-package-panel textarea {
   min-height: 140px;
   resize: vertical;

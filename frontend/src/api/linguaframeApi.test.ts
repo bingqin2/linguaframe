@@ -58,6 +58,7 @@ import {
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
   generateNarratedVideo,
+  renderNarrationDemo,
   importNarrationScriptPackage,
   getDemoSession,
   getAuthSession,
@@ -450,6 +451,46 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
+  });
+
+  test('renders narration demo with encoded route and explicit render options', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job narration/render',
+        presetId: 'tears-showcase-narration',
+        status: 'READY',
+        steps: [
+          {
+            key: 'PRESET_APPLY',
+            label: 'Apply narration preset',
+            status: 'SUCCEEDED',
+            message: 'Applied preset tears-showcase-narration.'
+          }
+        ],
+        presetApply: null,
+        narrationAudio: null,
+        narratedVideo: null,
+        scriptPackage: null,
+        narrationEvidence: null,
+        generatedArtifactCount: 2
+      })
+    );
+
+    await renderNarrationDemo('job narration/render', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true,
+      generateNarratedVideo: false
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Frender/narration-demo/render');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        presetId: 'tears-showcase-narration',
+        replaceExisting: true,
+        generateNarratedVideo: false
+      })
+    });
   });
 
   test('loads, downloads, and imports narration script packages', async () => {

@@ -51,11 +51,13 @@ import type {
   PublishReviewedSubtitlesRequest,
   PromptTemplate,
   RetentionCleanupResult,
+  RenderNarrationDemoRequest,
   ReviewedSubtitleWorkflow,
   ReviewedSubtitlePublish,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
   SaveNarrationWorkspaceRequest,
+  NarrationDemoRenderResult,
   SubtitleDraftSummary,
   SubtitleReviewEvidence,
   SubtitleReviewSummary,
@@ -936,6 +938,22 @@ export async function generateNarratedVideo(jobId: string): Promise<NarratedVide
   );
 }
 
+export async function renderNarrationDemo(
+  jobId: string,
+  request: RenderNarrationDemoRequest
+): Promise<NarrationDemoRenderResult> {
+  return requestJson<NarrationDemoRenderResult>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-demo/render`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function getNarrationEvidence(jobId: string): Promise<NarrationEvidence> {
   return requestJson<NarrationEvidence>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence`,
@@ -1270,6 +1288,7 @@ export const linguaFrameApi = {
   updateNarrationMixSettings,
   generateNarrationAudio,
   generateNarratedVideo,
+  renderNarrationDemo,
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,

@@ -1757,6 +1757,35 @@ export interface NarrationDemoPresetApplyResult {
   narrationEvidenceStatus: string;
 }
 
+export type NarrationDemoRenderStatus = 'READY' | 'PARTIAL' | 'FAILED';
+export type NarrationDemoRenderStepStatus = 'READY' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
+
+export interface RenderNarrationDemoRequest {
+  presetId: string;
+  replaceExisting: boolean;
+  generateNarratedVideo: boolean;
+}
+
+export interface NarrationDemoRenderStep {
+  key: string;
+  label: string;
+  status: NarrationDemoRenderStepStatus;
+  message: string;
+}
+
+export interface NarrationDemoRenderResult {
+  jobId: string;
+  presetId: string;
+  status: NarrationDemoRenderStatus;
+  steps: NarrationDemoRenderStep[];
+  presetApply: NarrationDemoPresetApplyResult | null;
+  narrationAudio: NarrationGeneration | null;
+  narratedVideo: NarratedVideoGeneration | null;
+  scriptPackage: NarrationScriptPackage | null;
+  narrationEvidence: NarrationEvidence | null;
+  generatedArtifactCount: number;
+}
+
 export interface TranscriptSegment {
   index: number;
   startMs: number;

@@ -31,6 +31,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   NarrationDemoPreset,
+  NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationGeneration,
   NarrationScriptPackage,
@@ -2636,6 +2637,91 @@ describe('App', () => {
     expect(await within(narrationPanel).findByText('Applied tears-showcase-narration with 4 segments.')).toBeInTheDocument();
     expect((await within(narrationPanel).findAllByText('Preset first explanation.')).length).toBeGreaterThan(0);
     expect(within(presetPanel).getByText('Generate narration audio separately after applying.')).toBeInTheDocument();
+  });
+
+  test('renders narration demo from the narration workspace with explicit acknowledgements', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-render-job', videoId: 'narration-render-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        artifactFixture({
+          artifactId: 'narration-audio-artifact',
+          jobId: 'narration-render-job',
+          type: 'NARRATION_AUDIO',
+          filename: 'narration-audio.mp3'
+        }),
+        artifactFixture({
+          artifactId: 'narrated-video-artifact',
+          jobId: 'narration-render-job',
+          type: 'NARRATED_VIDEO',
+          filename: 'narrated-video.mp4'
+        })
+      ]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace')
+      .mockResolvedValueOnce(narrationWorkspaceFixture({ jobId: 'narration-render-job' }))
+      .mockResolvedValueOnce(narrationWorkspaceFixture({
+        jobId: 'narration-render-job',
+        segmentCount: 4,
+        segments: [
+          {
+            ...narrationWorkspaceFixture().segments[0],
+            text: 'Rendered first explanation.',
+            voice: null
+          }
+        ]
+      }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence')
+      .mockResolvedValueOnce(narrationEvidenceFixture({ status: 'ATTENTION' }))
+      .mockResolvedValueOnce(narrationEvidenceFixture({
+        jobId: 'narration-render-job',
+        status: 'READY',
+        narrationAudioReady: true,
+        narratedVideoReady: true
+      }));
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage')
+      .mockResolvedValueOnce(narrationScriptPackageFixture({ jobId: 'narration-render-job' }))
+      .mockResolvedValueOnce(narrationScriptPackageFixture({
+        jobId: 'narration-render-job',
+        segmentCount: 4
+      }));
+    vi.spyOn(linguaFrameApi, 'listNarrationDemoPresets').mockResolvedValue([narrationDemoPresetFixture()]);
+    const renderNarrationDemo = vi.spyOn(linguaFrameApi, 'renderNarrationDemo')
+      .mockResolvedValue(narrationDemoRenderResultFixture({
+        jobId: 'narration-render-job',
+        status: 'READY'
+      }));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-render-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const renderPanel = within(narrationPanel).getByRole('region', { name: /render narration demo/i });
+    expect(within(renderPanel).getAllByText('Tears showcase narration').length).toBeGreaterThan(0);
+    expect(within(renderPanel).getByRole('button', { name: /render narration demo/i })).toBeDisabled();
+
+    await userEvent.click(within(renderPanel).getByLabelText(/replace current narration workspace before rendering/i));
+    expect(within(renderPanel).getByRole('button', { name: /render narration demo/i })).toBeDisabled();
+
+    await userEvent.click(within(renderPanel).getByLabelText(/i understand this can call tts providers/i));
+    await userEvent.click(within(renderPanel).getByRole('checkbox', { name: /generate narrated video/i }));
+    await userEvent.click(within(renderPanel).getByRole('button', { name: /render narration demo/i }));
+
+    expect(renderNarrationDemo).toHaveBeenCalledWith('narration-render-job', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true,
+      generateNarratedVideo: false
+    });
+    expect(await within(narrationPanel).findByText('Rendered narration demo tears-showcase-narration: READY.')).toBeInTheDocument();
+    expect(within(renderPanel).getByText('PRESET_APPLY: SUCCEEDED')).toBeInTheDocument();
+    expect(within(renderPanel).getByText('NARRATION_AUDIO: SUCCEEDED')).toBeInTheDocument();
+    expect(within(renderPanel).getByText('NARRATED_VIDEO: SUCCEEDED')).toBeInTheDocument();
+    expect((await within(narrationPanel).findAllByText('Rendered first explanation.')).length).toBeGreaterThan(0);
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -5979,6 +6065,58 @@ function narratedVideoGenerationFixture(overrides: Partial<NarratedVideoGenerati
     fadeDurationMs: 250,
     narrationWindowCount: 2,
     status: 'READY',
+    ...overrides
+  };
+}
+
+function narrationDemoRenderResultFixture(overrides: Partial<NarrationDemoRenderResult> = {}): NarrationDemoRenderResult {
+  return {
+    jobId: 'narration-render-job',
+    presetId: 'tears-showcase-narration',
+    status: 'READY',
+    steps: [
+      {
+        key: 'PRESET_APPLY',
+        label: 'Apply narration preset',
+        status: 'SUCCEEDED',
+        message: 'Applied preset tears-showcase-narration.'
+      },
+      {
+        key: 'NARRATION_AUDIO',
+        label: 'Generate narration audio',
+        status: 'SUCCEEDED',
+        message: 'Generated narration-audio.mp3.'
+      },
+      {
+        key: 'NARRATED_VIDEO',
+        label: 'Generate narrated video',
+        status: 'SUCCEEDED',
+        message: 'Generated narrated-video.mp4.'
+      }
+    ],
+    presetApply: {
+      jobId: 'narration-render-job',
+      presetId: 'tears-showcase-narration',
+      profileId: 'tears-showcase',
+      importedSegmentCount: 4,
+      totalCharacterCount: 128,
+      voiceSummary: 'DEFAULT:verse',
+      replacedExisting: true,
+      generatedMedia: false,
+      workspace: narrationWorkspaceFixture({ jobId: 'narration-render-job' }),
+      scriptPackage: narrationScriptPackageFixture({ jobId: 'narration-render-job' }),
+      narrationEvidenceStatus: 'ATTENTION'
+    },
+    narrationAudio: narrationGenerationFixture({ jobId: 'narration-render-job' }),
+    narratedVideo: narratedVideoGenerationFixture({ jobId: 'narration-render-job' }),
+    scriptPackage: narrationScriptPackageFixture({ jobId: 'narration-render-job' }),
+    narrationEvidence: narrationEvidenceFixture({
+      jobId: 'narration-render-job',
+      status: 'READY',
+      narrationAudioReady: true,
+      narratedVideoReady: true
+    }),
+    generatedArtifactCount: 2,
     ...overrides
   };
 }

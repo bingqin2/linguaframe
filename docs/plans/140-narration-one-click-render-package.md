@@ -61,18 +61,18 @@
 **Interfaces:**
 - `renderNarrationDemo(jobId: string, request: RenderNarrationDemoRequest): Promise<NarrationDemoRenderResult>`
 
-- [ ] Add TypeScript types for render request, step result, and render result with exact status unions.
-- [ ] Add API helper and route-encoding tests for `/api/jobs/{jobId}/narration-demo/render`.
-- [ ] Add a `Render narration demo` panel inside the selected-job narration workspace near `Demo narration preset`.
-- [ ] Require explicit replace confirmation and a separate paid-provider acknowledgement before enabling render.
-- [ ] Include a `Generate narrated video` checkbox that defaults on and maps to `generateNarratedVideo`.
-- [ ] On success or partial result, refresh narration workspace, script package, narration evidence, and artifacts.
-- [ ] Display step rows for preset apply, audio generation, video generation, script package refresh, and evidence refresh.
-- [ ] Preserve existing separate buttons for apply preset, generate audio, generate video, script package import/export, and evidence export.
-- [ ] Add Vitest coverage for disabled render states, successful full render, partial video failure message, no-video mode, and refresh calls.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add TypeScript types for render request, step result, and render result with exact status unions.
+- [x] Add API helper and route-encoding tests for `/api/jobs/{jobId}/narration-demo/render`.
+- [x] Add a `Render narration demo` panel inside the selected-job narration workspace near `Demo narration preset`.
+- [x] Require explicit replace confirmation and a separate paid-provider acknowledgement before enabling render.
+- [x] Include a `Generate narrated video` checkbox that defaults on and maps to `generateNarratedVideo`.
+- [x] On success or partial result, refresh narration workspace, script package, narration evidence, and artifacts.
+- [x] Display step rows for preset apply, audio generation, video generation, script package refresh, and evidence refresh.
+- [x] Preserve existing separate buttons for apply preset, generate audio, generate video, script package import/export, and evidence export.
+- [x] Add Vitest coverage for disabled render states, successful full render, partial video failure message, no-video mode, and refresh calls.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration demo render UI`.
 
 ## Task 3: Terminal Render Script And Full Tears Integration
