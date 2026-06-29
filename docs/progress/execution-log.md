@@ -3671,3 +3671,25 @@ Validation so far:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 71 passed`.
 - `npm --prefix frontend run build` passed.
 - `bash -n scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned demo handoff portal package in `docs/plans/130-demo-handoff-portal-package.md`.
+- Added backend demo handoff portal aggregate with JSON, Markdown, and static ZIP output.
+- Added `GET /api/jobs/{jobId}/demo-handoff-portal`, Markdown download, ZIP download, and runtime contract routes.
+- Added browser `Demo handoff portal` panel with status, checks, safe links, package entries, and Markdown/ZIP downloads.
+- Added `scripts/demo/demo-handoff-portal.sh` plus deterministic, OpenAI smoke, and full Tears E2E exports.
+- Documented handoff portal usage, ZIP entries, and safety checks in README and agent demo docs.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests` passed with `Tests run: 68, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 178 passed`.
+- `bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 682, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 185 passed`.
+- `git diff --check` passed.

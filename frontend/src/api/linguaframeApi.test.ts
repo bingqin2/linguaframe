@@ -40,6 +40,9 @@ import {
   getDemoReviewerWorkspace,
   downloadDemoReviewerWorkspaceMarkdown,
   downloadDemoReviewerWorkspaceZip,
+  getDemoHandoffPortal,
+  downloadDemoHandoffPortalMarkdown,
+  downloadDemoHandoffPortalZip,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -1358,6 +1361,75 @@ describe('linguaframeApi', () => {
     expect(await result.text()).toContain('zip-bytes');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/jobs/job%20with%20spaces%2Fslash/demo-reviewer-workspace/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('fetches demo handoff portal with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(demoHandoffPortalFixture())
+    );
+
+    const portal = await getDemoHandoffPortal('job with spaces/slash');
+
+    expect(portal.overallStatus).toBe('READY');
+    expect(portal.phase).toBe('HANDOFF_PORTAL_READY');
+    expect(portal.checks[0]?.key).toBe('JOB_COMPLETED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/demo-handoff-portal', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads demo handoff portal markdown with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Demo Handoff Portal', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadDemoHandoffPortalMarkdown('job with spaces/slash');
+
+    expect(await result.text()).toContain('Demo Handoff Portal');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/demo-handoff-portal/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('downloads demo handoff portal zip with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('portal-zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadDemoHandoffPortalZip('job with spaces/slash');
+
+    expect(await result.text()).toContain('portal-zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/demo-handoff-portal/download',
       {
         method: 'GET',
         headers: {
@@ -3152,6 +3224,50 @@ function demoReviewerWorkspaceFixture() {
       }
     ],
     packageEntries: ['manifest.json', 'reviewer-workspace.md', 'README.md'],
+    safetyNotes: ['Metadata only.']
+  };
+}
+
+function demoHandoffPortalFixture() {
+  return {
+    jobId: 'job-portal',
+    videoId: 'video-portal',
+    generatedAt: '2026-06-29T13:15:00Z',
+    overallStatus: 'READY',
+    phase: 'HANDOFF_PORTAL_READY',
+    headline: 'Demo handoff portal is ready.',
+    recommendedNextAction: 'Download the handoff portal ZIP and share index.html with reviewers.',
+    completedAt: '2026-06-29T13:14:30Z',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'tears-showcase',
+    checks: [
+      {
+        key: 'JOB_COMPLETED',
+        label: 'Job completed',
+        status: 'READY',
+        detail: 'Job reached COMPLETED.',
+        nextAction: 'Keep this portal with the completed job id.',
+        required: true
+      }
+    ],
+    sections: [
+      {
+        key: 'OFFLINE_PORTAL',
+        title: 'Offline portal',
+        status: 'READY',
+        facts: ['Entry point: index.html', 'Static package excludes media bytes.']
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'PORTAL_ZIP',
+        label: 'Demo handoff portal ZIP',
+        href: '/api/jobs/job-portal/demo-handoff-portal/download',
+        contentType: 'application/zip',
+        description: 'Static portal package.'
+      }
+    ],
+    packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md'],
     safetyNotes: ['Metadata only.']
   };
 }

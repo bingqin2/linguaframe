@@ -10,6 +10,7 @@ import type {
   DeliveryManifest,
   DemoAcceptanceGate,
   DemoCompletionCertificate,
+  DemoHandoffPortal,
   DemoPresentationCockpit,
   DemoReviewerWorkspace,
   DemoRunLauncher,
@@ -1675,6 +1676,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'getOpenAiSmokeProof').mockResolvedValue(openAiSmokeProofFixture());
     vi.spyOn(linguaFrameApi, 'getDemoReviewerWorkspace').mockResolvedValue(demoReviewerWorkspaceFixture());
+    vi.spyOn(linguaFrameApi, 'getDemoHandoffPortal').mockResolvedValue(demoHandoffPortalFixture());
     const downloadSmokeProof = vi.spyOn(linguaFrameApi, 'downloadOpenAiSmokeProofMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame OpenAI Smoke Proof'], { type: 'text/markdown' })
     );
@@ -1683,6 +1685,12 @@ describe('App', () => {
     );
     const downloadReviewerZip = vi.spyOn(linguaFrameApi, 'downloadDemoReviewerWorkspaceZip').mockResolvedValue(
       new Blob(['zip'], { type: 'application/zip' })
+    );
+    const downloadPortalMarkdown = vi.spyOn(linguaFrameApi, 'downloadDemoHandoffPortalMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Handoff Portal'], { type: 'text/markdown' })
+    );
+    const downloadPortalZip = vi.spyOn(linguaFrameApi, 'downloadDemoHandoffPortalZip').mockResolvedValue(
+      new Blob(['portal-zip'], { type: 'application/zip' })
     );
 
     render(<App />);
@@ -1733,6 +1741,17 @@ describe('App', () => {
     await waitFor(() => expect(downloadReviewerMarkdown).toHaveBeenCalledWith('job-1'));
     await userEvent.click(within(reviewerWorkspace).getByRole('button', { name: /download reviewer zip/i }));
     await waitFor(() => expect(downloadReviewerZip).toHaveBeenCalledWith('job-1'));
+    const handoffPortal = screen.getByRole('region', { name: /demo handoff portal/i });
+    expect(within(handoffPortal).getByText('HANDOFF_PORTAL_READY')).toBeInTheDocument();
+    expect(within(handoffPortal).getByText(/Static handoff portal ZIP/)).toBeInTheDocument();
+    expect(within(handoffPortal).getByText('index.html')).toBeInTheDocument();
+    expect(within(handoffPortal).getByText('Demo reviewer workspace')).toBeInTheDocument();
+    expect(within(handoffPortal).queryByText('raw transcript text')).not.toBeInTheDocument();
+    expect(within(handoffPortal).queryByText('provider request payload')).not.toBeInTheDocument();
+    await userEvent.click(within(handoffPortal).getByRole('button', { name: /download portal markdown/i }));
+    await waitFor(() => expect(downloadPortalMarkdown).toHaveBeenCalledWith('job-1'));
+    await userEvent.click(within(handoffPortal).getByRole('button', { name: /download portal zip/i }));
+    await waitFor(() => expect(downloadPortalZip).toHaveBeenCalledWith('job-1'));
     const failureTriage = screen.getByRole('region', { name: /failure triage/i });
     expect(within(failureTriage).getByText('OPENAI_AUTH_OR_MODEL')).toBeInTheDocument();
     expect(within(failureTriage).getByText('OpenAI rejected the configured credentials or model.')).toBeInTheDocument();
@@ -5721,5 +5740,64 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
     safetyNotes: [
       'Metadata only: no media bytes, transcript bodies, subtitle bodies, local filesystem paths, object storage keys, provider request or response bodies, credentials, bearer tokens, or demo tokens are included.'
     ]
+  };
+}
+
+function demoHandoffPortalFixture(): DemoHandoffPortal {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    generatedAt: '2026-06-26T10:00:06Z',
+    overallStatus: 'READY',
+    phase: 'HANDOFF_PORTAL_READY',
+    headline: 'Demo handoff portal is ready.',
+    recommendedNextAction: 'Download the handoff portal ZIP and share index.html with reviewers.',
+    completedAt: '2026-06-26T10:00:04Z',
+    targetLanguage: 'zh-CN',
+    demoProfileId: 'openai-smoke',
+    checks: [
+      {
+        key: 'portal-package',
+        label: 'Static handoff portal ZIP',
+        status: 'READY',
+        detail: 'Portal package entries and safe links are available.',
+        nextAction: 'Open index.html from the ZIP for offline review.',
+        required: true
+      },
+      {
+        key: 'reviewer-workspace',
+        label: 'Demo reviewer workspace',
+        status: 'READY',
+        detail: 'Reviewer workspace status is READY.',
+        nextAction: 'Download reviewer workspace.',
+        required: true
+      }
+    ],
+    sections: [
+      {
+        key: 'offline-portal',
+        title: 'Offline portal',
+        status: 'READY',
+        facts: ['Entry point: index.html', 'Static package excludes media bytes.']
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'portal',
+        label: 'Demo handoff portal ZIP',
+        href: '/api/jobs/job-1/demo-handoff-portal/download',
+        contentType: 'application/zip',
+        description: 'Static portal package.'
+      },
+      {
+        kind: 'reviewer',
+        label: 'Demo reviewer workspace',
+        href: '/api/jobs/job-1/demo-reviewer-workspace/download',
+        contentType: 'application/zip',
+        description: 'Reviewer workspace package.'
+      }
+    ],
+    packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md'],
+    safetyNotes: ['Metadata only; sensitive content is excluded.']
   };
 }

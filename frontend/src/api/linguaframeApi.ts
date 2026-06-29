@@ -7,6 +7,7 @@ import type {
   DemoSessionCommandCenter,
   DemoCompletionCertificate,
   DemoRunLauncher,
+  DemoHandoffPortal,
   DemoReviewerWorkspace,
   JobArtifact,
   JobComparison,
@@ -762,6 +763,24 @@ export async function downloadDemoReviewerWorkspaceZip(jobId: string): Promise<B
   });
 }
 
+export async function getDemoHandoffPortal(jobId: string): Promise<DemoHandoffPortal> {
+  return requestJson<DemoHandoffPortal>(`/api/jobs/${encodeURIComponent(jobId)}/demo-handoff-portal`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoHandoffPortalMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-handoff-portal/markdown/download`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoHandoffPortalZip(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-handoff-portal/download`, {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -1015,6 +1034,9 @@ export const linguaFrameApi = {
   getDemoReviewerWorkspace,
   downloadDemoReviewerWorkspaceMarkdown,
   downloadDemoReviewerWorkspaceZip,
+  getDemoHandoffPortal,
+  downloadDemoHandoffPortalMarkdown,
+  downloadDemoHandoffPortalZip,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

@@ -510,6 +510,39 @@ download_demo_reviewer_workspace_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-reviewer-workspace/download" -o "$output_path"
 }
 
+download_demo_handoff_portal_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-handoff-portal" -o "$output_path"
+}
+
+download_demo_handoff_portal_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-handoff-portal/markdown/download" -o "$output_path"
+}
+
+download_demo_handoff_portal_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-handoff-portal/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -2851,6 +2884,83 @@ print("demoReviewerWorkspaceRecommendedNextAction=" + str(workspace.get("recomme
 print("demoReviewerWorkspaceJsonPath=" + str(json_path))
 print("demoReviewerWorkspaceMarkdownPath=" + str(markdown_path))
 print("demoReviewerWorkspaceZipPath=" + str(zip_path))
+PY
+}
+
+print_demo_handoff_portal_summary_file() {
+  local portal_json_path="$1"
+  local portal_markdown_path="$2"
+  local portal_zip_path="$3"
+
+  python3 - "$portal_json_path" "$portal_markdown_path" "$portal_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+portal = json.loads(json_path.read_text(encoding="utf-8"))
+checks = portal.get("checks") or []
+required = [check for check in checks if check.get("required")]
+optional = [check for check in checks if not check.get("required")]
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+    "provider response body",
+]
+
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(portal, ensure_ascii=False) + "\n" + markdown
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Demo handoff portal contains forbidden sensitive string: " + marker)
+
+required_entries = {
+    "index.html",
+    "manifest.json",
+    "handoff-portal.md",
+    "reviewer-workspace.json",
+    "README.md",
+    "acceptance-gate.json",
+    "completion-certificate.json",
+    "share-sheet.json",
+    "run-monitor.json",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Demo handoff portal ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Demo handoff portal ZIP contains forbidden sensitive string: " + marker)
+
+print("demoHandoffPortalStatus=" + str(portal.get("overallStatus")))
+print("demoHandoffPortalPhase=" + str(portal.get("phase")))
+print("demoHandoffPortalRequiredReadyCount=" + str(sum(1 for check in required if check.get("status") == "READY")))
+print("demoHandoffPortalRequiredBlockedCount=" + str(sum(1 for check in required if check.get("status") == "BLOCKED")))
+print("demoHandoffPortalOptionalAttentionCount=" + str(sum(1 for check in optional if check.get("status") == "ATTENTION")))
+print("demoHandoffPortalLinkCount=" + str(len(portal.get("safeLinks") or [])))
+print("demoHandoffPortalPackageEntryCount=" + str(len(portal.get("packageEntries") or [])))
+print("demoHandoffPortalRecommendedNextAction=" + str(portal.get("recommendedNextAction")))
+print("demoHandoffPortalJsonPath=" + str(json_path))
+print("demoHandoffPortalMarkdownPath=" + str(markdown_path))
+print("demoHandoffPortalZipPath=" + str(zip_path))
 PY
 }
 

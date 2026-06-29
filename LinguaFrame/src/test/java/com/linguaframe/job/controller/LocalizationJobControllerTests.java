@@ -912,6 +912,92 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoHandoffPortalForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:01:00Z");
+        createReviewerWorkspaceJob("job-controller-portal", "job-video-portal", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-handoff-portal",
+                        "job-controller-portal"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-portal"))
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.phase").value("HANDOFF_PORTAL_READY"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'PORTAL_PACKAGE')].status").value("READY"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'REVIEWER_WORKSPACE')].status").value("READY"))
+                .andExpect(jsonPath("$.safeLinks[?(@.href == '/api/jobs/job-controller-portal/demo-handoff-portal/download')].label").value("Demo handoff portal ZIP"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoHandoffPortalMarkdownForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:03:00Z");
+        createReviewerWorkspaceJob("job-controller-portal-md", "job-video-portal-md", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-handoff-portal/markdown/download",
+                        "job-controller-portal-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-portal-md-demo-handoff-portal.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame Demo Handoff Portal")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Overall status: READY")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Static handoff portal ZIP")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoHandoffPortalZipForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:05:00Z");
+        createReviewerWorkspaceJob("job-controller-portal-zip", "job-video-portal-zip", createdAt);
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-handoff-portal/download",
+                        "job-controller-portal-zip"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-portal-zip-demo-handoff-portal.zip\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries).containsKeys(
+                "index.html",
+                "manifest.json",
+                "handoff-portal.md",
+                "reviewer-workspace.json",
+                "README.md",
+                "acceptance-gate.json",
+                "completion-certificate.json",
+                "share-sheet.json",
+                "run-monitor.json"
+        );
+        assertThat(entries.get("index.html"))
+                .contains("LinguaFrame Demo Handoff Portal")
+                .contains("HANDOFF_PORTAL_READY");
+        assertThat(entries.get("handoff-portal.md"))
+                .contains("# LinguaFrame Demo Handoff Portal")
+                .contains("Demo reviewer workspace");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw subtitle text")
+                .doesNotContain("/Users/example")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("sk-test")
+                .doesNotContain("OPENAI_API_KEY")
+                .doesNotContain("private-demo-token")
+                .doesNotContain("bearer token");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(

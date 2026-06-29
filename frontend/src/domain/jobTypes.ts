@@ -182,6 +182,50 @@ export interface DemoReviewerWorkspace {
   safetyNotes: string[];
 }
 
+export type DemoHandoffPortalStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface DemoHandoffPortalSection {
+  key: string;
+  title: string;
+  status: string;
+  facts: string[];
+}
+
+export interface DemoHandoffPortalCheck {
+  key: string;
+  label: string;
+  status: DemoHandoffPortalStatus;
+  detail: string;
+  nextAction: string;
+  required: boolean;
+}
+
+export interface DemoHandoffPortalLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface DemoHandoffPortal {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  overallStatus: DemoHandoffPortalStatus;
+  phase: string;
+  headline: string;
+  recommendedNextAction: string;
+  completedAt: string | null;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  checks: DemoHandoffPortalCheck[];
+  sections: DemoHandoffPortalSection[];
+  safeLinks: DemoHandoffPortalLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'
