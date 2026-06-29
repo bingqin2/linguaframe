@@ -6,6 +6,32 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration editing command workbench feature slice from `docs/plans/145-narration-editing-command-workbench.md`.
+- Added pure frontend narration editing command helpers for duplicate, split-at-playhead, merge-next, insert-after, and immutable reindexing.
+- Command helpers only mutate local draft arrays, reset generated rows to `updatedAt: null`, keep timing/duration rounded to `0.001` seconds, and return blocked reasons for impossible commands.
+- Added a compact browser `Narration editing commands` panel with local-only Duplicate, Split at playhead, Merge next, and Insert after actions.
+- The command panel updates the shared narration draft rows, selected row, timeline, waveform, table, inspector, validation, and existing save payload without calling save/generation/render APIs directly.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationEditingCommands.test.ts` first failed because `frontend/src/domain/narrationEditingCommands.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationEditingCommands.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration editing command"` first failed because the `Narration editing commands` region did not exist.
+- After adding the command panel and local command wiring, `npm test -- --run src/App.test.tsx -t "narration editing commands"` passed with `Test Files 1 passed` and `Tests 5 passed | 108 skipped`.
+- `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 132 passed`; jsdom printed expected navigation warnings from download actions.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this plan with local-only narration editing command workflow and validation boundaries.
+- `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 132 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run` passed with `Test Files 7 passed` and `Tests 238 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 771, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration waveform overview workbench feature slice from `docs/plans/144-narration-waveform-overview-workbench.md`.
 - Added pure frontend waveform overview helpers that derive deterministic bucket bars from narration windows, text density, gaps, selected segment, and preview playhead time.
 - Added percent-to-seconds mapping for local preview scrubbing without audio decoding, provider calls, artifact creation, or object-storage mutation.

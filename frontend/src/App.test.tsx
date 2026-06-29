@@ -2827,6 +2827,185 @@ describe('App', () => {
     expect(within(waveformPanel).getByRole('button', { name: /scrub to selected/i })).toBeDisabled();
   });
 
+  test('renders narration editing commands controls for local row operations', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-command-job', videoId: 'narration-command-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-command-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-command-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const commandPanel = within(narrationPanel).getByRole('region', { name: /narration editing commands/i });
+
+    expect(within(commandPanel).getByText('Narration editing commands')).toBeInTheDocument();
+    expect(within(commandPanel).getByRole('button', { name: /duplicate/i })).toBeEnabled();
+    expect(within(commandPanel).getByRole('button', { name: /split at playhead/i })).toBeDisabled();
+    expect(within(commandPanel).getByRole('button', { name: /merge next/i })).toBeEnabled();
+    expect(within(commandPanel).getByRole('button', { name: /insert after/i })).toBeEnabled();
+  });
+
+  test('narration editing commands duplicate the selected row locally and save the updated row list', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-duplicate-command-job', videoId: 'narration-duplicate-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-duplicate-command-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({ jobId: 'narration-duplicate-command-job' })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-duplicate-command-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const commandPanel = within(narrationPanel).getByRole('region', { name: /narration editing commands/i });
+
+    await userEvent.click(within(commandPanel).getByRole('button', { name: /duplicate/i }));
+
+    expect(within(commandPanel).getByText('Duplicated narration 1.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/narration 2 start/i)).toHaveValue(28);
+    expect(within(narrationPanel).getByLabelText(/narration 2 end/i)).toHaveValue(41);
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 2 voice/i })).toHaveValue('alloy');
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
+
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-duplicate-command-job', {
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        },
+        {
+          index: 1,
+          startSeconds: 28,
+          endSeconds: 41,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        },
+        {
+          index: 2,
+          startSeconds: 55,
+          endSeconds: 70.5,
+          text: 'Explain the second scene.',
+          voice: 'verse'
+        }
+      ]
+    });
+  });
+
+  test('narration editing commands split the selected row at the preview playhead', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-split-command-job', videoId: 'narration-split-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-split-command-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-split-command-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+    const commandPanel = within(narrationPanel).getByRole('region', { name: /narration editing commands/i });
+    const player = within(previewPanel).getByLabelText('Narration preview player') as HTMLVideoElement;
+
+    player.currentTime = 20;
+    player.dispatchEvent(new Event('timeupdate', { bubbles: true }));
+
+    await userEvent.click(within(commandPanel).getByRole('button', { name: /split at playhead/i }));
+
+    expect(within(commandPanel).getByText('Split narration 1 at 20 s.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(15);
+    expect(within(narrationPanel).getByLabelText(/narration 1 end/i)).toHaveValue(20);
+    expect(within(narrationPanel).getByLabelText(/narration 2 start/i)).toHaveValue(20);
+    expect(within(narrationPanel).getByLabelText(/narration 2 end/i)).toHaveValue(28);
+  });
+
+  test('narration editing commands merge the selected row with the next row and block the final row', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-merge-command-job', videoId: 'narration-merge-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-merge-command-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-merge-command-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const commandPanel = within(narrationPanel).getByRole('region', { name: /narration editing commands/i });
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: '2' }));
+    expect(within(commandPanel).getByRole('button', { name: /merge next/i })).toBeDisabled();
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: '1' }));
+    await userEvent.click(within(commandPanel).getByRole('button', { name: /merge next/i }));
+
+    expect(within(commandPanel).getByText('Merged narration 1 with narration 2.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(15);
+    expect(within(narrationPanel).getByLabelText(/narration 1 end/i)).toHaveValue(70.5);
+    expect(within(narrationPanel).queryByLabelText(/narration 2 start/i)).not.toBeInTheDocument();
+  });
+
+  test('narration editing commands insert a blank row and keep save blocked until required fields are filled', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-insert-command-job', videoId: 'narration-insert-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-insert-command-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-insert-command-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const commandPanel = within(narrationPanel).getByRole('region', { name: /narration editing commands/i });
+
+    await userEvent.click(within(commandPanel).getByRole('button', { name: /insert after/i }));
+
+    expect(within(commandPanel).getByText('Inserted narration 2.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/narration 2 start/i)).toHaveValue(28);
+    expect(within(narrationPanel).getByLabelText(/narration 2 end/i)).toHaveValue(33);
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 2 voice/i })).toHaveValue('');
+    expect(within(narrationPanel).getByText('Row 2: text is required.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('button', { name: /save narration/i })).toBeDisabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
   test('exports and imports narration script packages from the narration workspace', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })

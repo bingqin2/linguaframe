@@ -38,17 +38,17 @@
   - `export function reindexNarrationSegments(segments: NarrationWorkspace['segments']): NarrationWorkspace['segments']`
 - Consumes: `NarrationWorkspace` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests proving duplicate inserts a copied row immediately after the selected row, preserves text/voice, shifts the copy after the original window, reindexes rows, and selects the copy.
-- [ ] Write failing tests proving split requires at least `0.25` seconds on both sides of the split point, splits the row into two windows, preserves voice, splits text near the midpoint, reindexes rows, and selects the second half.
-- [ ] Write failing tests proving merge combines the selected row with the next row, joins text with a blank line, preserves the selected row voice, spans from selected start to next end, reindexes rows, and keeps selection on the merged row.
-- [ ] Write failing tests proving insert creates a new blank local row after the selected row, starts at the selected row end, defaults to a five-second duration, reindexes rows, and selects the new row.
-- [ ] Write failing tests proving blocked commands return the original rows with a `blockedReason` instead of throwing.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement command helpers with copied arrays only; do not mutate caller-owned segment objects.
-- [ ] Round generated timing values to `0.001` second precision and keep duration fields synchronized with start/end.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration editing command helpers`.
+- [x] Write failing tests proving duplicate inserts a copied row immediately after the selected row, preserves text/voice, shifts the copy after the original window, reindexes rows, and selects the copy.
+- [x] Write failing tests proving split requires at least `0.25` seconds on both sides of the split point, splits the row into two windows, preserves voice, splits text near the midpoint, reindexes rows, and selects the second half.
+- [x] Write failing tests proving merge combines the selected row with the next row, joins text with a blank line, preserves the selected row voice, spans from selected start to next end, reindexes rows, and keeps selection on the merged row.
+- [x] Write failing tests proving insert creates a new blank local row after the selected row, starts at the selected row end, defaults to a five-second duration, reindexes rows, and selects the new row.
+- [x] Write failing tests proving blocked commands return the original rows with a `blockedReason` instead of throwing.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement command helpers with copied arrays only; do not mutate caller-owned segment objects.
+- [x] Round generated timing values to `0.001` second precision and keep duration fields synchronized with start/end.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration editing command helpers`.
 
 ## Task 2: Editing Command Bar UI
 
@@ -71,20 +71,20 @@
   - Buttons for `Duplicate`, `Split at playhead`, `Merge next`, and `Insert after`.
   - A local command status message for successful commands and blocked-command reasons.
 
-- [ ] Write failing App tests proving the command bar renders for a completed job with narration workspace data.
-- [ ] Write failing App tests proving `Duplicate` adds a copied row after the selected row, selects it, and the existing save action sends the updated row list.
-- [ ] Write failing App tests proving `Split at playhead` is disabled or blocked outside the selected window and succeeds when the preview playhead is inside the selected row.
-- [ ] Write failing App tests proving `Merge next` combines adjacent rows and disables or blocks on the final row.
-- [ ] Write failing App tests proving `Insert after` creates a blank local row and existing validation blocks saving until the user fills required fields.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify the new tests fail.
-- [ ] Add a small command panel that calls the helper module, updates local narration segment draft state, updates selected row state, and shows command status.
-- [ ] Keep all commands local-only; do not call save, evidence refresh, preflight, TTS generation, mix, render, or artifact APIs.
-- [ ] Disable clearly impossible commands from current selection state while still preserving helper-level blocked reasons for test coverage.
-- [ ] Add compact CSS for command buttons and status text with stable height and no layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration editing command UI`.
+- [x] Write failing App tests proving the command bar renders for a completed job with narration workspace data.
+- [x] Write failing App tests proving `Duplicate` adds a copied row after the selected row, selects it, and the existing save action sends the updated row list.
+- [x] Write failing App tests proving `Split at playhead` is disabled or blocked outside the selected window and succeeds when the preview playhead is inside the selected row.
+- [x] Write failing App tests proving `Merge next` combines adjacent rows and disables or blocks on the final row.
+- [x] Write failing App tests proving `Insert after` creates a blank local row and existing validation blocks saving until the user fills required fields.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify the new tests fail.
+- [x] Add a small command panel that calls the helper module, updates local narration segment draft state, updates selected row state, and shows command status.
+- [x] Keep all commands local-only; do not call save, evidence refresh, preflight, TTS generation, mix, render, or artifact APIs.
+- [x] Disable clearly impossible commands from current selection state while still preserving helper-level blocked reasons for test coverage.
+- [x] Add compact CSS for command buttons and status text with stable height and no layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration editing command UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
 
@@ -98,19 +98,19 @@
 - Modify: `docs/plans/145-narration-editing-command-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser order: open completed job, inspect narration rows, use editing commands locally, preview/scrub, save workspace, then generate audio/video only through explicit actions.
-- [ ] State that duplicate, split, merge, and insert are local draft commands until save.
-- [ ] State that inserted blank rows intentionally block save until filled, preserving backend validation.
-- [ ] Add a decision record explaining why this slice adds deterministic editor commands before decoded waveform rendering or multitrack automation.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
-- [ ] Commit with message `Document narration editing command workbench`.
+- [x] Document the browser order: open completed job, inspect narration rows, use editing commands locally, preview/scrub, save workspace, then generate audio/video only through explicit actions.
+- [x] State that duplicate, split, merge, and insert are local draft commands until save.
+- [x] State that inserted blank rows intentionally block save until filled, preserving backend validation.
+- [x] Add a decision record explaining why this slice adds deterministic editor commands before decoded waveform rendering or multitrack automation.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
+- [x] Commit with message `Document narration editing command workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.
 
