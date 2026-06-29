@@ -1515,6 +1515,9 @@ export interface NarrationGeneration {
   totalCharacterCount: number;
   totalTimelineDurationSeconds: number;
   voiceSummary: string;
+  audioLayout: string;
+  timeAligned: boolean;
+  ttsCallCount: number;
   status: string;
 }
 
@@ -1526,6 +1529,9 @@ export interface NarratedVideoGeneration {
   sizeBytes: number;
   baseVideoType: string;
   narrationAudioArtifactId: string;
+  mixMode: string;
+  duckingVolume: number;
+  narrationWindowCount: number;
   status: string;
 }
 
@@ -1551,8 +1557,12 @@ export interface NarrationEvidence {
   totalTimelineDurationSeconds: number;
   narrationAudioReady: boolean;
   audioArtifactCount: number;
+  audioLayout: string;
+  timeAligned: boolean;
   narratedVideoReady: boolean;
   narratedVideoArtifactCount: number;
+  mixMode: string;
+  duckingVolume: number | null;
   checks: NarrationEvidenceCheck[];
   safeLinks: NarrationEvidenceLink[];
   packageEntries: string[];

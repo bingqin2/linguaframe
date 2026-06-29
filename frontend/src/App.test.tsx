@@ -30,6 +30,10 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationEvidence,
+  NarrationGeneration,
+  NarratedVideoGeneration,
+  NarrationWorkspace,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
   DemoRunProfile,
@@ -2289,6 +2293,67 @@ describe('App', () => {
     expect(within(mediaDelivery).getByText('fedcba987654')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('789abcdef012')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
+  });
+
+  test('shows timed narration audio bed and ducked narrated video status', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-mix-job', videoId: 'narration-mix-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    const listArtifacts = vi.spyOn(linguaFrameApi, 'listArtifacts')
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        artifactFixture({
+          artifactId: 'narration-audio-artifact',
+          jobId: 'narration-mix-job',
+          type: 'NARRATION_AUDIO',
+          filename: 'narration-audio.mp3',
+          contentType: 'audio/mpeg'
+        })
+      ])
+      .mockResolvedValueOnce([
+        artifactFixture({
+          artifactId: 'narration-audio-artifact',
+          jobId: 'narration-mix-job',
+          type: 'NARRATION_AUDIO',
+          filename: 'narration-audio.mp3',
+          contentType: 'audio/mpeg'
+        }),
+        artifactFixture({
+          artifactId: 'narrated-video-artifact',
+          jobId: 'narration-mix-job',
+          type: 'NARRATED_VIDEO',
+          filename: 'narrated-video.mp4',
+          contentType: 'video/mp4'
+        })
+      ]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture());
+    const getNarrationEvidence = vi.spyOn(linguaFrameApi, 'getNarrationEvidence')
+      .mockResolvedValueOnce(narrationEvidenceFixture({ narrationAudioReady: false, audioArtifactCount: 0 }))
+      .mockResolvedValueOnce(narrationEvidenceFixture())
+      .mockResolvedValueOnce(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'generateNarrationAudio').mockResolvedValue(narrationGenerationFixture());
+    vi.spyOn(linguaFrameApi, 'generateNarratedVideo').mockResolvedValue(narratedVideoGenerationFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-mix-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    expect(within(narrationPanel).getByText('Ducked original audio')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('0.35')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '2 windows')).toBeInTheDocument();
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /generate narration audio/i }));
+    expect(await within(narrationPanel).findByText('Generated narration-audio.mp3 as TIMED_AUDIO_BED.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Timed audio bed')).toBeInTheDocument();
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /generate narrated video/i }));
+    expect(await within(narrationPanel).findByText('Generated narrated-video.mp4 from BURNED_VIDEO with DUCKED_ORIGINAL_AUDIO.')).toBeInTheDocument();
+    expect(listArtifacts).toHaveBeenCalledTimes(3);
+    expect(getNarrationEvidence).toHaveBeenCalledTimes(3);
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -5366,6 +5431,102 @@ function mediaUploadValidationFixture(
     durationSeconds: 42,
     maxDurationSeconds: 300,
     supportedContentTypes: ['video/mp4', 'video/quicktime'],
+    ...overrides
+  };
+}
+
+function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}): NarrationWorkspace {
+  return {
+    jobId: 'narration-mix-job',
+    status: 'READY',
+    segmentCount: 2,
+    totalDurationSeconds: 28.5,
+    totalCharacterCount: 49,
+    generationReady: true,
+    segments: [
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Explain the first scene.',
+        voice: 'alloy',
+        characterCount: 24,
+        updatedAt: '2026-06-29T10:00:00Z'
+      },
+      {
+        index: 1,
+        startSeconds: 55,
+        endSeconds: 70.5,
+        durationSeconds: 15.5,
+        text: 'Explain the second scene.',
+        voice: 'verse',
+        characterCount: 25,
+        updatedAt: '2026-06-29T10:00:00Z'
+      }
+    ],
+    safetyNotes: ['Narration scripts stay in the workspace only.'],
+    ...overrides
+  };
+}
+
+function narrationEvidenceFixture(overrides: Partial<NarrationEvidence> = {}): NarrationEvidence {
+  const readyAudio = overrides.narrationAudioReady ?? true;
+  const readyVideo = overrides.narratedVideoReady ?? true;
+  return {
+    jobId: 'narration-mix-job',
+    status: readyAudio && readyVideo ? 'READY' : 'ATTENTION',
+    segmentCount: 2,
+    totalCharacterCount: 49,
+    totalTimelineDurationSeconds: 28.5,
+    narrationAudioReady: readyAudio,
+    audioArtifactCount: overrides.audioArtifactCount ?? (readyAudio ? 1 : 0),
+    audioLayout: readyAudio ? 'TIMED_AUDIO_BED' : 'MISSING',
+    timeAligned: readyAudio,
+    narratedVideoReady: readyVideo,
+    narratedVideoArtifactCount: overrides.narratedVideoArtifactCount ?? (readyVideo ? 1 : 0),
+    mixMode: readyVideo ? 'DUCKED_ORIGINAL_AUDIO' : 'MISSING',
+    duckingVolume: readyVideo ? 0.35 : null,
+    checks: [],
+    safeLinks: [],
+    packageEntries: [],
+    safetyNotes: [],
+    ...overrides
+  };
+}
+
+function narrationGenerationFixture(overrides: Partial<NarrationGeneration> = {}): NarrationGeneration {
+  return {
+    jobId: 'narration-mix-job',
+    artifactId: 'narration-audio-artifact',
+    filename: 'narration-audio.mp3',
+    contentType: 'audio/mpeg',
+    sizeBytes: 1024,
+    segmentCount: 2,
+    totalCharacterCount: 49,
+    totalTimelineDurationSeconds: 28.5,
+    voiceSummary: 'alloy, verse',
+    audioLayout: 'TIMED_AUDIO_BED',
+    timeAligned: true,
+    ttsCallCount: 2,
+    status: 'READY',
+    ...overrides
+  };
+}
+
+function narratedVideoGenerationFixture(overrides: Partial<NarratedVideoGeneration> = {}): NarratedVideoGeneration {
+  return {
+    jobId: 'narration-mix-job',
+    artifactId: 'narrated-video-artifact',
+    filename: 'narrated-video.mp4',
+    contentType: 'video/mp4',
+    sizeBytes: 2048,
+    baseVideoType: 'BURNED_VIDEO',
+    narrationAudioArtifactId: 'narration-audio-artifact',
+    mixMode: 'DUCKED_ORIGINAL_AUDIO',
+    duckingVolume: 0.35,
+    narrationWindowCount: 2,
+    status: 'READY',
     ...overrides
   };
 }

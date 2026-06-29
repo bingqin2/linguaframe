@@ -361,6 +361,9 @@ describe('linguaframeApi', () => {
         totalCharacterCount: 24,
         totalTimelineDurationSeconds: 13,
         voiceSummary: 'alloy',
+        audioLayout: 'TIMED_AUDIO_BED',
+        timeAligned: true,
+        ttsCallCount: 1,
         status: 'READY'
       })
     );
@@ -375,6 +378,9 @@ describe('linguaframeApi', () => {
         sizeBytes: 3,
         baseVideoType: 'BURNED_VIDEO',
         narrationAudioArtifactId: 'artifact-narration',
+        mixMode: 'DUCKED_ORIGINAL_AUDIO',
+        duckingVolume: 0.35,
+        narrationWindowCount: 1,
         status: 'READY'
       })
     );
@@ -388,8 +394,12 @@ describe('linguaframeApi', () => {
         totalTimelineDurationSeconds: 13,
         narrationAudioReady: true,
         audioArtifactCount: 1,
+        audioLayout: 'TIMED_AUDIO_BED',
+        timeAligned: true,
         narratedVideoReady: true,
         narratedVideoArtifactCount: 1,
+        mixMode: 'DUCKED_ORIGINAL_AUDIO',
+        duckingVolume: 0.35,
         checks: [],
         safeLinks: [],
         packageEntries: [],

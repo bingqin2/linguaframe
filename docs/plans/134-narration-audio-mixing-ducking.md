@@ -125,15 +125,15 @@
 **Interfaces:**
 - Extend `NarrationGeneration`, `NarratedVideoGeneration`, and `NarrationEvidence` with timed-audio and mix metadata.
 
-- [ ] Show `Timed audio bed` status after generating narration audio.
-- [ ] Show `Ducked original audio` status after generating narrated video.
-- [ ] Add compact evidence metrics for layout, mix mode, ducking volume, and narration windows.
-- [ ] Keep controls simple: no manual slider in this slice; ducking volume is fixed at `0.35` and shown as read-only evidence.
-- [ ] Keep UI consistent with the existing dense media-workflow style and avoid adding a landing page or decorative layout.
-- [ ] Add Vitest coverage for response parsing, visible timed-audio status, visible ducking status, and existing disabled states.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Show `Timed audio bed` status after generating narration audio.
+- [x] Show `Ducked original audio` status after generating narrated video.
+- [x] Add compact evidence metrics for layout, mix mode, ducking volume, and narration windows.
+- [x] Keep controls simple: no manual slider in this slice; ducking volume is fixed at `0.35` and shown as read-only evidence.
+- [x] Keep UI consistent with the existing dense media-workflow style and avoid adding a landing page or decorative layout.
+- [x] Add Vitest coverage for response parsing, visible timed-audio status, visible ducking status, and existing disabled states.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 6: Demo Scripts And Documentation
 

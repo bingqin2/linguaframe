@@ -3822,3 +3822,18 @@ Validation so far:
 - `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` first failed at test compilation because `NarrationEvidenceVo` did not expose the new metadata fields.
 - After adding the fields and evidence output, the same command failed once because the handoff portal ZIP `index.html` did not render section facts.
 - After rendering sections in `index.html`, `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
+- Extended frontend narration generation, narrated-video generation, and narration evidence types with timed-audio and ducked-mix metadata.
+- Updated narration workspace status text to report `TIMED_AUDIO_BED` generation and `DUCKED_ORIGINAL_AUDIO` video mixing.
+- Added compact narration evidence metrics for audio layout, time alignment, mix mode, ducking volume, and narration window count.
+- Added App coverage for the visible timed-audio and ducked-video status flow.
+
+Validation so far:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because the UI did not show `Timed audio bed`.
+- After adding the metrics and moving the assertion to the post-generation state, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 182 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.

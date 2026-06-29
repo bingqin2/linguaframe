@@ -1997,7 +1997,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setArtifacts(refreshedArtifacts);
       setNarrationEvidence(refreshedEvidence);
       setNarrationError(null);
-      setNarrationStatus(`Generated ${generation.filename}.`);
+      setNarrationStatus(`Generated ${generation.filename} as ${generation.audioLayout}.`);
     } catch (narrationGenerateError) {
       setNarrationError(toErrorMessage(narrationGenerateError));
     } finally {
@@ -2019,7 +2019,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setArtifacts(refreshedArtifacts);
       setNarrationEvidence(refreshedEvidence);
       setNarrationError(null);
-      setNarrationStatus(`Generated ${generation.filename} from ${generation.baseVideoType}.`);
+      setNarrationStatus(`Generated ${generation.filename} from ${generation.baseVideoType} with ${generation.mixMode}.`);
     } catch (narratedVideoError) {
       setNarrationError(toErrorMessage(narratedVideoError));
     } finally {
@@ -9217,12 +9217,32 @@ function NarrationWorkspacePanel({
                   <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
                 </div>
                 <div>
+                  <dt>Audio layout</dt>
+                  <dd>{formatEvidenceToken(evidence?.audioLayout)}</dd>
+                </div>
+                <div>
+                  <dt>Time aligned</dt>
+                  <dd>{evidence?.timeAligned ? 'true' : 'false'}</dd>
+                </div>
+                <div>
                   <dt>Video</dt>
                   <dd>{evidence?.narratedVideoReady ? 'Ready' : 'Missing'}</dd>
                 </div>
                 <div>
                   <dt>Video artifacts</dt>
                   <dd>{evidence?.narratedVideoArtifactCount ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Mix mode</dt>
+                  <dd>{formatEvidenceToken(evidence?.mixMode)}</dd>
+                </div>
+                <div>
+                  <dt>Ducking volume</dt>
+                  <dd>{formatNullableNumber(evidence?.duckingVolume)}</dd>
+                </div>
+                <div>
+                  <dt>Narration windows</dt>
+                  <dd>{evidence?.segmentCount ?? 0} windows</dd>
                 </div>
               </dl>
               <div className="panel-actions">
@@ -9242,6 +9262,21 @@ function NarrationWorkspacePanel({
       </div>
     </section>
   );
+}
+
+function formatEvidenceToken(value: string | null | undefined) {
+  if (!value || value === 'MISSING') {
+    return 'Missing';
+  }
+  return value
+    .toLowerCase()
+    .split('_')
+    .map((part, index) => (index === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(' ');
+}
+
+function formatNullableNumber(value: number | null | undefined) {
+  return value == null ? 'N/A' : String(value);
 }
 
 function validateNarrationSegments(segments: NarrationWorkspace['segments']): string[] {
