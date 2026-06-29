@@ -6,6 +6,18 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned narration audio mixing and ducking in `docs/plans/134-narration-audio-mixing-ducking.md`.
+- Added an FFmpeg timed narration audio bed boundary that delays segment audio to saved start times, mixes delayed inputs with `amix`, and returns `narration-audio.mp3`.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests` first failed because the timed audio bed command, segment value object, service interface, and implementation did not exist.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Planned the demo reviewer workspace in `docs/plans/129-demo-reviewer-workspace.md`.
 - Added backend `GET /api/jobs/{jobId}/demo-reviewer-workspace`, Markdown download, and ZIP download for a metadata-only reviewer handoff.
 - Added React selected-job `Demo reviewer workspace` panel with status, phase, required checks, optional evidence, safe links, package entries, refresh, and Markdown/ZIP downloads.

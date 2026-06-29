@@ -35,13 +35,13 @@
 - `CreateTimedAudioBedCommand(String jobId, List<TimedAudioSegmentBo> segments, Path outputAudioPath, String outputFilename)`
 - `FfmpegTimedAudioBedService.createAudioBed(CreateTimedAudioBedCommand command): TtsResultBo`
 
-- [ ] Add command/value objects for timed audio bed inputs.
-- [ ] Implement an FFmpeg filter graph that delays each segment by `startSeconds`, mixes delayed inputs with `amix`, encodes MP3, and writes `narration-audio.mp3`.
-- [ ] Keep output deterministic: sort segments by `startSeconds`, use millisecond delays, and reject empty segment lists.
-- [ ] Convert FFmpeg failures, timeouts, and IO errors into safe `IllegalStateException` messages without leaking file paths.
-- [ ] Add tests that assert the generated FFmpeg command contains `adelay`, `amix`, expected millisecond offsets, MP3 output, timeout handling, and safe stderr truncation.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add command/value objects for timed audio bed inputs.
+- [x] Implement an FFmpeg filter graph that delays each segment by `startSeconds`, mixes delayed inputs with `amix`, encodes MP3, and writes `narration-audio.mp3`.
+- [x] Keep output deterministic: sort segments by `startSeconds`, use millisecond delays, and reject empty segment lists.
+- [x] Convert FFmpeg failures, timeouts, and IO errors into safe `IllegalStateException` messages without leaking file paths.
+- [x] Add tests that assert the generated FFmpeg command contains `adelay`, `amix`, expected millisecond offsets, MP3 output, timeout handling, and safe stderr truncation.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 2: Timed Narration Audio Generation
 
