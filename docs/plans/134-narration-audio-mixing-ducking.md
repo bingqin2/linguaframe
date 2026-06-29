@@ -175,8 +175,8 @@
 - [x] Run `npm run build`.
 - [x] Run script syntax validation from Task 6.
 - [x] Run `git diff --check`.
-- [ ] Commit with message `Add narration audio mixing and ducking`.
-- [ ] Merge feature branch back to `main`.
+- [x] Commit with message `Add narration audio mixing and ducking`.
+- [x] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
