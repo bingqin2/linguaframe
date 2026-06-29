@@ -3762,6 +3762,20 @@ Validation so far:
 
 Work:
 
+- Applied saved narration mix settings when generating `NARRATED_VIDEO`.
+- Extended the FFmpeg narrated video mix command with narration volume and fade duration.
+- Added narration gain and per-window fade filters while preserving the no-base-audio fallback path.
+- Extended narrated video generation responses with the actual mix values used.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests` first failed at test compilation because mix command fields, response fields, and the service repository dependency did not exist.
+- After implementing command/VO/service/FFmpeg/controller wiring, `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests` passed with `Tests run: 76, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Extended narration workspace responses with default or saved mix settings.
 - Added `PUT /api/jobs/{jobId}/narration-workspace/mix-settings`.
 - Added validation for ducking volume, narration volume, and fade duration while preserving saved settings when clearing narration rows.

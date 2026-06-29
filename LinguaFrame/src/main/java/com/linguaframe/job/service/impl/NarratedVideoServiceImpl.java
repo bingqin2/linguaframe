@@ -2,11 +2,13 @@ package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -33,6 +35,8 @@ import java.util.Optional;
 public class NarratedVideoServiceImpl implements NarratedVideoService {
 
     private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
+    private static final BigDecimal DEFAULT_NARRATION_VOLUME = new BigDecimal("1.00");
+    private static final int DEFAULT_FADE_DURATION_MS = 250;
     private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
 
     private final JobArtifactService artifactService;
@@ -41,6 +45,7 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
     private final MediaWorkDirectoryService workDirectoryService;
     private final FfmpegNarratedVideoMixService narratedVideoMixService;
     private final NarrationSegmentRepository narrationSegmentRepository;
+    private final NarrationMixSettingsRepository mixSettingsRepository;
 
     public NarratedVideoServiceImpl(
             JobArtifactService artifactService,
@@ -48,7 +53,8 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
             MediaUploadService mediaUploadService,
             MediaWorkDirectoryService workDirectoryService,
             FfmpegNarratedVideoMixService narratedVideoMixService,
-            NarrationSegmentRepository narrationSegmentRepository
+            NarrationSegmentRepository narrationSegmentRepository,
+            NarrationMixSettingsRepository mixSettingsRepository
     ) {
         this.artifactService = artifactService;
         this.queryService = queryService;
@@ -56,6 +62,7 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
         this.workDirectoryService = workDirectoryService;
         this.narratedVideoMixService = narratedVideoMixService;
         this.narrationSegmentRepository = narrationSegmentRepository;
+        this.mixSettingsRepository = mixSettingsRepository;
     }
 
     @Override
@@ -74,13 +81,16 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
             copyBaseVideo(jobId, baseVideo, inputVideoPath);
             copyArtifact(jobId, narrationAudio, inputAudioPath);
             List<NarrationWindowBo> narrationWindows = narrationWindows(jobId);
+            NarrationMixSettingsRecord mixSettings = mixSettings(jobId);
             DubbedVideoBo narratedVideo = narratedVideoMixService.mixNarration(new MixNarratedVideoCommand(
                     jobId,
                     inputVideoPath,
                     inputAudioPath,
                     outputVideoPath,
                     "narrated-video.mp4",
-                    DEFAULT_DUCKING_VOLUME,
+                    mixSettings.duckingVolume(),
+                    mixSettings.narrationVolume(),
+                    mixSettings.fadeDurationMs(),
                     narrationWindows
             ));
             JobArtifactVo artifact = artifactService.createArtifact(new CreateJobArtifactCommand(
@@ -99,7 +109,9 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
                     baseVideo.type(),
                     narrationAudio.artifactId(),
                     DUCKED_ORIGINAL_AUDIO,
-                    DEFAULT_DUCKING_VOLUME,
+                    mixSettings.duckingVolume(),
+                    mixSettings.narrationVolume(),
+                    mixSettings.fadeDurationMs(),
                     narrationWindows.size(),
                     "READY"
             );
@@ -160,6 +172,17 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
                 .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
                 .map(segment -> new NarrationWindowBo(segment.startSeconds(), segment.endSeconds()))
                 .toList();
+    }
+
+    private NarrationMixSettingsRecord mixSettings(String jobId) {
+        return mixSettingsRepository.findByJobId(jobId)
+                .orElse(new NarrationMixSettingsRecord(
+                        jobId,
+                        DEFAULT_DUCKING_VOLUME,
+                        DEFAULT_NARRATION_VOLUME,
+                        DEFAULT_FADE_DURATION_MS,
+                        null
+                ));
     }
 
     private record BaseVideoSelection(

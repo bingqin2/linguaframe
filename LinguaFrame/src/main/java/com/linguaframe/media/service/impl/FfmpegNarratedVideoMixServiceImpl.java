@@ -130,7 +130,40 @@ public class FfmpegNarratedVideoMixServiceImpl implements FfmpegNarratedVideoMix
                 + duckingCondition(command.narrationWindows())
                 + ","
                 + formatDecimal(command.duckingVolume())
-                + ",1.0)'[base];[1:a]volume=1.0[narration];[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]";
+                + ",1.0)'[base];[1:a]"
+                + narrationFilter(command)
+                + "[narration];[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]";
+    }
+
+    private String narrationFilter(MixNarratedVideoCommand command) {
+        List<String> filters = new ArrayList<>();
+        filters.addAll(fadeFilters(command.narrationWindows(), command.fadeDurationMs()));
+        filters.add("volume=" + formatDecimal(command.narrationVolume()));
+        return String.join(",", filters);
+    }
+
+    private List<String> fadeFilters(List<NarrationWindowBo> windows, int fadeDurationMs) {
+        if (fadeDurationMs <= 0 || windows == null || windows.isEmpty()) {
+            return List.of();
+        }
+        BigDecimal requestedSeconds = BigDecimal.valueOf(fadeDurationMs)
+                .divide(BigDecimal.valueOf(1000), 3, RoundingMode.HALF_UP);
+        List<String> filters = new ArrayList<>();
+        for (NarrationWindowBo window : windows) {
+            BigDecimal windowDuration = window.endSeconds().subtract(window.startSeconds());
+            if (windowDuration.signum() <= 0) {
+                continue;
+            }
+            BigDecimal halfWindow = windowDuration.divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
+            BigDecimal fadeSeconds = requestedSeconds.min(halfWindow);
+            if (fadeSeconds.signum() <= 0) {
+                continue;
+            }
+            BigDecimal fadeOutStart = window.endSeconds().subtract(fadeSeconds);
+            filters.add("afade=t=in:st=" + formatSeconds(window.startSeconds()) + ":d=" + formatSeconds(fadeSeconds));
+            filters.add("afade=t=out:st=" + formatSeconds(fadeOutStart) + ":d=" + formatSeconds(fadeSeconds));
+        }
+        return filters;
     }
 
     private String duckingCondition(List<NarrationWindowBo> windows) {

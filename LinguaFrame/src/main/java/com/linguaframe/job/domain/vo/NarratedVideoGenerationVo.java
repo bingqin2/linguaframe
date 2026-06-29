@@ -12,6 +12,8 @@ public record NarratedVideoGenerationVo(
         String narrationAudioArtifactId,
         String mixMode,
         BigDecimal duckingVolume,
+        BigDecimal narrationVolume,
+        int fadeDurationMs,
         int narrationWindowCount,
         String status
 ) {

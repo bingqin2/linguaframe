@@ -3,6 +3,7 @@ package com.linguaframe.job.service;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
@@ -17,18 +18,21 @@ import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +43,7 @@ class NarratedVideoServiceTests {
     private final RecordingLocalizationJobQueryService queryService = new RecordingLocalizationJobQueryService();
     private final RecordingMediaUploadService mediaUploadService = new RecordingMediaUploadService();
     private final RecordingFfmpegNarratedVideoMixService narratedVideoMixService = new RecordingFfmpegNarratedVideoMixService();
+    private final RecordingNarrationMixSettingsRepository mixSettingsRepository = new RecordingNarrationMixSettingsRepository();
 
     @TempDir
     private Path tempDir;
@@ -58,6 +63,8 @@ class NarratedVideoServiceTests {
         assertThat(narratedVideoMixService.command.outputVideoPath()).isEqualTo(workDirectoryService.workDirectory.resolve("narrated-video.mp4"));
         assertThat(narratedVideoMixService.command.outputFilename()).isEqualTo("narrated-video.mp4");
         assertThat(narratedVideoMixService.command.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(narratedVideoMixService.command.narrationVolume()).isEqualByComparingTo("1.00");
+        assertThat(narratedVideoMixService.command.fadeDurationMs()).isEqualTo(250);
         assertThat(narratedVideoMixService.command.narrationWindows()).hasSize(2);
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).startSeconds()).isEqualByComparingTo("15.000");
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).endSeconds()).isEqualByComparingTo("28.000");
@@ -68,6 +75,8 @@ class NarratedVideoServiceTests {
         assertThat(result.narrationAudioArtifactId()).isEqualTo("narration");
         assertThat(result.mixMode()).isEqualTo("DUCKED_ORIGINAL_AUDIO");
         assertThat(result.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(result.narrationVolume()).isEqualByComparingTo("1.00");
+        assertThat(result.fadeDurationMs()).isEqualTo(250);
         assertThat(result.narrationWindowCount()).isEqualTo(2);
         assertThat(result.status()).isEqualTo("READY");
         assertThat(artifactService.createdCommands).hasSize(1);
@@ -75,6 +84,28 @@ class NarratedVideoServiceTests {
         assertThat(created.type()).isEqualTo(JobArtifactType.NARRATED_VIDEO);
         assertThat(created.filename()).isEqualTo("narrated-video.mp4");
         assertThat(created.content()).containsExactly(7, 8, 9);
+    }
+
+    @Test
+    void usesSavedMixSettingsWhenGeneratingNarratedVideo() {
+        artifactService.artifacts.add(artifact("burned", JobArtifactType.BURNED_VIDEO, "burned-video.mp4", 1));
+        artifactService.artifacts.add(artifact("narration", JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3", 2));
+        mixSettingsRepository.saved = new NarrationMixSettingsRecord(
+                "job-narrated",
+                new BigDecimal("0.125"),
+                new BigDecimal("1.750"),
+                400,
+                Instant.parse("2026-06-29T12:01:00Z")
+        );
+
+        var result = service(new RecordingMediaWorkDirectoryService(tempDir)).generateVideo("job-narrated");
+
+        assertThat(narratedVideoMixService.command.duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(narratedVideoMixService.command.narrationVolume()).isEqualByComparingTo("1.750");
+        assertThat(narratedVideoMixService.command.fadeDurationMs()).isEqualTo(400);
+        assertThat(result.duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(result.narrationVolume()).isEqualByComparingTo("1.750");
+        assertThat(result.fadeDurationMs()).isEqualTo(400);
     }
 
     @Test
@@ -144,7 +175,8 @@ class NarratedVideoServiceTests {
                 mediaUploadService,
                 workDirectoryService,
                 narratedVideoMixService,
-                new RecordingNarrationSegmentRepository()
+                new RecordingNarrationSegmentRepository(),
+                mixSettingsRepository
         );
     }
 
@@ -364,6 +396,30 @@ class NarratedVideoServiceTests {
                     Instant.parse("2026-06-29T12:00:00Z"),
                     Instant.parse("2026-06-29T12:00:00Z")
             );
+        }
+    }
+
+    private static final class RecordingNarrationMixSettingsRepository implements NarrationMixSettingsRepository {
+
+        private NarrationMixSettingsRecord saved;
+
+        @Override
+        public Optional<NarrationMixSettingsRecord> findByJobId(String jobId) {
+            return Optional.ofNullable(saved)
+                    .filter(record -> record.jobId().equals(jobId));
+        }
+
+        @Override
+        public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
+            saved = settings;
+            return settings;
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+            if (saved != null && saved.jobId().equals(jobId)) {
+                saved = null;
+            }
         }
     }
 }

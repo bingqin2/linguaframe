@@ -11,6 +11,8 @@ public record MixNarratedVideoCommand(
         Path outputVideoPath,
         String outputFilename,
         BigDecimal duckingVolume,
+        BigDecimal narrationVolume,
+        int fadeDurationMs,
         List<NarrationWindowBo> narrationWindows
 ) {
 }

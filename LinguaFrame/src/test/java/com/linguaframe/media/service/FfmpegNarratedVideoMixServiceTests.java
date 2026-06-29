@@ -38,6 +38,8 @@ class FfmpegNarratedVideoMixServiceTests {
                 output,
                 "narrated-video.mp4",
                 new BigDecimal("0.35"),
+                new BigDecimal("1.75"),
+                400,
                 List.of(
                         new NarrationWindowBo(new BigDecimal("15.000"), new BigDecimal("28.000")),
                         new NarrationWindowBo(new BigDecimal("55.000"), new BigDecimal("70.500"))
@@ -52,7 +54,7 @@ class FfmpegNarratedVideoMixServiceTests {
                 "-i",
                 narrationAudio.toString(),
                 "-filter_complex",
-                "[0:a]volume='if(between(t,15.000,28.000)+between(t,55.000,70.500),0.35,1.0)'[base];[1:a]volume=1.0[narration];[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]",
+                "[0:a]volume='if(between(t,15.000,28.000)+between(t,55.000,70.500),0.35,1.0)'[base];[1:a]afade=t=in:st=15.000:d=0.400,afade=t=out:st=27.600:d=0.400,afade=t=in:st=55.000:d=0.400,afade=t=out:st=70.100:d=0.400,volume=1.75[narration];[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]",
                 "-map",
                 "0:v:0",
                 "-map",
@@ -87,6 +89,8 @@ class FfmpegNarratedVideoMixServiceTests {
                 output,
                 "narrated-video.mp4",
                 new BigDecimal("0.35"),
+                new BigDecimal("1.00"),
+                0,
                 List.of(new NarrationWindowBo(new BigDecimal("1.000"), new BigDecimal("2.000")))
         ));
 
@@ -133,6 +137,8 @@ class FfmpegNarratedVideoMixServiceTests {
                 output,
                 "narrated-video.mp4",
                 new BigDecimal("0.35"),
+                new BigDecimal("1.00"),
+                0,
                 List.of(new NarrationWindowBo(new BigDecimal("1.000"), new BigDecimal("2.000")))
         )))
                 .isInstanceOf(IllegalStateException.class)
@@ -157,6 +163,8 @@ class FfmpegNarratedVideoMixServiceTests {
                 output,
                 "narrated-video.mp4",
                 new BigDecimal("0.35"),
+                new BigDecimal("1.00"),
+                0,
                 List.of(new NarrationWindowBo(new BigDecimal("1.000"), new BigDecimal("2.000")))
         )))
                 .isInstanceOf(IllegalStateException.class)

@@ -80,14 +80,14 @@
 - Extend `MixNarratedVideoCommand` with `BigDecimal narrationVolume` and `int fadeDurationMs`.
 - Extend `NarratedVideoGenerationVo` with `BigDecimal narrationVolume` and `int fadeDurationMs`.
 
-- [ ] Load saved mix settings when generating `NARRATED_VIDEO`.
-- [ ] Pass ducking volume, narration volume, and fade duration into the FFmpeg mix command.
-- [ ] Apply narration volume to the narration audio input.
-- [ ] Add short fade-in/fade-out around narration windows when `fadeDurationMs > 0`; keep the no-fade path deterministic when it is `0`.
-- [ ] Preserve no-audio fallback behavior for base videos without audio tracks.
-- [ ] Add tests for customized ducking, narration volume, fade duration, default fallback, and safe FFmpeg failure messages.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Load saved mix settings when generating `NARRATED_VIDEO`.
+- [x] Pass ducking volume, narration volume, and fade duration into the FFmpeg mix command.
+- [x] Apply narration volume to the narration audio input.
+- [x] Add short fade-in/fade-out around narration windows when `fadeDurationMs > 0`; keep the no-fade path deterministic when it is `0`.
+- [x] Preserve no-audio fallback behavior for base videos without audio tracks.
+- [x] Add tests for customized ducking, narration volume, fade duration, default fallback, and safe FFmpeg failure messages.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 4: Evidence, Handoff, And Demo Summaries
 

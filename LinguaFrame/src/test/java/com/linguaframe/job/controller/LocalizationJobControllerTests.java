@@ -129,6 +129,7 @@ class LocalizationJobControllerTests {
     void cleanDatabase() {
         jdbcClient.sql("DELETE FROM quality_evaluations").update();
         jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM narration_mix_settings").update();
         jdbcClient.sql("DELETE FROM narration_segments").update();
         jdbcClient.sql("DELETE FROM subtitle_draft_segments").update();
         jdbcClient.sql("DELETE FROM subtitle_segments").update();
@@ -2105,6 +2106,20 @@ class LocalizationJobControllerTests {
         when(objectStorageService.open("job-artifacts/job-controller-job-narrated/job-controller-narrated-audio/narration-audio.mp3"))
                 .thenReturn(new ByteArrayInputStream(new byte[] {4, 5, 6}));
 
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-narrated")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "duckingVolume": 0.125,
+                                  "narrationVolume": 1.750,
+                                  "fadeDurationMs": 400
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125))
+                .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.750))
+                .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(400));
+
         mockMvc.perform(post("/api/jobs/{jobId}/narration-workspace/generate-video", "job-controller-job-narrated"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.jobId").value("job-controller-job-narrated"))
@@ -2114,7 +2129,9 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.baseVideoType").value("BURNED_VIDEO"))
                 .andExpect(jsonPath("$.narrationAudioArtifactId").value("job-controller-narrated-audio"))
                 .andExpect(jsonPath("$.mixMode").value("DUCKED_ORIGINAL_AUDIO"))
-                .andExpect(jsonPath("$.duckingVolume").value(0.35))
+                .andExpect(jsonPath("$.duckingVolume").value(0.125))
+                .andExpect(jsonPath("$.narrationVolume").value(1.750))
+                .andExpect(jsonPath("$.fadeDurationMs").value(400))
                 .andExpect(jsonPath("$.narrationWindowCount").value(0))
                 .andExpect(jsonPath("$.status").value("READY"));
 
