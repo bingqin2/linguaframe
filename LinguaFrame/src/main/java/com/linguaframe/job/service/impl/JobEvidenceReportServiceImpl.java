@@ -11,6 +11,7 @@ import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.service.JobEvidenceReportService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.SubtitleDraftService;
@@ -25,7 +26,6 @@ import java.util.NoSuchElementException;
 @Service
 public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
 
-    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
     private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
     private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
     private static final String MISSING = "MISSING";
@@ -33,15 +33,18 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
     private final LocalizationJobQueryService queryService;
     private final SubtitleReviewService subtitleReviewService;
     private final SubtitleDraftService subtitleDraftService;
+    private final NarrationMixSettingsRepository mixSettingsRepository;
 
     public JobEvidenceReportServiceImpl(
             LocalizationJobQueryService queryService,
             SubtitleReviewService subtitleReviewService,
-            SubtitleDraftService subtitleDraftService
+            SubtitleDraftService subtitleDraftService,
+            NarrationMixSettingsRepository mixSettingsRepository
     ) {
         this.queryService = queryService;
         this.subtitleReviewService = subtitleReviewService;
         this.subtitleDraftService = subtitleDraftService;
+        this.mixSettingsRepository = mixSettingsRepository;
     }
 
     @Override
@@ -117,7 +120,7 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Subtitle review downloadable subtitle artifacts: "
                 + subtitleReview.downloadableSubtitleArtifactCount());
         addSubtitleDraftEvidence(lines, job);
-        addReviewedSubtitleEvidence(lines, report);
+        addReviewedSubtitleEvidence(lines, report, job.jobId());
 
         if (!job.timelineEvents().isEmpty()) {
             lines.add("");
@@ -203,7 +206,7 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         }
     }
 
-    private void addReviewedSubtitleEvidence(List<String> lines, JobDiagnosticsReportVo report) {
+    private void addReviewedSubtitleEvidence(List<String> lines, JobDiagnosticsReportVo report, String jobId) {
         long reviewedSubtitleArtifacts = report.artifacts().stream()
                 .filter(artifact -> artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_JSON
                         || artifact.type() == JobArtifactType.REVIEWED_SUBTITLE_SRT
@@ -224,7 +227,19 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Narration time aligned: " + (narrationAudioArtifacts > 0));
         lines.add("- Narrated video artifacts: " + narratedVideoArtifacts);
         lines.add("- Narrated video mix mode: " + (narratedVideoArtifacts > 0 ? DUCKED_ORIGINAL_AUDIO : MISSING));
-        lines.add("- Narrated video ducking volume: " + (narratedVideoArtifacts > 0 ? DEFAULT_DUCKING_VOLUME : "N/A"));
+        if (narratedVideoArtifacts > 0) {
+            NarrationMixSettingsSupport.ResolvedNarrationMixSettings mixSettings =
+                    NarrationMixSettingsSupport.resolve(mixSettingsRepository, jobId);
+            lines.add("- Narrated video ducking volume: " + mixSettings.duckingVolume());
+            lines.add("- Narrated video narration volume: " + mixSettings.narrationVolume());
+            lines.add("- Narrated video fade duration ms: " + mixSettings.fadeDurationMs());
+            lines.add("- Narrated video mix settings source: " + mixSettings.source());
+            return;
+        }
+        lines.add("- Narrated video ducking volume: N/A");
+        lines.add("- Narrated video narration volume: N/A");
+        lines.add("- Narrated video fade duration ms: N/A");
+        lines.add("- Narrated video mix settings source: N/A");
     }
 
     private boolean hasText(String value) {

@@ -3762,6 +3762,20 @@ Validation so far:
 
 Work:
 
+- Extended narration evidence JSON, Markdown, ZIP manifest, and summary JSON with ducking volume, narration volume, fade duration, and mix settings source.
+- Updated backend evidence report and demo handoff portal facts so generated packages show the actual saved or default mix settings.
+- Extended demo terminal summaries for narration evidence and narrated-video generation with narration volume, fade duration, and mix settings source.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` first failed because the evidence VO fields and settings repository dependencies did not exist.
+- After implementing shared mix settings resolution and evidence/handoff output wiring, `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed with `Tests run: 11, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
 - Applied saved narration mix settings when generating `NARRATED_VIDEO`.
 - Extended the FFmpeg narrated video mix command with narration volume and fade duration.
 - Added narration gain and per-window fade filters while preserving the no-base-audio fallback path.

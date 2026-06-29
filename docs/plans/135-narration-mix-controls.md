@@ -104,14 +104,14 @@
 **Interfaces:**
 - Add metadata-only evidence fields: `narrationVolume`, `fadeDurationMs`, and `mixSettingsSource`.
 
-- [ ] Include mix settings in narration evidence JSON, Markdown, ZIP manifest, and summary JSON.
-- [ ] Show whether settings are defaults or operator-saved values.
-- [ ] Update job evidence and handoff portal facts to include ducking, narration gain, and fade duration.
-- [ ] Extend terminal summary output with `narrationVolume`, `fadeDurationMs`, and `mixSettingsSource`.
-- [ ] Add tests for metadata presence and forbidden marker absence.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Include mix settings in narration evidence JSON, Markdown, ZIP manifest, and summary JSON.
+- [x] Show whether settings are defaults or operator-saved values.
+- [x] Update job evidence and handoff portal facts to include ducking, narration gain, and fade duration.
+- [x] Extend terminal summary output with `narrationVolume`, `fadeDurationMs`, and `mixSettingsSource`.
+- [x] Add tests for metadata presence and forbidden marker absence.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 5: React Mix Controls
 

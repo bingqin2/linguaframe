@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceCheckVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceLinkVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationEvidenceService;
@@ -29,20 +30,22 @@ import java.util.zip.ZipOutputStream;
 public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private static final BigDecimal ZERO = new BigDecimal("0.000");
-    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
     private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
     private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
     private static final String MISSING = "MISSING";
 
     private final NarrationSegmentRepository narrationSegmentRepository;
     private final LocalizationJobQueryService queryService;
+    private final NarrationMixSettingsRepository mixSettingsRepository;
 
     public NarrationEvidenceServiceImpl(
             NarrationSegmentRepository narrationSegmentRepository,
-            LocalizationJobQueryService queryService
+            LocalizationJobQueryService queryService,
+            NarrationMixSettingsRepository mixSettingsRepository
     ) {
         this.narrationSegmentRepository = narrationSegmentRepository;
         this.queryService = queryService;
+        this.mixSettingsRepository = mixSettingsRepository;
     }
 
     @Override
@@ -58,6 +61,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 .filter(artifact -> artifact.type() == JobArtifactType.NARRATED_VIDEO)
                 .count();
         String status = status(segments.size(), audioArtifacts, narratedVideoArtifacts);
+        NarrationMixSettingsSupport.ResolvedNarrationMixSettings mixSettings =
+                narratedVideoArtifacts > 0 ? NarrationMixSettingsSupport.resolve(mixSettingsRepository, jobId) : null;
         return new NarrationEvidenceVo(
                 jobId,
                 status,
@@ -71,7 +76,10 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 narratedVideoArtifacts > 0,
                 Math.toIntExact(narratedVideoArtifacts),
                 narratedVideoArtifacts > 0 ? DUCKED_ORIGINAL_AUDIO : MISSING,
-                narratedVideoArtifacts > 0 ? DEFAULT_DUCKING_VOLUME : null,
+                mixSettings == null ? null : mixSettings.duckingVolume(),
+                mixSettings == null ? null : mixSettings.narrationVolume(),
+                mixSettings == null ? 0 : mixSettings.fadeDurationMs(),
+                mixSettings == null ? null : mixSettings.source(),
                 checks(segments.size(), audioArtifacts, narratedVideoArtifacts),
                 safeLinks(jobId),
                 packageEntries(jobId),
@@ -96,6 +104,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Narrated video artifacts: " + evidence.narratedVideoArtifactCount());
         lines.add("- Mix mode: " + evidence.mixMode());
         lines.add("- Ducking volume: " + valueOrDefault(evidence.duckingVolume(), "N/A"));
+        lines.add("- Narration volume: " + valueOrDefault(evidence.narrationVolume(), "N/A"));
+        lines.add("- Fade duration ms: " + (evidence.fadeDurationMs() == 0 ? "N/A" : evidence.fadeDurationMs()));
+        lines.add("- Mix settings source: " + valueOrDefault(evidence.mixSettingsSource(), "N/A"));
         lines.add("");
         lines.add("## Checks");
         for (NarrationEvidenceCheckVo check : evidence.checks()) {
@@ -148,7 +159,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -158,13 +169,16 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.timeAligned(),
                 evidence.narratedVideoReady(),
                 json(evidence.mixMode()),
-                jsonNumberOrNull(evidence.duckingVolume())
+                jsonNumberOrNull(evidence.duckingVolume()),
+                jsonNumberOrNull(evidence.narrationVolume()),
+                evidence.fadeDurationMs(),
+                json(valueOrDefault(evidence.mixSettingsSource(), "N/A"))
         );
     }
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -176,7 +190,10 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.timeAligned(),
                 evidence.narratedVideoArtifactCount(),
                 json(evidence.mixMode()),
-                jsonNumberOrNull(evidence.duckingVolume())
+                jsonNumberOrNull(evidence.duckingVolume()),
+                jsonNumberOrNull(evidence.narrationVolume()),
+                evidence.fadeDurationMs(),
+                json(valueOrDefault(evidence.mixSettingsSource(), "N/A"))
         );
     }
 

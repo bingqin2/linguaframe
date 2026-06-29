@@ -1,6 +1,7 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
@@ -10,6 +11,7 @@ import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.impl.NarrationEvidenceServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -19,6 +21,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +35,8 @@ class NarrationEvidenceServiceTests {
                 List.of(
                         artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3"),
                         artifact(JobArtifactType.NARRATED_VIDEO, "narrated-video.mp4")
-                )
+                ),
+                savedMixSettings()
         );
 
         NarrationEvidenceVo evidence = service.getEvidence("job-narration");
@@ -48,7 +52,10 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.narratedVideoReady()).isTrue();
         assertThat(evidence.narratedVideoArtifactCount()).isEqualTo(1);
         assertThat(evidence.mixMode()).isEqualTo("DUCKED_ORIGINAL_AUDIO");
-        assertThat(evidence.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(evidence.duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(evidence.narrationVolume()).isEqualByComparingTo("1.750");
+        assertThat(evidence.fadeDurationMs()).isEqualTo(400);
+        assertThat(evidence.mixSettingsSource()).isEqualTo("SAVED");
         assertThat(evidence.safeLinks())
                 .extracting(link -> link.href())
                 .contains("/api/jobs/job-narration/narration-evidence/download");
@@ -63,7 +70,10 @@ class NarrationEvidenceServiceTests {
                 .contains("- Time aligned: true")
                 .contains("- Narrated video artifacts: 1")
                 .contains("- Mix mode: DUCKED_ORIGINAL_AUDIO")
-                .contains("- Ducking volume: 0.35")
+                .contains("- Ducking volume: 0.125")
+                .contains("- Narration volume: 1.750")
+                .contains("- Fade duration ms: 400")
+                .contains("- Mix settings source: SAVED")
                 .doesNotContain("Explain the first scene")
                 .doesNotContain("Explain the second scene")
                 .doesNotContain("sk-")
@@ -82,8 +92,22 @@ class NarrationEvidenceServiceTests {
     }
 
     @Test
+    void reportsDefaultMixSettingsWhenNoSavedSettingsExist() {
+        NarrationEvidenceVo evidence = service(
+                segments(),
+                List.of(artifact(JobArtifactType.NARRATED_VIDEO, "narrated-video.mp4")),
+                null
+        ).getEvidence("job-narration");
+
+        assertThat(evidence.duckingVolume()).isEqualByComparingTo("0.35");
+        assertThat(evidence.narrationVolume()).isEqualByComparingTo("1.00");
+        assertThat(evidence.fadeDurationMs()).isEqualTo(250);
+        assertThat(evidence.mixSettingsSource()).isEqualTo("DEFAULTS");
+    }
+
+    @Test
     void returnsAttentionWhenSegmentsExistWithoutAudio() {
-        NarrationEvidenceVo evidence = service(segments(), List.of()).getEvidence("job-narration");
+        NarrationEvidenceVo evidence = service(segments(), List.of(), savedMixSettings()).getEvidence("job-narration");
 
         assertThat(evidence.status()).isEqualTo("ATTENTION");
         assertThat(evidence.narrationAudioReady()).isFalse();
@@ -91,6 +115,9 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.timeAligned()).isFalse();
         assertThat(evidence.mixMode()).isEqualTo("MISSING");
         assertThat(evidence.duckingVolume()).isNull();
+        assertThat(evidence.narrationVolume()).isNull();
+        assertThat(evidence.fadeDurationMs()).isEqualTo(0);
+        assertThat(evidence.mixSettingsSource()).isNull();
         assertThat(evidence.checks())
                 .extracting(check -> check.key() + ":" + check.status())
                 .contains("NARRATION_AUDIO:ATTENTION", "NARRATED_VIDEO:ATTENTION");
@@ -100,7 +127,8 @@ class NarrationEvidenceServiceTests {
     void returnsAttentionWhenAudioExistsWithoutNarratedVideo() {
         NarrationEvidenceVo evidence = service(
                 segments(),
-                List.of(artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3"))
+                List.of(artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3")),
+                savedMixSettings()
         ).getEvidence("job-narration");
 
         assertThat(evidence.status()).isEqualTo("ATTENTION");
@@ -113,7 +141,7 @@ class NarrationEvidenceServiceTests {
 
     @Test
     void returnsBlockedWhenNoSegmentsExist() {
-        NarrationEvidenceVo evidence = service(List.of(), List.of()).getEvidence("job-narration");
+        NarrationEvidenceVo evidence = service(List.of(), List.of(), savedMixSettings()).getEvidence("job-narration");
 
         assertThat(evidence.status()).isEqualTo("BLOCKED");
         assertThat(evidence.segmentCount()).isZero();
@@ -126,9 +154,28 @@ class NarrationEvidenceServiceTests {
             List<NarrationSegmentRecord> segments,
             List<JobDiagnosticsArtifactVo> artifacts
     ) {
+        return service(segments, artifacts, null);
+    }
+
+    private NarrationEvidenceService service(
+            List<NarrationSegmentRecord> segments,
+            List<JobDiagnosticsArtifactVo> artifacts,
+            NarrationMixSettingsRecord settings
+    ) {
         return new NarrationEvidenceServiceImpl(
                 new StaticNarrationSegmentRepository(segments),
-                new StaticLocalizationJobQueryService(artifacts)
+                new StaticLocalizationJobQueryService(artifacts),
+                new StaticNarrationMixSettingsRepository(settings)
+        );
+    }
+
+    private NarrationMixSettingsRecord savedMixSettings() {
+        return new NarrationMixSettingsRecord(
+                "job-narration",
+                new BigDecimal("0.125"),
+                new BigDecimal("1.750"),
+                400,
+                Instant.parse("2026-06-29T10:15:00Z")
         );
     }
 
@@ -239,6 +286,25 @@ class NarrationEvidenceServiceTests {
                     null
             );
             return new JobDiagnosticsReportVo(Instant.parse("2026-06-29T10:40:00Z"), job, artifacts, artifacts.size());
+        }
+    }
+
+    private record StaticNarrationMixSettingsRepository(NarrationMixSettingsRecord settings)
+            implements NarrationMixSettingsRepository {
+
+        @Override
+        public Optional<NarrationMixSettingsRecord> findByJobId(String jobId) {
+            return Optional.ofNullable(settings)
+                    .filter(record -> record.jobId().equals(jobId));
+        }
+
+        @Override
+        public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
         }
     }
 }

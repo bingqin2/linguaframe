@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -34,9 +33,6 @@ import java.util.Optional;
 @Service
 public class NarratedVideoServiceImpl implements NarratedVideoService {
 
-    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
-    private static final BigDecimal DEFAULT_NARRATION_VOLUME = new BigDecimal("1.00");
-    private static final int DEFAULT_FADE_DURATION_MS = 250;
     private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
 
     private final JobArtifactService artifactService;
@@ -176,13 +172,7 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
 
     private NarrationMixSettingsRecord mixSettings(String jobId) {
         return mixSettingsRepository.findByJobId(jobId)
-                .orElse(new NarrationMixSettingsRecord(
-                        jobId,
-                        DEFAULT_DUCKING_VOLUME,
-                        DEFAULT_NARRATION_VOLUME,
-                        DEFAULT_FADE_DURATION_MS,
-                        null
-                ));
+                .orElse(NarrationMixSettingsSupport.defaultRecord(jobId));
     }
 
     private record BaseVideoSelection(

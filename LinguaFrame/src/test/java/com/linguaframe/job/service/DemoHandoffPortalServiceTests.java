@@ -5,6 +5,7 @@ import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateCheckVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateEvidenceVo;
@@ -35,6 +36,7 @@ import com.linguaframe.job.domain.vo.OpenAiSmokeProofCheckVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofLinkVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.service.impl.DemoHandoffPortalServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -48,6 +50,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -90,7 +93,10 @@ class DemoHandoffPortalServiceTests {
                                 "Audio layout: TIMED_AUDIO_BED",
                                 "Time aligned: true",
                                 "Video mix mode: DUCKED_ORIGINAL_AUDIO",
-                                "Ducking volume: 0.35"
+                                "Ducking volume: 0.125",
+                                "Narration volume: 1.750",
+                                "Fade duration ms: 400",
+                                "Mix settings source: SAVED"
                         ));
         assertThat(portal.safeLinks()).extracting("href")
                 .contains(
@@ -120,7 +126,9 @@ class DemoHandoffPortalServiceTests {
                 .contains("<!doctype html>")
                 .contains("LinguaFrame Demo Handoff Portal")
                 .contains("HANDOFF_PORTAL_READY")
-                .contains("DUCKED_ORIGINAL_AUDIO");
+                .contains("DUCKED_ORIGINAL_AUDIO")
+                .contains("Narration volume: 1.750")
+                .contains("Fade duration ms: 400");
     }
 
     @Test
@@ -248,6 +256,13 @@ class DemoHandoffPortalServiceTests {
                 new StaticShareSheetService(shareSheet),
                 new StaticRunMonitorService(monitor),
                 new StaticOpenAiSmokeProofService(openAiProof),
+                new StaticNarrationMixSettingsRepository(new NarrationMixSettingsRecord(
+                        "job-portal",
+                        new BigDecimal("0.125"),
+                        new BigDecimal("1.750"),
+                        400,
+                        NOW.minusSeconds(60)
+                )),
                 CLOCK
         );
     }
@@ -578,6 +593,25 @@ class DemoHandoffPortalServiceTests {
         @Override
         public String renderMarkdown(String jobId) {
             return "safe openai proof";
+        }
+    }
+
+    private record StaticNarrationMixSettingsRepository(NarrationMixSettingsRecord settings)
+            implements NarrationMixSettingsRepository {
+
+        @Override
+        public Optional<NarrationMixSettingsRecord> findByJobId(String jobId) {
+            return Optional.ofNullable(settings)
+                    .filter(record -> record.jobId().equals(jobId));
+        }
+
+        @Override
+        public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
         }
     }
 }

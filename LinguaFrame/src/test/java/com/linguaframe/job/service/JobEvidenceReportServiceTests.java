@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.SubtitleReviewSegmentStatus;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.vo.FailureTriageVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
@@ -18,12 +19,14 @@ import com.linguaframe.job.domain.vo.SubtitleDraftSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.service.impl.JobEvidenceReportServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -37,7 +40,14 @@ class JobEvidenceReportServiceTests {
     private final JobEvidenceReportServiceImpl service = new JobEvidenceReportServiceImpl(
             queryService,
             subtitleReviewService,
-            subtitleDraftService
+            subtitleDraftService,
+            new StaticNarrationMixSettingsRepository(new NarrationMixSettingsRecord(
+                    "job-evidence-triage",
+                    new BigDecimal("0.125"),
+                    new BigDecimal("1.750"),
+                    400,
+                    Instant.parse("2026-06-29T11:00:00Z")
+            ))
     );
 
     @Test
@@ -81,7 +91,10 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Narration time aligned: true");
         assertThat(markdown).contains("- Narrated video artifacts: 1");
         assertThat(markdown).contains("- Narrated video mix mode: DUCKED_ORIGINAL_AUDIO");
-        assertThat(markdown).contains("- Narrated video ducking volume: 0.35");
+        assertThat(markdown).contains("- Narrated video ducking volume: 0.125");
+        assertThat(markdown).contains("- Narrated video narration volume: 1.750");
+        assertThat(markdown).contains("- Narrated video fade duration ms: 400");
+        assertThat(markdown).contains("- Narrated video mix settings source: SAVED");
         assertThat(markdown).doesNotContain("raw source text");
         assertThat(markdown).doesNotContain("raw target text");
         assertThat(markdown).doesNotContain("raw draft text");
@@ -232,5 +245,24 @@ class JobEvidenceReportServiceTests {
                         )
                 )
         );
+    }
+
+    private record StaticNarrationMixSettingsRepository(NarrationMixSettingsRecord settings)
+            implements NarrationMixSettingsRepository {
+
+        @Override
+        public Optional<NarrationMixSettingsRecord> findByJobId(String jobId) {
+            return Optional.ofNullable(settings)
+                    .filter(record -> record.jobId().equals(jobId));
+        }
+
+        @Override
+        public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
     }
 }

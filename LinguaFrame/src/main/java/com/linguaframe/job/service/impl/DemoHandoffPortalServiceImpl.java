@@ -15,6 +15,7 @@ import com.linguaframe.job.domain.vo.DemoRunSnapshotVo;
 import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
@@ -43,7 +44,6 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
 
     private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
     private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
-    private static final String DEFAULT_DUCKING_VOLUME = "0.35";
 
     private final LocalizationJobQueryService queryService;
     private final DemoReviewerWorkspaceService reviewerWorkspaceService;
@@ -54,6 +54,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
     private final DemoShareSheetService shareSheetService;
     private final DemoRunMonitorService runMonitorService;
     private final OpenAiSmokeProofService openAiSmokeProofService;
+    private final NarrationMixSettingsRepository mixSettingsRepository;
     private final Clock clock;
 
     @Autowired
@@ -66,11 +67,12 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoRunSnapshotService runSnapshotService,
             DemoShareSheetService shareSheetService,
             DemoRunMonitorService runMonitorService,
-            OpenAiSmokeProofService openAiSmokeProofService
+            OpenAiSmokeProofService openAiSmokeProofService,
+            NarrationMixSettingsRepository mixSettingsRepository
     ) {
         this(queryService, reviewerWorkspaceService, acceptanceGateService, completionCertificateService,
                 deliveryManifestService, runSnapshotService, shareSheetService, runMonitorService,
-                openAiSmokeProofService, Clock.systemUTC());
+                openAiSmokeProofService, mixSettingsRepository, Clock.systemUTC());
     }
 
     public DemoHandoffPortalServiceImpl(
@@ -83,6 +85,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoShareSheetService shareSheetService,
             DemoRunMonitorService runMonitorService,
             OpenAiSmokeProofService openAiSmokeProofService,
+            NarrationMixSettingsRepository mixSettingsRepository,
             Clock clock
     ) {
         this.queryService = queryService;
@@ -94,6 +97,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         this.shareSheetService = shareSheetService;
         this.runMonitorService = runMonitorService;
         this.openAiSmokeProofService = openAiSmokeProofService;
+        this.mixSettingsRepository = mixSettingsRepository;
         this.clock = clock;
     }
 
@@ -247,6 +251,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoRunMonitorVo monitor,
             OpenAiSmokeProofVo openAiProof
     ) {
+        NarrationMixSettingsSupport.ResolvedNarrationMixSettings mixSettings =
+                NarrationMixSettingsSupport.resolve(mixSettingsRepository, job.jobId());
         return List.of(
                 section("REVIEWER_WORKSPACE", "Reviewer workspace", reviewerWorkspace.overallStatus(), List.of(
                         "Reviewer workspace phase: " + value(reviewerWorkspace.phase()),
@@ -262,7 +268,10 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Audio layout: " + TIMED_AUDIO_BED,
                         "Time aligned: true",
                         "Video mix mode: " + DUCKED_ORIGINAL_AUDIO,
-                        "Ducking volume: " + DEFAULT_DUCKING_VOLUME,
+                        "Ducking volume: " + mixSettings.duckingVolume(),
+                        "Narration volume: " + mixSettings.narrationVolume(),
+                        "Fade duration ms: " + mixSettings.fadeDurationMs(),
+                        "Mix settings source: " + mixSettings.source(),
                         "Narration evidence package link is available."
                 )),
                 section("PRESENTATION_EVIDENCE", "Presentation evidence", shareSheet.readiness(), List.of(
