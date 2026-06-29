@@ -1,5 +1,7 @@
 package com.linguaframe.media.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.common.quota.OwnerQuotaPreflightService;
 import com.linguaframe.common.quota.OwnerQuotaPreflightVo;
@@ -9,11 +11,13 @@ import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.domain.vo.UploadCostEstimateVo;
+import com.linguaframe.media.domain.vo.UploadDecisionPackageVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
 import com.linguaframe.media.service.DemoUploadReadinessService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
 import com.linguaframe.media.service.UploadCostEstimateService;
+import com.linguaframe.media.service.UploadDecisionPackageService;
 import com.linguaframe.media.service.UploadExecutionPlanService;
 import com.linguaframe.media.service.UploadExecutionPlanReportService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +41,13 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 @RestController
 @RequestMapping("/api/media/uploads")
 @Tag(name = "Media Uploads", description = "Validate, upload, and inspect source videos for localization jobs.")
@@ -49,6 +60,8 @@ public class MediaUploadController {
     private final UploadCostEstimateService uploadCostEstimateService;
     private final UploadExecutionPlanService uploadExecutionPlanService;
     private final UploadExecutionPlanReportService uploadExecutionPlanReportService;
+    private final UploadDecisionPackageService uploadDecisionPackageService;
+    private final ObjectMapper objectMapper;
 
     public MediaUploadController(
             MediaUploadValidationService validationService,
@@ -57,7 +70,9 @@ public class MediaUploadController {
             DemoUploadReadinessService demoUploadReadinessService,
             UploadCostEstimateService uploadCostEstimateService,
             UploadExecutionPlanService uploadExecutionPlanService,
-            UploadExecutionPlanReportService uploadExecutionPlanReportService
+            UploadExecutionPlanReportService uploadExecutionPlanReportService,
+            UploadDecisionPackageService uploadDecisionPackageService,
+            ObjectMapper objectMapper
     ) {
         this.validationService = validationService;
         this.uploadService = uploadService;
@@ -66,6 +81,8 @@ public class MediaUploadController {
         this.uploadCostEstimateService = uploadCostEstimateService;
         this.uploadExecutionPlanService = uploadExecutionPlanService;
         this.uploadExecutionPlanReportService = uploadExecutionPlanReportService;
+        this.uploadDecisionPackageService = uploadDecisionPackageService;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/preflight")
@@ -168,7 +185,7 @@ public class MediaUploadController {
             @Parameter(description = "Optional built-in demo run profile id.")
             @RequestParam(value = "demoProfileId", required = false) String demoProfileId
     ) {
-        return uploadExecutionPlanService.plan(file, new UploadCostEstimateOptionsBo(
+        return uploadExecutionPlanService.plan(file, uploadOptions(
                 targetLanguage,
                 ttsVoice,
                 translationStyle,
@@ -203,7 +220,7 @@ public class MediaUploadController {
             @Parameter(description = "Optional built-in demo run profile id.")
             @RequestParam(value = "demoProfileId", required = false) String demoProfileId
     ) {
-        UploadExecutionPlanVo plan = uploadExecutionPlanService.plan(file, new UploadCostEstimateOptionsBo(
+        UploadExecutionPlanVo plan = uploadExecutionPlanService.plan(file, uploadOptions(
                 targetLanguage,
                 ttsVoice,
                 translationStyle,
@@ -217,6 +234,88 @@ public class MediaUploadController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename("upload-execution-plan.md").build().toString())
                 .body(uploadExecutionPlanReportService.renderMarkdown(plan));
+    }
+
+    @PostMapping(value = "/decision-package/markdown/download", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Download a Markdown upload decision package before storing media")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The Markdown upload decision package was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> downloadUploadDecisionPackageMarkdown(
+            @Parameter(description = "Source video file to package.", required = true)
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "BCP 47 target language code such as zh-CN.")
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @Parameter(description = "Optional text-to-speech voice identifier.")
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice,
+            @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
+            @RequestParam(value = "translationStyle", required = false) String translationStyle,
+            @Parameter(description = "Optional subtitle burn-in style preset: STANDARD, LARGE, or HIGH_CONTRAST.")
+            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset,
+            @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
+            @RequestParam(value = "translationGlossary", required = false) String translationGlossary,
+            @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
+            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+    ) {
+        UploadDecisionPackageVo decisionPackage = uploadDecisionPackageService.build(file, uploadOptions(
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        ));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("upload-decision-package.md").build().toString())
+                .body(uploadDecisionPackageService.renderMarkdown(decisionPackage));
+    }
+
+    @PostMapping(value = "/decision-package/download", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Download a ZIP upload decision package before storing media")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The ZIP upload decision package was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<byte[]> downloadUploadDecisionPackage(
+            @Parameter(description = "Source video file to package.", required = true)
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "BCP 47 target language code such as zh-CN.")
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @Parameter(description = "Optional text-to-speech voice identifier.")
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice,
+            @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
+            @RequestParam(value = "translationStyle", required = false) String translationStyle,
+            @Parameter(description = "Optional subtitle burn-in style preset: STANDARD, LARGE, or HIGH_CONTRAST.")
+            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset,
+            @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
+            @RequestParam(value = "translationGlossary", required = false) String translationGlossary,
+            @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
+            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+    ) throws JsonProcessingException {
+        UploadDecisionPackageVo decisionPackage = uploadDecisionPackageService.build(file, uploadOptions(
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        ));
+        byte[] zip = uploadDecisionPackageZip(decisionPackage);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("application/zip"))
+                .contentLength(zip.length)
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("upload-decision-package.zip").build().toString())
+                .body(zip);
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -280,5 +379,56 @@ public class MediaUploadController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         ContentDisposition.attachment().filename(sourceMedia.filename()).build().toString())
                 .body(new InputStreamResource(sourceMedia.inputStream()));
+    }
+
+    private UploadCostEstimateOptionsBo uploadOptions(
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossary,
+            String subtitlePolishingMode,
+            String demoProfileId
+    ) {
+        return new UploadCostEstimateOptionsBo(
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        );
+    }
+
+    private byte[] uploadDecisionPackageZip(UploadDecisionPackageVo decisionPackage) throws JsonProcessingException {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
+                Map<String, Object> manifest = Map.of(
+                        "packageType", "UPLOAD_DECISION_PACKAGE",
+                        "generatedAt", decisionPackage.generatedAt(),
+                        "overallStatus", decisionPackage.overallStatus(),
+                        "recommendedDecision", decisionPackage.recommendedDecision(),
+                        "entries", List.of("manifest.json", "upload-decision-package.md", "upload-execution-plan.md"),
+                        "mediaBytesIncluded", false,
+                        "providerPayloadsIncluded", false,
+                        "credentialsIncluded", false
+                );
+                writeZipEntry(zipOutputStream, "manifest.json", objectMapper.writeValueAsString(manifest));
+                writeZipEntry(zipOutputStream, "upload-decision-package.md",
+                        uploadDecisionPackageService.renderMarkdown(decisionPackage));
+                writeZipEntry(zipOutputStream, "upload-execution-plan.md", decisionPackage.executionPlanMarkdown());
+            }
+            return outputStream.toByteArray();
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("Unable to build upload decision package.", exception);
+        }
+    }
+
+    private void writeZipEntry(ZipOutputStream zipOutputStream, String name, String content) throws java.io.IOException {
+        zipOutputStream.putNextEntry(new ZipEntry(name));
+        zipOutputStream.write(content.getBytes(StandardCharsets.UTF_8));
+        zipOutputStream.closeEntry();
     }
 }

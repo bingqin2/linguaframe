@@ -199,6 +199,60 @@ export async function downloadUploadExecutionPlanMarkdown(
   });
 }
 
+export async function downloadUploadDecisionPackageMarkdown(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): Promise<Blob> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestBlob('/api/media/uploads/decision-package/markdown/download', {
+    method: 'POST',
+    body
+  });
+}
+
+export async function downloadUploadDecisionPackageZip(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): Promise<Blob> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestBlob('/api/media/uploads/decision-package/download', {
+    method: 'POST',
+    body
+  });
+}
+
 export function renderUploadExecutionPlanMarkdown(plan: UploadExecutionPlan): string {
   const lines = [
     '# Upload Execution Plan',
@@ -739,6 +793,8 @@ export const linguaFrameApi = {
   estimateUploadCost,
   estimateUploadExecutionPlan,
   downloadUploadExecutionPlanMarkdown,
+  downloadUploadDecisionPackageMarkdown,
+  downloadUploadDecisionPackageZip,
   renderUploadExecutionPlanMarkdown,
   getOwnerQuotaPreflight,
   getDemoUploadReadiness,

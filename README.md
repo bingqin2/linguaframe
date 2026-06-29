@@ -142,6 +142,7 @@ scripts/demo/private-demo-preflight.sh
 scripts/demo/upload-readiness.sh
 scripts/demo/upload-execution-plan.sh
 scripts/demo/upload-execution-plan-report.sh
+scripts/demo/upload-decision-package.sh
 scripts/demo/upload-cost-estimate.sh
 scripts/demo/demo-sample-media-catalog.sh
 scripts/demo/demo-run-launcher.sh
@@ -186,6 +187,16 @@ scripts/demo/upload-execution-plan-report.sh
 ```
 
 The report calls `POST /api/media/uploads/execution-plan/markdown/download` and writes `/tmp/linguaframe-demo/upload-execution-plan.md` by default. It is read-only and metadata-only: it includes filename, content type, size, duration, source fingerprint, validation state, cost/time estimate, source reuse decision, safe links, gates, stages, commands, and safety notes, but excludes media bytes, object keys, local paths, raw transcripts/subtitles, provider payloads, API keys, and tokens. Set `LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH=/tmp/linguaframe-demo/custom.md` when running `scripts/demo/upload-execution-plan.sh` to export JSON and Markdown in one pass.
+
+For the complete pre-upload handoff artifact, use the browser `Decision report` or `Decision ZIP` controls in the execution-plan panel, or run:
+
+```bash
+LINGUAFRAME_TEARS_SAMPLE_PATH=/Users/wangbingqin/Downloads/tos_casting-720p.mp4 \
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+scripts/demo/upload-decision-package.sh
+```
+
+The decision package calls `POST /api/media/uploads/decision-package/markdown/download` and `POST /api/media/uploads/decision-package/download`, writing `upload-decision-package.md` and `upload-decision-package.zip` under `/tmp/linguaframe-demo/upload-decision-package/`. Use it when you need one shareable pre-upload evidence bundle that includes owner quota, upload readiness, execution-plan summary, source reuse decision, full execution-plan Markdown, safe commands, and package safety flags. Use the JSON execution plan for automation, the execution-plan Markdown for a lightweight single report, the source reuse decision helper for duplicate-source debugging, and the full E2E scripts only when you are ready to store media and process a complete job. The decision package does not upload media, create jobs, dispatch queues, run FFmpeg, call OpenAI, include media bytes, or expose secrets.
 
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 

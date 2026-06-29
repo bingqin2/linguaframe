@@ -3496,3 +3496,23 @@ Validation so far:
 - `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests,MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned upload decision package in `docs/plans/121-upload-decision-package.md`.
+- Added backend decision package aggregation that combines execution plan, owner quota, upload readiness, source reuse decision, and execution-plan Markdown into a safe read-only package.
+- Added `POST /api/media/uploads/decision-package/markdown/download` and `POST /api/media/uploads/decision-package/download` with `manifest.json`, `upload-decision-package.md`, and `upload-execution-plan.md`.
+- Added browser `Decision report` and `Decision ZIP` controls beside the upload execution plan.
+- Added `scripts/demo/upload-decision-package.sh` and README usage guidance.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test` first failed because the test expected a package-level `UPLOAD_NEW_SOURCE` decision while readiness made the package-level manifest `BLOCKED`; the assertion was corrected to check source reuse in `upload-execution-plan.md`, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 66 passed`.
+- `npm --prefix frontend run build` passed.
+- `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests,MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.

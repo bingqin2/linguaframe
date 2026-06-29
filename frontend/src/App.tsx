@@ -1267,6 +1267,70 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleDownloadUploadDecisionPackageReport(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadExecutionPlanReportStatus('Choose a video file before downloading a decision report.');
+      return;
+    }
+    setIsDownloadingUploadExecutionPlanReport(true);
+    try {
+      const blob = await linguaFrameApi.downloadUploadDecisionPackageMarkdown(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset,
+        translationGlossary,
+        subtitlePolishingMode,
+        demoProfileId
+      );
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = 'upload-decision-package.md';
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setUploadExecutionPlanReportStatus('Downloaded Markdown decision package.');
+    } catch (reportError) {
+      setUploadExecutionPlanReportStatus(toErrorMessage(reportError));
+    } finally {
+      setIsDownloadingUploadExecutionPlanReport(false);
+    }
+  }
+
+  async function handleDownloadUploadDecisionPackageZip(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadExecutionPlanReportStatus('Choose a video file before downloading a decision ZIP.');
+      return;
+    }
+    setIsDownloadingUploadExecutionPlanReport(true);
+    try {
+      const blob = await linguaFrameApi.downloadUploadDecisionPackageZip(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset,
+        translationGlossary,
+        subtitlePolishingMode,
+        demoProfileId
+      );
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = 'upload-decision-package.zip';
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setUploadExecutionPlanReportStatus('Downloaded decision package ZIP.');
+    } catch (reportError) {
+      setUploadExecutionPlanReportStatus(toErrorMessage(reportError));
+    } finally {
+      setIsDownloadingUploadExecutionPlanReport(false);
+    }
+  }
+
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1995,6 +2059,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefresh={(form) => void handleEstimateUploadExecutionPlan(form)}
               onCopyReport={(plan) => void handleCopyUploadExecutionPlanReport(plan)}
               onDownloadReport={(form) => void handleDownloadUploadExecutionPlanReport(form)}
+              onDownloadDecisionReport={(form) => void handleDownloadUploadDecisionPackageReport(form)}
+              onDownloadDecisionZip={(form) => void handleDownloadUploadDecisionPackageZip(form)}
             />
             <UploadCostEstimatePanel
               estimate={uploadCostEstimate}
@@ -3069,7 +3135,9 @@ function UploadExecutionPlanPanel({
   reportStatus,
   onRefresh,
   onCopyReport,
-  onDownloadReport
+  onDownloadReport,
+  onDownloadDecisionReport,
+  onDownloadDecisionZip
 }: {
   plan: UploadExecutionPlan | null;
   error: string | null;
@@ -3079,6 +3147,8 @@ function UploadExecutionPlanPanel({
   onRefresh: (form: HTMLFormElement | null) => void;
   onCopyReport: (plan: UploadExecutionPlan | null) => void;
   onDownloadReport: (form: HTMLFormElement | null) => void;
+  onDownloadDecisionReport: (form: HTMLFormElement | null) => void;
+  onDownloadDecisionZip: (form: HTMLFormElement | null) => void;
 }) {
   if (!plan && !error && !isLoading) {
     return null;
@@ -3118,6 +3188,22 @@ function UploadExecutionPlanPanel({
           onClick={(event) => onDownloadReport(event.currentTarget.form)}
         >
           {isDownloadingReport ? 'Downloading...' : 'Download Markdown'}
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading || isDownloadingReport || !plan}
+          onClick={(event) => onDownloadDecisionReport(event.currentTarget.form)}
+        >
+          Decision report
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading || isDownloadingReport || !plan}
+          onClick={(event) => onDownloadDecisionZip(event.currentTarget.form)}
+        >
+          Decision ZIP
         </button>
       </div>
       {error ? <p className="error-text">{error}</p> : null}
