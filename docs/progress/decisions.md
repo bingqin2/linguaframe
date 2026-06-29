@@ -220,6 +220,14 @@ Impact: The worker can now create a `DUBBING_AUDIO` artifact after target subtit
 
 ## 2026-06-30
 
+Decision: Add deterministic narration row editing commands before decoded waveform rendering or multitrack automation.
+
+Reason: Operators need fast authoring operations while shaping explanatory voiceover scripts, but decoded waveform rendering, audio analysis, automation curves, and full nonlinear editing would expand the surface before the current save/generate/render flow is stable. Duplicate, split-at-playhead, merge-next, and insert-after commands give immediate editing value over the existing narration workspace contract.
+
+Impact: The React narration workspace now exposes local-only editing commands that update draft rows, selected row state, timeline, waveform, inspector, validation, and the existing save payload. Commands do not save rows, call providers, synthesize audio, generate videos, refresh evidence, or mutate object storage. Inserted blank rows intentionally block save until existing validation requirements pass. Decoded audio waveform rendering, multitrack automation, uploaded reference audio, and voice cloning remain future slices.
+
+## 2026-06-30
+
 Decision: Add local narration media preview and playhead controls before waveform rendering.
 
 Reason: Operators need to verify where explanatory voiceover will land against the completed media before spending provider credits or generating new artifacts. Existing source and artifact download URLs are enough for this check, while waveform decoding and multitrack automation would expand scope without changing the saved narration contract.

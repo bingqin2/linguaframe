@@ -98,19 +98,19 @@
 - Modify: `docs/plans/145-narration-editing-command-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser order: open completed job, inspect narration rows, use editing commands locally, preview/scrub, save workspace, then generate audio/video only through explicit actions.
-- [ ] State that duplicate, split, merge, and insert are local draft commands until save.
-- [ ] State that inserted blank rows intentionally block save until filled, preserving backend validation.
-- [ ] Add a decision record explaining why this slice adds deterministic editor commands before decoded waveform rendering or multitrack automation.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
-- [ ] Commit with message `Document narration editing command workbench`.
+- [x] Document the browser order: open completed job, inspect narration rows, use editing commands locally, preview/scrub, save workspace, then generate audio/video only through explicit actions.
+- [x] State that duplicate, split, merge, and insert are local draft commands until save.
+- [x] State that inserted blank rows intentionally block save until filled, preserving backend validation.
+- [x] Add a decision record explaining why this slice adds deterministic editor commands before decoded waveform rendering or multitrack automation.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
+- [x] Commit with message `Document narration editing command workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.
 

@@ -200,6 +200,10 @@ Expected:
 - Browser selected-job narration workspace shows a `Narration waveform overview` panel between the timeline and preview panels.
 - The waveform overview shows 48 metadata-derived buckets, active/gap bucket counts, selected-window overlay, and a local playhead marker.
 - `Scrub to start`, `Scrub to midpoint`, and `Scrub to selected` seek the browser preview player only; they do not save rows, generate artifacts, or call providers.
+- Browser selected-job narration workspace shows a `Narration editing commands` panel after the waveform overview.
+- `Duplicate`, `Split at playhead`, `Merge next`, and `Insert after` update only local draft rows until `Save narration`.
+- `Split at playhead` requires the preview playhead to be inside the selected row with at least 0.25 seconds on each side.
+- `Merge next` is disabled on the final row, and inserted blank rows block save until required text, voice, and timing validation passes.
 - Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.
 - Selecting a narration row and clicking `Jump to narration N` seeks the preview player to the selected start time and moves the timeline playhead.
 - Clicking `Play window` seeks to the selected start time and stops at the selected end time without saving rows, generating artifacts, or calling providers.
