@@ -44,6 +44,11 @@ class NarrationWorkspaceServiceTests {
         assertThat(workspace.mixSettings().narrationVolume()).isEqualByComparingTo("1.000");
         assertThat(workspace.mixSettings().fadeDurationMs()).isEqualTo(250);
         assertThat(workspace.mixSettings().updatedAt()).isNull();
+        assertThat(workspace.voiceCatalog().provider()).isEqualTo("demo");
+        assertThat(workspace.voiceCatalog().defaultVoice()).isEqualTo("demo-voice");
+        assertThat(workspace.voiceCatalog().presets())
+                .extracting(preset -> preset.voice() + ":" + preset.defaultPreset())
+                .containsExactly("demo-voice:true");
         assertThat(workspace.timeline().startSeconds()).isEqualByComparingTo("15.000");
         assertThat(workspace.timeline().endSeconds()).isEqualByComparingTo("70.500");
         assertThat(workspace.timeline().totalSpanSeconds()).isEqualByComparingTo("55.500");

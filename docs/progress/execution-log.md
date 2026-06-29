@@ -3924,6 +3924,19 @@ Validation so far:
 
 Work:
 
+- Started the narration voice preset workbench feature slice.
+- Added `NarrationVoiceCatalogService`, voice preset/catalog response VOs, and `voiceCatalog` metadata on narration workspace responses.
+- Added demo and OpenAI preset catalogs with configured OpenAI default voice support and no narration segment schema change.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests` first failed at test compilation because `NarrationVoiceCatalogService`, `NarrationVoiceCatalogVo`, `NarrationVoiceCatalogServiceImpl`, and `NarrationWorkspaceVo.voiceCatalog()` did not exist.
+- After adding the catalog service and workspace response field, `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Documented the narration timeline workbench browser workflow, including gap/overlap semantics, save/mix/generate steps, evidence refresh, and safe downloads.
 - Updated product roadmap, target state, smoke checklist, Docker demo guide, and decisions to mark timeline inspection as implemented while keeping waveform rendering, drag/drop editing, and automation curves as future slices.
 

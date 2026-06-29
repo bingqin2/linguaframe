@@ -11,6 +11,7 @@ public record NarrationWorkspaceVo(
         int totalCharacterCount,
         boolean generationReady,
         NarrationMixSettingsVo mixSettings,
+        NarrationVoiceCatalogVo voiceCatalog,
         NarrationTimelineSummaryVo timeline,
         List<NarrationSegmentVo> segments,
         List<String> safetyNotes

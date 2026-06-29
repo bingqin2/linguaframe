@@ -1,5 +1,6 @@
 package com.linguaframe.job.service.impl;
 
+import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
@@ -11,7 +12,9 @@ import com.linguaframe.job.domain.vo.NarrationTimelineSummaryVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
+import com.linguaframe.job.service.NarrationVoiceCatalogService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
+import com.linguaframe.job.service.impl.NarrationVoiceCatalogServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -41,23 +44,34 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
 
     private final NarrationSegmentRepository repository;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationVoiceCatalogService voiceCatalogService;
     private final Clock clock;
 
     public NarrationWorkspaceServiceImpl(
             NarrationSegmentRepository repository,
             NarrationMixSettingsRepository mixSettingsRepository
     ) {
-        this(repository, mixSettingsRepository, Clock.systemUTC());
+        this(repository, mixSettingsRepository, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), Clock.systemUTC());
+    }
+
+    public NarrationWorkspaceServiceImpl(
+            NarrationSegmentRepository repository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            Clock clock
+    ) {
+        this(repository, mixSettingsRepository, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), clock);
     }
 
     @Autowired
     public NarrationWorkspaceServiceImpl(
             NarrationSegmentRepository repository,
             NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationVoiceCatalogService voiceCatalogService,
             Clock clock
     ) {
         this.repository = repository;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.voiceCatalogService = voiceCatalogService;
         this.clock = clock;
     }
 
@@ -189,6 +203,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                 totalCharacters,
                 generationReady,
                 toMixSettings(jobId),
+                voiceCatalogService.catalog(),
                 toTimeline(segments, generationReady),
                 segments,
                 List.of(

@@ -37,13 +37,13 @@
 - `NarrationVoiceCatalogVo(String provider, String defaultVoice, List<NarrationVoicePresetVo> presets, List<String> safetyNotes)`
 - Extend `NarrationWorkspaceVo` with `NarrationVoiceCatalogVo voiceCatalog`.
 
-- [ ] Write failing service tests asserting demo/OpenAI catalog presets, configured default voice inheritance, and workspace JSON shape through `NarrationWorkspaceVo.voiceCatalog()`.
-- [ ] Verify the tests fail because `NarrationVoiceCatalogService` and `NarrationWorkspaceVo.voiceCatalog()` do not exist.
-- [ ] Implement `NarrationVoiceCatalogServiceImpl` using current `LinguaFrameProperties.tts.provider` and `linguaframe.tts.openai.voice`.
-- [ ] Include a conservative OpenAI preset list such as `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `nova`, `onyx`, `sage`, `shimmer`, and `verse`, plus `demo-voice` for demo provider.
-- [ ] Add `voiceCatalog` to workspace responses without changing saved segment schema.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing service tests asserting demo/OpenAI catalog presets, configured default voice inheritance, and workspace JSON shape through `NarrationWorkspaceVo.voiceCatalog()`.
+- [x] Verify the tests fail because `NarrationVoiceCatalogService` and `NarrationWorkspaceVo.voiceCatalog()` do not exist.
+- [x] Implement `NarrationVoiceCatalogServiceImpl` using current `LinguaFrameProperties.tts.provider` and `linguaframe.tts.openai.voice`.
+- [x] Include a conservative OpenAI preset list such as `alloy`, `ash`, `ballad`, `coral`, `echo`, `fable`, `nova`, `onyx`, `sage`, `shimmer`, and `verse`, plus `demo-voice` for demo provider.
+- [x] Add `voiceCatalog` to workspace responses without changing saved segment schema.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration voice catalog`.
 
 ## Task 2: Voice Validation, Generation Summary, And Evidence
