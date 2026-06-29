@@ -428,6 +428,66 @@ export interface DemoPresentationCockpitLink {
   url: string;
 }
 
+export type DemoSessionCommandCenterStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
+
+export interface DemoSessionCommandCenter {
+  generatedAt: string;
+  overallStatus: DemoSessionCommandCenterStatus;
+  phase: string;
+  recommendedNextAction: string;
+  primaryCommand: string;
+  focusRun: DemoSessionCommandCenterRun | null;
+  activeRun: DemoSessionCommandCenterRun | null;
+  recommendedCompletedRun: DemoSessionCommandCenterRun | null;
+  phases: DemoSessionCommandCenterPhase[];
+  actions: DemoSessionCommandCenterAction[];
+  evidenceLinks: DemoSessionCommandCenterEvidence[];
+  estimatedCostUsd: string;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  failureRatePercent: string;
+  averageLatencyMs: number;
+  providerCacheHitCount: number;
+  safetyNotes: string[];
+}
+
+export interface DemoSessionCommandCenterRun {
+  role: string;
+  jobId: string;
+  videoId: string;
+  profileId: string;
+  status: LocalizationJobStatus;
+  readiness: string;
+  acceptanceStatus: string;
+  currentStage: string | null;
+  elapsedMs: number | null;
+  nextAction: string;
+}
+
+export interface DemoSessionCommandCenterPhase {
+  id: string;
+  label: string;
+  status: DemoSessionCommandCenterStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoSessionCommandCenterAction {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+  primary: boolean;
+}
+
+export interface DemoSessionCommandCenterEvidence {
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export type ModelUsageLedgerStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
 
 export interface ModelUsageLedger {

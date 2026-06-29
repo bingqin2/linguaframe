@@ -290,6 +290,44 @@ class OperatorDashboardControllerTests {
                             .doesNotContain("source-videos/ledger-markdown-controller-video"));
         }
 
+        @Test
+        void returnsDemoSessionCommandCenter() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:00:00Z");
+            createJob("session-controller-video", "session-controller-job", "session.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("session-controller-call", "session-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center")
+                            .param("jobId", "session-controller-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.phase").exists())
+                    .andExpect(jsonPath("$.focusRun.jobId").value("session-controller-job"))
+                    .andExpect(jsonPath("$.modelCallCount").value(1))
+                    .andExpect(jsonPath("$.phases[?(@.id == 'model-usage')]").exists())
+                    .andExpect(jsonPath("$.actions[?(@.command == 'LINGUAFRAME_DEMO_JOB_ID=session-controller-job scripts/demo/demo-session-command-center.sh')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/operator/demo-session-command-center/markdown/download')]").exists())
+                    .andExpect(jsonPath("$.safetyNotes[0]").value(org.hamcrest.Matchers.containsString(
+                            "metadata-only and read-only"
+                    )));
+        }
+
+        @Test
+        void downloadsDemoSessionCommandCenterMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:30:00Z");
+            createJob("session-markdown-controller-video", "session-markdown-controller-job", "session-markdown.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("session-markdown-controller-call", "session-markdown-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center/markdown/download")
+                            .param("jobId", "session-markdown-controller-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Demo Session Command Center", "session-markdown-controller-job")
+                            .doesNotContain("source-videos/session-markdown-controller-video"));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -412,6 +450,20 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/model-usage-ledger/markdown/download")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center/markdown/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-command-center/markdown/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

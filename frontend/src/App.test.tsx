@@ -13,6 +13,7 @@ import type {
   DemoPresentationCockpit,
   DemoRunLauncher,
   DemoSampleMediaCatalog,
+  DemoSessionCommandCenter,
   DemoRunMonitor,
   DemoReplayCard,
   DemoRunSnapshot,
@@ -110,6 +111,12 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getDemoPresentationCockpit').mockResolvedValue(
       demoPresentationCockpitFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getDemoSessionCommandCenter').mockResolvedValue(
+      demoSessionCommandCenterFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'downloadDemoSessionCommandCenterMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Session Command Center'], { type: 'text/markdown' })
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
@@ -628,6 +635,31 @@ describe('App', () => {
       'href',
       '/api/jobs/job-selected/demo-presenter-pack'
     );
+  });
+
+  test('shows demo session command center with phase gates and export actions', async () => {
+    const downloadSpy = vi.spyOn(linguaFrameApi, 'downloadDemoSessionCommandCenterMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Session Command Center'], { type: 'text/markdown' })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', {
+      name: /demo session command center/i
+    });
+    expect(within(panel).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(panel).getByText('READY_TO_PRESENT')).toBeInTheDocument();
+    expect(within(panel).getAllByText(/job-session/).length).toBeGreaterThan(0);
+    expect(within(panel).getAllByText('LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh').length)
+      .toBeGreaterThan(0);
+    expect(within(panel).getByRole('link', { name: /Command center Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/demo-session-command-center/markdown/download'
+    );
+    await userEvent.click(within(panel).getByRole('button', { name: /download command center/i }));
+    expect(downloadSpy).toHaveBeenCalledWith('job-session');
+    expect(panel).not.toHaveTextContent('raw transcript text');
+    expect(panel).not.toHaveTextContent('private-demo-token');
   });
 
   test('keeps upload controls usable when private demo run archive fails', async () => {
@@ -3714,6 +3746,81 @@ function modelUsageLedgerFixture(overrides: Partial<ModelUsageLedger> = {}): Mod
     ],
     safeLinks: ['/api/operator/model-usage-ledger/markdown/download'],
     safetyNotes: ['Raw media object keys, prompts, provider responses, and secrets are intentionally excluded.'],
+    ...overrides
+  };
+}
+
+function demoSessionCommandCenterFixture(
+  overrides: Partial<DemoSessionCommandCenter> = {}
+): DemoSessionCommandCenter {
+  return {
+    generatedAt: '2026-06-29T08:20:00Z',
+    overallStatus: 'READY',
+    phase: 'READY_TO_PRESENT',
+    recommendedNextAction: 'Open the presenter pack.',
+    primaryCommand: 'LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh',
+    focusRun: {
+      role: 'SELECTED',
+      jobId: 'job-session',
+      videoId: 'video-session',
+      profileId: 'tears-showcase',
+      status: 'COMPLETED',
+      readiness: 'READY',
+      acceptanceStatus: 'READY',
+      currentStage: 'COMPLETED',
+      elapsedMs: 42000,
+      nextAction: 'Use the demo presenter pack.'
+    },
+    activeRun: null,
+    recommendedCompletedRun: null,
+    phases: [
+      {
+        id: 'model-usage',
+        label: 'Model usage ledger',
+        status: 'READY',
+        detail: 'Calls 2, failed 0, cost 0.00020000.',
+        nextAction: 'Use the ledger links as cost evidence.',
+        blocking: false
+      },
+      {
+        id: 'cockpit',
+        label: 'Presentation cockpit',
+        status: 'READY',
+        detail: 'Cockpit is ready to present.',
+        nextAction: 'Open presenter evidence.',
+        blocking: false
+      }
+    ],
+    actions: [
+      {
+        id: 'session-command-center',
+        label: 'Export command center',
+        command: 'LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh',
+        description: 'Export focused session command center JSON and Markdown.',
+        primary: true
+      }
+    ],
+    evidenceLinks: [
+      {
+        label: 'Command center Markdown',
+        href: '/api/operator/demo-session-command-center/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable command center notes.'
+      },
+      {
+        label: 'Model usage ledger',
+        href: '/api/operator/model-usage-ledger',
+        contentType: 'application/json',
+        description: 'Cost and latency evidence.'
+      }
+    ],
+    estimatedCostUsd: '0.00020000',
+    modelCallCount: 2,
+    failedModelCallCount: 0,
+    failureRatePercent: '0.00',
+    averageLatencyMs: 120,
+    providerCacheHitCount: 1,
+    safetyNotes: ['Demo session command center is metadata-only and read-only.'],
     ...overrides
   };
 }

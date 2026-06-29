@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo session command center workspace in `docs/plans/125-demo-session-command-center.md`.
+- Added backend `GET /api/operator/demo-session-command-center` and Markdown download for a read-only run-day command center aggregating operations, launch rehearsal, launcher, cockpit, gallery, archive, and model usage.
+- Added a React `Demo session command center` panel with phase gates, focused run summary, primary command copy, safe evidence links, and backend Markdown download.
+- Added `scripts/demo/demo-session-command-center.sh` for JSON/Markdown export under `/tmp/linguaframe-demo/demo-session-command-center/`.
+- Updated README with command center usage and how it relates to cockpit, ledger, run packages, and handoff packages.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=DemoSessionCommandCenterServiceTests,OperatorDashboardControllerTests` first failed because a safety-note assertion was too narrow, then passed with `Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because the command text appears twice by design, then passed with `Test Files 2 passed` and `Tests 163 passed`.
+- `bash -n scripts/demo/demo-session-command-center.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned the demo run launcher workspace in `docs/plans/110-demo-run-launcher-workspace.md`.
 - Added backend `GET /api/operator/demo-run-launcher` with recommended sample/profile command, readiness gates, expected evidence paths, and metadata-only notes.
 - Added a React `Demo run launcher` upload-form panel beside sample media and upload readiness.
