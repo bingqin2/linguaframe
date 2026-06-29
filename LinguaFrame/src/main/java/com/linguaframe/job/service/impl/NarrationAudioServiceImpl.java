@@ -14,6 +14,7 @@ import com.linguaframe.job.service.CostBudgetGuardService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationAudioService;
+import com.linguaframe.job.service.NarrationVoiceCatalogService;
 import com.linguaframe.job.service.TtsProvider;
 import com.linguaframe.media.domain.bo.CreateTimedAudioBedCommand;
 import com.linguaframe.media.domain.bo.TimedAudioSegmentBo;
@@ -34,7 +35,7 @@ import java.util.Objects;
 public class NarrationAudioServiceImpl implements NarrationAudioService {
 
     private static final BigDecimal ZERO = new BigDecimal("0.000");
-    private static final String MIXED_OR_DEFAULT = "MIXED_OR_DEFAULT";
+    private static final String MIXED = "MIXED";
     private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
 
     private final NarrationSegmentRepository narrationSegmentRepository;
@@ -44,6 +45,7 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
     private final CostBudgetGuardService costBudgetGuardService;
     private final FfmpegTimedAudioBedService timedAudioBedService;
     private final MediaWorkDirectoryService workDirectoryService;
+    private final NarrationVoiceCatalogService voiceCatalogService;
 
     public NarrationAudioServiceImpl(
             NarrationSegmentRepository narrationSegmentRepository,
@@ -54,6 +56,33 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
             FfmpegTimedAudioBedService timedAudioBedService,
             MediaWorkDirectoryService workDirectoryService
     ) {
+        this(
+                narrationSegmentRepository,
+                queryService,
+                ttsProvider,
+                artifactService,
+                costBudgetGuardService,
+                timedAudioBedService,
+                workDirectoryService,
+                () -> new com.linguaframe.job.domain.vo.NarrationVoiceCatalogVo(
+                        "demo",
+                        "demo-voice",
+                        List.of(new com.linguaframe.job.domain.vo.NarrationVoicePresetVo("demo-voice", "Demo voice", "demo", true, "Deterministic local demo TTS voice.")),
+                        List.of()
+                )
+        );
+    }
+
+    public NarrationAudioServiceImpl(
+            NarrationSegmentRepository narrationSegmentRepository,
+            LocalizationJobQueryService queryService,
+            TtsProvider ttsProvider,
+            JobArtifactService artifactService,
+            CostBudgetGuardService costBudgetGuardService,
+            FfmpegTimedAudioBedService timedAudioBedService,
+            MediaWorkDirectoryService workDirectoryService,
+            NarrationVoiceCatalogService voiceCatalogService
+    ) {
         this.narrationSegmentRepository = narrationSegmentRepository;
         this.queryService = queryService;
         this.ttsProvider = ttsProvider;
@@ -61,6 +90,7 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
         this.costBudgetGuardService = costBudgetGuardService;
         this.timedAudioBedService = timedAudioBedService;
         this.workDirectoryService = workDirectoryService;
+        this.voiceCatalogService = voiceCatalogService;
     }
 
     @Override
@@ -73,7 +103,8 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
         }
 
         LocalizationJobVo job = queryService.getJob(jobId);
-        String voiceSummary = voiceSummary(segments);
+        String defaultVoice = effectiveDefaultVoice(job);
+        String voiceSummary = voiceSummary(segments, defaultVoice);
 
         costBudgetGuardService.assertWithinBudget(jobId, LocalizationJobStage.DUBBING_AUDIO_GENERATION);
         Path workDirectory = workDirectoryService.createJobWorkDirectory(jobId);
@@ -81,7 +112,7 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
             List<TimedAudioSegmentBo> timedSegments = new ArrayList<>();
             for (int i = 0; i < segments.size(); i++) {
                 NarrationSegmentRecord segment = segments.get(i);
-                String voice = segment.voice() == null || segment.voice().isBlank() ? job.ttsVoice() : segment.voice().trim();
+                String voice = segment.voice() == null || segment.voice().isBlank() ? defaultVoice : segment.voice().trim();
                 TtsResultBo segmentAudio = ttsProvider.synthesize(new TtsRequestBo(
                         jobId,
                         job.targetLanguage(),
@@ -132,7 +163,11 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
         }
     }
 
-    private String voiceSummary(List<NarrationSegmentRecord> segments) {
+    private String effectiveDefaultVoice(LocalizationJobVo job) {
+        return job.ttsVoice() == null || job.ttsVoice().isBlank() ? voiceCatalogService.defaultVoice() : job.ttsVoice().trim();
+    }
+
+    private String voiceSummary(List<NarrationSegmentRecord> segments, String defaultVoice) {
         List<String> voices = segments.stream()
                 .map(NarrationSegmentRecord::voice)
                 .filter(Objects::nonNull)
@@ -143,7 +178,10 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
         boolean everySegmentHasVoice = segments.stream()
                 .map(NarrationSegmentRecord::voice)
                 .allMatch(voice -> voice != null && !voice.isBlank());
-        return everySegmentHasVoice && voices.size() == 1 ? voices.getFirst() : MIXED_OR_DEFAULT;
+        if (voices.isEmpty()) {
+            return "DEFAULT:" + defaultVoice;
+        }
+        return everySegmentHasVoice && voices.size() == 1 ? "PRESET:" + voices.getFirst() : MIXED;
     }
 
     private int totalCharacters(List<NarrationSegmentRecord> segments) {

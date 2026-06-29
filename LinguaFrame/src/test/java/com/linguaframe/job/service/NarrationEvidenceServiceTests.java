@@ -48,6 +48,9 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.timelineGapCount()).isEqualTo(1);
         assertThat(evidence.timelineGapSeconds()).isEqualByComparingTo("27.000");
         assertThat(evidence.timelineHasOverlap()).isFalse();
+        assertThat(evidence.voicePresetCount()).isEqualTo(1);
+        assertThat(evidence.voiceSummary()).isEqualTo("PRESET:alloy");
+        assertThat(evidence.defaultVoice()).isEqualTo("demo-voice");
         assertThat(evidence.narrationAudioReady()).isTrue();
         assertThat(evidence.audioArtifactCount()).isEqualTo(1);
         assertThat(evidence.audioLayout()).isEqualTo("TIMED_AUDIO_BED");
@@ -71,6 +74,9 @@ class NarrationEvidenceServiceTests {
                 .contains("- Timeline gap count: 1")
                 .contains("- Timeline gap seconds: 27.000")
                 .contains("- Timeline has overlap: false")
+                .contains("- Voice preset count: 1")
+                .contains("- Voice summary: PRESET:alloy")
+                .contains("- Default voice: demo-voice")
                 .contains("- Narration audio artifacts: 1")
                 .contains("- Audio layout: TIMED_AUDIO_BED")
                 .contains("- Time aligned: true")
@@ -99,7 +105,10 @@ class NarrationEvidenceServiceTests {
         assertThat(packageText)
                 .contains("\"timelineGapCount\":1")
                 .contains("\"timelineGapSeconds\":\"27.000\"")
-                .contains("\"timelineHasOverlap\":false");
+                .contains("\"timelineHasOverlap\":false")
+                .contains("\"voicePresetCount\":1")
+                .contains("\"voiceSummary\":\"PRESET:alloy\"")
+                .contains("\"defaultVoice\":\"demo-voice\"");
     }
 
     @Test

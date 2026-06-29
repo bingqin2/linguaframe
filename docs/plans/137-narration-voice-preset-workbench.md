@@ -61,15 +61,15 @@
 - `NarrationEvidenceVo` adds `voicePresetCount`, `voiceSummary`, and `defaultVoice`.
 - Generation summary distinguishes `DEFAULT`, one named preset, and `MIXED`.
 
-- [ ] Write failing tests for rejected unknown preset voices while allowing blank voice to inherit the job/config default.
-- [ ] Write failing tests for generation `voiceSummary` when all rows inherit default, all rows use the same preset, and rows mix presets.
-- [ ] Write failing evidence tests for voice metadata in JSON, Markdown, ZIP manifest, summary JSON, and terminal demo summaries.
-- [ ] Implement validation against the catalog instead of accepting arbitrary non-empty voice strings.
-- [ ] Update generation/evidence summaries without printing narration text.
-- [ ] Extend demo shell output with metadata-only `narrationEvidenceVoiceSummary`, `narrationEvidenceDefaultVoice`, and `narrationEvidenceVoicePresetCount`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing tests for rejected unknown preset voices while allowing blank voice to inherit the job/config default.
+- [x] Write failing tests for generation `voiceSummary` when all rows inherit default, all rows use the same preset, and rows mix presets.
+- [x] Write failing evidence tests for voice metadata in JSON, Markdown, ZIP manifest, summary JSON, and terminal demo summaries.
+- [x] Implement validation against the catalog instead of accepting arbitrary non-empty voice strings.
+- [x] Update generation/evidence summaries without printing narration text.
+- [x] Extend demo shell output with metadata-only `narrationEvidenceVoiceSummary`, `narrationEvidenceDefaultVoice`, and `narrationEvidenceVoicePresetCount`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Validate narration voice presets`.
 
 ## Task 3: React Voice Preset Workbench

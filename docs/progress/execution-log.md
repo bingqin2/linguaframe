@@ -3924,6 +3924,21 @@ Validation so far:
 
 Work:
 
+- Added narration voice preset validation so saved segment voices must match the provider catalog while blank values inherit the effective default.
+- Updated narration audio generation voice summaries to report `DEFAULT:<voice>`, `PRESET:<voice>`, or `MIXED`.
+- Added metadata-only narration evidence fields for voice preset count, voice summary, and default voice, including Markdown, ZIP manifest, summary JSON, and terminal demo summaries.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests` first failed at test compilation because `NarrationEvidenceVo` did not expose `voicePresetCount`, `voiceSummary`, or `defaultVoice`.
+- After adding voice metadata, validation failed because existing workspace tests used OpenAI preset names while the default demo catalog only allows `demo-voice`; the tests were updated to use provider-valid demo presets.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests` passed with `Tests run: 20, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
 - Started the narration voice preset workbench feature slice.
 - Added `NarrationVoiceCatalogService`, voice preset/catalog response VOs, and `voiceCatalog` metadata on narration workspace responses.
 - Added demo and OpenAI preset catalogs with configured OpenAI default voice support and no narration segment schema change.

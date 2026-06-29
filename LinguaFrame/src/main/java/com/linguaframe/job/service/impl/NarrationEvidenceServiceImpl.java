@@ -12,6 +12,7 @@ import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationVoiceCatalogService;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -37,15 +38,36 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
     private final NarrationSegmentRepository narrationSegmentRepository;
     private final LocalizationJobQueryService queryService;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationVoiceCatalogService voiceCatalogService;
 
     public NarrationEvidenceServiceImpl(
             NarrationSegmentRepository narrationSegmentRepository,
             LocalizationJobQueryService queryService,
             NarrationMixSettingsRepository mixSettingsRepository
     ) {
+        this(
+                narrationSegmentRepository,
+                queryService,
+                mixSettingsRepository,
+                () -> new com.linguaframe.job.domain.vo.NarrationVoiceCatalogVo(
+                        "demo",
+                        "demo-voice",
+                        List.of(new com.linguaframe.job.domain.vo.NarrationVoicePresetVo("demo-voice", "Demo voice", "demo", true, "Deterministic local demo TTS voice.")),
+                        List.of()
+                )
+        );
+    }
+
+    public NarrationEvidenceServiceImpl(
+            NarrationSegmentRepository narrationSegmentRepository,
+            LocalizationJobQueryService queryService,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationVoiceCatalogService voiceCatalogService
+    ) {
         this.narrationSegmentRepository = narrationSegmentRepository;
         this.queryService = queryService;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.voiceCatalogService = voiceCatalogService;
     }
 
     @Override
@@ -72,6 +94,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 timelineGapCount(segments),
                 timelineGapSeconds(segments),
                 timelineHasOverlap(segments),
+                voicePresetCount(segments),
+                voiceSummary(segments),
+                voiceCatalogService.defaultVoice(),
                 audioArtifacts > 0,
                 Math.toIntExact(audioArtifacts),
                 audioArtifacts > 0 ? TIMED_AUDIO_BED : MISSING,
@@ -104,6 +129,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Timeline gap count: " + evidence.timelineGapCount());
         lines.add("- Timeline gap seconds: " + evidence.timelineGapSeconds());
         lines.add("- Timeline has overlap: " + evidence.timelineHasOverlap());
+        lines.add("- Voice preset count: " + evidence.voicePresetCount());
+        lines.add("- Voice summary: " + evidence.voiceSummary());
+        lines.add("- Default voice: " + evidence.defaultVoice());
         lines.add("- Narration audio artifacts: " + evidence.audioArtifactCount());
         lines.add("- Audio layout: " + evidence.audioLayout());
         lines.add("- Time aligned: " + evidence.timeAligned());
@@ -165,7 +193,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -173,6 +201,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.timelineGapCount(),
                 evidence.timelineGapSeconds(),
                 evidence.timelineHasOverlap(),
+                evidence.voicePresetCount(),
+                json(evidence.voiceSummary()),
+                json(evidence.defaultVoice()),
                 evidence.narrationAudioReady(),
                 json(evidence.audioLayout()),
                 evidence.timeAligned(),
@@ -187,7 +218,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -197,6 +228,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.timelineGapCount(),
                 evidence.timelineGapSeconds(),
                 evidence.timelineHasOverlap(),
+                evidence.voicePresetCount(),
+                json(evidence.voiceSummary()),
+                json(evidence.defaultVoice()),
                 evidence.audioArtifactCount(),
                 json(evidence.audioLayout()),
                 evidence.timeAligned(),
@@ -293,6 +327,27 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private boolean timelineHasOverlap(List<NarrationSegmentRecord> segments) {
         return gapSummary(segments).hasOverlap();
+    }
+
+    private int voicePresetCount(List<NarrationSegmentRecord> segments) {
+        return explicitVoices(segments).size();
+    }
+
+    private String voiceSummary(List<NarrationSegmentRecord> segments) {
+        List<String> voices = explicitVoices(segments);
+        if (voices.isEmpty()) {
+            return "DEFAULT:" + voiceCatalogService.defaultVoice();
+        }
+        return voices.size() == 1 ? "PRESET:" + voices.getFirst() : "MIXED";
+    }
+
+    private List<String> explicitVoices(List<NarrationSegmentRecord> segments) {
+        return segments.stream()
+                .map(NarrationSegmentRecord::voice)
+                .filter(voice -> voice != null && !voice.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
     }
 
     private GapSummary gapSummary(List<NarrationSegmentRecord> segments) {

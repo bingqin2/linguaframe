@@ -89,7 +89,7 @@ class NarrationAudioServiceTests {
         assertThat(result.segmentCount()).isEqualTo(2);
         assertThat(result.totalCharacterCount()).isEqualTo(49);
         assertThat(result.totalTimelineDurationSeconds()).isEqualByComparingTo("28.500");
-        assertThat(result.voiceSummary()).isEqualTo("alloy");
+        assertThat(result.voiceSummary()).isEqualTo("PRESET:alloy");
         assertThat(result.audioLayout()).isEqualTo("TIMED_AUDIO_BED");
         assertThat(result.timeAligned()).isTrue();
         assertThat(result.ttsCallCount()).isEqualTo(2);
@@ -133,7 +133,47 @@ class NarrationAudioServiceTests {
 
         assertThat(ttsProvider.requests).extracting(TtsRequestBo::voice)
                 .containsExactly("alloy", "verse");
-        assertThat(result.voiceSummary()).isEqualTo("MIXED_OR_DEFAULT");
+        assertThat(result.voiceSummary()).isEqualTo("MIXED");
+    }
+
+    @Test
+    void reportsDefaultVoiceSummaryWhenEverySegmentInheritsDefault() {
+        NarrationAudioService service = new NarrationAudioServiceImpl(
+                new RecordingNarrationSegmentRepository(List.of(
+                        segment(0, "1.000", "2.000", "First", null),
+                        segment(1, "3.000", "4.000", "Second", "")
+                )),
+                new StaticLocalizationJobQueryService("en-US", "verse"),
+                new RecordingTtsProvider(),
+                new RecordingJobArtifactService(),
+                new RecordingCostBudgetGuardService(),
+                new RecordingTimedAudioBedService(),
+                new RecordingMediaWorkDirectoryService(tempDir)
+        );
+
+        NarrationGenerationVo result = service.generateAudio("job-default");
+
+        assertThat(result.voiceSummary()).isEqualTo("DEFAULT:verse");
+    }
+
+    @Test
+    void reportsSingleExplicitVoiceSummaryWhenEverySegmentUsesSamePreset() {
+        NarrationAudioService service = new NarrationAudioServiceImpl(
+                new RecordingNarrationSegmentRepository(List.of(
+                        segment(0, "1.000", "2.000", "First", "alloy"),
+                        segment(1, "3.000", "4.000", "Second", "alloy")
+                )),
+                new StaticLocalizationJobQueryService("en-US", "verse"),
+                new RecordingTtsProvider(),
+                new RecordingJobArtifactService(),
+                new RecordingCostBudgetGuardService(),
+                new RecordingTimedAudioBedService(),
+                new RecordingMediaWorkDirectoryService(tempDir)
+        );
+
+        NarrationGenerationVo result = service.generateAudio("job-alloy");
+
+        assertThat(result.voiceSummary()).isEqualTo("PRESET:alloy");
     }
 
     @Test

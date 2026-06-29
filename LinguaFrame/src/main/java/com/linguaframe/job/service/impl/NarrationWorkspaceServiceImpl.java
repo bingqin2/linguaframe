@@ -181,6 +181,9 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
         if (voice != null && voice.length() > MAX_VOICE_LENGTH) {
             throw new IllegalArgumentException("Narration voice must be at most 64 characters.");
         }
+        if (!voiceCatalogService.containsVoice(voice)) {
+            throw new IllegalArgumentException("Narration voice must be one of the configured presets.");
+        }
     }
 
     private NarrationWorkspaceVo toWorkspace(String jobId, List<NarrationSegmentRecord> records) {

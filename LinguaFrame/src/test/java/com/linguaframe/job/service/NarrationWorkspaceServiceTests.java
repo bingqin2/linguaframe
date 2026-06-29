@@ -31,8 +31,8 @@ class NarrationWorkspaceServiceTests {
         NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, new FakeNarrationMixSettingsRepository(), CLOCK);
 
         NarrationWorkspaceVo workspace = service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
-                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "alloy"),
-                new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("55.000"), new BigDecimal("70.500"), "Explain the second scene.", "alloy")
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "demo-voice"),
+                new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("55.000"), new BigDecimal("70.500"), "Explain the second scene.", "demo-voice")
         )));
 
         assertThat(workspace.status()).isEqualTo("DRAFT_READY");
@@ -66,12 +66,12 @@ class NarrationWorkspaceServiceTests {
         assertThat(workspace.segments())
                 .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice())
                 .containsExactly(
-                        "0:15.000:28.000:Explain the first scene.:alloy",
-                        "1:55.000:70.500:Explain the second scene.:alloy"
+                        "0:15.000:28.000:Explain the first scene.:demo-voice",
+                        "1:55.000:70.500:Explain the second scene.:demo-voice"
                 );
         assertThat(repository.records)
                 .extracting(record -> record.segmentIndex() + ":" + record.text() + ":" + record.voice())
-                .containsExactly("0:Explain the first scene.:alloy", "1:Explain the second scene.:alloy");
+                .containsExactly("0:Explain the first scene.:demo-voice", "1:Explain the second scene.:demo-voice");
     }
 
     @Test
@@ -94,7 +94,7 @@ class NarrationWorkspaceServiceTests {
 
         NarrationWorkspaceVo workspace = service.saveWorkspace("job-contiguous", new SaveNarrationSegmentsRequest(List.of(
                 new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("0.000"), new BigDecimal("5.000"), "First beat.", null),
-                new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("5.000"), new BigDecimal("10.000"), "Second beat.", "verse")
+                new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("5.000"), new BigDecimal("10.000"), "Second beat.", "demo-voice")
         )));
 
         assertThat(workspace.timeline().startSeconds()).isEqualByComparingTo("0.000");
@@ -107,7 +107,7 @@ class NarrationWorkspaceServiceTests {
                 .extracting(segment -> segment.index() + ":" + segment.leftPercent() + ":" + segment.widthPercent() + ":" + segment.voice())
                 .containsExactly(
                         "0:0.00:50.00:",
-                        "1:50.00:50.00:verse"
+                        "1:50.00:50.00:demo-voice"
                 );
     }
 
@@ -144,6 +144,17 @@ class NarrationWorkspaceServiceTests {
         ))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Narration text must be at most 1000 characters");
+    }
+
+    @Test
+    void rejectsUnknownNarrationVoicePreset() {
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Unknown voice.", "custom-clone")
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Narration voice must be one of the configured presets");
     }
 
     @Test
