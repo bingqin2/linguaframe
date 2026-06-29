@@ -1489,8 +1489,16 @@ export interface NarrationWorkspace {
   totalDurationSeconds: number;
   totalCharacterCount: number;
   generationReady: boolean;
+  mixSettings: NarrationMixSettings;
   segments: NarrationSegment[];
   safetyNotes: string[];
+}
+
+export interface NarrationMixSettings {
+  duckingVolume: number;
+  narrationVolume: number;
+  fadeDurationMs: number;
+  updatedAt: string | null;
 }
 
 export interface SaveNarrationSegment {
@@ -1503,6 +1511,12 @@ export interface SaveNarrationSegment {
 
 export interface SaveNarrationWorkspaceRequest {
   segments: SaveNarrationSegment[];
+}
+
+export interface UpdateNarrationMixSettingsRequest {
+  duckingVolume: number;
+  narrationVolume: number;
+  fadeDurationMs: number;
 }
 
 export interface NarrationGeneration {
@@ -1531,6 +1545,8 @@ export interface NarratedVideoGeneration {
   narrationAudioArtifactId: string;
   mixMode: string;
   duckingVolume: number;
+  narrationVolume: number;
+  fadeDurationMs: number;
   narrationWindowCount: number;
   status: string;
 }
@@ -1563,6 +1579,9 @@ export interface NarrationEvidence {
   narratedVideoArtifactCount: number;
   mixMode: string;
   duckingVolume: number | null;
+  narrationVolume: number | null;
+  fadeDurationMs: number;
+  mixSettingsSource: string | null;
   checks: NarrationEvidenceCheck[];
   safeLinks: NarrationEvidenceLink[];
   packageEntries: string[];

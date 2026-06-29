@@ -2329,8 +2329,23 @@ describe('App', () => {
         })
       ]);
     vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture());
+    const updateNarrationMixSettings = vi.spyOn(linguaFrameApi, 'updateNarrationMixSettings')
+      .mockResolvedValue(narrationWorkspaceFixture({
+        mixSettings: {
+          duckingVolume: 0.125,
+          narrationVolume: 1.75,
+          fadeDurationMs: 400,
+          updatedAt: '2026-06-29T10:30:00Z'
+        }
+      }));
     const getNarrationEvidence = vi.spyOn(linguaFrameApi, 'getNarrationEvidence')
       .mockResolvedValueOnce(narrationEvidenceFixture({ narrationAudioReady: false, audioArtifactCount: 0 }))
+      .mockResolvedValueOnce(narrationEvidenceFixture({
+        duckingVolume: 0.125,
+        narrationVolume: 1.75,
+        fadeDurationMs: 400,
+        mixSettingsSource: 'SAVED'
+      }))
       .mockResolvedValueOnce(narrationEvidenceFixture())
       .mockResolvedValueOnce(narrationEvidenceFixture());
     vi.spyOn(linguaFrameApi, 'generateNarrationAudio').mockResolvedValue(narrationGenerationFixture());
@@ -2346,14 +2361,32 @@ describe('App', () => {
     expect(within(narrationPanel).getByText('0.35')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '2 windows')).toBeInTheDocument();
 
+    await userEvent.clear(within(narrationPanel).getByLabelText(/ducking volume/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/ducking volume/i), '0.125');
+    await userEvent.clear(within(narrationPanel).getByLabelText(/narration volume/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/narration volume/i), '1.75');
+    await userEvent.clear(within(narrationPanel).getByLabelText(/fade duration ms/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/fade duration ms/i), '400');
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save mix settings/i }));
+
+    expect(updateNarrationMixSettings).toHaveBeenCalledWith('narration-mix-job', {
+      duckingVolume: 0.125,
+      narrationVolume: 1.75,
+      fadeDurationMs: 400
+    });
+    expect(await within(narrationPanel).findByText('Mix settings saved.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Saved')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('1.75')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('400 ms')).toBeInTheDocument();
+
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /generate narration audio/i }));
     expect(await within(narrationPanel).findByText('Generated narration-audio.mp3 as TIMED_AUDIO_BED.')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('Timed audio bed')).toBeInTheDocument();
 
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /generate narrated video/i }));
-    expect(await within(narrationPanel).findByText('Generated narrated-video.mp4 from BURNED_VIDEO with DUCKED_ORIGINAL_AUDIO.')).toBeInTheDocument();
+    expect(await within(narrationPanel).findByText('Generated narrated-video.mp4 from BURNED_VIDEO with DUCKED_ORIGINAL_AUDIO (ducking 0.35, narration 1, fade 250 ms).')).toBeInTheDocument();
     expect(listArtifacts).toHaveBeenCalledTimes(3);
-    expect(getNarrationEvidence).toHaveBeenCalledTimes(3);
+    expect(getNarrationEvidence).toHaveBeenCalledTimes(4);
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -5443,6 +5476,12 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
     totalDurationSeconds: 28.5,
     totalCharacterCount: 49,
     generationReady: true,
+    mixSettings: {
+      duckingVolume: 0.35,
+      narrationVolume: 1,
+      fadeDurationMs: 250,
+      updatedAt: null
+    },
     segments: [
       {
         index: 0,
@@ -5487,6 +5526,9 @@ function narrationEvidenceFixture(overrides: Partial<NarrationEvidence> = {}): N
     narratedVideoArtifactCount: overrides.narratedVideoArtifactCount ?? (readyVideo ? 1 : 0),
     mixMode: readyVideo ? 'DUCKED_ORIGINAL_AUDIO' : 'MISSING',
     duckingVolume: readyVideo ? 0.35 : null,
+    narrationVolume: readyVideo ? 1 : null,
+    fadeDurationMs: readyVideo ? 250 : 0,
+    mixSettingsSource: readyVideo ? 'DEFAULTS' : null,
     checks: [],
     safeLinks: [],
     packageEntries: [],
@@ -5525,6 +5567,8 @@ function narratedVideoGenerationFixture(overrides: Partial<NarratedVideoGenerati
     narrationAudioArtifactId: 'narration-audio-artifact',
     mixMode: 'DUCKED_ORIGINAL_AUDIO',
     duckingVolume: 0.35,
+    narrationVolume: 1,
+    fadeDurationMs: 250,
     narrationWindowCount: 2,
     status: 'READY',
     ...overrides

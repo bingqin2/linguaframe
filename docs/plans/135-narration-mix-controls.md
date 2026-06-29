@@ -127,16 +127,16 @@
 - Add `updateNarrationMixSettings(jobId, settings)` API helper.
 - Add frontend settings type matching `NarrationMixSettingsVo`.
 
-- [ ] Add compact controls in the narration inspector for ducking volume, narration volume, and fade duration.
-- [ ] Use sliders or number inputs with visible current values and disabled states during save/generation.
-- [ ] Save mix settings independently from segment save.
-- [ ] Refresh narration evidence after settings save.
-- [ ] Show generation status with the actual mix values used.
-- [ ] Keep the layout dense and workbench-like, with no landing page or decorative redesign.
-- [ ] Add Vitest coverage for API request body, validation state, successful save, visible evidence metrics, and generated video status.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add compact controls in the narration inspector for ducking volume, narration volume, and fade duration.
+- [x] Use sliders or number inputs with visible current values and disabled states during save/generation.
+- [x] Save mix settings independently from segment save.
+- [x] Refresh narration evidence after settings save.
+- [x] Show generation status with the actual mix values used.
+- [x] Keep the layout dense and workbench-like, with no landing page or decorative redesign.
+- [x] Add Vitest coverage for API request body, validation state, successful save, visible evidence metrics, and generated video status.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 6: Documentation And Final Verification
 

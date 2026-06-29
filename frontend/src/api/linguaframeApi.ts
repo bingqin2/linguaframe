@@ -55,6 +55,7 @@ import type {
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment,
+  UpdateNarrationMixSettingsRequest,
   UpdateSubtitleDraftRequest,
   UploadCostEstimate,
   UploadExecutionPlan
@@ -895,6 +896,22 @@ export async function clearNarrationWorkspace(jobId: string): Promise<NarrationW
   );
 }
 
+export async function updateNarrationMixSettings(
+  jobId: string,
+  request: UpdateNarrationMixSettingsRequest
+): Promise<NarrationWorkspace> {
+  return requestJson<NarrationWorkspace>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/mix-settings`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function generateNarrationAudio(jobId: string): Promise<NarrationGeneration> {
   return requestJson<NarrationGeneration>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/generate-audio`,
@@ -1160,6 +1177,7 @@ export const linguaFrameApi = {
   getNarrationWorkspace,
   saveNarrationWorkspace,
   clearNarrationWorkspace,
+  updateNarrationMixSettings,
   generateNarrationAudio,
   generateNarratedVideo,
   getNarrationEvidence,

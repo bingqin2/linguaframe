@@ -369,6 +369,28 @@ td {
   resize: vertical;
 }
 
+.mix-settings-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  border-top: 1px solid #d8dee6;
+  padding-top: 12px;
+}
+
+.mix-settings-panel label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #4f6170;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mix-settings-panel button,
+.mix-settings-panel .error-list {
+  grid-column: 1 / -1;
+}
+
 .result-deliverable-list {
   display: grid;
   gap: 8px;

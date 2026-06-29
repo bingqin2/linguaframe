@@ -3762,6 +3762,20 @@ Validation so far:
 
 Work:
 
+- Added frontend narration mix settings types and `updateNarrationMixSettings` API helper.
+- Added compact narration inspector controls for ducking volume, narration volume, and fade duration.
+- Saved mix settings independently from narration rows, refreshed narration evidence after save, and surfaced the actual mix values in generated-video status.
+
+Validation so far:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because `updateNarrationMixSettings` was not implemented/exported.
+- After adding the helper, controls, status text, and tests, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 182 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Extended narration evidence JSON, Markdown, ZIP manifest, and summary JSON with ducking volume, narration volume, fade duration, and mix settings source.
 - Updated backend evidence report and demo handoff portal facts so generated packages show the actual saved or default mix settings.
 - Extended demo terminal summaries for narration evidence and narrated-video generation with narration volume, fade duration, and mix settings source.

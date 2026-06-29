@@ -91,6 +91,7 @@ import {
   saveNarrationWorkspace,
   subtitleDraftExportUrl,
   sourceMediaDownloadUrl,
+  updateNarrationMixSettings,
   updateSubtitleDraft,
   validateUpload,
   writeDemoToken,
@@ -309,6 +310,12 @@ describe('linguaframeApi', () => {
         totalDurationSeconds: 13,
         totalCharacterCount: 24,
         generationReady: true,
+        mixSettings: {
+          duckingVolume: 0.35,
+          narrationVolume: 1,
+          fadeDurationMs: 250,
+          updatedAt: null
+        },
         segments: [],
         safetyNotes: []
       };
@@ -329,6 +336,11 @@ describe('linguaframeApi', () => {
       ]
     });
     await clearNarrationWorkspace('job-narration');
+    await updateNarrationMixSettings('job-narration', {
+      duckingVolume: 0.125,
+      narrationVolume: 1.75,
+      fadeDurationMs: 400
+    });
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job-narration/narration-workspace');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
@@ -347,6 +359,13 @@ describe('linguaframeApi', () => {
     });
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-workspace');
     expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'DELETE' });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-workspace/mix-settings');
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({ method: 'PUT' });
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({
+      duckingVolume: 0.125,
+      narrationVolume: 1.75,
+      fadeDurationMs: 400
+    });
   });
 
   test('generates narration audio, narrated video, and downloads narration evidence', async () => {
@@ -380,6 +399,8 @@ describe('linguaframeApi', () => {
         narrationAudioArtifactId: 'artifact-narration',
         mixMode: 'DUCKED_ORIGINAL_AUDIO',
         duckingVolume: 0.35,
+        narrationVolume: 1,
+        fadeDurationMs: 250,
         narrationWindowCount: 1,
         status: 'READY'
       })
@@ -400,6 +421,9 @@ describe('linguaframeApi', () => {
         narratedVideoArtifactCount: 1,
         mixMode: 'DUCKED_ORIGINAL_AUDIO',
         duckingVolume: 0.35,
+        narrationVolume: 1,
+        fadeDurationMs: 250,
+        mixSettingsSource: 'DEFAULTS',
         checks: [],
         safeLinks: [],
         packageEntries: [],

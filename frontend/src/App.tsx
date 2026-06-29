@@ -1964,6 +1964,29 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleSaveNarrationMixSettings(settings: NarrationWorkspace['mixSettings']) {
+    if (!job) {
+      return;
+    }
+    setIsSavingNarration(true);
+    try {
+      const updated = await linguaFrameApi.updateNarrationMixSettings(job.jobId, {
+        duckingVolume: Number(settings.duckingVolume),
+        narrationVolume: Number(settings.narrationVolume),
+        fadeDurationMs: Number(settings.fadeDurationMs)
+      });
+      const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
+      setNarrationWorkspace(updated);
+      setNarrationEvidence(evidence);
+      setNarrationError(null);
+      setNarrationStatus('Mix settings saved.');
+    } catch (mixSettingsError) {
+      setNarrationError(toErrorMessage(mixSettingsError));
+    } finally {
+      setIsSavingNarration(false);
+    }
+  }
+
   async function handleClearNarrationWorkspace() {
     if (!job) {
       return;
@@ -2019,7 +2042,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setArtifacts(refreshedArtifacts);
       setNarrationEvidence(refreshedEvidence);
       setNarrationError(null);
-      setNarrationStatus(`Generated ${generation.filename} from ${generation.baseVideoType} with ${generation.mixMode}.`);
+      setNarrationStatus(
+        `Generated ${generation.filename} from ${generation.baseVideoType} with ${generation.mixMode} (ducking ${generation.duckingVolume}, narration ${generation.narrationVolume}, fade ${generation.fadeDurationMs} ms).`
+      );
     } catch (narratedVideoError) {
       setNarrationError(toErrorMessage(narratedVideoError));
     } finally {
@@ -2724,6 +2749,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
+              onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
@@ -5617,6 +5643,7 @@ function JobDetail({
   onSelectDemoComparison,
   onRetry,
   onPublishReviewedSubtitles,
+  onSaveNarrationMixSettings,
   onSaveNarrationWorkspace,
   onSaveSubtitleDraft,
   narrationError,
@@ -5730,6 +5757,7 @@ function JobDetail({
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
+  onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onSaveNarrationWorkspace: (segments: NarrationWorkspace['segments']) => void;
   onSaveSubtitleDraft: (segments: Array<{
     index: number;
@@ -6042,6 +6070,7 @@ function JobDetail({
         onGenerateVideo={onGenerateNarratedVideo}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onSave={onSaveNarrationWorkspace}
+        onSaveMixSettings={onSaveNarrationMixSettings}
         status={narrationStatus}
         workspace={narrationWorkspace}
       />
@@ -9049,6 +9078,7 @@ function NarrationWorkspacePanel({
   onGenerateVideo,
   onRefreshEvidence,
   onSave,
+  onSaveMixSettings,
   status,
   workspace
 }: {
@@ -9064,19 +9094,23 @@ function NarrationWorkspacePanel({
   onGenerateVideo: () => void;
   onRefreshEvidence: () => void;
   onSave: (segments: NarrationWorkspace['segments']) => void;
+  onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   status: string | null;
   workspace: NarrationWorkspace | null;
 }) {
   const [segments, setSegments] = useState<NarrationWorkspace['segments']>([]);
+  const [mixSettings, setMixSettings] = useState<NarrationWorkspace['mixSettings'] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
     setSegments(workspace?.segments ?? []);
+    setMixSettings(workspace?.mixSettings ?? null);
     setSelectedIndex(0);
   }, [workspace]);
 
   const selectedSegment = segments[selectedIndex] ?? null;
   const validation = validateNarrationSegments(segments);
+  const mixValidation = validateNarrationMixSettings(mixSettings);
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
     setSegments((current) =>
@@ -9241,10 +9275,74 @@ function NarrationWorkspacePanel({
                   <dd>{formatNullableNumber(evidence?.duckingVolume)}</dd>
                 </div>
                 <div>
+                  <dt>Narration volume</dt>
+                  <dd>{formatNullableNumber(evidence?.narrationVolume)}</dd>
+                </div>
+                <div>
+                  <dt>Fade duration</dt>
+                  <dd>{evidence?.fadeDurationMs ? `${evidence.fadeDurationMs} ms` : 'N/A'}</dd>
+                </div>
+                <div>
+                  <dt>Mix settings</dt>
+                  <dd>{formatEvidenceToken(evidence?.mixSettingsSource)}</dd>
+                </div>
+                <div>
                   <dt>Narration windows</dt>
                   <dd>{evidence?.segmentCount ?? 0} windows</dd>
                 </div>
               </dl>
+              {mixSettings ? (
+                <div className="mix-settings-panel" aria-label="Mix settings">
+                  <label>
+                    Ducking volume
+                    <input
+                      aria-label="Ducking volume"
+                      max="1"
+                      min="0"
+                      step="0.001"
+                      type="number"
+                      value={mixSettings.duckingVolume}
+                      onChange={(event) => setMixSettings({ ...mixSettings, duckingVolume: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    Narration volume
+                    <input
+                      aria-label="Narration volume"
+                      max="2"
+                      min="0"
+                      step="0.001"
+                      type="number"
+                      value={mixSettings.narrationVolume}
+                      onChange={(event) => setMixSettings({ ...mixSettings, narrationVolume: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    Fade duration ms
+                    <input
+                      aria-label="Fade duration ms"
+                      max="5000"
+                      min="0"
+                      step="1"
+                      type="number"
+                      value={mixSettings.fadeDurationMs}
+                      onChange={(event) => setMixSettings({ ...mixSettings, fadeDurationMs: Number(event.target.value) })}
+                    />
+                  </label>
+                  {mixValidation.length > 0 ? (
+                    <ul className="error-list">
+                      {mixValidation.map((message) => <li key={message}>{message}</li>)}
+                    </ul>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => onSaveMixSettings(mixSettings)}
+                    disabled={isSaving || mixValidation.length > 0}
+                  >
+                    {isSaving ? 'Saving...' : 'Save mix settings'}
+                  </button>
+                </div>
+              ) : null}
               <div className="panel-actions">
                 <button type="button" onClick={onRefreshEvidence}>Refresh evidence</button>
                 <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'markdown')}>
@@ -9299,6 +9397,23 @@ function validateNarrationSegments(segments: NarrationWorkspace['segments']): st
     if (segments[index].startSeconds < segments[index - 1].endSeconds) {
       messages.push(`Row ${index + 1}: time range overlaps the previous row.`);
     }
+  }
+  return messages;
+}
+
+function validateNarrationMixSettings(settings: NarrationWorkspace['mixSettings'] | null): string[] {
+  if (!settings) {
+    return [];
+  }
+  const messages: string[] = [];
+  if (settings.duckingVolume < 0 || settings.duckingVolume > 1) {
+    messages.push('Ducking volume must be between 0.00 and 1.00.');
+  }
+  if (settings.narrationVolume < 0 || settings.narrationVolume > 2) {
+    messages.push('Narration volume must be between 0.00 and 2.00.');
+  }
+  if (settings.fadeDurationMs < 0 || settings.fadeDurationMs > 5000) {
+    messages.push('Fade duration must be between 0 and 5000 ms.');
   }
   return messages;
 }
