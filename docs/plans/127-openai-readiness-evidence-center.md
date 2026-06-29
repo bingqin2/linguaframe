@@ -109,5 +109,5 @@
   `npm run build`
   `bash -n scripts/demo/openai-readiness-evidence.sh scripts/demo/lib/linguaframe-demo.sh`
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add OpenAI readiness evidence center`.
+- [x] Commit as `Add OpenAI readiness evidence center`.
 - [ ] Merge the feature branch back to `main` after validation passes.
