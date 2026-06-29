@@ -38,14 +38,14 @@
 - Request: `RenderNarrationDemoDto(String presetId, boolean replaceExisting, boolean generateNarratedVideo)`
 - Response: `NarrationDemoRenderVo` with job id, preset id, overall status, step rows, preset apply result, narration audio result, optional narrated video result, refreshed script package, refreshed evidence, and generated artifact count.
 
-- [ ] Write service tests for full render success, missing `replaceExisting=true`, audio failure before video, video failure after audio success, and `generateNarratedVideo=false`.
-- [ ] Implement `RenderNarrationDemoDto`, `NarrationDemoRenderStepVo`, and `NarrationDemoRenderVo` as Java records using existing VO types for nested results.
-- [ ] Implement `NarrationDemoRenderServiceImpl` to call `NarrationDemoPresetApplyService.applyPreset`, `NarrationAudioService.generateAudio`, optional `NarratedVideoService.generateVideo`, `NarrationScriptPackageService.getPackage`, `NarrationEvidenceService.getEvidence`, and `JobArtifactService.listArtifacts`.
-- [ ] Represent each step as `READY`, `RUNNING`, `SUCCEEDED`, `FAILED`, or `SKIPPED` with a short safe message and no raw script text.
-- [ ] Preserve partial success: catch the narrated-video exception after successful audio generation, refresh evidence, return overall `PARTIAL`, and do not delete artifacts.
-- [ ] Add controller route with OpenAPI summary, 400/401/404 responses, and route-encoding MockMvc coverage.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write service tests for full render success, missing `replaceExisting=true`, audio failure before video, video failure after audio success, and `generateNarratedVideo=false`.
+- [x] Implement `RenderNarrationDemoDto`, `NarrationDemoRenderStepVo`, and `NarrationDemoRenderVo` as Java records using existing VO types for nested results.
+- [x] Implement `NarrationDemoRenderServiceImpl` to call `NarrationDemoPresetApplyService.applyPreset`, `NarrationAudioService.generateAudio`, optional `NarratedVideoService.generateVideo`, `NarrationScriptPackageService.getPackage`, `NarrationEvidenceService.getEvidence`, and `JobArtifactService.listArtifacts`.
+- [x] Represent each step as `READY`, `RUNNING`, `SUCCEEDED`, `FAILED`, or `SKIPPED` with a short safe message and no raw script text.
+- [x] Preserve partial success: catch the narrated-video exception after successful audio generation, refresh evidence, return overall `PARTIAL`, and do not delete artifacts.
+- [x] Add controller route with OpenAPI summary, 400/401/404 responses, and route-encoding MockMvc coverage.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration demo render endpoint`.
 
 ## Task 2: Frontend One-Click Render Panel

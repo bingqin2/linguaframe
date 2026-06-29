@@ -6,6 +6,21 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration one-click render package feature slice from `docs/plans/140-narration-one-click-render-package.md`.
+- Added backend narration demo render orchestration records and service.
+- Added `POST /api/jobs/{jobId}/narration-demo/render` to apply a preset, generate narration audio, optionally generate narrated video, refresh script package/evidence, and return step-by-step render status.
+- Render orchestration preserves partial progress: if narrated-video generation fails after audio succeeds, the generated `NARRATION_AUDIO` artifact remains and the response returns `PARTIAL`.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` first failed at test compilation because `RenderNarrationDemoDto`, `NarrationDemoRenderVo`, `NarrationDemoRenderService`, and `NarrationDemoRenderServiceImpl` did not exist.
+- After adding the render service and controller route, the same command failed because the controller test used an overlong video id and because dynamic narration-audio artifact reads were not stubbed.
+- After shortening the test id and adding a safe object-storage open stub, the same command passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration demo preset package feature slice from `docs/plans/139-narration-demo-preset-package.md`.
 - Added built-in narration preset catalog support for the `tears-showcase` demo profile.
 - Added `tears-showcase-narration` with four time-coded operator-authored explanatory segments, conservative mix defaults, sample/profile linkage, current-provider default voice inheritance, and safe catalog metadata.

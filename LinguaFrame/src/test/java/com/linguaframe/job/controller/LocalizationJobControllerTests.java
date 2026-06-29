@@ -61,6 +61,7 @@ import java.util.zip.ZipInputStream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -143,6 +144,8 @@ class LocalizationJobControllerTests {
             StoreObjectCommand command = invocation.getArgument(0);
             return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
         });
+        when(objectStorageService.open(anyString()))
+                .thenReturn(new ByteArrayInputStream(new byte[] {1, 2, 3}));
         when(ffmpegAudioReplacementService.replaceAudio(any())).thenReturn(
                 new DubbedVideoBo("narrated-video.mp4", "video/mp4", new byte[] {9, 9, 9})
         );
@@ -2407,6 +2410,77 @@ class LocalizationJobControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.segmentCount").value(4))
                 .andExpect(jsonPath("$.segments[0].voice").doesNotExist());
+    }
+
+    @Test
+    void rendersNarrationDemoPresetAudioAndVideoForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:45Z");
+        createJobWithDuration("job-controller-video-demo-render", "job-controller-job-demo-render", 300, createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-demo-render-base",
+                "job-controller-job-demo-render",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-job-demo-render/job-controller-demo-render-base/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                3L,
+                "burned-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        when(objectStorageService.open("job-artifacts/job-controller-job-demo-render/job-controller-demo-render-base/burned-video.mp4"))
+                .thenReturn(new ByteArrayInputStream(new byte[] {1, 2, 3}));
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-demo/render", "job-controller-job-demo-render")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "presetId": "tears-showcase-narration",
+                                  "replaceExisting": true,
+                                  "generateNarratedVideo": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-demo-render"))
+                .andExpect(jsonPath("$.presetId").value("tears-showcase-narration"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.steps[0].key").value("PRESET_APPLY"))
+                .andExpect(jsonPath("$.steps[0].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.steps[1].key").value("NARRATION_AUDIO"))
+                .andExpect(jsonPath("$.steps[1].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.steps[2].key").value("NARRATED_VIDEO"))
+                .andExpect(jsonPath("$.steps[2].status").value("SUCCEEDED"))
+                .andExpect(jsonPath("$.presetApply.importedSegmentCount").value(4))
+                .andExpect(jsonPath("$.narrationAudio.filename").value("narration-audio.mp3"))
+                .andExpect(jsonPath("$.narratedVideo.filename").value("narrated-video.mp4"))
+                .andExpect(jsonPath("$.scriptPackage.status").value("READY"))
+                .andExpect(jsonPath("$.narrationEvidence.status").value("READY"))
+                .andExpect(jsonPath("$.narrationEvidence.narrationAudioReady").value(true))
+                .andExpect(jsonPath("$.narrationEvidence.narratedVideoReady").value(true))
+                .andExpect(jsonPath("$.generatedArtifactCount").value(2));
+
+        List<JobArtifactRecord> artifacts = artifactRepository.findByJobId("job-controller-job-demo-render");
+        assertThat(artifacts)
+                .extracting(JobArtifactRecord::type)
+                .contains(JobArtifactType.BURNED_VIDEO, JobArtifactType.NARRATION_AUDIO, JobArtifactType.NARRATED_VIDEO);
+    }
+
+    @Test
+    void rejectsNarrationDemoRenderWithoutReplaceConfirmation() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:50Z");
+        createJobWithDuration("job-controller-video-render-bad", "job-controller-job-render-bad", 300, createdAt);
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-demo/render", "job-controller-job-render-bad")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "presetId": "tears-showcase-narration",
+                                  "replaceExisting": false,
+                                  "generateNarratedVideo": true
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
