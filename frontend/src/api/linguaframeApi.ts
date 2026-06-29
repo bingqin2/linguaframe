@@ -26,6 +26,7 @@ import type {
   MediaUpload,
   MediaUploadDetail,
   MediaUploadValidation,
+  ModelUsageLedger,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -592,6 +593,28 @@ export async function getOperatorDashboard(): Promise<OperatorDashboard> {
   });
 }
 
+export async function getModelUsageLedger(limit?: number): Promise<ModelUsageLedger> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<ModelUsageLedger>(`/api/operator/model-usage-ledger${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadModelUsageLedgerMarkdown(limit?: number): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/model-usage-ledger/markdown/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
 export async function getPrivateDemoOperations(): Promise<PrivateDemoOperations> {
   return requestJson<PrivateDemoOperations>('/api/operator/private-demo/operations', {
     method: 'GET'
@@ -889,6 +912,8 @@ export const linguaFrameApi = {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getModelUsageLedger,
+  downloadModelUsageLedgerMarkdown,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,

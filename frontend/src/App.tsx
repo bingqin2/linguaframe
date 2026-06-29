@@ -29,6 +29,7 @@ import type {
   MediaUpload,
   MediaUploadDetail,
   MediaUploadValidation,
+  ModelUsageLedger,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -391,6 +392,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
   const [operatorDashboardError, setOperatorDashboardError] = useState<string | null>(null);
   const [isLoadingOperatorDashboard, setIsLoadingOperatorDashboard] = useState(false);
+  const [modelUsageLedger, setModelUsageLedger] = useState<ModelUsageLedger | null>(null);
+  const [modelUsageLedgerError, setModelUsageLedgerError] = useState<string | null>(null);
+  const [isLoadingModelUsageLedger, setIsLoadingModelUsageLedger] = useState(false);
   const [privateDemoOperations, setPrivateDemoOperations] = useState<PrivateDemoOperations | null>(
     null
   );
@@ -735,6 +739,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadModelUsageLedger = useCallback(async () => {
+    setIsLoadingModelUsageLedger(true);
+    try {
+      const ledger = await linguaFrameApi.getModelUsageLedger(20);
+      setModelUsageLedger(ledger);
+      setModelUsageLedgerError(null);
+    } catch (ledgerLoadError) {
+      setModelUsageLedger(null);
+      setModelUsageLedgerError(toErrorMessage(ledgerLoadError));
+    } finally {
+      setIsLoadingModelUsageLedger(false);
+    }
+  }, []);
+
   const loadPrivateDemoOperations = useCallback(async () => {
     setIsLoadingPrivateDemoOperations(true);
     try {
@@ -997,6 +1015,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   useEffect(() => {
     void loadOperatorDashboard();
   }, [loadOperatorDashboard]);
+
+  useEffect(() => {
+    void loadModelUsageLedger();
+  }, [loadModelUsageLedger]);
 
   useEffect(() => {
     void loadPrivateDemoOperations();
@@ -2190,6 +2212,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             isLoading={isLoadingOperatorDashboard}
             onRefresh={loadOperatorDashboard}
             onOpenFailure={openDashboardFailure}
+          />
+
+          <ModelUsageLedgerPanel
+            ledger={modelUsageLedger}
+            error={modelUsageLedgerError}
+            isLoading={isLoadingModelUsageLedger}
+            onRefresh={loadModelUsageLedger}
           />
 
           <DemoPresentationCockpitPanel
@@ -3622,6 +3651,159 @@ function OperatorDashboardPanel({
   );
 }
 
+function ModelUsageLedgerPanel({
+  ledger,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  ledger: ModelUsageLedger | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = ledger ? formatModelUsageLedgerNotes(ledger) : '';
+
+  const handleCopy = async () => {
+    if (!ledger || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Model usage ledger copied.');
+  };
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadModelUsageLedgerMarkdown(ledger?.limit ?? 20);
+      downloadBlob(blob, 'linguaframe-model-usage-ledger.md');
+      setStatus('Model usage ledger Markdown downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel model-usage-ledger-panel" aria-label="Model usage ledger">
+      <div className="panel-heading">
+        <h2>Model usage ledger</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Model usage ledger unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !ledger ? <p className="muted">Loading model usage ledger...</p> : null}
+      {ledger ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Status</dt>
+              <dd>
+                <span className={modelUsageStatusClassName(ledger.summary.ledgerStatus)}>
+                  {ledger.summary.ledgerStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatLedgerCost(ledger.summary.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Calls</dt>
+              <dd>{ledger.summary.modelCallCount} calls</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>
+                {ledger.summary.failedModelCallCount} failed · {ledger.summary.failureRatePercent}%
+              </dd>
+            </div>
+            <div>
+              <dt>Latency</dt>
+              <dd>{formatDurationMs(ledger.summary.averageLatencyMs)} avg</dd>
+            </div>
+            <div>
+              <dt>Cache</dt>
+              <dd>{ledger.summary.providerCacheHitCount} provider hits</dd>
+            </div>
+          </dl>
+          <p className={ledger.summary.ledgerStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {ledger.summary.recommendedNextAction}
+          </p>
+          {ledger.operations.length > 0 ? (
+            <>
+              <h3>Operations</h3>
+              <ul className="readiness-list" aria-label="Model usage operations">
+                {ledger.operations.slice(0, 5).map((operation) => (
+                  <li key={`${operation.operation}-${operation.provider}-${operation.model}-${operation.promptVersion}`}>
+                    <span>{operation.operation}</span>
+                    <span>{operation.provider} / {operation.model}</span>
+                    <span>{operation.modelCallCount} calls / {operation.failedModelCallCount} failed</span>
+                    <span>{formatLedgerCost(operation.estimatedCostUsd)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {ledger.jobs.length > 0 ? (
+            <>
+              <h3>Jobs</h3>
+              <ul className="recent-list" aria-label="Model usage jobs">
+                {ledger.jobs.slice(0, 4).map((job) => (
+                  <li key={job.jobId}>
+                    <span>{job.jobId}</span>
+                    <span className="history-meta">
+                      {job.jobStatus} · {job.modelCallCount} calls · {formatLedgerCost(job.estimatedCostUsd)}
+                    </span>
+                    <small>
+                      {job.targetLanguage} · cache {job.providerCacheHitCount} · generated {job.generatedArtifactCount}
+                    </small>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <p className="muted">No model-call evidence is available yet.</p>
+          )}
+          {ledger.recentCalls.length > 0 ? (
+            <>
+              <h3>Recent calls</h3>
+              <ul className="recent-list" aria-label="Recent model calls">
+                {ledger.recentCalls.slice(0, 4).map((call) => (
+                  <li key={call.modelCallId}>
+                    <span>{call.operation}</span>
+                    <span className="history-meta">
+                      {call.status} · {call.provider} / {call.model} · {formatDurationMs(call.latencyMs)}
+                    </span>
+                    <small>{call.safeErrorSummary ?? call.jobId}</small>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopy}>
+              Copy ledger
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download ledger
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function DemoPresentationCockpitPanel({
   cockpit,
   error,
@@ -4459,12 +4641,65 @@ function formatPrivateDemoRunArchiveNotes(archive: PrivateDemoRunArchive): strin
   return `${lines.join('\n')}\n`;
 }
 
+function formatModelUsageLedgerNotes(ledger: ModelUsageLedger): string {
+  const lines = [
+    '# LinguaFrame Model Usage Ledger',
+    '',
+    `- Status: ${safeMarkdownLine(ledger.summary.ledgerStatus)}`,
+    `- Generated at: ${safeMarkdownLine(ledger.generatedAt)}`,
+    `- Owner scope: ${safeMarkdownLine(ledger.ownershipScope)}`,
+    `- Jobs: ${ledger.summary.jobCount}`,
+    `- Calls: ${ledger.summary.modelCallCount}`,
+    `- Failed calls: ${ledger.summary.failedModelCallCount}`,
+    `- Failure rate: ${safeMarkdownLine(ledger.summary.failureRatePercent)}%`,
+    `- Estimated cost: ${safeMarkdownLine(formatLedgerCost(ledger.summary.estimatedCostUsd))}`,
+    `- Next action: ${safeMarkdownLine(ledger.summary.recommendedNextAction)}`,
+    '',
+    '## Jobs'
+  ];
+  if (ledger.jobs.length === 0) {
+    lines.push('- No model-call evidence is available yet.');
+  } else {
+    ledger.jobs.forEach((job) => {
+      lines.push(`- ${safeMarkdownLine(job.jobId)}: ${safeMarkdownLine(job.jobStatus)}`);
+      lines.push(`  Calls: ${job.modelCallCount}, failed: ${job.failedModelCallCount}, cost: ${formatLedgerCost(job.estimatedCostUsd)}`);
+      job.safeLinks.forEach((link) => {
+        lines.push(`  Link: ${safeMarkdownLine(link)}`);
+      });
+    });
+  }
+  lines.push('', '## Operations');
+  ledger.operations.forEach((operation) => {
+    lines.push(
+      `- ${safeMarkdownLine(operation.operation)} ${safeMarkdownLine(operation.provider)}/${safeMarkdownLine(operation.model)}: ${operation.modelCallCount} calls, ${operation.failedModelCallCount} failed, ${formatLedgerCost(operation.estimatedCostUsd)}`
+    );
+  });
+  lines.push('', '## Safety');
+  ledger.safetyNotes.forEach((note) => {
+    lines.push(`- ${safeMarkdownLine(note)}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
 function operationsStatusClassName(status: string): string {
   if (status === 'BLOCKED') {
     return 'status-pill danger';
   }
   if (status === 'ATTENTION') {
     return 'status-pill warning';
+  }
+  return 'status-pill';
+}
+
+function modelUsageStatusClassName(status: ModelUsageLedger['summary']['ledgerStatus']): string {
+  if (status === 'BLOCKED') {
+    return 'status-pill danger';
+  }
+  if (status === 'ATTENTION') {
+    return 'status-pill warning';
+  }
+  if (status === 'EMPTY') {
+    return 'status-pill muted-pill';
   }
   return 'status-pill';
 }
@@ -8683,6 +8918,11 @@ function sanitizeFilename(value: string): string {
 
 function formatCost(value: number): string {
   return `$${value.toFixed(8)}`;
+}
+
+function formatLedgerCost(value: string | number): string {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numericValue) ? formatCost(numericValue) : '$0.00000000';
 }
 
 function formatLimitValue(value: number): string {

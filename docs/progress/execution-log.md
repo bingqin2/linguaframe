@@ -3481,6 +3481,24 @@ Validation so far:
 
 Work:
 
+- Planned model usage ledger workspace in `docs/plans/124-model-usage-ledger-workspace.md`.
+- Added owner-scoped `GET /api/operator/model-usage-ledger` and Markdown download for recent model-call cost, latency, cache, failure-rate, operation, job, and safe-link evidence.
+- Added browser `Model usage ledger` panel with refresh, copy, Markdown download, summary metrics, operation rows, job rows, and recent calls.
+- Added `scripts/demo/model-usage-ledger.sh` and README usage guidance for empty deterministic runs and OpenAI smoke/full-demo populated runs.
+- Implemented against the actual `OperatorDashboardController` / `OperatorDashboardControllerTests` files instead of the older controller names listed in the plan.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=ModelUsageLedgerServiceTests,OperatorDashboardControllerTests` passed with `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 160 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/model-usage-ledger.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned upload execution plan report in `docs/plans/120-upload-execution-plan-report.md`.
 - Added backend Markdown rendering and `POST /api/media/uploads/execution-plan/markdown/download` for a metadata-only, read-only pre-upload report.
 - Added browser `Copy plan` and `Download Markdown` controls to the upload execution-plan panel.

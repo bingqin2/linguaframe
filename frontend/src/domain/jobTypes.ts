@@ -428,6 +428,83 @@ export interface DemoPresentationCockpitLink {
   url: string;
 }
 
+export type ModelUsageLedgerStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
+
+export interface ModelUsageLedger {
+  generatedAt: string;
+  limit: number;
+  ownerId: string;
+  ownershipScope: string;
+  summary: ModelUsageLedgerSummary;
+  jobs: ModelUsageLedgerJob[];
+  operations: ModelUsageLedgerOperation[];
+  recentCalls: ModelUsageLedgerCall[];
+  safeLinks: string[];
+  safetyNotes: string[];
+}
+
+export interface ModelUsageLedgerSummary {
+  ledgerStatus: ModelUsageLedgerStatus;
+  jobCount: number;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  providerCacheHitCount: number;
+  generatedArtifactCount: number;
+  totalLatencyMs: number;
+  estimatedCostUsd: string;
+  averageLatencyMs: number;
+  failureRatePercent: string;
+  recommendedNextAction: string;
+}
+
+export interface ModelUsageLedgerJob {
+  jobId: string;
+  videoId: string;
+  jobStatus: LocalizationJobStatus;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  providerCacheHitCount: number;
+  generatedArtifactCount: number;
+  totalLatencyMs: number;
+  estimatedCostUsd: string;
+  latestModelCallAt: string | null;
+  safeLinks: string[];
+}
+
+export interface ModelUsageLedgerOperation {
+  operation: string;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  totalLatencyMs: number;
+  estimatedCostUsd: string;
+  averageLatencyMs: number;
+}
+
+export interface ModelUsageLedgerCall {
+  modelCallId: string;
+  jobId: string;
+  videoId: string;
+  stage: string;
+  operation: string;
+  provider: string;
+  model: string;
+  promptVersion: string;
+  status: string;
+  latencyMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  audioSeconds: string | null;
+  characterCount: number | null;
+  estimatedCostUsd: string;
+  safeErrorSummary: string | null;
+  createdAt: string;
+}
+
 export type ReviewedSubtitleWorkflowStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
 
 export interface ReviewedSubtitleWorkflow {

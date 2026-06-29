@@ -1,12 +1,17 @@
 package com.linguaframe.operator.controller;
 
-import com.linguaframe.job.domain.entity.LocalizationJobRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
+import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.entity.ModelCallRecord;
 import com.linguaframe.job.domain.enums.JobTimelineEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStage;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.ModelCallOperation;
+import com.linguaframe.job.domain.enums.ModelCallProvider;
+import com.linguaframe.job.domain.enums.ModelCallStatus;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
+import com.linguaframe.job.repository.ModelCallRepository;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
@@ -20,6 +25,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,6 +51,9 @@ class OperatorDashboardControllerTests {
 
         @Autowired
         private JobTimelineEventRepository timelineEventRepository;
+
+        @Autowired
+        private ModelCallRepository modelCallRepository;
 
         @Autowired
         private JdbcClient jdbcClient;
@@ -249,6 +258,38 @@ class OperatorDashboardControllerTests {
                     )));
         }
 
+        @Test
+        void returnsModelUsageLedger() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:00:00Z");
+            createJob("ledger-controller-video", "ledger-controller-job", "ledger.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("ledger-controller-call", "ledger-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.limit").value(5))
+                    .andExpect(jsonPath("$.summary.ledgerStatus").value("READY"))
+                    .andExpect(jsonPath("$.summary.modelCallCount").value(1))
+                    .andExpect(jsonPath("$.jobs[0].jobId").value("ledger-controller-job"))
+                    .andExpect(jsonPath("$.recentCalls[0].modelCallId").value("ledger-controller-call"))
+                    .andExpect(jsonPath("$.safeLinks[?(@ == '/api/operator/model-usage-ledger/markdown/download')]").exists());
+        }
+
+        @Test
+        void downloadsModelUsageLedgerMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:30:00Z");
+            createJob("ledger-markdown-controller-video", "ledger-markdown-controller-job", "ledger-markdown.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("ledger-markdown-controller-call", "ledger-markdown-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger/markdown/download").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Model Usage Ledger", "ledger-markdown-controller-job")
+                            .doesNotContain("source-videos/ledger-markdown-controller-video"));
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -266,6 +307,30 @@ class OperatorDashboardControllerTests {
                     createdAt
             ));
             jobRepository.save(new LocalizationJobRecord(jobId, videoId, "zh-CN", status, createdAt));
+        }
+
+        private void saveModelCall(String id, String jobId, Instant createdAt) {
+            modelCallRepository.save(new ModelCallRecord(
+                    id,
+                    jobId,
+                    LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                    ModelCallOperation.TRANSLATION,
+                    ModelCallProvider.OPENAI,
+                    "gpt-test",
+                    "openai-translation-v1",
+                    ModelCallStatus.SUCCEEDED,
+                    120L,
+                    80,
+                    40,
+                    null,
+                    null,
+                    "input summary",
+                    "output summary",
+                    "demo-owner",
+                    new BigDecimal("0.00010000"),
+                    null,
+                    createdAt
+            ));
         }
     }
 
@@ -333,6 +398,20 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-presentation-cockpit")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger/markdown/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/model-usage-ledger/markdown/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }
