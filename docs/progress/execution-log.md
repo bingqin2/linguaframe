@@ -78,6 +78,31 @@ Validation:
 
 Work:
 
+- Started the narration preview playhead workbench feature slice from `docs/plans/143-narration-preview-playhead-workbench.md`.
+- Added pure frontend preview source selection and playhead percent helpers.
+- Added a browser `Narration preview` panel that prefers `NARRATED_VIDEO`, then `BURNED_VIDEO`, then source video.
+- Added jump and play-window controls that seek local browser media, update preview time, and render a timeline playhead without saving narration rows, calling providers, generating artifacts, or mutating object storage.
+- Documented browser preview order, local-only behavior, and the decision to add media preview before waveform rendering.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationPreview.test.ts` first failed because `frontend/src/domain/narrationPreview.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationPreview.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration preview"` first failed because the `Narration preview` region did not exist.
+- After adding the preview panel and timeline playhead, `npm test -- --run src/App.test.tsx -t "narration preview"` passed with `Test Files 1 passed` and `Tests 4 passed | 105 skipped`.
+- `npm test -- --run src/domain/narrationPreview.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 109 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run src/domain/narrationPreview.test.ts src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 3 passed` and `Tests 116 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run` passed with `Test Files 5 passed` and `Tests 217 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 771, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration timeline drag editing workbench feature slice.
 - Added pure frontend timeline editing helpers for moving, resizing, snapping, clamping, duration normalization, and local timeline recomputation.
 

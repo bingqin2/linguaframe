@@ -218,6 +218,14 @@ Reason: Subtitle generation and audio synthesis are different pipeline concerns.
 
 Impact: The worker can now create a `DUBBING_AUDIO` artifact after target subtitle export. The MVP generates one continuous MP3 and intentionally defers lip sync, audio/video mixing, subtitle burn-in, and cost accounting.
 
+## 2026-06-30
+
+Decision: Add local narration media preview and playhead controls before waveform rendering.
+
+Reason: Operators need to verify where explanatory voiceover will land against the completed media before spending provider credits or generating new artifacts. Existing source and artifact download URLs are enough for this check, while waveform decoding and multitrack automation would expand scope without changing the saved narration contract.
+
+Impact: The browser narration workspace now previews the best available media in priority order: `NARRATED_VIDEO`, `BURNED_VIDEO`, then source video. Jump and play-window controls update local preview state and timeline playhead only; they do not save narration rows, call OpenAI, synthesize audio, generate videos, or mutate object storage.
+
 ## 2026-06-26
 
 Decision: Add subtitle-burned video as an FFmpeg-backed worker stage after generated subtitles.

@@ -196,6 +196,10 @@ bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-pack
 Expected:
 
 - Browser selected-job narration workspace shows `Demo narration preset` next to script package import/export.
+- Browser selected-job narration workspace shows a `Narration preview` panel after the timeline workbench.
+- Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.
+- Selecting a narration row and clicking `Jump to narration N` seeks the preview player to the selected start time and moves the timeline playhead.
+- Clicking `Play window` seeks to the selected start time and stops at the selected end time without saving rows, generating artifacts, or calling providers.
 - Apply remains disabled until the replace confirmation is checked.
 - Applying `tears-showcase-narration` refreshes narration workspace, script package, narration evidence, and artifact metadata without generating audio or video.
 - `LINGUAFRAME_NARRATION_DEMO_PRESET_REPORT_ONLY=true scripts/demo/narration-demo-preset.sh` writes preset catalog metadata without a job id or mutation.
