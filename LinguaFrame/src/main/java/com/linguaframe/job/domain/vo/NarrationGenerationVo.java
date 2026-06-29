@@ -12,6 +12,9 @@ public record NarrationGenerationVo(
         int totalCharacterCount,
         BigDecimal totalTimelineDurationSeconds,
         String voiceSummary,
+        String audioLayout,
+        boolean timeAligned,
+        int ttsCallCount,
         String status
 ) {
 }

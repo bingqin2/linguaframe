@@ -54,16 +54,16 @@
 - Extend `NarrationGenerationVo` with `String audioLayout`, `boolean timeAligned`, and `int ttsCallCount`.
 - `audioLayout` values: `TIMED_AUDIO_BED` for the new behavior, `CONTINUOUS_SCRIPT` only for legacy test fixtures if needed.
 
-- [ ] Change narration audio generation to synthesize each saved narration segment separately through `TtsProvider`.
-- [ ] Preserve per-segment voice behavior: use a segment voice when present; otherwise use the job default voice.
-- [ ] Run the budget guard before the first provider call and keep the existing stage identity.
-- [ ] Write each segment audio into a job work directory and call `FfmpegTimedAudioBedService.createAudioBed`.
-- [ ] Store the mixed bed as `NARRATION_AUDIO` with filename `narration-audio.mp3`.
-- [ ] Return `audioLayout=TIMED_AUDIO_BED`, `timeAligned=true`, and `ttsCallCount=segmentCount`.
-- [ ] Ensure provider or FFmpeg failure does not create a `NARRATION_AUDIO` artifact and always cleans the work directory.
-- [ ] Update tests for segment-level TTS calls, per-segment voice selection, time-aligned response fields, empty workspace rejection, provider failure, and FFmpeg failure.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Change narration audio generation to synthesize each saved narration segment separately through `TtsProvider`.
+- [x] Preserve per-segment voice behavior: use a segment voice when present; otherwise use the job default voice.
+- [x] Run the budget guard before the first provider call and keep the existing stage identity.
+- [x] Write each segment audio into a job work directory and call `FfmpegTimedAudioBedService.createAudioBed`.
+- [x] Store the mixed bed as `NARRATION_AUDIO` with filename `narration-audio.mp3`.
+- [x] Return `audioLayout=TIMED_AUDIO_BED`, `timeAligned=true`, and `ttsCallCount=segmentCount`.
+- [x] Ensure provider or FFmpeg failure does not create a `NARRATION_AUDIO` artifact and always cleans the work directory.
+- [x] Update tests for segment-level TTS calls, per-segment voice selection, time-aligned response fields, empty workspace rejection, provider failure, and FFmpeg failure.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 3: FFmpeg Original-Audio Mixing And Ducking
 

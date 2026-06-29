@@ -8,11 +8,17 @@ Work:
 
 - Planned narration audio mixing and ducking in `docs/plans/134-narration-audio-mixing-ducking.md`.
 - Added an FFmpeg timed narration audio bed boundary that delays segment audio to saved start times, mixes delayed inputs with `amix`, and returns `narration-audio.mp3`.
+- Changed narration audio generation from one continuous timestamped TTS request to per-segment TTS files mixed into a timed `NARRATION_AUDIO` bed.
+- Extended narration audio generation responses with `audioLayout=TIMED_AUDIO_BED`, `timeAligned=true`, and `ttsCallCount`.
 
 Validation so far:
 
 - `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests` first failed because the timed audio bed command, segment value object, service interface, and implementation did not exist.
 - `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests` first failed because `NarrationAudioServiceImpl` did not accept the timed audio bed/work-directory dependencies and `NarrationGenerationVo` did not expose timed-audio metadata.
+- `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` first failed because the controller test context still exercised the real timed audio bed FFmpeg boundary with fake MP3 bytes; the test was updated to mock the new FFmpeg boundary.
+- `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-29
 

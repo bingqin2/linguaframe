@@ -1,6 +1,7 @@
 package com.linguaframe.job.controller;
 
 import com.linguaframe.job.domain.bo.CreateModelCallRecordCommand;
+import com.linguaframe.job.domain.bo.TtsResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
@@ -32,6 +33,7 @@ import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.bo.DubbedVideoBo;
 import com.linguaframe.media.repository.VideoRepository;
 import com.linguaframe.media.service.FfmpegAudioReplacementService;
+import com.linguaframe.media.service.FfmpegTimedAudioBedService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
@@ -116,6 +118,9 @@ class LocalizationJobControllerTests {
     @MockitoBean
     private FfmpegAudioReplacementService ffmpegAudioReplacementService;
 
+    @MockitoBean
+    private FfmpegTimedAudioBedService ffmpegTimedAudioBedService;
+
     @BeforeEach
     void cleanDatabase() {
         jdbcClient.sql("DELETE FROM quality_evaluations").update();
@@ -135,6 +140,9 @@ class LocalizationJobControllerTests {
         });
         when(ffmpegAudioReplacementService.replaceAudio(any())).thenReturn(
                 new DubbedVideoBo("narrated-video.mp4", "video/mp4", new byte[] {9, 9, 9})
+        );
+        when(ffmpegTimedAudioBedService.createAudioBed(any())).thenReturn(
+                new TtsResultBo(new byte[] {1, 2, 3}, "narration-audio.mp3", "audio/mpeg")
         );
     }
 
@@ -2007,6 +2015,9 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.totalCharacterCount").value(49))
                 .andExpect(jsonPath("$.totalTimelineDurationSeconds").value(28.500))
                 .andExpect(jsonPath("$.voiceSummary").value("alloy"))
+                .andExpect(jsonPath("$.audioLayout").value("TIMED_AUDIO_BED"))
+                .andExpect(jsonPath("$.timeAligned").value(true))
+                .andExpect(jsonPath("$.ttsCallCount").value(2))
                 .andExpect(jsonPath("$.status").value("READY"));
 
         List<JobArtifactRecord> artifacts = artifactRepository.findByJobId("job-controller-job-narration-audio");

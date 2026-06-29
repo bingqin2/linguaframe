@@ -11,10 +11,16 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
+import com.linguaframe.media.domain.bo.CreateTimedAudioBedCommand;
+import com.linguaframe.media.service.FfmpegTimedAudioBedService;
+import com.linguaframe.media.service.MediaWorkDirectoryService;
 import com.linguaframe.job.service.impl.NarrationAudioServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,13 +30,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class NarrationAudioServiceTests {
 
+    @TempDir
+    private Path tempDir;
+
     @Test
-    void generatesNarrationAudioArtifactFromSavedSegments() {
+    void generatesTimedNarrationAudioBedFromSavedSegments() throws Exception {
         RecordingNarrationSegmentRepository repository = new RecordingNarrationSegmentRepository(List.of(
                 segment(1, "55.000", "70.500", "Explain the second scene.", "alloy"),
                 segment(0, "15.000", "28.000", "Explain the first scene.", "alloy")
         ));
         RecordingTtsProvider ttsProvider = new RecordingTtsProvider();
+        RecordingTimedAudioBedService timedAudioBedService = new RecordingTimedAudioBedService();
         RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
         RecordingCostBudgetGuardService budgetGuard = new RecordingCostBudgetGuardService();
         NarrationAudioService service = new NarrationAudioServiceImpl(
@@ -38,27 +48,41 @@ class NarrationAudioServiceTests {
                 new StaticLocalizationJobQueryService("zh-CN", "verse"),
                 ttsProvider,
                 artifactService,
-                budgetGuard
+                budgetGuard,
+                timedAudioBedService,
+                new RecordingMediaWorkDirectoryService(tempDir)
         );
 
         NarrationGenerationVo result = service.generateAudio("job-narration");
 
         assertThat(budgetGuard.calls).containsExactly("job-narration:DUBBING_AUDIO_GENERATION");
-        assertThat(ttsProvider.request.jobId()).isEqualTo("job-narration");
-        assertThat(ttsProvider.request.language()).isEqualTo("zh-CN");
-        assertThat(ttsProvider.request.voice()).isEqualTo("alloy");
-        assertThat(ttsProvider.request.text()).isEqualTo("""
-                [00:15.000-00:28.000]
-                Explain the first scene.
-
-                [00:55.000-01:10.500]
-                Explain the second scene.""");
+        assertThat(ttsProvider.requests).extracting(TtsRequestBo::jobId)
+                .containsExactly("job-narration", "job-narration");
+        assertThat(ttsProvider.requests).extracting(TtsRequestBo::language)
+                .containsExactly("zh-CN", "zh-CN");
+        assertThat(ttsProvider.requests).extracting(TtsRequestBo::voice)
+                .containsExactly("alloy", "alloy");
+        assertThat(ttsProvider.requests).extracting(TtsRequestBo::text)
+                .containsExactly("Explain the first scene.", "Explain the second scene.");
+        assertThat(timedAudioBedService.command.jobId()).isEqualTo("job-narration");
+        assertThat(timedAudioBedService.command.outputFilename()).isEqualTo("narration-audio.mp3");
+        assertThat(timedAudioBedService.command.outputAudioPath().getFileName().toString())
+                .isEqualTo("narration-audio.mp3");
+        assertThat(timedAudioBedService.command.segments()).hasSize(2);
+        assertThat(timedAudioBedService.command.segments().get(0).startSeconds()).isEqualByComparingTo("15.000");
+        assertThat(timedAudioBedService.command.segments().get(0).endSeconds()).isEqualByComparingTo("28.000");
+        assertThat(Files.readAllBytes(timedAudioBedService.command.segments().get(0).inputAudioPath()))
+                .containsExactly(10, 11, 12);
+        assertThat(timedAudioBedService.command.segments().get(1).startSeconds()).isEqualByComparingTo("55.000");
+        assertThat(timedAudioBedService.command.segments().get(1).endSeconds()).isEqualByComparingTo("70.500");
+        assertThat(Files.readAllBytes(timedAudioBedService.command.segments().get(1).inputAudioPath()))
+                .containsExactly(13, 14, 15);
         assertThat(artifactService.commands).hasSize(1);
         CreateJobArtifactCommand command = artifactService.commands.getFirst();
         assertThat(command.type()).isEqualTo(JobArtifactType.NARRATION_AUDIO);
         assertThat(command.filename()).isEqualTo("narration-audio.mp3");
         assertThat(command.contentType()).isEqualTo("audio/mpeg");
-        assertThat(command.content()).containsExactly(1, 2, 3);
+        assertThat(command.content()).containsExactly(21, 22, 23);
         assertThat(result.jobId()).isEqualTo("job-narration");
         assertThat(result.artifactId()).isEqualTo("artifact-narration");
         assertThat(result.filename()).isEqualTo("narration-audio.mp3");
@@ -66,6 +90,9 @@ class NarrationAudioServiceTests {
         assertThat(result.totalCharacterCount()).isEqualTo(49);
         assertThat(result.totalTimelineDurationSeconds()).isEqualByComparingTo("28.500");
         assertThat(result.voiceSummary()).isEqualTo("alloy");
+        assertThat(result.audioLayout()).isEqualTo("TIMED_AUDIO_BED");
+        assertThat(result.timeAligned()).isTrue();
+        assertThat(result.ttsCallCount()).isEqualTo(2);
         assertThat(result.status()).isEqualTo("READY");
     }
 
@@ -76,7 +103,9 @@ class NarrationAudioServiceTests {
                 new StaticLocalizationJobQueryService("zh-CN", "verse"),
                 new RecordingTtsProvider(),
                 new RecordingJobArtifactService(),
-                new RecordingCostBudgetGuardService()
+                new RecordingCostBudgetGuardService(),
+                new RecordingTimedAudioBedService(),
+                new RecordingMediaWorkDirectoryService(tempDir)
         );
 
         assertThatThrownBy(() -> service.generateAudio("job-empty"))
@@ -95,12 +124,15 @@ class NarrationAudioServiceTests {
                 new StaticLocalizationJobQueryService("en-US", "verse"),
                 ttsProvider,
                 new RecordingJobArtifactService(),
-                new RecordingCostBudgetGuardService()
+                new RecordingCostBudgetGuardService(),
+                new RecordingTimedAudioBedService(),
+                new RecordingMediaWorkDirectoryService(tempDir)
         );
 
         NarrationGenerationVo result = service.generateAudio("job-mixed");
 
-        assertThat(ttsProvider.request.voice()).isEqualTo("verse");
+        assertThat(ttsProvider.requests).extracting(TtsRequestBo::voice)
+                .containsExactly("alloy", "verse");
         assertThat(result.voiceSummary()).isEqualTo("MIXED_OR_DEFAULT");
     }
 
@@ -114,12 +146,35 @@ class NarrationAudioServiceTests {
                 new StaticLocalizationJobQueryService("zh-CN", "verse"),
                 ttsProvider,
                 artifactService,
-                new RecordingCostBudgetGuardService()
+                new RecordingCostBudgetGuardService(),
+                new RecordingTimedAudioBedService(),
+                new RecordingMediaWorkDirectoryService(tempDir)
         );
 
         assertThatThrownBy(() -> service.generateAudio("job-failure"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("provider unavailable");
+        assertThat(artifactService.commands).isEmpty();
+    }
+
+    @Test
+    void propagatesTimedAudioBedFailureWithoutCreatingArtifact() {
+        RecordingTimedAudioBedService timedAudioBedService = new RecordingTimedAudioBedService();
+        timedAudioBedService.failure = new IllegalStateException("ffmpeg timed bed failed");
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        NarrationAudioService service = new NarrationAudioServiceImpl(
+                new RecordingNarrationSegmentRepository(List.of(segment(0, "1.000", "2.000", "First", "alloy"))),
+                new StaticLocalizationJobQueryService("zh-CN", "verse"),
+                new RecordingTtsProvider(),
+                artifactService,
+                new RecordingCostBudgetGuardService(),
+                timedAudioBedService,
+                new RecordingMediaWorkDirectoryService(tempDir)
+        );
+
+        assertThatThrownBy(() -> service.generateAudio("job-failure"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ffmpeg timed bed failed");
         assertThat(artifactService.commands).isEmpty();
     }
 
@@ -209,16 +264,61 @@ class NarrationAudioServiceTests {
 
     private static final class RecordingTtsProvider implements TtsProvider {
 
-        private TtsRequestBo request;
+        private final List<TtsRequestBo> requests = new ArrayList<>();
         private RuntimeException failure;
+        private int callCount;
 
         @Override
         public TtsResultBo synthesize(TtsRequestBo request) {
-            this.request = request;
+            this.requests.add(request);
             if (failure != null) {
                 throw failure;
             }
-            return new TtsResultBo(new byte[] {1, 2, 3}, "provider-file.mp3", "audio/mpeg");
+            byte[] content = callCount == 0 ? new byte[] {10, 11, 12} : new byte[] {13, 14, 15};
+            callCount++;
+            return new TtsResultBo(content, "provider-file.mp3", "audio/mpeg");
+        }
+    }
+
+    private static final class RecordingTimedAudioBedService implements FfmpegTimedAudioBedService {
+
+        private CreateTimedAudioBedCommand command;
+        private RuntimeException failure;
+
+        @Override
+        public TtsResultBo createAudioBed(CreateTimedAudioBedCommand command) {
+            this.command = command;
+            if (failure != null) {
+                throw failure;
+            }
+            return new TtsResultBo(new byte[] {21, 22, 23}, command.outputFilename(), "audio/mpeg");
+        }
+    }
+
+    private static final class RecordingMediaWorkDirectoryService implements MediaWorkDirectoryService {
+
+        private final Path root;
+        private Path createdDirectory;
+        private Path deletedDirectory;
+
+        private RecordingMediaWorkDirectoryService(Path root) {
+            this.root = root;
+        }
+
+        @Override
+        public Path createJobWorkDirectory(String jobId) {
+            createdDirectory = root.resolve(jobId);
+            try {
+                Files.createDirectories(createdDirectory);
+            } catch (java.io.IOException ex) {
+                throw new IllegalStateException(ex);
+            }
+            return createdDirectory;
+        }
+
+        @Override
+        public void deleteRecursively(Path directory) {
+            deletedDirectory = directory;
         }
     }
 
