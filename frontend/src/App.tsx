@@ -9109,7 +9109,7 @@ function NarrationWorkspacePanel({
   }, [workspace]);
 
   const selectedSegment = segments[selectedIndex] ?? null;
-  const validation = validateNarrationSegments(segments);
+  const validation = validateNarrationSegments(segments, workspace?.voiceCatalog ?? null);
   const mixValidation = validateNarrationMixSettings(mixSettings);
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
@@ -9183,6 +9183,7 @@ function NarrationWorkspacePanel({
           <NarrationSegmentTable
             segments={segments}
             selectedIndex={selectedIndex}
+            voiceCatalog={workspace?.voiceCatalog ?? null}
             onSelectSegment={setSelectedIndex}
             onUpdateSegment={updateSegment}
           />
@@ -9195,6 +9196,7 @@ function NarrationWorkspacePanel({
           mixValidation={mixValidation}
           selectedIndex={selectedIndex}
           selectedSegment={selectedSegment}
+          voiceCatalog={workspace?.voiceCatalog ?? null}
           onRefreshEvidence={onRefreshEvidence}
           onSaveMixSettings={onSaveMixSettings}
           onUpdateMixSettings={setMixSettings}
@@ -9209,66 +9211,88 @@ function NarrationSegmentTable({
   onSelectSegment,
   onUpdateSegment,
   segments,
-  selectedIndex
+  selectedIndex,
+  voiceCatalog
 }: {
   onSelectSegment: (index: number) => void;
   onUpdateSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
   segments: NarrationWorkspace['segments'];
   selectedIndex: number;
+  voiceCatalog: NarrationWorkspace['voiceCatalog'] | null;
 }) {
+  const voiceOptions = voiceCatalog?.presets ?? [];
   return (
-    <table className="narration-table">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Start</th>
-          <th>End</th>
-          <th>Voice</th>
-          <th>Text</th>
-        </tr>
-      </thead>
-      <tbody>
-        {segments.length === 0 ? (
+    <>
+      {voiceCatalog ? (
+        <div className="voice-preset-strip" aria-label="Voice presets">
+          <div>
+            <h4>Voice presets</h4>
+            <p className="muted">Default voice: {voiceCatalog.defaultVoice}</p>
+          </div>
+          <span className="status-pill ready">{voiceCatalog.provider}</span>
+        </div>
+      ) : null}
+      <table className="narration-table">
+        <thead>
           <tr>
-            <td colSpan={5}>No narration rows.</td>
+            <th>#</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Voice</th>
+            <th>Text</th>
           </tr>
-        ) : segments.map((segment, index) => (
-          <tr key={index} className={index === selectedIndex ? 'selected-row' : undefined}>
-            <td>
-              <button type="button" onClick={() => onSelectSegment(index)}>{index + 1}</button>
-            </td>
-            <td>
-              <input
-                aria-label={`Narration ${index + 1} start`}
-                min="0"
-                step="0.001"
-                type="number"
-                value={segment.startSeconds}
-                onChange={(event) => onUpdateSegment(index, { startSeconds: Number(event.target.value) })}
-              />
-            </td>
-            <td>
-              <input
-                aria-label={`Narration ${index + 1} end`}
-                min="0"
-                step="0.001"
-                type="number"
-                value={segment.endSeconds}
-                onChange={(event) => onUpdateSegment(index, { endSeconds: Number(event.target.value) })}
-              />
-            </td>
-            <td>
-              <input
-                aria-label={`Narration ${index + 1} voice`}
-                value={segment.voice ?? ''}
-                onChange={(event) => onUpdateSegment(index, { voice: event.target.value })}
-              />
-            </td>
-            <td>{segment.text || '-'}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {segments.length === 0 ? (
+            <tr>
+              <td colSpan={5}>No narration rows.</td>
+            </tr>
+          ) : segments.map((segment, index) => (
+            <tr key={index} className={index === selectedIndex ? 'selected-row' : undefined}>
+              <td>
+                <button type="button" onClick={() => onSelectSegment(index)}>{index + 1}</button>
+              </td>
+              <td>
+                <input
+                  aria-label={`Narration ${index + 1} start`}
+                  min="0"
+                  step="0.001"
+                  type="number"
+                  value={segment.startSeconds}
+                  onChange={(event) => onUpdateSegment(index, { startSeconds: Number(event.target.value) })}
+                />
+              </td>
+              <td>
+                <input
+                  aria-label={`Narration ${index + 1} end`}
+                  min="0"
+                  step="0.001"
+                  type="number"
+                  value={segment.endSeconds}
+                  onChange={(event) => onUpdateSegment(index, { endSeconds: Number(event.target.value) })}
+                />
+              </td>
+              <td>
+                <select
+                  aria-label={`Narration ${index + 1} voice`}
+                  value={segment.voice ?? ''}
+                  onChange={(event) => onUpdateSegment(index, { voice: event.target.value || null })}
+                >
+                  <option value="">Inherit default ({voiceCatalog?.defaultVoice ?? 'default'})</option>
+                  {voiceOptions.map((preset) => (
+                    <option key={preset.voice} value={preset.voice}>{preset.label}</option>
+                  ))}
+                  {segment.voice && !voiceOptions.some((preset) => preset.voice === segment.voice) ? (
+                    <option value={segment.voice}>Unknown: {segment.voice}</option>
+                  ) : null}
+                </select>
+              </td>
+              <td>{segment.text || '-'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -9283,7 +9307,8 @@ function NarrationInspector({
   onUpdateMixSettings,
   onUpdateSegment,
   selectedIndex,
-  selectedSegment
+  selectedSegment,
+  voiceCatalog
 }: {
   evidence: NarrationEvidence | null;
   isSaving: boolean;
@@ -9296,6 +9321,7 @@ function NarrationInspector({
   onUpdateSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
   selectedIndex: number;
   selectedSegment: NarrationWorkspace['segments'][number] | null;
+  voiceCatalog: NarrationWorkspace['voiceCatalog'] | null;
 }) {
   return (
     <aside className="narration-inspector" aria-label="Narration inspector">
@@ -9314,7 +9340,7 @@ function NarrationInspector({
               </div>
               <div>
                 <dt>Voice</dt>
-                <dd>{selectedSegment.voice || 'Default'}</dd>
+                <dd>{formatNarrationVoiceState(selectedSegment.voice, voiceCatalog)}</dd>
               </div>
               <div>
                 <dt>Characters</dt>
@@ -9367,6 +9393,14 @@ function NarrationEvidenceMetrics({ evidence }: { evidence: NarrationEvidence | 
       <div>
         <dt>Audio</dt>
         <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
+      </div>
+      <div>
+        <dt>Voice summary</dt>
+        <dd>{evidence?.voiceSummary ?? 'N/A'}</dd>
+      </div>
+      <div>
+        <dt>Default voice</dt>
+        <dd>{evidence?.defaultVoice ?? 'N/A'}</dd>
       </div>
       <div>
         <dt>Audio layout</dt>
@@ -9559,7 +9593,15 @@ function formatSeconds(value: number | null | undefined) {
   return `${Number(value.toFixed(3))} s`;
 }
 
-function validateNarrationSegments(segments: NarrationWorkspace['segments']): string[] {
+function formatNarrationVoiceState(voice: string | null | undefined, catalog: NarrationWorkspace['voiceCatalog'] | null) {
+  if (!voice) {
+    return `Inherited default: ${catalog?.defaultVoice ?? 'default'}`;
+  }
+  const preset = catalog?.presets.find((candidate) => candidate.voice === voice);
+  return preset ? `Explicit preset: ${preset.voice}` : `Unknown voice: ${voice}`;
+}
+
+function validateNarrationSegments(segments: NarrationWorkspace['segments'], catalog: NarrationWorkspace['voiceCatalog'] | null): string[] {
   const messages: string[] = [];
   segments.forEach((segment, index) => {
     if (!segment.text.trim()) {
@@ -9573,6 +9615,9 @@ function validateNarrationSegments(segments: NarrationWorkspace['segments']): st
     }
     if ((segment.voice ?? '').length > 64) {
       messages.push(`Row ${index + 1}: voice must be 64 characters or fewer.`);
+    }
+    if (segment.voice && catalog && !catalog.presets.some((preset) => preset.voice === segment.voice)) {
+      messages.push(`Row ${index + 1}: voice must be one of the configured presets.`);
     }
   });
   for (let index = 1; index < segments.length; index += 1) {

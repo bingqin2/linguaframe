@@ -3924,6 +3924,20 @@ Validation so far:
 
 Work:
 
+- Added React narration voice preset controls backed by `NarrationWorkspace.voiceCatalog`.
+- Replaced free-form narration voice inputs with compact selects that include an inherit-default option and preserve unknown saved values for diagnosis.
+- Added selected-segment voice state, evidence voice metrics, and local validation that blocks save/generate when a saved voice is not in the current catalog while evidence refresh/download remains available.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx` first failed because the UI did not render `Voice presets`.
+- After adding the voice preset UI, `npm test -- --run src/App.test.tsx` passed with `Test Files 1 passed` and `Tests 92 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Added narration voice preset validation so saved segment voices must match the provider catalog while blank values inherit the effective default.
 - Updated narration audio generation voice summaries to report `DEFAULT:<voice>`, `PRESET:<voice>`, or `MIXED`.
 - Added metadata-only narration evidence fields for voice preset count, voice summary, and default voice, including Markdown, ZIP manifest, summary JSON, and terminal demo summaries.

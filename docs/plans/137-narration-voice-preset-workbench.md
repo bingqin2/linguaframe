@@ -84,14 +84,14 @@
 - Add frontend types `NarrationVoiceCatalog` and `NarrationVoicePreset`.
 - `NarrationWorkspace.voiceCatalog` drives per-row voice selects and inspector voice metadata.
 
-- [ ] Write failing Vitest coverage for visible voice catalog, default voice label, per-row voice select, selected segment voice summary, and blocked unknown voice display.
-- [ ] Replace free-form row voice inputs with compact `<select>` controls populated by `voiceCatalog.presets`, including a default/inherit option.
-- [ ] Show selected segment voice state in the right inspector: inherited default, explicit preset, or unknown saved value.
-- [ ] Keep keyboard-friendly row editing and existing text inspector; do not add voice preview playback.
-- [ ] Disable save/generate controls when an unknown saved voice is selected, while still allowing evidence refresh/downloads.
-- [ ] Run `npm test -- --run src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing Vitest coverage for visible voice catalog, default voice label, per-row voice select, selected segment voice summary, and blocked unknown voice display.
+- [x] Replace free-form row voice inputs with compact `<select>` controls populated by `voiceCatalog.presets`, including a default/inherit option.
+- [x] Show selected segment voice state in the right inspector: inherited default, explicit preset, or unknown saved value.
+- [x] Keep keyboard-friendly row editing and existing text inspector; do not add voice preview playback.
+- [x] Disable save/generate controls when an unknown saved voice is selected, while still allowing evidence refresh/downloads.
+- [x] Run `npm test -- --run src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration voice preset UI`.
 
 ## Task 4: Documentation And Final Verification

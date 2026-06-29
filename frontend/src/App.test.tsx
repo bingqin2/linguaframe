@@ -2368,6 +2368,12 @@ describe('App', () => {
     expect(within(narrationPanel).getByLabelText('Timeline segment 2: 55 s to 70.5 s, READY')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('Selected segment')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '15 s - 28 s')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Voice presets')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Default voice: verse')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i })).toHaveValue('alloy');
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 2 voice/i })).toHaveValue('verse');
+    expect(within(narrationPanel).getByText('Explicit preset: alloy')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('PRESET:alloy')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('Ducked original audio')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('0.35')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '2 windows')).toBeInTheDocument();
@@ -5493,6 +5499,27 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
       fadeDurationMs: 250,
       updatedAt: null
     },
+    voiceCatalog: {
+      provider: 'openai',
+      defaultVoice: 'verse',
+      presets: [
+        {
+          voice: 'alloy',
+          label: 'Alloy',
+          provider: 'openai',
+          defaultPreset: false,
+          description: 'OpenAI TTS voice preset.'
+        },
+        {
+          voice: 'verse',
+          label: 'Verse',
+          provider: 'openai',
+          defaultPreset: true,
+          description: 'OpenAI TTS voice preset.'
+        }
+      ],
+      safetyNotes: ['Voice presets are provider identifiers, not uploaded reference audio.']
+    },
     timeline: {
       startSeconds: 15,
       endSeconds: 70.5,
@@ -5566,6 +5593,9 @@ function narrationEvidenceFixture(overrides: Partial<NarrationEvidence> = {}): N
     timelineGapCount: 1,
     timelineGapSeconds: 27,
     timelineHasOverlap: false,
+    voicePresetCount: 1,
+    voiceSummary: 'PRESET:alloy',
+    defaultVoice: 'verse',
     narrationAudioReady: readyAudio,
     audioArtifactCount: overrides.audioArtifactCount ?? (readyAudio ? 1 : 0),
     audioLayout: readyAudio ? 'TIMED_AUDIO_BED' : 'MISSING',
