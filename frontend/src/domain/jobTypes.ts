@@ -139,6 +139,49 @@ export interface OpenAiSmokeProof {
   safetyNotes: string[];
 }
 
+export type DemoReviewerWorkspaceStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface DemoReviewerWorkspaceSection {
+  key: string;
+  title: string;
+  status: string;
+  facts: string[];
+}
+
+export interface DemoReviewerWorkspaceCheck {
+  key: string;
+  label: string;
+  status: DemoReviewerWorkspaceStatus;
+  detail: string;
+  nextAction: string;
+  required: boolean;
+}
+
+export interface DemoReviewerWorkspaceLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface DemoReviewerWorkspace {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  overallStatus: DemoReviewerWorkspaceStatus;
+  phase: string;
+  recommendedNextAction: string;
+  completedAt: string | null;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  sections: DemoReviewerWorkspaceSection[];
+  checks: DemoReviewerWorkspaceCheck[];
+  safeLinks: DemoReviewerWorkspaceLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'

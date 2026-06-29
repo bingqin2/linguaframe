@@ -839,6 +839,79 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoReviewerWorkspaceForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:55:00Z");
+        createReviewerWorkspaceJob("job-controller-reviewer", "job-video-reviewer", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-reviewer-workspace",
+                        "job-controller-reviewer"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-reviewer"))
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.phase").value("REVIEW_PACKAGE_READY"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'ACCEPTANCE_GATE')].status").value("READY"))
+                .andExpect(jsonPath("$.checks[?(@.key == 'OPENAI_SMOKE_PROOF')].status").value("READY"))
+                .andExpect(jsonPath("$.safeLinks[?(@.href == '/api/jobs/job-controller-reviewer/demo-reviewer-workspace/download')].label").value("Reviewer workspace ZIP"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoReviewerWorkspaceMarkdownForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:57:00Z");
+        createReviewerWorkspaceJob("job-controller-reviewer-md", "job-video-reviewer-md", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-reviewer-workspace/markdown/download",
+                        "job-controller-reviewer-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-reviewer-md-demo-reviewer-workspace.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame Demo Reviewer Workspace")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Overall status: READY")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Demo run package")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoReviewerWorkspaceZipForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:59:00Z");
+        createReviewerWorkspaceJob("job-controller-reviewer-zip", "job-video-reviewer-zip", createdAt);
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/demo-reviewer-workspace/download",
+                        "job-controller-reviewer-zip"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-reviewer-zip-demo-reviewer-workspace.zip\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries).containsKeys("manifest.json", "reviewer-workspace.md", "README.md");
+        assertThat(entries.get("manifest.json")).contains("\"jobId\":\"job-controller-reviewer-zip\"");
+        assertThat(entries.get("reviewer-workspace.md"))
+                .contains("# LinguaFrame Demo Reviewer Workspace")
+                .contains("Demo run package");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw subtitle text")
+                .doesNotContain("/Users/example")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("sk-test")
+                .doesNotContain("OPENAI_API_KEY")
+                .doesNotContain("private-demo-token");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(
@@ -2887,6 +2960,54 @@ class LocalizationJobControllerTests {
                 status,
                 createdAt
         ));
+    }
+
+    private void createReviewerWorkspaceJob(String jobId, String videoId, Instant createdAt) {
+        createJob(videoId, jobId, "reviewer.mp4", LocalizationJobStatus.COMPLETED, createdAt);
+        updateComparisonSettings(jobId, "tears-showcase", "FORMAL", "HIGH_CONTRAST", 1, "hash-reviewer", "BALANCED");
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                jobId,
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSCRIPTION,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini-transcribe",
+                "openai-audio-transcriptions-v1",
+                250L,
+                null,
+                null,
+                new BigDecimal("30.0"),
+                null,
+                "audioSeconds=30",
+                "segments=4"
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                jobId,
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4.1-mini",
+                "openai-subtitle-translation-v1",
+                550L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=4",
+                "translatedSegmentCount=4"
+        ));
+        qualityEvaluationRepository.save(quality("quality-" + jobId, jobId, 91, createdAt.plusSeconds(20)));
+        String suffix = Integer.toHexString(jobId.hashCode()).replace("-", "n");
+        saveSmokeProofArtifact("rv-tj-" + suffix, jobId, JobArtifactType.TRANSCRIPT_JSON);
+        saveSmokeProofArtifact("rv-j-" + suffix, jobId, JobArtifactType.TARGET_SUBTITLE_JSON);
+        saveSmokeProofArtifact("rv-s-" + suffix, jobId, JobArtifactType.TARGET_SUBTITLE_SRT);
+        saveSmokeProofArtifact("rv-v-" + suffix, jobId, JobArtifactType.TARGET_SUBTITLE_VTT);
+        saveSmokeProofArtifact("rv-bv-" + suffix, jobId, JobArtifactType.BURNED_VIDEO);
+        saveSmokeProofArtifact("rv-dv-" + suffix, jobId, JobArtifactType.DUBBED_VIDEO);
+        saveSmokeProofArtifact("rv-da-" + suffix, jobId, JobArtifactType.DUBBING_AUDIO);
+        saveSmokeProofArtifact("rv-rj-" + suffix, jobId, JobArtifactType.REVIEWED_SUBTITLE_JSON);
+        saveSmokeProofArtifact("rv-rs-" + suffix, jobId, JobArtifactType.REVIEWED_SUBTITLE_SRT);
+        saveSmokeProofArtifact("rv-rv-" + suffix, jobId, JobArtifactType.REVIEWED_SUBTITLE_VTT);
+        saveSmokeProofArtifact("rv-rb-" + suffix, jobId, JobArtifactType.REVIEWED_BURNED_VIDEO);
     }
 
     private void updateComparisonSettings(

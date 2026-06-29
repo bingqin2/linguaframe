@@ -16,6 +16,7 @@ import type {
   DemoPresenterPack,
   DemoRunMatrix,
   DemoRunMonitor,
+  DemoReviewerWorkspace,
   DemoRunSnapshot,
   DemoRunVarianceReport,
   DemoShareSheet,
@@ -437,6 +438,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [openAiSmokeProof, setOpenAiSmokeProof] = useState<OpenAiSmokeProof | null>(null);
   const [openAiSmokeProofError, setOpenAiSmokeProofError] = useState<string | null>(null);
   const [isLoadingOpenAiSmokeProof, setIsLoadingOpenAiSmokeProof] = useState(false);
+  const [demoReviewerWorkspace, setDemoReviewerWorkspace] = useState<DemoReviewerWorkspace | null>(null);
+  const [demoReviewerWorkspaceError, setDemoReviewerWorkspaceError] = useState<string | null>(null);
+  const [isLoadingDemoReviewerWorkspace, setIsLoadingDemoReviewerWorkspace] = useState(false);
   const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
   const [cacheReplayBaseline, setCacheReplayBaseline] = useState<CacheReplayBaseline | null>(null);
@@ -554,6 +558,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoShareSheetError(null);
           setOpenAiSmokeProof(null);
           setOpenAiSmokeProofError(null);
+          setDemoReviewerWorkspace(null);
+          setDemoReviewerWorkspaceError(null);
         }
         setIsSseUnavailable(false);
         setError(null);
@@ -634,6 +640,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setOpenAiSmokeProofError(toErrorMessage(proofLoadError));
     } finally {
       setIsLoadingOpenAiSmokeProof(false);
+    }
+  }, []);
+
+  const loadDemoReviewerWorkspace = useCallback(async (jobId: string) => {
+    setIsLoadingDemoReviewerWorkspace(true);
+    try {
+      const workspace = await linguaFrameApi.getDemoReviewerWorkspace(jobId);
+      setDemoReviewerWorkspace(workspace);
+      setDemoReviewerWorkspaceError(null);
+    } catch (workspaceLoadError) {
+      setDemoReviewerWorkspace(null);
+      setDemoReviewerWorkspaceError(toErrorMessage(workspaceLoadError));
+    } finally {
+      setIsLoadingDemoReviewerWorkspace(false);
     }
   }, []);
 
@@ -1186,11 +1206,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadOpenAiSmokeProof(nextJob.jobId);
+        void loadDemoReviewerWorkspace(nextJob.jobId);
       });
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1208,6 +1229,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadOpenAiSmokeProof(nextJob.jobId);
+        void loadDemoReviewerWorkspace(nextJob.jobId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
@@ -1231,7 +1253,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1509,6 +1531,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoPresentationCockpit(upload.jobId);
       await loadDemoSessionCommandCenter(upload.jobId);
       await loadOpenAiSmokeProof(upload.jobId);
+      await loadDemoReviewerWorkspace(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -1541,6 +1564,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoPresentationCockpit(jobId);
     await loadDemoSessionCommandCenter(jobId);
     await loadOpenAiSmokeProof(jobId);
+    await loadDemoReviewerWorkspace(jobId);
   }
 
   async function handleRetry() {
@@ -1564,6 +1588,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoPresentationCockpit(retriedJob.jobId);
       await loadDemoSessionCommandCenter(retriedJob.jobId);
       await loadOpenAiSmokeProof(retriedJob.jobId);
+      await loadDemoReviewerWorkspace(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -1594,6 +1619,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoPresentationCockpit(cancelledJob.jobId);
       await loadDemoSessionCommandCenter(cancelledJob.jobId);
       await loadOpenAiSmokeProof(cancelledJob.jobId);
+      await loadDemoReviewerWorkspace(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -1627,6 +1653,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoPresentationCockpit(recentJob.jobId);
     await loadDemoSessionCommandCenter(recentJob.jobId);
     await loadOpenAiSmokeProof(recentJob.jobId);
+    await loadDemoReviewerWorkspace(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -1653,6 +1680,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoPresentationCockpit(historyJob.jobId);
     await loadDemoSessionCommandCenter(historyJob.jobId);
     await loadOpenAiSmokeProof(historyJob.jobId);
+    await loadDemoReviewerWorkspace(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -1680,6 +1708,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoPresentationCockpit(failure.jobId);
     await loadDemoSessionCommandCenter(failure.jobId);
     await loadOpenAiSmokeProof(failure.jobId);
+    await loadDemoReviewerWorkspace(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -2432,6 +2461,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoShareSheetError={demoShareSheetError}
               openAiSmokeProof={openAiSmokeProof}
               openAiSmokeProofError={openAiSmokeProofError}
+              demoReviewerWorkspace={demoReviewerWorkspace}
+              demoReviewerWorkspaceError={demoReviewerWorkspaceError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
@@ -2445,6 +2476,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
               isLoadingOpenAiSmokeProof={isLoadingOpenAiSmokeProof}
+              isLoadingDemoReviewerWorkspace={isLoadingDemoReviewerWorkspace}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
@@ -2459,6 +2491,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
               onRefreshOpenAiSmokeProof={() => void loadOpenAiSmokeProof(job.jobId)}
+              onRefreshDemoReviewerWorkspace={() => void loadDemoReviewerWorkspace(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
@@ -5302,6 +5335,8 @@ function JobDetail({
   demoPresenterPackError,
   demoShareSheet,
   demoShareSheetError,
+  demoReviewerWorkspace,
+  demoReviewerWorkspaceError,
   isLoadingCacheReplayComparison,
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
@@ -5315,6 +5350,7 @@ function JobDetail({
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
   isLoadingOpenAiSmokeProof,
+  isLoadingDemoReviewerWorkspace,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
@@ -5329,6 +5365,7 @@ function JobDetail({
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
   onRefreshOpenAiSmokeProof,
+  onRefreshDemoReviewerWorkspace,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
@@ -5392,6 +5429,8 @@ function JobDetail({
   demoShareSheetError: string | null;
   openAiSmokeProof: OpenAiSmokeProof | null;
   openAiSmokeProofError: string | null;
+  demoReviewerWorkspace: DemoReviewerWorkspace | null;
+  demoReviewerWorkspaceError: string | null;
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
@@ -5405,6 +5444,7 @@ function JobDetail({
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
   isLoadingOpenAiSmokeProof: boolean;
+  isLoadingDemoReviewerWorkspace: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
@@ -5419,6 +5459,7 @@ function JobDetail({
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
   onRefreshOpenAiSmokeProof: () => void;
+  onRefreshDemoReviewerWorkspace: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
@@ -5551,6 +5592,14 @@ function JobDetail({
       />
 
       <DemoReviewGuidePanel job={job} report={demoSessionReport} steps={demoReviewSteps} />
+
+      <DemoReviewerWorkspacePanel
+        error={demoReviewerWorkspaceError}
+        isLoading={isLoadingDemoReviewerWorkspace}
+        jobId={job.jobId}
+        onRefresh={onRefreshDemoReviewerWorkspace}
+        workspace={demoReviewerWorkspace}
+      />
 
       <ResultDeliveryPanel
         deliverables={deliverables}
@@ -6812,6 +6861,137 @@ function OpenAiSmokeProofPanel({
               </a>
             ))}
           </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoReviewerWorkspacePanel({
+  error,
+  isLoading,
+  jobId,
+  onRefresh,
+  workspace
+}: {
+  error: string | null;
+  isLoading: boolean;
+  jobId: string;
+  onRefresh: () => void;
+  workspace: DemoReviewerWorkspace | null;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const requiredChecks = workspace?.checks.filter((check) => check.required) ?? [];
+  const optionalChecks = workspace?.checks.filter((check) => !check.required) ?? [];
+
+  const handleDownloadMarkdown = useCallback(async () => {
+    const blob = await linguaFrameApi.downloadDemoReviewerWorkspaceMarkdown(jobId);
+    downloadBlob(blob, `linguaframe-job-${sanitizeFilename(jobId)}-demo-reviewer-workspace.md`);
+    setStatus('Reviewer Markdown downloaded.');
+  }, [jobId]);
+
+  const handleDownloadZip = useCallback(async () => {
+    const blob = await linguaFrameApi.downloadDemoReviewerWorkspaceZip(jobId);
+    downloadBlob(blob, `linguaframe-job-${sanitizeFilename(jobId)}-demo-reviewer-workspace.zip`);
+    setStatus('Reviewer ZIP downloaded.');
+  }, [jobId]);
+
+  return (
+    <section id="demo-reviewer-workspace" className="panel" aria-label="Demo reviewer workspace">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo reviewer workspace</h3>
+          <p className="muted">
+            {workspace ? workspace.recommendedNextAction : 'Metadata-only review package for the selected demo job.'}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadMarkdown} disabled={!workspace}>
+            Download reviewer Markdown
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownloadZip} disabled={!workspace}>
+            Download reviewer ZIP
+          </button>
+        </div>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      {!workspace ? <p className="muted">Reviewer workspace has not been loaded for this job.</p> : null}
+      {workspace ? (
+        <>
+          <dl className="status-grid">
+            <div>
+              <dt>Status</dt>
+              <dd>{workspace.overallStatus}</dd>
+            </div>
+            <div>
+              <dt>Phase</dt>
+              <dd>{workspace.phase}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{workspace.demoProfileId ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{formatDateTime(workspace.completedAt)}</dd>
+            </div>
+          </dl>
+          <div className="evidence-grid">
+            <div>
+              <h4>Required checks</h4>
+              <ul>
+                {requiredChecks.map((check) => (
+                  <li key={check.key}>
+                    <strong>{check.status}</strong> {check.label}: {check.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Optional evidence</h4>
+              <ul>
+                {optionalChecks.map((check) => (
+                  <li key={check.key}>
+                    <strong>{check.status}</strong> {check.label}: {check.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="evidence-grid">
+            {workspace.sections.map((section) => (
+              <div key={section.key}>
+                <h4>{section.title}</h4>
+                <p className={section.status === 'READY' ? 'success-text' : 'muted'}>{section.status}</p>
+                <ul>
+                  {section.facts.map((fact) => (
+                    <li key={fact}>{fact}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="tag-list">
+            {workspace.packageEntries.map((entry) => (
+              <span key={entry}>{entry}</span>
+            ))}
+          </div>
+          <div className="panel-actions">
+            {workspace.safeLinks.map((link) => (
+              <a key={link.href} href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+          <ul>
+            {workspace.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
         </>
       ) : null}
     </section>

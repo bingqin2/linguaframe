@@ -93,6 +93,9 @@ download_demo_run_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-package.zi
 download_ai_audit_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/ai-audit-package.zip"
 download_openai_smoke_proof_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.json"
 download_openai_smoke_proof_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.md"
+download_demo_reviewer_workspace_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.json"
+download_demo_reviewer_workspace_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.md"
+download_demo_reviewer_workspace_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
@@ -114,6 +117,7 @@ print_quality_evidence_markdown_summary "$OUTPUT_DIR/quality-evidence.md" "$job_
 print_evidence_bundle_summary "$OUTPUT_DIR/job-evidence.zip" "$job_id"
 print_demo_run_package_summary "$OUTPUT_DIR/demo-run-package.zip" "$job_id"
 print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
+print_demo_reviewer_workspace_summary_file "$OUTPUT_DIR/demo-reviewer-workspace.json" "$OUTPUT_DIR/demo-reviewer-workspace.md" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
 python3 - "$OUTPUT_DIR/openai-smoke-proof.json" "$OUTPUT_DIR/openai-smoke-proof.md" <<'PY'
 import json
 import sys

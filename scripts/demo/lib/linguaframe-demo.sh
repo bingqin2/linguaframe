@@ -477,6 +477,39 @@ download_openai_smoke_proof_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/openai-smoke-proof/markdown/download" -o "$output_path"
 }
 
+download_demo_reviewer_workspace_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-reviewer-workspace" -o "$output_path"
+}
+
+download_demo_reviewer_workspace_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-reviewer-workspace/markdown/download" -o "$output_path"
+}
+
+download_demo_reviewer_workspace_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-reviewer-workspace/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -2752,6 +2785,72 @@ with zipfile.ZipFile(package_path) as archive:
 
 print("demoRunSnapshotPackageJobId=" + expected_job_id)
 print("demoRunSnapshotPackageEntryCount=" + str(len(required_entries)))
+PY
+}
+
+print_demo_reviewer_workspace_summary_file() {
+  local workspace_json_path="$1"
+  local workspace_markdown_path="$2"
+  local workspace_zip_path="$3"
+
+  python3 - "$workspace_json_path" "$workspace_markdown_path" "$workspace_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+workspace = json.loads(json_path.read_text(encoding="utf-8"))
+checks = workspace.get("checks") or []
+required = [check for check in checks if check.get("required")]
+optional = [check for check in checks if not check.get("required")]
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider request payload",
+]
+
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(workspace, ensure_ascii=False) + "\n" + markdown
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Demo reviewer workspace contains forbidden sensitive string: " + marker)
+
+required_entries = {"manifest.json", "reviewer-workspace.md", "README.md"}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Demo reviewer workspace ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Demo reviewer workspace ZIP contains forbidden sensitive string: " + marker)
+
+print("demoReviewerWorkspaceStatus=" + str(workspace.get("overallStatus")))
+print("demoReviewerWorkspacePhase=" + str(workspace.get("phase")))
+print("demoReviewerWorkspaceRequiredReadyCount=" + str(sum(1 for check in required if check.get("status") == "READY")))
+print("demoReviewerWorkspaceRequiredBlockedCount=" + str(sum(1 for check in required if check.get("status") == "BLOCKED")))
+print("demoReviewerWorkspaceOptionalAttentionCount=" + str(sum(1 for check in optional if check.get("status") == "ATTENTION")))
+print("demoReviewerWorkspaceLinkCount=" + str(len(workspace.get("safeLinks") or [])))
+print("demoReviewerWorkspacePackageEntryCount=" + str(len(workspace.get("packageEntries") or [])))
+print("demoReviewerWorkspaceRecommendedNextAction=" + str(workspace.get("recommendedNextAction")))
+print("demoReviewerWorkspaceJsonPath=" + str(json_path))
+print("demoReviewerWorkspaceMarkdownPath=" + str(markdown_path))
+print("demoReviewerWorkspaceZipPath=" + str(zip_path))
 PY
 }
 

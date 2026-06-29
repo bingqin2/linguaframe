@@ -118,6 +118,13 @@ print_demo_run_snapshot_summary_file "$OUTPUT_DIR/demo-run-snapshot.json"
 print_demo_run_snapshot_package_summary "$OUTPUT_DIR/demo-run-snapshot.zip" "$job_id"
 echo "Downloaded demo run snapshot to $OUTPUT_DIR/demo-run-snapshot.json and $OUTPUT_DIR/demo-run-snapshot.zip"
 
+echo "Demo reviewer workspace:"
+download_demo_reviewer_workspace_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.json"
+download_demo_reviewer_workspace_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.md"
+download_demo_reviewer_workspace_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
+print_demo_reviewer_workspace_summary_file "$OUTPUT_DIR/demo-reviewer-workspace.json" "$OUTPUT_DIR/demo-reviewer-workspace.md" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
+echo "Downloaded demo reviewer workspace to $OUTPUT_DIR/demo-reviewer-workspace.json, $OUTPUT_DIR/demo-reviewer-workspace.md, and $OUTPUT_DIR/demo-reviewer-workspace.zip"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"
