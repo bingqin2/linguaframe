@@ -22,6 +22,7 @@ import com.linguaframe.media.domain.vo.MediaUploadVo;
 import com.linguaframe.media.repository.VideoRepository;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
+import com.linguaframe.media.service.SourceMediaFingerprintService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.service.ObjectStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final DemoRunProfileService demoRunProfileService;
     private final DemoOwnerIdentityService ownerIdentityService;
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
+    private final SourceMediaFingerprintService sourceMediaFingerprintService;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -61,7 +63,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService());
     }
 
     public MediaUploadServiceImpl(
@@ -72,7 +74,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             DemoOwnerIdentityService ownerIdentityService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService, noopQuotaPreflightService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService, noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService());
     }
 
     public MediaUploadServiceImpl(
@@ -83,7 +85,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             OwnerQuotaPreflightService ownerQuotaPreflightService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", ownerQuotaPreflightService);
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", ownerQuotaPreflightService, new Sha256SourceMediaFingerprintService());
     }
 
     @Autowired
@@ -96,7 +98,8 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             TranslationGlossaryParser translationGlossaryParser,
             DemoRunProfileService demoRunProfileService,
             DemoOwnerIdentityService ownerIdentityService,
-            OwnerQuotaPreflightService ownerQuotaPreflightService
+            OwnerQuotaPreflightService ownerQuotaPreflightService,
+            SourceMediaFingerprintService sourceMediaFingerprintService
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
@@ -107,6 +110,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         this.demoRunProfileService = demoRunProfileService;
         this.ownerIdentityService = ownerIdentityService;
         this.ownerQuotaPreflightService = ownerQuotaPreflightService;
+        this.sourceMediaFingerprintService = sourceMediaFingerprintService;
     }
 
     @Override
@@ -140,6 +144,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         String normalizedTtsVoice = normalizeTtsVoice(ttsVoice);
         String ownerId = ownerIdentityService.currentOwnerId();
         Instant createdAt = Instant.now();
+        String sourceContentSha256 = sourceMediaFingerprintService.sha256(file);
 
         try {
             objectStorageService.store(new StoreObjectCommand(
@@ -159,6 +164,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 validation.contentType(),
                 validation.fileSizeBytes(),
                 validation.durationSeconds(),
+                sourceContentSha256,
                 objectKey,
                 MediaUploadStatus.UPLOADED,
                 createdAt

@@ -154,6 +154,27 @@ export interface UploadExecutionPlanCommand {
   description: string;
 }
 
+export interface UploadSourceReuseCandidate {
+  videoId: string;
+  jobId: string;
+  originalFilename: string;
+  durationSeconds: number | null;
+  jobStatus: LocalizationJobStatus;
+  demoProfileId: string | null;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  subtitlePolishingMode: string;
+  createdAt: string;
+}
+
+export interface UploadSourceReuse {
+  sourceContentSha256: string | null;
+  candidateCount: number;
+  recommendedAction: 'UPLOAD_NEW_SOURCE' | 'REVIEW_EXISTING_COMPLETED_RUN' | 'WAIT_FOR_ACTIVE_RUN' | string;
+  recommendedExistingJobId: string | null;
+  candidates: UploadSourceReuseCandidate[];
+}
+
 export interface UploadExecutionPlan {
   overallStatus: DemoUploadReadinessStatus;
   recommendedNextAction: string;
@@ -182,6 +203,7 @@ export interface UploadExecutionPlan {
   stages: UploadExecutionPlanStage[];
   gates: UploadExecutionPlanGate[];
   commands: UploadExecutionPlanCommand[];
+  sourceReuse: UploadSourceReuse;
   cacheNotes: string[];
   safetyNotes: string[];
 }

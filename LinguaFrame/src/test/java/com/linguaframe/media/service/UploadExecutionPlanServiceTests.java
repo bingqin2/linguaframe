@@ -12,7 +12,10 @@ import com.linguaframe.media.domain.vo.UploadCostEstimateBudgetVo;
 import com.linguaframe.media.domain.vo.UploadCostEstimateStageVo;
 import com.linguaframe.media.domain.vo.UploadCostEstimateVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
+import com.linguaframe.media.domain.vo.UploadSourceReuseCandidateVo;
+import com.linguaframe.media.domain.vo.UploadSourceReuseVo;
 import com.linguaframe.media.service.impl.UploadExecutionPlanServiceImpl;
+import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,10 +32,12 @@ class UploadExecutionPlanServiceTests {
     private final StubUploadCostEstimateService costEstimateService = new StubUploadCostEstimateService();
     private final StubDemoUploadReadinessService readinessService = new StubDemoUploadReadinessService();
     private final StubOwnerQuotaPreflightService ownerQuotaPreflightService = new StubOwnerQuotaPreflightService();
+    private final StubUploadSourceReuseService uploadSourceReuseService = new StubUploadSourceReuseService();
     private final UploadExecutionPlanService service = new UploadExecutionPlanServiceImpl(
             costEstimateService,
             readinessService,
-            ownerQuotaPreflightService
+            ownerQuotaPreflightService,
+            uploadSourceReuseService
     );
 
     @Test
@@ -76,6 +81,8 @@ class UploadExecutionPlanServiceTests {
                     assertThat(command.id()).isEqualTo("upload");
                     assertThat(command.command()).contains("scripts/demo/docker-e2e");
                 });
+        assertThat(plan.sourceReuse().recommendedAction()).isEqualTo("UPLOAD_NEW_SOURCE");
+        assertThat(plan.sourceReuse().candidateCount()).isZero();
     }
 
     @Test
@@ -90,6 +97,8 @@ class UploadExecutionPlanServiceTests {
         assertThat(plan.validationCode()).isEqualTo("DURATION_TOO_LONG");
         assertThat(plan.recommendedNextAction()).contains("Replace");
         assertThat(plan.stages()).isEmpty();
+        assertThat(plan.sourceReuse().sourceContentSha256()).isNull();
+        assertThat(plan.sourceReuse().candidateCount()).isZero();
         assertThat(plan.gates())
                 .anySatisfy(gate -> {
                     assertThat(gate.id()).isEqualTo("uploadValidation");
@@ -129,6 +138,44 @@ class UploadExecutionPlanServiceTests {
                     assertThat(gate.detail()).contains("Owner quota is already blocked");
                 });
         assertThat(plan.recommendedNextAction()).contains("blocking");
+    }
+
+    @Test
+    void includesSourceReuseRecommendationForDuplicateCompletedRun() {
+        costEstimateService.next = readyCostEstimate();
+        readinessService.next = readiness("READY", List.of());
+        ownerQuotaPreflightService.next = ownerPreflight(true);
+        uploadSourceReuseService.next = new UploadSourceReuseVo(
+                "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+                1,
+                "REVIEW_EXISTING_COMPLETED_RUN",
+                "job-existing",
+                List.of(new UploadSourceReuseCandidateVo(
+                        "video-existing",
+                        "job-existing",
+                        "sample.mp4",
+                        90,
+                        LocalizationJobStatus.COMPLETED,
+                        "tears-showcase",
+                        "FORMAL",
+                        "HIGH_CONTRAST",
+                        "BALANCED",
+                        Instant.parse("2026-06-28T12:00:00Z")
+                ))
+        );
+
+        UploadExecutionPlanVo plan = service.plan(videoFile(), UploadCostEstimateOptionsBo.empty());
+
+        assertThat(plan.sourceReuse().sourceContentSha256()).isEqualTo("039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81");
+        assertThat(plan.sourceReuse().recommendedAction()).isEqualTo("REVIEW_EXISTING_COMPLETED_RUN");
+        assertThat(plan.sourceReuse().recommendedExistingJobId()).isEqualTo("job-existing");
+        assertThat(plan.sourceReuse().candidates())
+                .singleElement()
+                .satisfies(candidate -> {
+                    assertThat(candidate.videoId()).isEqualTo("video-existing");
+                    assertThat(candidate.jobStatus()).isEqualTo(LocalizationJobStatus.COMPLETED);
+                    assertThat(candidate.demoProfileId()).isEqualTo("tears-showcase");
+                });
     }
 
     private static MockMultipartFile videoFile() {
@@ -260,6 +307,18 @@ class UploadExecutionPlanServiceTests {
 
         @Override
         public void requireUploadAllowed() {
+        }
+    }
+
+    private static final class StubUploadSourceReuseService implements UploadSourceReuseService {
+        private UploadSourceReuseVo next = UploadSourceReuseVo.empty();
+
+        @Override
+        public UploadSourceReuseVo evaluate(MultipartFile file, UploadCostEstimateVo estimate, UploadCostEstimateOptionsBo options) {
+            if (!estimate.valid()) {
+                return UploadSourceReuseVo.empty();
+            }
+            return next;
         }
     }
 }

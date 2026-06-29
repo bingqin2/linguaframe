@@ -186,6 +186,9 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.subtitlePolishingMode").value("BALANCED"))
                 .andExpect(jsonPath("$.estimatedDurationSecondsLower").isNumber())
                 .andExpect(jsonPath("$.estimatedDurationSecondsUpper").isNumber())
+                .andExpect(jsonPath("$.sourceReuse.sourceContentSha256").value("039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81"))
+                .andExpect(jsonPath("$.sourceReuse.candidateCount").value(0))
+                .andExpect(jsonPath("$.sourceReuse.recommendedAction").value("UPLOAD_NEW_SOURCE"))
                 .andExpect(jsonPath("$.stages[?(@.id == 'translation')]").isArray())
                 .andExpect(jsonPath("$.gates[?(@.id == 'uploadValidation')]").isArray())
                 .andExpect(jsonPath("$.commands[?(@.id == 'upload')]").isArray());
@@ -200,6 +203,8 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.overallStatus").value("BLOCKED"))
                 .andExpect(jsonPath("$.valid").value(false))
                 .andExpect(jsonPath("$.validationCode").value("UNSUPPORTED_CONTENT_TYPE"))
+                .andExpect(jsonPath("$.sourceReuse.sourceContentSha256").doesNotExist())
+                .andExpect(jsonPath("$.sourceReuse.candidateCount").value(0))
                 .andExpect(jsonPath("$.stages").isEmpty())
                 .andExpect(jsonPath("$.gates[?(@.id == 'uploadValidation' && @.status == 'BLOCKED')]").isArray());
     }

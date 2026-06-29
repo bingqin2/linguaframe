@@ -699,6 +699,26 @@ describe('linguaframeApi', () => {
             description: 'Run the selected demo upload.'
           }
         ],
+        sourceReuse: {
+          sourceContentSha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+          candidateCount: 1,
+          recommendedAction: 'REVIEW_EXISTING_COMPLETED_RUN',
+          recommendedExistingJobId: 'job-existing',
+          candidates: [
+            {
+              videoId: 'video-existing',
+              jobId: 'job-existing',
+              originalFilename: 'sample.mp4',
+              durationSeconds: 90,
+              jobStatus: 'COMPLETED',
+              demoProfileId: 'tears-showcase',
+              translationStyle: 'FORMAL',
+              subtitleStylePreset: 'HIGH_CONTRAST',
+              subtitlePolishingMode: 'BALANCED',
+              createdAt: '2026-06-28T12:00:00Z'
+            }
+          ]
+        },
         cacheNotes: [],
         safetyNotes: []
       })
@@ -718,6 +738,7 @@ describe('linguaframeApi', () => {
 
     expect(result.overallStatus).toBe('READY');
     expect(result.stages[0]?.executionType).toBe('PAID');
+    expect(result.sourceReuse.recommendedExistingJobId).toBe('job-existing');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/media/uploads/execution-plan',
       expect.objectContaining({

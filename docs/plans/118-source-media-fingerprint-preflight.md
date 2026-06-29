@@ -1,6 +1,6 @@
 # Source Media Fingerprint Preflight Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Detect repeated source videos before upload execution, persist a safe SHA-256 fingerprint for new uploads, and show reuse guidance in the backend API, frontend upload flow, and demo scripts.
 
@@ -30,11 +30,11 @@
 - `VideoRecord.sourceContentSha256()` returns `String` or `null`.
 - `VideoRepository.findRecentByOwnerIdAndSourceContentSha256(String ownerId, String sourceContentSha256, int limit)` returns newest matching videos.
 
-- [ ] Add a Flyway migration with `source_content_sha256 VARCHAR(64)` and an index on `(owner_id, source_content_sha256, created_at)`.
-- [ ] Extend `VideoRecord` with `sourceContentSha256` while preserving convenience constructors used by older tests.
-- [ ] Update insert/select mapping in `VideoRepository`.
-- [ ] Add repository tests proving save/find includes the fingerprint and owner-scoped duplicate lookup excludes other owners.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=VideoRepositoryTests test`.
+- [x] Add a Flyway migration with `source_content_sha256 VARCHAR(64)` and an index on `(owner_id, source_content_sha256, created_at)`.
+- [x] Extend `VideoRecord` with `sourceContentSha256` while preserving convenience constructors used by older tests.
+- [x] Update insert/select mapping in `VideoRepository`.
+- [x] Add repository tests proving save/find includes the fingerprint and owner-scoped duplicate lookup excludes other owners.
+- [x] Run `mvn -pl LinguaFrame -Dtest=VideoRepositoryTests test`.
 
 ## Task 2: Fingerprint Upload Bytes Safely
 
@@ -49,11 +49,11 @@
 - `String SourceMediaFingerprintService.sha256(MultipartFile file)` reads the multipart stream and returns lowercase hex SHA-256.
 - `MediaUploadServiceImpl.createUpload(...)` stores the fingerprint on the `VideoRecord`.
 
-- [ ] Add a streaming SHA-256 implementation using `MessageDigest` and `DigestInputStream`.
-- [ ] Compute the fingerprint only after validation succeeds and before object storage.
-- [ ] Keep object storage using a fresh `file.getInputStream()` so upload bytes still reach storage.
-- [ ] Add unit tests for stable digest output, empty-file rejection through existing validation, and upload persistence.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=SourceMediaFingerprintServiceTests,MediaUploadServiceTests test`.
+- [x] Add a streaming SHA-256 implementation using `MessageDigest` and `DigestInputStream`.
+- [x] Compute the fingerprint only after validation succeeds and before object storage.
+- [x] Keep object storage using a fresh `file.getInputStream()` so upload bytes still reach storage.
+- [x] Add unit tests for stable digest output, empty-file rejection through existing validation, and upload persistence.
+- [x] Run `mvn -pl LinguaFrame -Dtest=SourceMediaFingerprintServiceTests,MediaUploadServiceTests test`.
 
 ## Task 3: Add Reuse Evidence to Execution Plan
 
@@ -70,12 +70,12 @@
 - `UploadSourceReuseVo` includes `sourceContentSha256`, `candidateCount`, `recommendedAction`, `recommendedExistingJobId`, and `candidates`.
 - Candidate rows include `videoId`, `jobId`, `originalFilename`, `durationSeconds`, `jobStatus`, `demoProfileId`, `translationStyle`, `subtitleStylePreset`, `subtitlePolishingMode`, and `createdAt`.
 
-- [ ] Build owner-scoped candidate lookup by combining matching videos with recent jobs for each video.
-- [ ] Prefer a completed candidate with matching demo profile/style settings as the recommended existing job.
-- [ ] Return `UPLOAD_NEW_SOURCE` when no candidate exists, `REVIEW_EXISTING_COMPLETED_RUN` for completed matches, and `WAIT_FOR_ACTIVE_RUN` for active queued/processing matches.
-- [ ] Embed the reuse object in `UploadExecutionPlanVo`; invalid files should return an empty reuse object with no hash.
-- [ ] Add tests for no match, completed same-owner match, active match, and cross-owner isolation.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests test`.
+- [x] Build owner-scoped candidate lookup by combining matching videos with recent jobs for each video.
+- [x] Prefer a completed candidate with matching demo profile/style settings as the recommended existing job.
+- [x] Return `UPLOAD_NEW_SOURCE` when no candidate exists, `REVIEW_EXISTING_COMPLETED_RUN` for completed matches, and `WAIT_FOR_ACTIVE_RUN` for active queued/processing matches.
+- [x] Embed the reuse object in `UploadExecutionPlanVo`; invalid files should return an empty reuse object with no hash.
+- [x] Add tests for no match, completed same-owner match, active match, and cross-owner isolation.
+- [x] Run `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests test`.
 
 ## Task 4: Surface Reuse Guidance in API, UI, and Scripts
 
@@ -91,23 +91,23 @@
 - `/api/media/uploads/execution-plan` JSON contains `sourceReuse`.
 - `scripts/demo/upload-execution-plan.sh` prints `sourceContentSha256`, duplicate candidate count, recommended action, and recommended job id when present.
 
-- [ ] Update controller tests to assert `sourceReuse` fields without requiring an upload to be created.
-- [ ] Extend TypeScript API types and test fixtures.
-- [ ] Add a compact “Source reuse” section to the upload execution plan panel with candidate links to job detail/share/evidence endpoints.
-- [ ] Update the demo script output so terminal validation can prove duplicate detection without opening the browser.
-- [ ] Document how to test duplicate reuse by running the execution plan twice with the same sample video.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update controller tests to assert `sourceReuse` fields without requiring an upload to be created.
+- [x] Extend TypeScript API types and test fixtures.
+- [x] Add a compact “Source reuse” section to the upload execution plan panel with candidate links to job detail/share/evidence endpoints.
+- [x] Update the demo script output so terminal validation can prove duplicate detection without opening the browser.
+- [x] Document how to test duplicate reuse by running the execution plan twice with the same sample video.
+- [x] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification and Merge
 
 **Files:**
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Record the feature summary and exact validation commands in `docs/progress/execution-log.md`.
-- [ ] Run `git diff --check`.
-- [ ] Run the focused backend/frontend/script checks from Tasks 1-4.
-- [ ] Commit the implementation as `Add source media fingerprint preflight`.
-- [ ] Merge the feature branch back to `main` after validation passes.
+- [x] Record the feature summary and exact validation commands in `docs/progress/execution-log.md`.
+- [x] Run `git diff --check`.
+- [x] Run the focused backend/frontend/script checks from Tasks 1-4.
+- [x] Commit the implementation as `Add source media fingerprint preflight`.
+- [x] Merge the feature branch back to `main` after validation passes.
