@@ -155,16 +155,16 @@
 - Modify: `docs/plans/133-narrated-video-export.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Mark completed plan tasks.
-- [ ] Run focused backend validation from Tasks 1-3.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run script syntax validation from Task 5.
-- [ ] Run `git diff --check`.
-- [ ] Commit with message `Add narrated video export`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Mark completed plan tasks.
+- [x] Run focused backend validation from Tasks 1-3.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run script syntax validation from Task 5.
+- [x] Run `git diff --check`.
+- [x] Commit with message `Add narrated video export`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 

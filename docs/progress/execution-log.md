@@ -3677,6 +3677,12 @@ Validation so far:
 - `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with jsdom navigation warnings and exit code 0.
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests -q` passed in final verification.
+- `mvn -pl LinguaFrame test -Dtest=NarratedVideoServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests,DemoRunPackageServiceTests -q` passed in final verification.
+- `mvn -pl LinguaFrame test` passed in final verification with `Tests run: 714, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed in final verification with `Test Files 3 passed` and `Tests 188 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed in final verification.
+- `git diff --check` passed in final verification.
 
 ## 2026-06-29
 
