@@ -7,6 +7,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react';
 
@@ -21,6 +22,11 @@ import {
   selectNarrationPreviewSource,
   type NarrationPreviewSource
 } from './domain/narrationPreview';
+import {
+  buildNarrationWaveformOverview,
+  secondsFromWaveformPercent,
+  type NarrationWaveformOverview
+} from './domain/narrationWaveformOverview';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9344,6 +9350,7 @@ function NarrationWorkspacePanel({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
   const [previewWindowEndSeconds, setPreviewWindowEndSeconds] = useState<number | null>(null);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     setSegments(workspace?.segments ?? []);
@@ -9366,6 +9373,14 @@ function NarrationWorkspacePanel({
       sourceMediaDownloadUrl: linguaFrameApi.sourceMediaDownloadUrl
     }),
     [artifacts, jobId, videoId]
+  );
+  const waveformOverview = useMemo(
+    () => buildNarrationWaveformOverview({
+      segments,
+      selectedIndex,
+      currentSeconds: previewCurrentSeconds
+    }),
+    [previewCurrentSeconds, segments, selectedIndex]
   );
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
@@ -9394,6 +9409,14 @@ function NarrationWorkspacePanel({
   function deleteSelectedSegment() {
     setSegments((current) => current.filter((_, index) => index !== selectedIndex).map((segment, index) => ({ ...segment, index })));
     setSelectedIndex(Math.max(0, selectedIndex - 1));
+  }
+
+  function seekPreviewTo(seconds: number) {
+    if (previewVideoRef.current) {
+      previewVideoRef.current.currentTime = seconds;
+    }
+    setPreviewCurrentSeconds(seconds);
+    setPreviewWindowEndSeconds(null);
   }
 
   return (
@@ -9434,17 +9457,24 @@ function NarrationWorkspacePanel({
       <div className="narration-workbench">
         <div className="narration-table-wrap">
           {workspace?.timeline ? (
-            <NarrationTimelineWorkbench
-              playheadSeconds={previewCurrentSeconds}
-              selectedIndex={selectedIndex}
-              timeline={localTimeline}
-              segments={segments}
-              onEditSegment={updateSegment}
-              onSelectSegment={setSelectedIndex}
-            />
+          <NarrationTimelineWorkbench
+            playheadSeconds={previewCurrentSeconds}
+            selectedIndex={selectedIndex}
+            timeline={localTimeline}
+            segments={segments}
+            onEditSegment={updateSegment}
+            onSelectSegment={setSelectedIndex}
+          />
           ) : null}
+          <NarrationWaveformOverviewPanel
+            overview={waveformOverview}
+            previewAvailable={previewSource.available}
+            selectedSegment={selectedSegment}
+            onSeek={seekPreviewTo}
+          />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
+            previewVideoRef={previewVideoRef}
             previewSource={previewSource}
             selectedIndex={selectedIndex}
             selectedSegment={selectedSegment}
@@ -10239,6 +10269,7 @@ function NarrationPreviewPanel({
   currentSeconds,
   onCurrentSecondsChange,
   onWindowEndSecondsChange,
+  previewVideoRef,
   previewSource,
   selectedIndex,
   selectedSegment,
@@ -10247,6 +10278,7 @@ function NarrationPreviewPanel({
   currentSeconds: number;
   onCurrentSecondsChange: (seconds: number) => void;
   onWindowEndSecondsChange: (seconds: number | null) => void;
+  previewVideoRef: React.RefObject<HTMLVideoElement | null>;
   previewSource: NarrationPreviewSource;
   selectedIndex: number;
   selectedSegment: NarrationWorkspace['segments'][number] | null;
@@ -10308,6 +10340,7 @@ function NarrationPreviewPanel({
         <video
           aria-label="Narration preview player"
           controls
+          ref={previewVideoRef}
           src={previewSource.url}
           onEnded={() => onWindowEndSecondsChange(null)}
           onTimeUpdate={handleTimeUpdate}
@@ -10339,6 +10372,100 @@ function NarrationPreviewPanel({
         <div>
           <dt>Window end</dt>
           <dd>{windowEndSeconds == null ? 'N/A' : formatSeconds(windowEndSeconds)}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
+function NarrationWaveformOverviewPanel({
+  onSeek,
+  overview,
+  previewAvailable,
+  selectedSegment
+}: {
+  onSeek: (seconds: number) => void;
+  overview: NarrationWaveformOverview;
+  previewAvailable: boolean;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+}) {
+  const canScrub = previewAvailable && overview.durationSeconds > 0;
+  const midpointSeconds = secondsFromWaveformPercent({
+    percent: 50,
+    startSeconds: overview.startSeconds,
+    endSeconds: overview.endSeconds
+  });
+  const selectedStartSeconds = selectedSegment?.startSeconds ?? overview.startSeconds;
+
+  return (
+    <section className="narration-waveform-overview" aria-label="Narration waveform overview">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration waveform overview</h4>
+          <p className="muted">Metadata-derived narration density and silence overview</p>
+        </div>
+        <span className={previewAvailable ? 'status-pill ready' : 'status-pill blocked'}>
+          {previewAvailable ? 'Scrubbable' : 'Preview unavailable'}
+        </span>
+      </div>
+      <div className="narration-waveform-track" aria-label="Narration waveform buckets">
+        {overview.buckets.map((bucket) => (
+          <span
+            aria-label={`Waveform bucket ${bucket.index + 1}: ${bucket.gap ? 'gap' : 'active'}, ${bucket.heightPercent}%`}
+            className={[
+              'narration-waveform-bucket',
+              bucket.active ? 'active' : 'gap',
+              bucket.selected ? 'selected' : ''
+            ].filter(Boolean).join(' ')}
+            key={bucket.index}
+            style={{ height: `${bucket.heightPercent}%` }}
+          />
+        ))}
+        {overview.selectedStartPercent == null || overview.selectedEndPercent == null ? null : (
+          <span
+            aria-label={`Selected waveform window: ${formatPercent(overview.selectedStartPercent)} to ${formatPercent(overview.selectedEndPercent)}`}
+            className="narration-waveform-selection"
+            style={{
+              left: `${overview.selectedStartPercent}%`,
+              width: `${Math.max(overview.selectedEndPercent - overview.selectedStartPercent, 1)}%`
+            }}
+          />
+        )}
+        {overview.playheadPercent == null ? null : (
+          <span
+            aria-label={`Narration waveform playhead: ${formatPercent(overview.playheadPercent)}`}
+            className="narration-waveform-playhead"
+            style={{ left: `${overview.playheadPercent}%` }}
+          />
+        )}
+      </div>
+      <div className="narration-preview-controls">
+        <button type="button" disabled={!canScrub} onClick={() => onSeek(overview.startSeconds)}>
+          Scrub to start
+        </button>
+        <button type="button" disabled={!canScrub} onClick={() => onSeek(midpointSeconds)}>
+          Scrub to midpoint
+        </button>
+        <button type="button" disabled={!canScrub || !selectedSegment} onClick={() => onSeek(selectedStartSeconds)}>
+          Scrub to selected
+        </button>
+      </div>
+      <dl className="compact-metrics narration-waveform-metrics">
+        <div>
+          <dt>Active buckets</dt>
+          <dd>{overview.activeBucketCount}</dd>
+        </div>
+        <div>
+          <dt>Gap buckets</dt>
+          <dd>{overview.gapBucketCount}</dd>
+        </div>
+        <div>
+          <dt>Span</dt>
+          <dd>{formatSeconds(overview.durationSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Current</dt>
+          <dd>{overview.playheadPercent == null ? 'N/A' : formatPercent(overview.playheadPercent)}</dd>
         </div>
       </dl>
     </section>
@@ -10586,6 +10713,10 @@ function formatSeconds(value: number | null | undefined) {
     return 'N/A';
   }
   return `${Number(value.toFixed(3))} s`;
+}
+
+function formatPercent(value: number) {
+  return `${Number(value.toFixed(4))}%`;
 }
 
 function formatNarrationVoiceState(voice: string | null | undefined, catalog: NarrationWorkspace['voiceCatalog'] | null) {

@@ -67,27 +67,27 @@
   - A stable `.narration-waveform-overview` region with bucket bars, selected-window overlay, playhead marker, gap/active metrics, and scrub buttons.
   - Optional `seekSeconds` callback on `NarrationPreviewPanel` so waveform scrub can seek the same preview video.
 
-- [ ] Write failing App tests proving the narration workspace renders a `Narration waveform overview` region with active/gap bucket metrics.
-- [ ] Write failing App tests proving the selected narration window is visible in the waveform overview and updates when selecting narration row 2.
-- [ ] Write failing App tests proving clicking `Scrub to midpoint` seeks the preview player to the midpoint of the local timeline and updates both waveform and timeline playheads.
-- [ ] Write failing App tests proving scrubbing is disabled when no preview media is available.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration waveform"` and verify the new tests fail.
-- [ ] Add a `previewVideoRef = useRef<HTMLVideoElement | null>(null)` in `NarrationWorkspacePanel` and pass it to `NarrationPreviewPanel`.
-- [ ] Add `seekPreviewTo(seconds)` in `NarrationWorkspacePanel` that sets `previewVideoRef.current.currentTime`, updates `previewCurrentSeconds`, and clears `previewWindowEndSeconds`.
-- [ ] Add `NarrationWaveformOverviewPanel` with:
+- [x] Write failing App tests proving the narration workspace renders a `Narration waveform overview` region with active/gap bucket metrics.
+- [x] Write failing App tests proving the selected narration window is visible in the waveform overview and updates when selecting narration row 2.
+- [x] Write failing App tests proving clicking `Scrub to midpoint` seeks the preview player to the midpoint of the local timeline and updates both waveform and timeline playheads.
+- [x] Write failing App tests proving scrubbing is disabled when no preview media is available.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration waveform"` and verify the new tests fail.
+- [x] Add a `previewVideoRef = useRef<HTMLVideoElement | null>(null)` in `NarrationWorkspacePanel` and pass it to `NarrationPreviewPanel`.
+- [x] Add `seekPreviewTo(seconds)` in `NarrationWorkspacePanel` that sets `previewVideoRef.current.currentTime`, updates `previewCurrentSeconds`, and clears `previewWindowEndSeconds`.
+- [x] Add `NarrationWaveformOverviewPanel` with:
   - `aria-label="Narration waveform overview"`;
   - 48 fixed-width bucket bars;
   - selected window overlay from `selectedStartPercent` to `selectedEndPercent`;
   - playhead marker from `playheadPercent`;
   - metrics for active buckets, gap buckets, timeline span, and current time;
   - `Scrub to start`, `Scrub to midpoint`, and `Scrub to selected` buttons.
-- [ ] Wire `Scrub to start` to overview start seconds, `Scrub to midpoint` to 50% of overview span, and `Scrub to selected` to selected segment start.
-- [ ] Keep waveform scrubbing local-only; do not call save, evidence, preflight, render, audio generation, or video generation handlers.
-- [ ] Add compact CSS for waveform buckets, selected overlay, playhead marker, metrics, and controls with stable height and no layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration waveform"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts src/domain/narrationPreview.test.ts src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration waveform overview UI`.
+- [x] Wire `Scrub to start` to overview start seconds, `Scrub to midpoint` to 50% of overview span, and `Scrub to selected` to selected segment start.
+- [x] Keep waveform scrubbing local-only; do not call save, evidence, preflight, render, audio generation, or video generation handlers.
+- [x] Add compact CSS for waveform buckets, selected overlay, playhead marker, metrics, and controls with stable height and no layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration waveform"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts src/domain/narrationPreview.test.ts src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration waveform overview UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
 

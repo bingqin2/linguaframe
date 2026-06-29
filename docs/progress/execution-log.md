@@ -9,11 +9,16 @@ Work:
 - Started the narration waveform overview workbench feature slice from `docs/plans/144-narration-waveform-overview-workbench.md`.
 - Added pure frontend waveform overview helpers that derive deterministic bucket bars from narration windows, text density, gaps, selected segment, and preview playhead time.
 - Added percent-to-seconds mapping for local preview scrubbing without audio decoding, provider calls, artifact creation, or object-storage mutation.
+- Added a browser `Narration waveform overview` panel with 48 metadata-derived bucket bars, selected-window overlay, local playhead marker, active/gap metrics, and local scrub controls.
+- Wired waveform scrub controls to the existing narration preview player so scrubbing updates preview time and timeline/waveform playheads without saving rows or generating media.
 
 Validation:
 
 - `npm test -- --run src/domain/narrationWaveformOverview.test.ts` first failed because `frontend/src/domain/narrationWaveformOverview.ts` did not exist.
 - After adding the helper module, `npm test -- --run src/domain/narrationWaveformOverview.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration waveform"` first failed because the `Narration waveform overview` region did not exist.
+- After adding the waveform panel and scrub wiring, `npm test -- --run src/App.test.tsx -t "narration waveform"` passed with `Test Files 1 passed` and `Tests 4 passed | 104 skipped`.
+- `npm test -- --run src/domain/narrationWaveformOverview.test.ts src/domain/narrationPreview.test.ts src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 125 passed`; jsdom printed expected navigation warnings from download actions.
 
 ## 2026-06-30
 

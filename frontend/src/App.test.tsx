@@ -2724,6 +2724,109 @@ describe('App', () => {
     expect(within(previewPanel).getByText((_content, element) => element?.textContent === 'Window15 s to 28 s')).toBeInTheDocument();
   });
 
+  test('renders narration waveform overview with active and gap bucket metrics', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-waveform-job', videoId: 'narration-waveform-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-waveform-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-waveform-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+
+    expect(within(waveformPanel).getByText('Narration waveform overview')).toBeInTheDocument();
+    expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(48);
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Active buckets26')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Gap buckets22')).toBeInTheDocument();
+  });
+
+  test('updates selected narration waveform window when selecting another row', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-waveform-select-job', videoId: 'narration-waveform-select-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-waveform-select-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-waveform-select-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+
+    expect(within(waveformPanel).getByLabelText('Selected waveform window: 0% to 23.4234%')).toBeInTheDocument();
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: '2' }));
+
+    expect(within(waveformPanel).getByLabelText('Selected waveform window: 72.0721% to 100%')).toBeInTheDocument();
+  });
+
+  test('scrubs narration waveform midpoint into the preview player and playheads', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-waveform-scrub-job', videoId: 'narration-waveform-scrub-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-waveform-scrub-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-waveform-scrub-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+    const player = within(previewPanel).getByLabelText('Narration preview player') as HTMLVideoElement;
+
+    await userEvent.click(within(waveformPanel).getByRole('button', { name: /scrub to midpoint/i }));
+
+    expect(player.currentTime).toBe(42.75);
+    expect(within(waveformPanel).getByLabelText('Narration waveform playhead: 50%')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText('Narration preview playhead: 42.75 s')).toBeInTheDocument();
+  });
+
+  test('disables narration waveform scrubbing when no preview media is available', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-waveform-unavailable-job', videoId: '', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-waveform-unavailable-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-waveform-unavailable-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+
+    expect(within(waveformPanel).getByRole('button', { name: /scrub to start/i })).toBeDisabled();
+    expect(within(waveformPanel).getByRole('button', { name: /scrub to midpoint/i })).toBeDisabled();
+    expect(within(waveformPanel).getByRole('button', { name: /scrub to selected/i })).toBeDisabled();
+  });
+
   test('exports and imports narration script packages from the narration workspace', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })
