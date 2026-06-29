@@ -111,8 +111,8 @@
 - [x] Run `git diff --check`.
 - [x] Update execution log with final verification.
 - [x] Commit with message `Document narration editing command workbench`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 
