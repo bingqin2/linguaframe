@@ -2357,6 +2357,17 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
     const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    expect(within(narrationPanel).getByText('Timeline workbench')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '55.5 s span · 28.5 s covered')).toBeInTheDocument();
+    expect(
+      within(narrationPanel).getByText(
+        (_content, element) => element?.tagName.toLowerCase() === 'span' && element.textContent === '1 gap · 27 s'
+      )
+    ).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText('Timeline segment 1: 15 s to 28 s, READY')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText('Timeline segment 2: 55 s to 70.5 s, READY')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Selected segment')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '15 s - 28 s')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('Ducked original audio')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('0.35')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '2 windows')).toBeInTheDocument();
@@ -5482,6 +5493,40 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
       fadeDurationMs: 250,
       updatedAt: null
     },
+    timeline: {
+      startSeconds: 15,
+      endSeconds: 70.5,
+      totalSpanSeconds: 55.5,
+      coveredSeconds: 28.5,
+      gapSeconds: 27,
+      gapCount: 1,
+      hasOverlap: false,
+      generationReady: true,
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          durationSeconds: 13,
+          leftPercent: 0,
+          widthPercent: 23.42,
+          status: 'READY',
+          characterCount: 24,
+          voice: 'alloy'
+        },
+        {
+          index: 1,
+          startSeconds: 55,
+          endSeconds: 70.5,
+          durationSeconds: 15.5,
+          leftPercent: 72.07,
+          widthPercent: 27.93,
+          status: 'READY',
+          characterCount: 25,
+          voice: 'verse'
+        }
+      ]
+    },
     segments: [
       {
         index: 0,
@@ -5518,6 +5563,9 @@ function narrationEvidenceFixture(overrides: Partial<NarrationEvidence> = {}): N
     segmentCount: 2,
     totalCharacterCount: 49,
     totalTimelineDurationSeconds: 28.5,
+    timelineGapCount: 1,
+    timelineGapSeconds: 27,
+    timelineHasOverlap: false,
     narrationAudioReady: readyAudio,
     audioArtifactCount: overrides.audioArtifactCount ?? (readyAudio ? 1 : 0),
     audioLayout: readyAudio ? 'TIMED_AUDIO_BED' : 'MISSING',

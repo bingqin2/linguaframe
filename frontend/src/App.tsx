@@ -9155,13 +9155,13 @@ function NarrationWorkspacePanel({
           <button type="button" onClick={() => onSave(segments)} disabled={isSaving || validation.length > 0}>
             {isSaving ? 'Saving...' : 'Save narration'}
           </button>
-          <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady}>
+          <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady || validation.length > 0}>
             {isGenerating ? 'Generating...' : 'Generate narration audio'}
           </button>
           <button
             type="button"
             onClick={onGenerateVideo}
-            disabled={isGeneratingVideo || !evidence?.narrationAudioReady}
+            disabled={isGeneratingVideo || !evidence?.narrationAudioReady || validation.length > 0}
           >
             {isGeneratingVideo ? 'Generating video...' : 'Generate narrated video'}
           </button>
@@ -9177,188 +9177,363 @@ function NarrationWorkspacePanel({
       ) : null}
       <div className="narration-workbench">
         <div className="narration-table-wrap">
-          <table className="narration-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Start</th>
-                <th>End</th>
-                <th>Voice</th>
-                <th>Text</th>
-              </tr>
-            </thead>
-            <tbody>
-              {segments.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>No narration rows.</td>
-                </tr>
-              ) : segments.map((segment, index) => (
-                <tr key={index} className={index === selectedIndex ? 'selected-row' : undefined}>
-                  <td>
-                    <button type="button" onClick={() => setSelectedIndex(index)}>{index + 1}</button>
-                  </td>
-                  <td>
-                    <input
-                      aria-label={`Narration ${index + 1} start`}
-                      min="0"
-                      step="0.001"
-                      type="number"
-                      value={segment.startSeconds}
-                      onChange={(event) => updateSegment(index, { startSeconds: Number(event.target.value) })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      aria-label={`Narration ${index + 1} end`}
-                      min="0"
-                      step="0.001"
-                      type="number"
-                      value={segment.endSeconds}
-                      onChange={(event) => updateSegment(index, { endSeconds: Number(event.target.value) })}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      aria-label={`Narration ${index + 1} voice`}
-                      value={segment.voice ?? ''}
-                      onChange={(event) => updateSegment(index, { voice: event.target.value })}
-                    />
-                  </td>
-                  <td>{segment.text || '-'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {workspace?.timeline ? (
+            <NarrationTimelineWorkbench timeline={workspace.timeline} />
+          ) : null}
+          <NarrationSegmentTable
+            segments={segments}
+            selectedIndex={selectedIndex}
+            onSelectSegment={setSelectedIndex}
+            onUpdateSegment={updateSegment}
+          />
         </div>
-        <aside className="narration-inspector" aria-label="Narration inspector">
-          {selectedSegment ? (
-            <>
-              <label>
-                Segment text
-                <textarea
-                  maxLength={1000}
-                  value={selectedSegment.text}
-                  onChange={(event) => updateSegment(selectedIndex, { text: event.target.value })}
-                />
-              </label>
-              <dl className="compact-metrics">
-                <div>
-                  <dt>Evidence</dt>
-                  <dd>{evidence?.status ?? 'Not loaded'}</dd>
-                </div>
-                <div>
-                  <dt>Audio</dt>
-                  <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
-                </div>
-                <div>
-                  <dt>Audio layout</dt>
-                  <dd>{formatEvidenceToken(evidence?.audioLayout)}</dd>
-                </div>
-                <div>
-                  <dt>Time aligned</dt>
-                  <dd>{evidence?.timeAligned ? 'true' : 'false'}</dd>
-                </div>
-                <div>
-                  <dt>Video</dt>
-                  <dd>{evidence?.narratedVideoReady ? 'Ready' : 'Missing'}</dd>
-                </div>
-                <div>
-                  <dt>Video artifacts</dt>
-                  <dd>{evidence?.narratedVideoArtifactCount ?? 0}</dd>
-                </div>
-                <div>
-                  <dt>Mix mode</dt>
-                  <dd>{formatEvidenceToken(evidence?.mixMode)}</dd>
-                </div>
-                <div>
-                  <dt>Ducking volume</dt>
-                  <dd>{formatNullableNumber(evidence?.duckingVolume)}</dd>
-                </div>
-                <div>
-                  <dt>Narration volume</dt>
-                  <dd>{formatNullableNumber(evidence?.narrationVolume)}</dd>
-                </div>
-                <div>
-                  <dt>Fade duration</dt>
-                  <dd>{evidence?.fadeDurationMs ? `${evidence.fadeDurationMs} ms` : 'N/A'}</dd>
-                </div>
-                <div>
-                  <dt>Mix settings</dt>
-                  <dd>{formatEvidenceToken(evidence?.mixSettingsSource)}</dd>
-                </div>
-                <div>
-                  <dt>Narration windows</dt>
-                  <dd>{evidence?.segmentCount ?? 0} windows</dd>
-                </div>
-              </dl>
-              {mixSettings ? (
-                <div className="mix-settings-panel" aria-label="Mix settings">
-                  <label>
-                    Ducking volume
-                    <input
-                      aria-label="Ducking volume"
-                      max="1"
-                      min="0"
-                      step="0.001"
-                      type="number"
-                      value={mixSettings.duckingVolume}
-                      onChange={(event) => setMixSettings({ ...mixSettings, duckingVolume: Number(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    Narration volume
-                    <input
-                      aria-label="Narration volume"
-                      max="2"
-                      min="0"
-                      step="0.001"
-                      type="number"
-                      value={mixSettings.narrationVolume}
-                      onChange={(event) => setMixSettings({ ...mixSettings, narrationVolume: Number(event.target.value) })}
-                    />
-                  </label>
-                  <label>
-                    Fade duration ms
-                    <input
-                      aria-label="Fade duration ms"
-                      max="5000"
-                      min="0"
-                      step="1"
-                      type="number"
-                      value={mixSettings.fadeDurationMs}
-                      onChange={(event) => setMixSettings({ ...mixSettings, fadeDurationMs: Number(event.target.value) })}
-                    />
-                  </label>
-                  {mixValidation.length > 0 ? (
-                    <ul className="error-list">
-                      {mixValidation.map((message) => <li key={message}>{message}</li>)}
-                    </ul>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={() => onSaveMixSettings(mixSettings)}
-                    disabled={isSaving || mixValidation.length > 0}
-                  >
-                    {isSaving ? 'Saving...' : 'Save mix settings'}
-                  </button>
-                </div>
-              ) : null}
-              <div className="panel-actions">
-                <button type="button" onClick={onRefreshEvidence}>Refresh evidence</button>
-                <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'markdown')}>
-                  Download Markdown
-                </button>
-                <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'zip')}>
-                  Download ZIP
-                </button>
-              </div>
-            </>
-          ) : (
-            <p className="muted">Select a row to edit narration text.</p>
-          )}
-        </aside>
+        <NarrationInspector
+          evidence={evidence}
+          isSaving={isSaving}
+          jobId={jobId}
+          mixSettings={mixSettings}
+          mixValidation={mixValidation}
+          selectedIndex={selectedIndex}
+          selectedSegment={selectedSegment}
+          onRefreshEvidence={onRefreshEvidence}
+          onSaveMixSettings={onSaveMixSettings}
+          onUpdateMixSettings={setMixSettings}
+          onUpdateSegment={updateSegment}
+        />
       </div>
     </section>
+  );
+}
+
+function NarrationSegmentTable({
+  onSelectSegment,
+  onUpdateSegment,
+  segments,
+  selectedIndex
+}: {
+  onSelectSegment: (index: number) => void;
+  onUpdateSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
+  segments: NarrationWorkspace['segments'];
+  selectedIndex: number;
+}) {
+  return (
+    <table className="narration-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Voice</th>
+          <th>Text</th>
+        </tr>
+      </thead>
+      <tbody>
+        {segments.length === 0 ? (
+          <tr>
+            <td colSpan={5}>No narration rows.</td>
+          </tr>
+        ) : segments.map((segment, index) => (
+          <tr key={index} className={index === selectedIndex ? 'selected-row' : undefined}>
+            <td>
+              <button type="button" onClick={() => onSelectSegment(index)}>{index + 1}</button>
+            </td>
+            <td>
+              <input
+                aria-label={`Narration ${index + 1} start`}
+                min="0"
+                step="0.001"
+                type="number"
+                value={segment.startSeconds}
+                onChange={(event) => onUpdateSegment(index, { startSeconds: Number(event.target.value) })}
+              />
+            </td>
+            <td>
+              <input
+                aria-label={`Narration ${index + 1} end`}
+                min="0"
+                step="0.001"
+                type="number"
+                value={segment.endSeconds}
+                onChange={(event) => onUpdateSegment(index, { endSeconds: Number(event.target.value) })}
+              />
+            </td>
+            <td>
+              <input
+                aria-label={`Narration ${index + 1} voice`}
+                value={segment.voice ?? ''}
+                onChange={(event) => onUpdateSegment(index, { voice: event.target.value })}
+              />
+            </td>
+            <td>{segment.text || '-'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function NarrationInspector({
+  evidence,
+  isSaving,
+  jobId,
+  mixSettings,
+  mixValidation,
+  onRefreshEvidence,
+  onSaveMixSettings,
+  onUpdateMixSettings,
+  onUpdateSegment,
+  selectedIndex,
+  selectedSegment
+}: {
+  evidence: NarrationEvidence | null;
+  isSaving: boolean;
+  jobId: string;
+  mixSettings: NarrationWorkspace['mixSettings'] | null;
+  mixValidation: string[];
+  onRefreshEvidence: () => void;
+  onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+  onUpdateMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+  onUpdateSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
+  selectedIndex: number;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+}) {
+  return (
+    <aside className="narration-inspector" aria-label="Narration inspector">
+      {selectedSegment ? (
+        <>
+          <div className="selected-segment-summary">
+            <h4>Selected segment</h4>
+            <dl className="compact-metrics">
+              <div>
+                <dt>Window</dt>
+                <dd>{formatSeconds(selectedSegment.startSeconds)} - {formatSeconds(selectedSegment.endSeconds)}</dd>
+              </div>
+              <div>
+                <dt>Duration</dt>
+                <dd>{formatSeconds(selectedSegment.durationSeconds)}</dd>
+              </div>
+              <div>
+                <dt>Voice</dt>
+                <dd>{selectedSegment.voice || 'Default'}</dd>
+              </div>
+              <div>
+                <dt>Characters</dt>
+                <dd>{selectedSegment.text.length}</dd>
+              </div>
+            </dl>
+          </div>
+          <label>
+            Segment text
+            <textarea
+              maxLength={1000}
+              value={selectedSegment.text}
+              onChange={(event) => onUpdateSegment(selectedIndex, { text: event.target.value })}
+            />
+          </label>
+          <NarrationEvidenceMetrics evidence={evidence} />
+          {mixSettings ? (
+            <NarrationMixSettingsPanel
+              isSaving={isSaving}
+              mixSettings={mixSettings}
+              mixValidation={mixValidation}
+              onSaveMixSettings={onSaveMixSettings}
+              onUpdateMixSettings={onUpdateMixSettings}
+            />
+          ) : null}
+          <div className="panel-actions">
+            <button type="button" onClick={onRefreshEvidence}>Refresh evidence</button>
+            <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'markdown')}>
+              Download Markdown
+            </button>
+            <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'zip')}>
+              Download ZIP
+            </button>
+          </div>
+        </>
+      ) : (
+        <p className="muted">Select a row to edit narration text.</p>
+      )}
+    </aside>
+  );
+}
+
+function NarrationEvidenceMetrics({ evidence }: { evidence: NarrationEvidence | null }) {
+  return (
+    <dl className="compact-metrics">
+      <div>
+        <dt>Evidence</dt>
+        <dd>{evidence?.status ?? 'Not loaded'}</dd>
+      </div>
+      <div>
+        <dt>Audio</dt>
+        <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
+      </div>
+      <div>
+        <dt>Audio layout</dt>
+        <dd>{formatEvidenceToken(evidence?.audioLayout)}</dd>
+      </div>
+      <div>
+        <dt>Time aligned</dt>
+        <dd>{evidence?.timeAligned ? 'true' : 'false'}</dd>
+      </div>
+      <div>
+        <dt>Video</dt>
+        <dd>{evidence?.narratedVideoReady ? 'Ready' : 'Missing'}</dd>
+      </div>
+      <div>
+        <dt>Video artifacts</dt>
+        <dd>{evidence?.narratedVideoArtifactCount ?? 0}</dd>
+      </div>
+      <div>
+        <dt>Mix mode</dt>
+        <dd>{formatEvidenceToken(evidence?.mixMode)}</dd>
+      </div>
+      <div>
+        <dt>Ducking volume</dt>
+        <dd>{formatNullableNumber(evidence?.duckingVolume)}</dd>
+      </div>
+      <div>
+        <dt>Narration volume</dt>
+        <dd>{formatNullableNumber(evidence?.narrationVolume)}</dd>
+      </div>
+      <div>
+        <dt>Fade duration</dt>
+        <dd>{evidence?.fadeDurationMs ? `${evidence.fadeDurationMs} ms` : 'N/A'}</dd>
+      </div>
+      <div>
+        <dt>Mix settings</dt>
+        <dd>{formatEvidenceToken(evidence?.mixSettingsSource)}</dd>
+      </div>
+      <div>
+        <dt>Narration windows</dt>
+        <dd>{evidence?.segmentCount ?? 0} windows</dd>
+      </div>
+    </dl>
+  );
+}
+
+function NarrationMixSettingsPanel({
+  isSaving,
+  mixSettings,
+  mixValidation,
+  onSaveMixSettings,
+  onUpdateMixSettings
+}: {
+  isSaving: boolean;
+  mixSettings: NarrationWorkspace['mixSettings'];
+  mixValidation: string[];
+  onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+  onUpdateMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+}) {
+  return (
+    <div className="mix-settings-panel" aria-label="Mix settings">
+      <label>
+        Ducking volume
+        <input
+          aria-label="Ducking volume"
+          max="1"
+          min="0"
+          step="0.001"
+          type="number"
+          value={mixSettings.duckingVolume}
+          onChange={(event) => onUpdateMixSettings({ ...mixSettings, duckingVolume: Number(event.target.value) })}
+        />
+      </label>
+      <label>
+        Narration volume
+        <input
+          aria-label="Narration volume"
+          max="2"
+          min="0"
+          step="0.001"
+          type="number"
+          value={mixSettings.narrationVolume}
+          onChange={(event) => onUpdateMixSettings({ ...mixSettings, narrationVolume: Number(event.target.value) })}
+        />
+      </label>
+      <label>
+        Fade duration ms
+        <input
+          aria-label="Fade duration ms"
+          max="5000"
+          min="0"
+          step="1"
+          type="number"
+          value={mixSettings.fadeDurationMs}
+          onChange={(event) => onUpdateMixSettings({ ...mixSettings, fadeDurationMs: Number(event.target.value) })}
+        />
+      </label>
+      {mixValidation.length > 0 ? (
+        <ul className="error-list">
+          {mixValidation.map((message) => <li key={message}>{message}</li>)}
+        </ul>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => onSaveMixSettings(mixSettings)}
+        disabled={isSaving || mixValidation.length > 0}
+      >
+        {isSaving ? 'Saving...' : 'Save mix settings'}
+      </button>
+    </div>
+  );
+}
+
+function NarrationTimelineWorkbench({ timeline }: { timeline: NarrationWorkspace['timeline'] }) {
+  const gapSummary = timeline.gapCount === 0
+    ? 'No gaps'
+    : `${timeline.gapCount} ${timeline.gapCount === 1 ? 'gap' : 'gaps'} · ${formatSeconds(timeline.gapSeconds)}`;
+  return (
+    <div className="narration-timeline-workbench" aria-label="Narration timeline workbench">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Timeline workbench</h4>
+          <p className="muted">
+            {formatSeconds(timeline.totalSpanSeconds)} span · {formatSeconds(timeline.coveredSeconds)} covered
+          </p>
+        </div>
+        <span className={timeline.hasOverlap ? 'status-pill blocked' : 'status-pill ready'}>
+          {timeline.hasOverlap ? 'Overlap' : gapSummary}
+        </span>
+      </div>
+      <div className="narration-timeline-track" aria-label="Narration timeline track">
+        {timeline.segments.length === 0 ? (
+          <span className="narration-empty-track">No narration windows</span>
+        ) : timeline.segments.map((segment) => (
+          <button
+            aria-label={`Timeline segment ${segment.index + 1}: ${formatSeconds(segment.startSeconds)} to ${formatSeconds(segment.endSeconds)}, ${segment.status}`}
+            className="narration-timeline-segment"
+            key={segment.index}
+            style={{
+              left: `${segment.leftPercent}%`,
+              width: `${Math.max(segment.widthPercent, 2)}%`
+            }}
+            title={`${segment.index + 1}: ${formatSeconds(segment.startSeconds)}-${formatSeconds(segment.endSeconds)}`}
+            type="button"
+          >
+            {segment.index + 1}
+          </button>
+        ))}
+      </div>
+      <dl className="compact-metrics narration-timeline-metrics">
+        <div>
+          <dt>Start</dt>
+          <dd>{formatSeconds(timeline.startSeconds)}</dd>
+        </div>
+        <div>
+          <dt>End</dt>
+          <dd>{formatSeconds(timeline.endSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Gaps</dt>
+          <dd>{gapSummary}</dd>
+        </div>
+        <div>
+          <dt>Ready</dt>
+          <dd>{timeline.generationReady ? 'true' : 'false'}</dd>
+        </div>
+      </dl>
+    </div>
   );
 }
 
@@ -9375,6 +9550,13 @@ function formatEvidenceToken(value: string | null | undefined) {
 
 function formatNullableNumber(value: number | null | undefined) {
   return value == null ? 'N/A' : String(value);
+}
+
+function formatSeconds(value: number | null | undefined) {
+  if (value == null || Number.isNaN(value)) {
+    return 'N/A';
+  }
+  return `${Number(value.toFixed(3))} s`;
 }
 
 function validateNarrationSegments(segments: NarrationWorkspace['segments']): string[] {

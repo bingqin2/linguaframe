@@ -3924,6 +3924,21 @@ Validation so far:
 
 Work:
 
+- Added the React narration timeline workbench with proportional segment bars, gap/readiness metrics, selected-segment inspector details, and typed frontend timeline/evidence fields.
+- Split the narration workspace UI into timeline, segment table, inspector, evidence metrics, and mix-settings subcomponents while keeping keyboard-friendly row editing.
+- Disabled narration audio/video generation when local segment validation fails; evidence refresh and downloads remain available for diagnosis.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx` first failed because the timeline workbench UI was not rendered.
+- After adding the UI, `npm test -- --run src/App.test.tsx` failed once on a duplicate `1 gap · 27 s` text query; the assertion was narrowed to the status pill.
+- `npm test -- --run src/App.test.tsx` passed with `Test Files 1 passed` and `Tests 92 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Extended narration workspace API contract tests for computed timeline metadata.
 - Added metadata-only narration evidence fields for timeline gap count, gap seconds, and overlap state.
 - Rendered timeline gap metadata in narration evidence Markdown, ZIP manifest, summary JSON, and terminal demo summaries.

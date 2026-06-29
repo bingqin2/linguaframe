@@ -77,15 +77,15 @@
 - Add frontend types `NarrationTimelineSummary` and `NarrationTimelineSegment`.
 - `NarrationWorkspace.timeline` drives a visual timeline strip and readiness metrics.
 
-- [ ] Write failing Vitest coverage for visible timeline summary, gapped-window warning, selected segment inspector, and evidence metrics.
-- [ ] Split `NarrationWorkspacePanel` into clear subcomponents inside `App.tsx`: timeline strip, segment table, inspector, and mix controls.
-- [ ] Render timeline segments as proportional bars with stable dimensions and accessible labels.
-- [ ] Show compact metrics: span, covered time, gaps, segment count, generation readiness, mix source, audio/video readiness.
-- [ ] Keep row editing keyboard-friendly with number inputs and text inspector; do not add drag/drop.
-- [ ] Disable save/generate controls when local validation fails, while still allowing evidence refresh/downloads.
-- [ ] Run `npm test -- --run src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing Vitest coverage for visible timeline summary, gapped-window warning, selected segment inspector, and evidence metrics.
+- [x] Split `NarrationWorkspacePanel` into clear subcomponents inside `App.tsx`: timeline strip, segment table, inspector, and mix controls.
+- [x] Render timeline segments as proportional bars with stable dimensions and accessible labels.
+- [x] Show compact metrics: span, covered time, gaps, segment count, generation readiness, mix source, audio/video readiness.
+- [x] Keep row editing keyboard-friendly with number inputs and text inspector; do not add drag/drop.
+- [x] Disable save/generate controls when local validation fails, while still allowing evidence refresh/downloads.
+- [x] Run `npm test -- --run src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration timeline workbench UI`.
 
 ## Task 4: Documentation And Final Verification

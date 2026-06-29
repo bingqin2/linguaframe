@@ -1490,8 +1490,33 @@ export interface NarrationWorkspace {
   totalCharacterCount: number;
   generationReady: boolean;
   mixSettings: NarrationMixSettings;
+  timeline: NarrationTimelineSummary;
   segments: NarrationSegment[];
   safetyNotes: string[];
+}
+
+export interface NarrationTimelineSummary {
+  startSeconds: number;
+  endSeconds: number;
+  totalSpanSeconds: number;
+  coveredSeconds: number;
+  gapSeconds: number;
+  gapCount: number;
+  hasOverlap: boolean;
+  generationReady: boolean;
+  segments: NarrationTimelineSegment[];
+}
+
+export interface NarrationTimelineSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  leftPercent: number;
+  widthPercent: number;
+  status: string;
+  characterCount: number;
+  voice: string;
 }
 
 export interface NarrationMixSettings {
@@ -1571,6 +1596,9 @@ export interface NarrationEvidence {
   segmentCount: number;
   totalCharacterCount: number;
   totalTimelineDurationSeconds: number;
+  timelineGapCount: number;
+  timelineGapSeconds: number;
+  timelineHasOverlap: boolean;
   narrationAudioReady: boolean;
   audioArtifactCount: number;
   audioLayout: string;
