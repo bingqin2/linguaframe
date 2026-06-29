@@ -98,7 +98,7 @@
 - [x] Extend full Tears usage text to recommend preflight before `LINGUAFRAME_RENDER_NARRATION_DEMO=true`.
 - [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration render preflight script`.
+- [x] Commit with message `Add narration render preflight script`.
 
 ## Task 4: Documentation, Final Verification, And Merge
 
@@ -112,17 +112,17 @@
 - Modify: `docs/plans/141-narration-render-preflight-package.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document browser run order: open completed job, run render preflight, inspect checks, acknowledge replacement/provider cost, run render, verify artifacts/evidence.
-- [ ] Document terminal run order for existing jobs and full Tears runs.
-- [ ] Add cost warning that preflight estimates are advisory and OpenAI provider billing remains external truth.
-- [ ] Update smoke checklist with backend, frontend, terminal, full Tears, safety-exclusion, and blocked-result expectations.
-- [ ] Add a decision record explaining why preflight is read-only and separate from render.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoRenderServiceTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Document browser run order: open completed job, run render preflight, inspect checks, acknowledge replacement/provider cost, run render, verify artifacts/evidence.
+- [x] Document terminal run order for existing jobs and full Tears runs.
+- [x] Add cost warning that preflight estimates are advisory and OpenAI provider billing remains external truth.
+- [x] Update smoke checklist with backend, frontend, terminal, full Tears, safety-exclusion, and blocked-result expectations.
+- [x] Add a decision record explaining why preflight is read-only and separate from render.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoRenderServiceTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration render preflight package`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

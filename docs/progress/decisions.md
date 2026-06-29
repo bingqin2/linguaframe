@@ -793,3 +793,11 @@ Decision: Implement one-click narration demo render as orchestration over existi
 Reason: A demo operator needs one command/button for the complete Tears narration showcase, but preset import, narration audio synthesis, narrated-video muxing, script package export, evidence export, and artifact listing already have separate validation and persistence rules. Duplicating that logic would make partial failures and cost warnings harder to audit.
 
 Impact: `POST /api/jobs/{jobId}/narration-demo/render`, the browser `Render narration demo` panel, `scripts/demo/narration-demo-render.sh`, and `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh` run the existing services in order. The request keeps explicit replacement and optional video generation visible. If audio succeeds but narrated-video generation fails, the response is `PARTIAL` and preserves `NARRATION_AUDIO` so the operator can retry video generation without losing paid TTS output.
+
+## 2026-06-30
+
+Decision: Keep narration render preflight read-only and separate from render.
+
+Reason: Operators need a safe go/no-go surface for replacement impact, provider-cost attention, estimated narration size, generated-video readiness, evidence routes, and next command before any OpenAI TTS or FFmpeg render work runs. Folding that logic into render would make `BLOCKED` and `ATTENTION` states harder to review and would risk spending provider credits before the user sees the consequences.
+
+Impact: `POST /api/jobs/{jobId}/narration-demo/render/preflight`, the browser `Render preflight` subsection, and `scripts/demo/narration-demo-render-preflight.sh` compose existing preset, workspace, artifact, script package, evidence, and provider configuration metadata without mutating jobs, saving narration rows, creating artifacts, dispatching workers, calling OpenAI, or touching object storage. Terminal render can require preflight with `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true`; blocked preflight refuses render, while advisory OpenAI cost estimates remain separate from provider-side billing truth.

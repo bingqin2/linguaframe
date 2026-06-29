@@ -56,6 +56,23 @@ Work:
 Validation:
 
 - `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-30
+
+Work:
+
+- Documented browser and terminal narration render preflight order in README and Docker E2E guide.
+- Updated smoke checklist, roadmap, target state, and decisions to treat preflight as the read-only gate before one-click narration render.
+- Recorded the cost caveat that preflight estimates are advisory and OpenAI provider-side usage/billing remains authoritative.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoRenderServiceTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 91, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 771, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 198 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
 - `bash -n scripts/demo/narration-demo-render.sh` first failed because the render script did not exist.
 - After adding the render script and full Tears integration, `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.

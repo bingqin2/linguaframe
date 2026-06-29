@@ -209,21 +209,25 @@ Focused narration render checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
 
 - Browser selected-job narration workspace shows `Render narration demo` near `Demo narration preset`.
-- Render remains disabled until both replacement and paid-provider acknowledgements are checked.
+- `Render preflight` shows `READY`, `ATTENTION`, or `BLOCKED`, provider mode, paid-provider flag, estimated size, existing workspace size, output plan, safe next command, evidence routes, and check rows.
+- Render remains disabled until the latest matching preflight is `READY` or `ATTENTION` and both replacement and paid-provider acknowledgements are checked.
+- `BLOCKED` preflight remains visible and disables render without hiding the separate narration controls.
 - `Generate narrated video` defaults on and maps to `generateNarratedVideo`; disabling it produces an audio-only render request.
-- A successful render refreshes narration workspace, script package, narration evidence, and artifacts, then shows preset/audio/video step status rows.
+- A successful render refreshes narration workspace, script package, narration evidence, artifacts, and render preflight, then shows preset/audio/video step status rows.
 - If audio succeeds but narrated-video generation fails, the backend returns `PARTIAL`, keeps `NARRATION_AUDIO`, and reports the video step as failed.
 - `LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY=true scripts/demo/narration-demo-render.sh` lists the recommended preset without requiring a job id or calling render.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render-preflight.sh` writes read-only preflight JSON and exits non-zero for `BLOCKED` unless report-only mode is enabled.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true scripts/demo/narration-demo-render.sh` refuses blocked render before calling TTS or video generation.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh` writes render JSON plus refreshed script/evidence files under `/tmp/linguaframe-demo/narration-demo-render/`.
-- `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh` runs the one-click render flow before final narration evidence export; if the apply-only flag is also true, render wins.
+- `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh` runs preflight and the one-click render flow before final narration evidence export; if the apply-only flag is also true, render wins.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
-- OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional.
+- OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.
 
 With the Docker stack running, open:
 
