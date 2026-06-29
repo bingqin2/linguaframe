@@ -27,6 +27,13 @@ import {
   secondsFromWaveformPercent,
   type NarrationWaveformOverview
 } from './domain/narrationWaveformOverview';
+import {
+  duplicateNarrationSegment,
+  insertNarrationSegmentAfter,
+  mergeNarrationSegmentWithNext,
+  splitNarrationSegmentAtTime,
+  type NarrationEditCommandResult
+} from './domain/narrationEditingCommands';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9350,6 +9357,7 @@ function NarrationWorkspacePanel({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
   const [previewWindowEndSeconds, setPreviewWindowEndSeconds] = useState<number | null>(null);
+  const [editCommandStatus, setEditCommandStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -9358,6 +9366,7 @@ function NarrationWorkspacePanel({
     setSelectedIndex(0);
     setPreviewCurrentSeconds(0);
     setPreviewWindowEndSeconds(null);
+    setEditCommandStatus(null);
   }, [workspace]);
 
   const selectedSegment = segments[selectedIndex] ?? null;
@@ -9409,6 +9418,42 @@ function NarrationWorkspacePanel({
   function deleteSelectedSegment() {
     setSegments((current) => current.filter((_, index) => index !== selectedIndex).map((segment, index) => ({ ...segment, index })));
     setSelectedIndex(Math.max(0, selectedIndex - 1));
+  }
+
+  function applyEditCommand(result: NarrationEditCommandResult, successMessage: string) {
+    if (result.blockedReason) {
+      setEditCommandStatus(result.blockedReason);
+      return;
+    }
+    setSegments(result.segments);
+    setSelectedIndex(result.selectedIndex);
+    setEditCommandStatus(successMessage);
+  }
+
+  function duplicateSelectedSegment() {
+    applyEditCommand(
+      duplicateNarrationSegment(segments, selectedIndex),
+      `Duplicated narration ${selectedIndex + 1}.`
+    );
+  }
+
+  function splitSelectedSegmentAtPlayhead() {
+    applyEditCommand(
+      splitNarrationSegmentAtTime(segments, selectedIndex, previewCurrentSeconds),
+      `Split narration ${selectedIndex + 1} at ${formatSeconds(previewCurrentSeconds)}.`
+    );
+  }
+
+  function mergeSelectedSegmentWithNext() {
+    applyEditCommand(
+      mergeNarrationSegmentWithNext(segments, selectedIndex),
+      `Merged narration ${selectedIndex + 1} with narration ${selectedIndex + 2}.`
+    );
+  }
+
+  function insertSegmentAfterSelected() {
+    const result = insertNarrationSegmentAfter(segments, selectedIndex);
+    applyEditCommand(result, `Inserted narration ${result.selectedIndex + 1}.`);
   }
 
   function seekPreviewTo(seconds: number) {
@@ -9471,6 +9516,17 @@ function NarrationWorkspacePanel({
             previewAvailable={previewSource.available}
             selectedSegment={selectedSegment}
             onSeek={seekPreviewTo}
+          />
+          <NarrationEditingCommandsPanel
+            currentSeconds={previewCurrentSeconds}
+            selectedIndex={selectedIndex}
+            selectedSegment={selectedSegment}
+            segmentCount={segments.length}
+            status={editCommandStatus}
+            onDuplicate={duplicateSelectedSegment}
+            onInsertAfter={insertSegmentAfterSelected}
+            onMergeNext={mergeSelectedSegmentWithNext}
+            onSplitAtPlayhead={splitSelectedSegmentAtPlayhead}
           />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
@@ -10468,6 +10524,66 @@ function NarrationWaveformOverviewPanel({
           <dd>{overview.playheadPercent == null ? 'N/A' : formatPercent(overview.playheadPercent)}</dd>
         </div>
       </dl>
+    </section>
+  );
+}
+
+function NarrationEditingCommandsPanel({
+  currentSeconds,
+  onDuplicate,
+  onInsertAfter,
+  onMergeNext,
+  onSplitAtPlayhead,
+  selectedIndex,
+  selectedSegment,
+  segmentCount,
+  status
+}: {
+  currentSeconds: number;
+  onDuplicate: () => void;
+  onInsertAfter: () => void;
+  onMergeNext: () => void;
+  onSplitAtPlayhead: () => void;
+  selectedIndex: number;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+  segmentCount: number;
+  status: string | null;
+}) {
+  const canSplit = Boolean(
+    selectedSegment
+    && currentSeconds - selectedSegment.startSeconds >= 0.25
+    && selectedSegment.endSeconds - currentSeconds >= 0.25
+  );
+  const canMergeNext = Boolean(selectedSegment && selectedIndex < segmentCount - 1);
+
+  return (
+    <section className="narration-editing-commands" aria-label="Narration editing commands">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration editing commands</h4>
+          <p className="muted">
+            Selected {selectedSegment ? selectedIndex + 1 : 'none'} · Playhead {formatSeconds(currentSeconds)}
+          </p>
+        </div>
+        <span className="status-pill ready">{segmentCount} rows</span>
+      </div>
+      <div className="narration-command-buttons">
+        <button type="button" disabled={!selectedSegment} onClick={onDuplicate}>
+          Duplicate
+        </button>
+        <button type="button" disabled={!canSplit} onClick={onSplitAtPlayhead}>
+          Split at playhead
+        </button>
+        <button type="button" disabled={!canMergeNext} onClick={onMergeNext}>
+          Merge next
+        </button>
+        <button type="button" onClick={onInsertAfter}>
+          Insert after
+        </button>
+      </div>
+      <p className={status ? 'narration-command-status' : 'narration-command-status muted'}>
+        {status ?? 'Local draft commands only.'}
+      </p>
     </section>
   );
 }

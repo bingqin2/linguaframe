@@ -9,11 +9,16 @@ Work:
 - Started the narration editing command workbench feature slice from `docs/plans/145-narration-editing-command-workbench.md`.
 - Added pure frontend narration editing command helpers for duplicate, split-at-playhead, merge-next, insert-after, and immutable reindexing.
 - Command helpers only mutate local draft arrays, reset generated rows to `updatedAt: null`, keep timing/duration rounded to `0.001` seconds, and return blocked reasons for impossible commands.
+- Added a compact browser `Narration editing commands` panel with local-only Duplicate, Split at playhead, Merge next, and Insert after actions.
+- The command panel updates the shared narration draft rows, selected row, timeline, waveform, table, inspector, validation, and existing save payload without calling save/generation/render APIs directly.
 
 Validation:
 
 - `npm test -- --run src/domain/narrationEditingCommands.test.ts` first failed because `frontend/src/domain/narrationEditingCommands.ts` did not exist.
 - After adding the helper module, `npm test -- --run src/domain/narrationEditingCommands.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration editing command"` first failed because the `Narration editing commands` region did not exist.
+- After adding the command panel and local command wiring, `npm test -- --run src/App.test.tsx -t "narration editing commands"` passed with `Test Files 1 passed` and `Tests 5 passed | 108 skipped`.
+- `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 132 passed`; jsdom printed expected navigation warnings from download actions.
 
 ## 2026-06-30
 

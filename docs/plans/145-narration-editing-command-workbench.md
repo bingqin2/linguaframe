@@ -71,20 +71,20 @@
   - Buttons for `Duplicate`, `Split at playhead`, `Merge next`, and `Insert after`.
   - A local command status message for successful commands and blocked-command reasons.
 
-- [ ] Write failing App tests proving the command bar renders for a completed job with narration workspace data.
-- [ ] Write failing App tests proving `Duplicate` adds a copied row after the selected row, selects it, and the existing save action sends the updated row list.
-- [ ] Write failing App tests proving `Split at playhead` is disabled or blocked outside the selected window and succeeds when the preview playhead is inside the selected row.
-- [ ] Write failing App tests proving `Merge next` combines adjacent rows and disables or blocks on the final row.
-- [ ] Write failing App tests proving `Insert after` creates a blank local row and existing validation blocks saving until the user fills required fields.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify the new tests fail.
-- [ ] Add a small command panel that calls the helper module, updates local narration segment draft state, updates selected row state, and shows command status.
-- [ ] Keep all commands local-only; do not call save, evidence refresh, preflight, TTS generation, mix, render, or artifact APIs.
-- [ ] Disable clearly impossible commands from current selection state while still preserving helper-level blocked reasons for test coverage.
-- [ ] Add compact CSS for command buttons and status text with stable height and no layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration editing command UI`.
+- [x] Write failing App tests proving the command bar renders for a completed job with narration workspace data.
+- [x] Write failing App tests proving `Duplicate` adds a copied row after the selected row, selects it, and the existing save action sends the updated row list.
+- [x] Write failing App tests proving `Split at playhead` is disabled or blocked outside the selected window and succeeds when the preview playhead is inside the selected row.
+- [x] Write failing App tests proving `Merge next` combines adjacent rows and disables or blocks on the final row.
+- [x] Write failing App tests proving `Insert after` creates a blank local row and existing validation blocks saving until the user fills required fields.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify the new tests fail.
+- [x] Add a small command panel that calls the helper module, updates local narration segment draft state, updates selected row state, and shows command status.
+- [x] Keep all commands local-only; do not call save, evidence refresh, preflight, TTS generation, mix, render, or artifact APIs.
+- [x] Disable clearly impossible commands from current selection state while still preserving helper-level blocked reasons for test coverage.
+- [x] Add compact CSS for command buttons and status text with stable height and no layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration editing commands"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration editing command UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
 
