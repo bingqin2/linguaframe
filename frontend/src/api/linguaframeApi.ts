@@ -172,6 +172,88 @@ export async function estimateUploadExecutionPlan(
   });
 }
 
+export async function downloadUploadExecutionPlanMarkdown(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): Promise<Blob> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestBlob('/api/media/uploads/execution-plan/markdown/download', {
+    method: 'POST',
+    body
+  });
+}
+
+export function renderUploadExecutionPlanMarkdown(plan: UploadExecutionPlan): string {
+  const lines = [
+    '# Upload Execution Plan',
+    '',
+    '## Summary',
+    '',
+    `- Status: ${safeValue(plan.overallStatus)}`,
+    `- Recommended next action: ${safeValue(plan.recommendedNextAction)}`,
+    `- Demo profile: ${safeValue(plan.demoProfileId)}`,
+    `- Target language: ${safeValue(plan.targetLanguage)}`,
+    '',
+    '## Source Metadata',
+    '',
+    `- Filename: ${safeValue(plan.filename)}`,
+    `- Content type: ${safeValue(plan.contentType)}`,
+    `- Size bytes: ${plan.fileSizeBytes} / ${plan.maxFileSizeBytes}`,
+    `- Duration seconds: ${plan.durationSeconds ?? 'unknown'} / ${plan.maxDurationSeconds}`,
+    `- Source SHA-256: ${safeValue(plan.sourceReuse?.sourceContentSha256)}`,
+    '',
+    '## Source Reuse Decision',
+    '',
+    `- Status: ${safeValue(plan.sourceReuseDecision?.status)}`,
+    `- Headline: ${safeValue(plan.sourceReuseDecision?.headline)}`,
+    `- Summary: ${safeValue(plan.sourceReuseDecision?.summary)}`,
+    `- Recommended existing job: ${safeValue(plan.sourceReuseDecision?.recommendedExistingJobId)}`,
+    `- Candidate count: ${plan.sourceReuseDecision?.candidateCount ?? 0}`,
+    ...((plan.sourceReuseDecision?.links ?? []).map((link) => `- ${safeValue(link.label)}: ${safeValue(link.href)}`)),
+    '',
+    '## Gates',
+    '',
+    ...(plan.gates.length > 0
+      ? plan.gates.map((gate) => `- ${safeValue(gate.label)}: ${safeValue(gate.status)} - ${safeValue(gate.detail)} Next: ${safeValue(gate.nextAction)}`)
+      : ['- No gates reported.']),
+    '',
+    '## Paid Stages',
+    '',
+    ...(plan.stages.filter((stage) => stage.executionType === 'PAID').length > 0
+      ? plan.stages
+          .filter((stage) => stage.executionType === 'PAID')
+          .map((stage) => `- ${safeValue(stage.label)}: ${safeValue(stage.provider)} / ${safeValue(stage.model)} / ${formatReportCost(stage.estimatedCostUsd)} - ${safeValue(stage.detail)}`)
+      : ['- No paid stages are planned.']),
+    '',
+    '## Commands',
+    '',
+    ...(plan.commands.length > 0
+      ? plan.commands.map((command) => `- ${safeValue(command.label)}: \`${safeValue(command.command)}\` - ${safeValue(command.description)}`)
+      : ['- No commands reported.']),
+    '',
+    '## Safety Notes',
+    '',
+    ...(plan.safetyNotes.length > 0 ? plan.safetyNotes.map((note) => `- ${safeValue(note)}`) : ['- Report is metadata-only and read-only.'])
+  ];
+  return `${lines.join('\n')}\n`;
+}
+
 export async function getOwnerQuotaPreflight(): Promise<OwnerQuotaPreflight> {
   return requestJson<OwnerQuotaPreflight>('/api/media/uploads/preflight', {
     method: 'GET'
@@ -656,6 +738,8 @@ export const linguaFrameApi = {
   validateUpload,
   estimateUploadCost,
   estimateUploadExecutionPlan,
+  downloadUploadExecutionPlanMarkdown,
+  renderUploadExecutionPlanMarkdown,
   getOwnerQuotaPreflight,
   getDemoUploadReadiness,
   uploadMedia,
@@ -723,6 +807,23 @@ async function requestJson<T>(url: string, init: RequestInit): Promise<T> {
     throw new Error(await readErrorMessage(response));
   }
   return response.json() as Promise<T>;
+}
+
+async function requestBlob(url: string, init: RequestInit): Promise<Blob> {
+  const response = await fetch(url, withAccessHeaders(init));
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+  return response.blob();
+}
+
+function safeValue(value: string | null | undefined): string {
+  const normalized = value?.replace(/\r|\n/g, ' ').trim();
+  return normalized ? normalized : 'none';
+}
+
+function formatReportCost(value: number): string {
+  return `$${value.toFixed(8)}`;
 }
 
 export function readAuthToken(storage: Storage = window.localStorage): string {

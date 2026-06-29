@@ -1,6 +1,6 @@
 # Upload Execution Plan Report Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a safe, shareable upload execution plan report so the operator can copy or download the full pre-upload decision before storing media, dispatching queues, running FFmpeg, or calling OpenAI.
 
@@ -28,11 +28,11 @@
 **Interfaces:**
 - `String UploadExecutionPlanReportService.renderMarkdown(UploadExecutionPlanVo plan)` returns a metadata-only Markdown report.
 
-- [ ] Render sections: summary, source metadata, validation, cost/time estimate, source reuse decision, gates, stages, commands, and safety notes.
-- [ ] Include source reuse decision links when present.
-- [ ] Redact or omit unsafe fields by design; never render object keys or local paths.
-- [ ] Add tests for a ready plan with reuse links and an invalid plan with no stages.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests test`.
+- [x] Render sections: summary, source metadata, validation, cost/time estimate, source reuse decision, gates, stages, commands, and safety notes.
+- [x] Include source reuse decision links when present.
+- [x] Redact or omit unsafe fields by design; never render object keys or local paths.
+- [x] Add tests for a ready plan with reuse links and an invalid plan with no stages.
+- [x] Run `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests test`.
 
 ## Task 2: Backend Report Endpoint
 
@@ -44,10 +44,10 @@
 - `POST /api/media/uploads/execution-plan/markdown/download` consumes the same multipart form fields as `/execution-plan`.
 - Response content type is `text/markdown` and attachment filename is `upload-execution-plan.md`.
 
-- [ ] Add controller method that calls `UploadExecutionPlanService.plan(...)` and renders the Markdown with `UploadExecutionPlanReportService`.
-- [ ] Keep request parameters identical to the JSON execution-plan endpoint.
-- [ ] Add MockMvc tests that assert content type, attachment header, Markdown headings, source reuse decision, and no raw object-storage/local-path leakage.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
+- [x] Add controller method that calls `UploadExecutionPlanService.plan(...)` and renders the Markdown with `UploadExecutionPlanReportService`.
+- [x] Keep request parameters identical to the JSON execution-plan endpoint.
+- [x] Add MockMvc tests that assert content type, attachment header, Markdown headings, source reuse decision, and no raw object-storage/local-path leakage.
+- [x] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
 
 ## Task 3: Frontend Copy And Download Controls
 
@@ -62,13 +62,13 @@
 - `downloadUploadExecutionPlanMarkdown(...)` returns a browser download URL or triggers a fetch-based blob download using the same form data.
 - `renderUploadExecutionPlanMarkdown(plan: UploadExecutionPlan)` creates the same safe browser-side copy text for clipboard use.
 
-- [ ] Add an API function for the backend Markdown endpoint with the same upload option parameters.
-- [ ] Add API tests proving multipart fields match JSON execution-plan fields.
-- [ ] Add `Copy plan` and `Download Markdown` controls to the execution-plan panel.
-- [ ] Copy text must be generated from loaded safe plan state and include source reuse decision, gates, paid stages, and commands.
-- [ ] Keep controls disabled while planning or when no plan exists.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add an API function for the backend Markdown endpoint with the same upload option parameters.
+- [x] Add API tests proving multipart fields match JSON execution-plan fields.
+- [x] Add `Copy plan` and `Download Markdown` controls to the execution-plan panel.
+- [x] Copy text must be generated from loaded safe plan state and include source reuse decision, gates, paid stages, and commands.
+- [x] Keep controls disabled while planning or when no plan exists.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script And README
 
@@ -82,24 +82,24 @@
 - `scripts/demo/upload-execution-plan-report.sh` writes `/tmp/linguaframe-demo/upload-execution-plan.md` by default.
 - Existing `upload-execution-plan.sh` prints the Markdown report path when `LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH` is set.
 
-- [ ] Add a focused script that posts the selected sample/options to the Markdown endpoint and writes the report.
-- [ ] Print `uploadExecutionPlanReportPath`, `uploadExecutionPlanReportBytes`, and `uploadExecutionPlanReportStatus=written`.
-- [ ] Document browser and terminal usage, including that the report is read-only and safe for demo handoff.
-- [ ] Record validation commands and any failures in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Add a focused script that posts the selected sample/options to the Markdown endpoint and writes the report.
+- [x] Print `uploadExecutionPlanReportPath`, `uploadExecutionPlanReportBytes`, and `uploadExecutionPlanReportStatus=written`.
+- [x] Document browser and terminal usage, including that the report is read-only and safe for demo handoff.
+- [x] Record validation commands and any failures in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification And Merge
 
 **Files:**
 - Modify: `docs/plans/120-upload-execution-plan-report.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests,MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
-- [ ] Commit as `Add upload execution plan report`.
+- [x] Run `git diff --check`.
+- [x] Commit as `Add upload execution plan report`.
 - [ ] Merge the feature branch back to `main` after validation passes.

@@ -3476,3 +3476,23 @@ Validation so far:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
 - `npm --prefix frontend run build` passed.
 - `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/source-reuse-decision.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned upload execution plan report in `docs/plans/120-upload-execution-plan-report.md`.
+- Added backend Markdown rendering and `POST /api/media/uploads/execution-plan/markdown/download` for a metadata-only, read-only pre-upload report.
+- Added browser `Copy plan` and `Download Markdown` controls to the upload execution-plan panel.
+- Added `scripts/demo/upload-execution-plan-report.sh` and optional Markdown output from `scripts/demo/upload-execution-plan.sh`.
+- Documented browser and terminal report usage in README.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 64 passed`.
+- `npm --prefix frontend run build` passed.
+- `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanReportServiceTests,MediaUploadControllerTests#downloadsUploadExecutionPlanMarkdown+estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.

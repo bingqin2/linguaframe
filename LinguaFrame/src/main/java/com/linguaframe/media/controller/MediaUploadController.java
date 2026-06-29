@@ -15,6 +15,7 @@ import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
 import com.linguaframe.media.service.UploadCostEstimateService;
 import com.linguaframe.media.service.UploadExecutionPlanService;
+import com.linguaframe.media.service.UploadExecutionPlanReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -47,6 +48,7 @@ public class MediaUploadController {
     private final DemoUploadReadinessService demoUploadReadinessService;
     private final UploadCostEstimateService uploadCostEstimateService;
     private final UploadExecutionPlanService uploadExecutionPlanService;
+    private final UploadExecutionPlanReportService uploadExecutionPlanReportService;
 
     public MediaUploadController(
             MediaUploadValidationService validationService,
@@ -54,7 +56,8 @@ public class MediaUploadController {
             OwnerQuotaPreflightService ownerQuotaPreflightService,
             DemoUploadReadinessService demoUploadReadinessService,
             UploadCostEstimateService uploadCostEstimateService,
-            UploadExecutionPlanService uploadExecutionPlanService
+            UploadExecutionPlanService uploadExecutionPlanService,
+            UploadExecutionPlanReportService uploadExecutionPlanReportService
     ) {
         this.validationService = validationService;
         this.uploadService = uploadService;
@@ -62,6 +65,7 @@ public class MediaUploadController {
         this.demoUploadReadinessService = demoUploadReadinessService;
         this.uploadCostEstimateService = uploadCostEstimateService;
         this.uploadExecutionPlanService = uploadExecutionPlanService;
+        this.uploadExecutionPlanReportService = uploadExecutionPlanReportService;
     }
 
     @GetMapping("/preflight")
@@ -173,6 +177,46 @@ public class MediaUploadController {
                 subtitlePolishingMode,
                 demoProfileId
         ));
+    }
+
+    @PostMapping(value = "/execution-plan/markdown/download", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Download a Markdown upload execution plan before storing media")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The Markdown upload execution plan was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> downloadUploadExecutionPlanMarkdown(
+            @Parameter(description = "Source video file to plan.", required = true)
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "BCP 47 target language code such as zh-CN.")
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @Parameter(description = "Optional text-to-speech voice identifier.")
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice,
+            @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
+            @RequestParam(value = "translationStyle", required = false) String translationStyle,
+            @Parameter(description = "Optional subtitle burn-in style preset: STANDARD, LARGE, or HIGH_CONTRAST.")
+            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset,
+            @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
+            @RequestParam(value = "translationGlossary", required = false) String translationGlossary,
+            @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
+            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+    ) {
+        UploadExecutionPlanVo plan = uploadExecutionPlanService.plan(file, new UploadCostEstimateOptionsBo(
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        ));
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename("upload-execution-plan.md").build().toString())
+                .body(uploadExecutionPlanReportService.renderMarkdown(plan));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

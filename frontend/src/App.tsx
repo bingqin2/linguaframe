@@ -343,6 +343,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [uploadExecutionPlan, setUploadExecutionPlan] = useState<UploadExecutionPlan | null>(null);
   const [uploadExecutionPlanError, setUploadExecutionPlanError] = useState<string | null>(null);
   const [isEstimatingUploadExecutionPlan, setIsEstimatingUploadExecutionPlan] = useState(false);
+  const [uploadExecutionPlanReportStatus, setUploadExecutionPlanReportStatus] = useState<string | null>(null);
+  const [isDownloadingUploadExecutionPlanReport, setIsDownloadingUploadExecutionPlanReport] = useState(false);
   const [uploadCostEstimate, setUploadCostEstimate] = useState<UploadCostEstimate | null>(null);
   const [uploadCostEstimateError, setUploadCostEstimateError] = useState<string | null>(null);
   const [isEstimatingUploadCost, setIsEstimatingUploadCost] = useState(false);
@@ -1191,6 +1193,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     if (!file) {
       setUploadExecutionPlan(null);
       setUploadExecutionPlanError('Choose a video file before planning execution.');
+      setUploadExecutionPlanReportStatus(null);
       return;
     }
     setIsEstimatingUploadExecutionPlan(true);
@@ -1207,13 +1210,60 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       );
       setUploadExecutionPlan(plan);
       setUploadExecutionPlanError(null);
+      setUploadExecutionPlanReportStatus(null);
     } catch (planError) {
       setUploadExecutionPlan(null);
       setUploadExecutionPlanError(toErrorMessage(planError));
+      setUploadExecutionPlanReportStatus(null);
     } finally {
       setIsEstimatingUploadExecutionPlan(false);
       void loadOwnerQuotaPreflight();
       void loadDemoUploadReadiness();
+    }
+  }
+
+  async function handleCopyUploadExecutionPlanReport(plan: UploadExecutionPlan | null) {
+    if (!plan) {
+      setUploadExecutionPlanReportStatus('Run execution planning before copying a report.');
+      return;
+    }
+    if (typeof navigator.clipboard?.writeText !== 'function') {
+      setUploadExecutionPlanReportStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(linguaFrameApi.renderUploadExecutionPlanMarkdown(plan));
+    setUploadExecutionPlanReportStatus('Copied Markdown execution plan.');
+  }
+
+  async function handleDownloadUploadExecutionPlanReport(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadExecutionPlanReportStatus('Choose a video file before downloading a report.');
+      return;
+    }
+    setIsDownloadingUploadExecutionPlanReport(true);
+    try {
+      const blob = await linguaFrameApi.downloadUploadExecutionPlanMarkdown(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset,
+        translationGlossary,
+        subtitlePolishingMode,
+        demoProfileId
+      );
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = 'upload-execution-plan.md';
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+      setUploadExecutionPlanReportStatus('Downloaded Markdown execution plan.');
+    } catch (reportError) {
+      setUploadExecutionPlanReportStatus(toErrorMessage(reportError));
+    } finally {
+      setIsDownloadingUploadExecutionPlanReport(false);
     }
   }
 
@@ -1940,7 +1990,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               plan={uploadExecutionPlan}
               error={uploadExecutionPlanError}
               isLoading={isEstimatingUploadExecutionPlan}
+              isDownloadingReport={isDownloadingUploadExecutionPlanReport}
+              reportStatus={uploadExecutionPlanReportStatus}
               onRefresh={(form) => void handleEstimateUploadExecutionPlan(form)}
+              onCopyReport={(plan) => void handleCopyUploadExecutionPlanReport(plan)}
+              onDownloadReport={(form) => void handleDownloadUploadExecutionPlanReport(form)}
             />
             <UploadCostEstimatePanel
               estimate={uploadCostEstimate}
@@ -3011,12 +3065,20 @@ function UploadExecutionPlanPanel({
   plan,
   error,
   isLoading,
-  onRefresh
+  isDownloadingReport,
+  reportStatus,
+  onRefresh,
+  onCopyReport,
+  onDownloadReport
 }: {
   plan: UploadExecutionPlan | null;
   error: string | null;
   isLoading: boolean;
+  isDownloadingReport: boolean;
+  reportStatus: string | null;
   onRefresh: (form: HTMLFormElement | null) => void;
+  onCopyReport: (plan: UploadExecutionPlan | null) => void;
+  onDownloadReport: (form: HTMLFormElement | null) => void;
 }) {
   if (!plan && !error && !isLoading) {
     return null;
@@ -3041,8 +3103,25 @@ function UploadExecutionPlanPanel({
         >
           Refresh
         </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading || !plan}
+          onClick={() => onCopyReport(plan)}
+        >
+          Copy plan
+        </button>
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading || isDownloadingReport || !plan}
+          onClick={(event) => onDownloadReport(event.currentTarget.form)}
+        >
+          {isDownloadingReport ? 'Downloading...' : 'Download Markdown'}
+        </button>
       </div>
       {error ? <p className="error-text">{error}</p> : null}
+      {reportStatus ? <p className="muted validation-message">{reportStatus}</p> : null}
       {isLoading && !plan ? <p className="muted">Planning upload execution...</p> : null}
       {plan ? (
         <>
