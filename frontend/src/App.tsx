@@ -33,6 +33,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   OpenAiReadinessEvidence,
+  OpenAiSmokeProof,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -433,6 +434,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [runtimeLiveChecksError, setRuntimeLiveChecksError] = useState<string | null>(null);
   const [openAiReadinessEvidence, setOpenAiReadinessEvidence] = useState<OpenAiReadinessEvidence | null>(null);
   const [openAiReadinessEvidenceError, setOpenAiReadinessEvidenceError] = useState<string | null>(null);
+  const [openAiSmokeProof, setOpenAiSmokeProof] = useState<OpenAiSmokeProof | null>(null);
+  const [openAiSmokeProofError, setOpenAiSmokeProofError] = useState<string | null>(null);
+  const [isLoadingOpenAiSmokeProof, setIsLoadingOpenAiSmokeProof] = useState(false);
   const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
   const [cacheReplayBaseline, setCacheReplayBaseline] = useState<CacheReplayBaseline | null>(null);
@@ -548,6 +552,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoEvidenceClosureError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
+          setOpenAiSmokeProof(null);
+          setOpenAiSmokeProofError(null);
         }
         setIsSseUnavailable(false);
         setError(null);
@@ -614,6 +620,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunMonitorError(toErrorMessage(monitorLoadError));
     } finally {
       setIsLoadingDemoRunMonitor(false);
+    }
+  }, []);
+
+  const loadOpenAiSmokeProof = useCallback(async (jobId: string) => {
+    setIsLoadingOpenAiSmokeProof(true);
+    try {
+      const proof = await linguaFrameApi.getOpenAiSmokeProof(jobId);
+      setOpenAiSmokeProof(proof);
+      setOpenAiSmokeProofError(null);
+    } catch (proofLoadError) {
+      setOpenAiSmokeProof(null);
+      setOpenAiSmokeProofError(toErrorMessage(proofLoadError));
+    } finally {
+      setIsLoadingOpenAiSmokeProof(false);
     }
   }, []);
 
@@ -1165,11 +1185,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadSourceMedia(nextJob.videoId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadOpenAiSmokeProof(nextJob.jobId);
       });
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadDemoSessionCommandCenter, loadJob, loadSourceMedia, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1186,6 +1207,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoRunMonitor(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadOpenAiSmokeProof(nextJob.jobId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
@@ -1209,7 +1231,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1486,6 +1508,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(upload.jobId);
       await loadDemoPresentationCockpit(upload.jobId);
       await loadDemoSessionCommandCenter(upload.jobId);
+      await loadOpenAiSmokeProof(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -1517,6 +1540,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(jobId);
     await loadDemoPresentationCockpit(jobId);
     await loadDemoSessionCommandCenter(jobId);
+    await loadOpenAiSmokeProof(jobId);
   }
 
   async function handleRetry() {
@@ -1539,6 +1563,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(retriedJob.jobId);
       await loadDemoPresentationCockpit(retriedJob.jobId);
       await loadDemoSessionCommandCenter(retriedJob.jobId);
+      await loadOpenAiSmokeProof(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -1568,6 +1593,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(cancelledJob.jobId);
       await loadDemoPresentationCockpit(cancelledJob.jobId);
       await loadDemoSessionCommandCenter(cancelledJob.jobId);
+      await loadOpenAiSmokeProof(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -1600,6 +1626,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(recentJob.jobId);
     await loadDemoPresentationCockpit(recentJob.jobId);
     await loadDemoSessionCommandCenter(recentJob.jobId);
+    await loadOpenAiSmokeProof(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -1625,6 +1652,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(historyJob.jobId);
     await loadDemoPresentationCockpit(historyJob.jobId);
     await loadDemoSessionCommandCenter(historyJob.jobId);
+    await loadOpenAiSmokeProof(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -1651,6 +1679,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(failure.jobId);
     await loadDemoPresentationCockpit(failure.jobId);
     await loadDemoSessionCommandCenter(failure.jobId);
+    await loadOpenAiSmokeProof(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -2401,6 +2430,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoPresenterPackError={demoPresenterPackError}
               demoShareSheet={demoShareSheet}
               demoShareSheetError={demoShareSheetError}
+              openAiSmokeProof={openAiSmokeProof}
+              openAiSmokeProofError={openAiSmokeProofError}
               isLoadingCacheReplayComparison={isLoadingCacheReplayComparison}
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
@@ -2413,6 +2444,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
+              isLoadingOpenAiSmokeProof={isLoadingOpenAiSmokeProof}
               onCancel={handleCancel}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
@@ -2426,6 +2458,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
+              onRefreshOpenAiSmokeProof={() => void loadOpenAiSmokeProof(job.jobId)}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
@@ -5281,6 +5314,7 @@ function JobDetail({
   isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
+  isLoadingOpenAiSmokeProof,
   onCancel,
   onClearSubtitleDraft,
   onPinCacheReplayBaseline,
@@ -5294,6 +5328,7 @@ function JobDetail({
   onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
+  onRefreshOpenAiSmokeProof,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
@@ -5309,6 +5344,8 @@ function JobDetail({
   subtitleReview,
   reviewedSubtitleWorkflow,
   reviewedSubtitleWorkflowError,
+  openAiSmokeProof,
+  openAiSmokeProofError,
   subtitles,
   transcript
 }: {
@@ -5353,6 +5390,8 @@ function JobDetail({
   demoPresenterPackError: string | null;
   demoShareSheet: DemoShareSheet | null;
   demoShareSheetError: string | null;
+  openAiSmokeProof: OpenAiSmokeProof | null;
+  openAiSmokeProofError: string | null;
   isLoadingCacheReplayComparison: boolean;
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
@@ -5365,6 +5404,7 @@ function JobDetail({
   isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
+  isLoadingOpenAiSmokeProof: boolean;
   onCancel: () => void;
   onClearSubtitleDraft: () => void;
   onPinCacheReplayBaseline: () => void;
@@ -5378,6 +5418,7 @@ function JobDetail({
   onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
+  onRefreshOpenAiSmokeProof: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
@@ -5599,6 +5640,14 @@ function JobDetail({
       />
 
       <DemoEvidencePanel evidence={demoEvidence} markdown={demoEvidenceMarkdown} />
+
+      <OpenAiSmokeProofPanel
+        error={openAiSmokeProofError}
+        isLoading={isLoadingOpenAiSmokeProof}
+        jobId={job.jobId}
+        onRefresh={onRefreshOpenAiSmokeProof}
+        proof={openAiSmokeProof}
+      />
 
       <DemoRunMatrixPanel
         error={demoRunMatrixError}
@@ -6634,6 +6683,137 @@ function DemoEvidencePanel({
       {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
       {status ? <p className="mode-line">{status}</p> : null}
       <pre className="evidence-preview">{markdown}</pre>
+    </section>
+  );
+}
+
+function OpenAiSmokeProofPanel({
+  error,
+  isLoading,
+  jobId,
+  onRefresh,
+  proof
+}: {
+  error: string | null;
+  isLoading: boolean;
+  jobId: string;
+  onRefresh: () => void;
+  proof: OpenAiSmokeProof | null;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  const handleDownload = useCallback(async () => {
+    const blob = await linguaFrameApi.downloadOpenAiSmokeProofMarkdown(jobId);
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `linguaframe-job-${sanitizeFilename(jobId)}-openai-smoke-proof.md`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(objectUrl);
+    setStatus('Smoke proof Markdown downloaded.');
+  }, [jobId]);
+
+  return (
+    <section id="openai-smoke-proof" className="panel" aria-label="OpenAI smoke proof">
+      <div className="panel-heading">
+        <div>
+          <h3>OpenAI smoke proof</h3>
+          <p className="muted">
+            {proof ? proof.recommendedNextAction : 'Post-run proof for provider-backed smoke jobs.'}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button type="button" className="secondary-button" onClick={handleDownload} disabled={!proof}>
+            Download smoke proof
+          </button>
+        </div>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="mode-line">{status}</p> : null}
+      {!proof ? <p className="muted">Smoke proof has not been loaded for this job.</p> : null}
+      {proof ? (
+        <>
+          <dl className="status-grid">
+            <div>
+              <dt>Status</dt>
+              <dd>{proof.overallStatus}</dd>
+            </div>
+            <div>
+              <dt>Phase</dt>
+              <dd>{proof.phase}</dd>
+            </div>
+            <div>
+              <dt>Completed</dt>
+              <dd>{formatDateTime(proof.completedAt)}</dd>
+            </div>
+            <div>
+              <dt>OpenAI calls</dt>
+              <dd>{proof.modelCalls.length}</dd>
+            </div>
+          </dl>
+          <div className="evidence-grid">
+            <div>
+              <h4>Required checks</h4>
+              <ul>
+                {proof.requiredChecks.map((check) => (
+                  <li key={check.name}>
+                    <strong>{check.status}</strong> {check.name}: {check.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h4>Optional evidence</h4>
+              <ul>
+                {proof.optionalChecks.map((check) => (
+                  <li key={check.name}>
+                    <strong>{check.status}</strong> {check.name}: {check.detail}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <table className="compact-table">
+            <thead>
+              <tr>
+                <th>Operation</th>
+                <th>Provider</th>
+                <th>Status</th>
+                <th>Model</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              {proof.modelCalls.map((call) => (
+                <tr key={`${call.operation}-${call.stage}-${call.model}`}>
+                  <td>{call.operation}</td>
+                  <td>{call.provider}</td>
+                  <td>{call.status}</td>
+                  <td>{call.model ?? 'N/A'}</td>
+                  <td>{formatCost(call.estimatedCostUsd ?? 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="tag-list">
+            {proof.artifacts.map((artifact) => (
+              <span key={artifact.artifactId}>{artifact.type}</span>
+            ))}
+          </div>
+          <div className="panel-actions">
+            {proof.safeLinks.map((link) => (
+              <a key={link.href} href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -9618,6 +9798,17 @@ function formatTimestamp(valueMs: number): string {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(
     milliseconds
   ).padStart(3, '0')}`;
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return 'N/A';
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toISOString();
 }
 
 function formatBytes(sizeBytes: number): string {

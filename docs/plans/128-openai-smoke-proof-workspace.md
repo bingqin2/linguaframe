@@ -1,6 +1,6 @@
 # OpenAI Smoke Proof Workspace Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a job-scoped OpenAI smoke proof workspace that verifies a completed provider-backed smoke run produced the required OpenAI calls, artifacts, quality evidence, and safe demo links.
 
@@ -38,13 +38,13 @@
   - `ATTENTION` when required proof is ready but optional evidence is missing, such as quality evaluation, TTS output, burned video, or handoff packages.
   - `BLOCKED` when the job is not completed, required OpenAI calls are missing or failed, required artifacts are missing, or the job has failed model calls.
 
-- [ ] Compose proof from `LocalizationJobQueryService.getJob(jobId)` and `JobArtifactService.listArtifacts(jobId)`.
-- [ ] Check required OpenAI model calls by `ModelCallProvider.OPENAI`, `ModelCallStatus.SUCCEEDED`, and operations `TRANSCRIPTION` and `TRANSLATION`.
-- [ ] Check required artifacts by `JobArtifactType.TRANSCRIPT_JSON`, `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, and `TARGET_SUBTITLE_VTT`.
-- [ ] Add optional checks for `qualityEvaluation`, `DUBBING_AUDIO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, `/api/jobs/{jobId}/demo-run-package/download`, and `/api/jobs/{jobId}/ai-audit-package/download`.
-- [ ] Render model-call proof with stage, operation, provider, model, prompt version, status, latency, usage counters, estimated cost, and safe error summary only.
-- [ ] Add tests for `READY`, `ATTENTION`, `BLOCKED`, missing job propagation, and unsafe marker exclusion.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=OpenAiSmokeProofServiceTests`.
+- [x] Compose proof from `LocalizationJobQueryService.getJob(jobId)` and `JobArtifactService.listArtifacts(jobId)`.
+- [x] Check required OpenAI model calls by `ModelCallProvider.OPENAI`, `ModelCallStatus.SUCCEEDED`, and operations `TRANSCRIPTION` and `TRANSLATION`.
+- [x] Check required artifacts by `JobArtifactType.TRANSCRIPT_JSON`, `TARGET_SUBTITLE_JSON`, `TARGET_SUBTITLE_SRT`, and `TARGET_SUBTITLE_VTT`.
+- [x] Add optional checks for `qualityEvaluation`, `DUBBING_AUDIO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, `/api/jobs/{jobId}/demo-run-package/download`, and `/api/jobs/{jobId}/ai-audit-package/download`.
+- [x] Render model-call proof with stage, operation, provider, model, prompt version, status, latency, usage counters, estimated cost, and safe error summary only.
+- [x] Add tests for `READY`, `ATTENTION`, `BLOCKED`, missing job propagation, and unsafe marker exclusion.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=OpenAiSmokeProofServiceTests`.
 
 ## Task 2: Job API Endpoints
 
@@ -54,13 +54,13 @@
 
 **Interfaces:**
 - `GET /api/jobs/{jobId}/openai-smoke-proof` returns `OpenAiSmokeProofVo`.
-- `GET /api/jobs/{jobId}/openai-smoke-proof/markdown/download` returns `openai-smoke-proof-{jobId}.md`.
+- `GET /api/jobs/{jobId}/openai-smoke-proof/markdown/download` returns `linguaframe-job-{jobId}-openai-smoke-proof.md`.
 
-- [ ] Inject `OpenAiSmokeProofService` into `LocalizationJobController`.
-- [ ] Add JSON and Markdown endpoints beside existing selected-job evidence routes.
-- [ ] Ensure endpoints inherit the existing private-demo token and bearer-token protection.
-- [ ] Add MockMvc coverage for JSON status, Markdown attachment headers, safe content, 404 propagation, and auth protection.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests`.
+- [x] Inject `OpenAiSmokeProofService` into `LocalizationJobController`.
+- [x] Add JSON and Markdown endpoints beside existing selected-job evidence routes.
+- [x] Ensure endpoints inherit the existing private-demo token and bearer-token protection.
+- [x] Add MockMvc coverage for JSON status, Markdown attachment headers, safe content, 404 propagation, and auth protection.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests`.
 
 ## Task 3: Frontend Selected-Job Proof Panel
 
@@ -75,14 +75,14 @@
 - `getOpenAiSmokeProof(jobId: string): Promise<OpenAiSmokeProof>`
 - `downloadOpenAiSmokeProofMarkdown(jobId: string): Promise<Blob>`
 
-- [ ] Add TypeScript types matching the backend proof records.
-- [ ] Add API helpers using existing owner-session token and bearer-header behavior.
-- [ ] Load proof whenever a selected job is loaded, refreshed, retried, or selected from history.
-- [ ] Add an `OpenAI smoke proof` panel in the selected-job evidence area with overall status, required checks, OpenAI call rows, artifact rows, optional evidence, next action, and download action.
-- [ ] Keep the rest of selected-job UI usable if proof loading fails.
-- [ ] Add Vitest coverage for API paths, panel rendering, failure state, Markdown download, and unsafe marker absence.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript types matching the backend proof records.
+- [x] Add API helpers using existing owner-session token and bearer-header behavior.
+- [x] Load proof whenever a selected job is loaded, refreshed, retried, or selected from history.
+- [x] Add an `OpenAI smoke proof` panel in the selected-job evidence area with overall status, required checks, OpenAI call rows, artifact rows, optional evidence, next action, and download action.
+- [x] Keep the rest of selected-job UI usable if proof loading fails.
+- [x] Add Vitest coverage for API paths, panel rendering, failure state, Markdown download, and unsafe marker absence.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script And OpenAI Smoke Runner Export
 
@@ -101,28 +101,28 @@
 - Default output directory: `/tmp/linguaframe-demo/openai-smoke-proof/`.
 - Script output keys: `openAiSmokeProofStatus`, `openAiSmokeProofPhase`, `openAiSmokeProofRequiredReadyCount`, `openAiSmokeProofRequiredBlockedCount`, `openAiSmokeProofJsonPath`, and `openAiSmokeProofMarkdownPath`.
 
-- [ ] Implement a script that downloads JSON and Markdown proof, prints a Python summary, and exits non-zero on `BLOCKED` unless `LINGUAFRAME_OPENAI_SMOKE_PROOF_REPORT_ONLY=true`.
-- [ ] Add helper functions for proof JSON and Markdown download in `scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Extend `docker-e2e-openai-smoke.sh` to save `openai-smoke-proof.json` and `openai-smoke-proof.md` in the smoke output directory after job completion.
-- [ ] Document when to use OpenAI readiness evidence before upload versus OpenAI smoke proof after upload.
-- [ ] Record validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/openai-smoke-proof.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Implement a script that downloads JSON and Markdown proof, prints a Python summary, and exits non-zero on `BLOCKED` unless `LINGUAFRAME_OPENAI_SMOKE_PROOF_REPORT_ONLY=true`.
+- [x] Add helper functions for proof JSON and Markdown download in `scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Extend `docker-e2e-openai-smoke.sh` to save `openai-smoke-proof.json` and `openai-smoke-proof.md` in the smoke output directory after job completion.
+- [x] Document when to use OpenAI readiness evidence before upload versus OpenAI smoke proof after upload.
+- [x] Record validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/openai-smoke-proof.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/128-openai-smoke-proof-workspace.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame test -Dtest=OpenAiSmokeProofServiceTests,LocalizationJobControllerTests`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`
   `npm run build`
   `bash -n scripts/demo/openai-smoke-proof.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run full safety checks:
+- [x] Run full safety checks:
   `mvn -pl LinguaFrame test`
   `npm test -- --run`
   `git diff --check`
-- [ ] Commit as `Add OpenAI smoke proof workspace`.
-- [ ] Merge `openai-smoke-proof-workspace` back to `main` after validation passes.
+- [x] Commit as `Add OpenAI smoke proof workspace`.
+- [x] Merge `openai-smoke-proof-workspace` back to `main` after validation passes.

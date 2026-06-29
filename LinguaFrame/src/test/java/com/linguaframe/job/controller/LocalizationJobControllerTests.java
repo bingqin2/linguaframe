@@ -724,6 +724,121 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsOpenAiSmokeProofForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:45:00Z");
+        createJob("job-video-openai-smoke-proof", "job-controller-openai-smoke-proof", "openai-smoke.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-openai-smoke-proof",
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSCRIPTION,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini-transcribe",
+                "openai-audio-transcriptions-v1",
+                250L,
+                null,
+                null,
+                new BigDecimal("30.0"),
+                null,
+                "audioSeconds=30",
+                "segments=4"
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-openai-smoke-proof",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4.1-mini",
+                "openai-subtitle-translation-v1",
+                550L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=4",
+                "translatedSegmentCount=4"
+        ));
+        qualityEvaluationRepository.save(quality("quality-openai-smoke-proof", "job-controller-openai-smoke-proof", 91, createdAt.plusSeconds(20)));
+        saveSmokeProofArtifact("smoke-proof-transcript-json", "job-controller-openai-smoke-proof", JobArtifactType.TRANSCRIPT_JSON);
+        saveSmokeProofArtifact("smoke-proof-target-json", "job-controller-openai-smoke-proof", JobArtifactType.TARGET_SUBTITLE_JSON);
+        saveSmokeProofArtifact("smoke-proof-target-srt", "job-controller-openai-smoke-proof", JobArtifactType.TARGET_SUBTITLE_SRT);
+        saveSmokeProofArtifact("smoke-proof-target-vtt", "job-controller-openai-smoke-proof", JobArtifactType.TARGET_SUBTITLE_VTT);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/openai-smoke-proof",
+                        "job-controller-openai-smoke-proof"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-openai-smoke-proof"))
+                .andExpect(jsonPath("$.overallStatus").value("ATTENTION"))
+                .andExpect(jsonPath("$.phase").value("OPENAI_SMOKE_NEEDS_REVIEW"))
+                .andExpect(jsonPath("$.requiredChecks[?(@.name == 'OpenAI transcription call')].status").value("READY"))
+                .andExpect(jsonPath("$.requiredChecks[?(@.name == 'OpenAI translation call')].status").value("READY"))
+                .andExpect(jsonPath("$.modelCalls[?(@.operation == 'TRANSCRIPTION')].provider").value("OPENAI"))
+                .andExpect(jsonPath("$.artifacts[?(@.type == 'TARGET_SUBTITLE_SRT')].filename").value("target-subtitles.zh-CN.srt"))
+                .andExpect(jsonPath("$.safeLinks[?(@.href == '/api/jobs/job-controller-openai-smoke-proof/ai-audit-package/download')].label").value("AI audit package"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsOpenAiSmokeProofMarkdownForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T02:50:00Z");
+        createJob("job-video-openai-smoke-proof-md", "job-controller-openai-smoke-proof-md", "openai-smoke-md.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-openai-smoke-proof-md",
+                LocalizationJobStage.TRANSCRIPT_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSCRIPTION,
+                ModelCallProvider.OPENAI,
+                "gpt-4o-mini-transcribe",
+                "openai-audio-transcriptions-v1",
+                250L,
+                null,
+                null,
+                new BigDecimal("30.0"),
+                null,
+                "audioSeconds=30",
+                "segments=4"
+        ));
+        modelCallAuditService.recordSuccess(new CreateModelCallRecordCommand(
+                "job-controller-openai-smoke-proof-md",
+                LocalizationJobStage.TARGET_SUBTITLE_EXPORT,
+                ModelCallOperation.TRANSLATION,
+                ModelCallProvider.OPENAI,
+                "gpt-4.1-mini",
+                "openai-subtitle-translation-v1",
+                550L,
+                1000,
+                500,
+                null,
+                null,
+                "target=zh-CN, segments=4",
+                "translatedSegmentCount=4"
+        ));
+        saveSmokeProofArtifact("smoke-proof-md-transcript-json", "job-controller-openai-smoke-proof-md", JobArtifactType.TRANSCRIPT_JSON);
+        saveSmokeProofArtifact("smoke-proof-md-target-json", "job-controller-openai-smoke-proof-md", JobArtifactType.TARGET_SUBTITLE_JSON);
+        saveSmokeProofArtifact("smoke-proof-md-target-srt", "job-controller-openai-smoke-proof-md", JobArtifactType.TARGET_SUBTITLE_SRT);
+        saveSmokeProofArtifact("smoke-proof-md-target-vtt", "job-controller-openai-smoke-proof-md", JobArtifactType.TARGET_SUBTITLE_VTT);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/openai-smoke-proof/markdown/download",
+                        "job-controller-openai-smoke-proof-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-openai-smoke-proof-md-openai-smoke-proof.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame OpenAI Smoke Proof")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Overall status: ATTENTION")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("OpenAI transcription call")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/api/jobs/job-controller-openai-smoke-proof-md/openai-smoke-proof/markdown/download")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(
@@ -2860,5 +2975,40 @@ class LocalizationJobControllerTests {
                 null,
                 Instant.parse("2026-06-27T15:40:00Z")
         );
+    }
+
+    private void saveSmokeProofArtifact(String artifactId, String jobId, JobArtifactType type) {
+        artifactRepository.save(new JobArtifactRecord(
+                artifactId,
+                jobId,
+                type,
+                "job-artifacts/" + jobId + "/" + artifactId + "/" + smokeProofFilename(type),
+                smokeProofFilename(type),
+                smokeProofContentType(type),
+                128L,
+                artifactId + "-hash",
+                false,
+                null,
+                Instant.parse("2026-06-27T15:45:00Z")
+        ));
+    }
+
+    private String smokeProofFilename(JobArtifactType type) {
+        return switch (type) {
+            case TRANSCRIPT_JSON -> "transcript.json";
+            case TARGET_SUBTITLE_JSON -> "target-subtitles.zh-CN.json";
+            case TARGET_SUBTITLE_SRT -> "target-subtitles.zh-CN.srt";
+            case TARGET_SUBTITLE_VTT -> "target-subtitles.zh-CN.vtt";
+            default -> type.name().toLowerCase() + ".bin";
+        };
+    }
+
+    private String smokeProofContentType(JobArtifactType type) {
+        return switch (type) {
+            case TRANSCRIPT_JSON, TARGET_SUBTITLE_JSON -> "application/json";
+            case TARGET_SUBTITLE_SRT -> "application/x-subrip";
+            case TARGET_SUBTITLE_VTT -> "text/vtt";
+            default -> "application/octet-stream";
+        };
     }
 }

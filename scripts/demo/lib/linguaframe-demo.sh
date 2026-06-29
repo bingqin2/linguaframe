@@ -455,6 +455,28 @@ download_demo_run_snapshot_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-snapshot/download" -o "$output_path"
 }
 
+download_openai_smoke_proof_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/openai-smoke-proof" -o "$output_path"
+}
+
+download_openai_smoke_proof_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/openai-smoke-proof/markdown/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"

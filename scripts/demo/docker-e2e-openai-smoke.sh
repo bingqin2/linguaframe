@@ -91,6 +91,8 @@ fi
 download_job_evidence_bundle "$BASE_URL" "$job_id" "$OUTPUT_DIR/job-evidence.zip"
 download_demo_run_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-package.zip"
 download_ai_audit_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/ai-audit-package.zip"
+download_openai_smoke_proof_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.json"
+download_openai_smoke_proof_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.md"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
@@ -112,6 +114,22 @@ print_quality_evidence_markdown_summary "$OUTPUT_DIR/quality-evidence.md" "$job_
 print_evidence_bundle_summary "$OUTPUT_DIR/job-evidence.zip" "$job_id"
 print_demo_run_package_summary "$OUTPUT_DIR/demo-run-package.zip" "$job_id"
 print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
+python3 - "$OUTPUT_DIR/openai-smoke-proof.json" "$OUTPUT_DIR/openai-smoke-proof.md" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+proof = json.loads(json_path.read_text(encoding="utf-8"))
+required = proof.get("requiredChecks") or []
+
+print("openAiSmokeProofStatus=" + str(proof.get("overallStatus")))
+print("openAiSmokeProofPhase=" + str(proof.get("phase")))
+print("openAiSmokeProofRequiredBlockedCount=" + str(sum(1 for check in required if check.get("status") == "BLOCKED")))
+print("openAiSmokeProofJsonPath=" + str(json_path))
+print("openAiSmokeProofMarkdownPath=" + str(markdown_path))
+PY
 print_source_media_summary "$OUTPUT_DIR/source-media.json" "$job_id"
 
 cat <<EOF

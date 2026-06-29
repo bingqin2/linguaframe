@@ -454,7 +454,8 @@ Expected:
 - The job reaches `COMPLETED`.
 - Job summary includes successful `OPENAI` model calls for transcription and translation.
 - Quality evaluation score, verdict, and status are printed when evaluation is enabled.
-- Evidence files are written under `/tmp/linguaframe-demo/openai-smoke/`.
+- Evidence files are written under `/tmp/linguaframe-demo/openai-smoke/`, including `openai-smoke-proof.json` and `openai-smoke-proof.md`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/openai-smoke-proof.sh` can re-export the same post-run proof under `/tmp/linguaframe-demo/openai-smoke-proof/`.
 - Output and evidence do not include `OPENAI_API_KEY`, bearer headers, raw provider payloads, object keys, or raw local paths.
 
 Inspect the downloaded artifacts:

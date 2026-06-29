@@ -794,6 +794,15 @@ LINGUAFRAME_OPENAI_READINESS_REPORT_ONLY=true scripts/demo/openai-readiness-evid
 
 The script calls `GET /api/operator/openai-readiness-evidence` and `GET /api/operator/openai-readiness-evidence/markdown/download`, writing JSON and Markdown under `/tmp/linguaframe-demo/openai-readiness-evidence/`. It does not upload media or call transcription, translation, TTS, or evaluation. Use it before `openai-demo-preflight.sh` when you want a shareable readiness report; use `openai-demo-preflight.sh` for strict local env/live-check validation, `docker-e2e-openai-smoke.sh` for the paid proof run, upload readiness for upload gates, live checks for raw dependency probes, and model usage ledger for post-run cost/failure evidence.
 
+After a paid OpenAI smoke job completes, use the selected-job `OpenAI smoke proof` panel or terminal proof script to verify the actual run:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/openai-smoke-proof.sh
+LINGUAFRAME_OPENAI_SMOKE_PROOF_REPORT_ONLY=true LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/openai-smoke-proof.sh
+```
+
+The proof calls `GET /api/jobs/{jobId}/openai-smoke-proof` and its Markdown download endpoint, writing JSON and Markdown under `/tmp/linguaframe-demo/openai-smoke-proof/`. `scripts/demo/docker-e2e-openai-smoke.sh` now saves the same `openai-smoke-proof.json` and `.md` inside `/tmp/linguaframe-demo/openai-smoke/`. Use readiness evidence before upload; use smoke proof after completion to confirm successful OpenAI transcription and translation calls, required subtitle artifacts, optional quality/TTS evidence, and safe package links.
+
 The React `Demo readiness` panel shows whether budget guard is enabled plus the configured per-job and daily demo budget limits. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
 
 ```bash

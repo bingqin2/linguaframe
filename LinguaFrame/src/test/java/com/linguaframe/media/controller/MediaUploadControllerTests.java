@@ -4,6 +4,10 @@ import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.exception.UnreadableMediaException;
 import com.linguaframe.media.service.MediaDurationProbeService;
+import com.linguaframe.common.runtime.domain.enums.RuntimeProbeStatus;
+import com.linguaframe.common.runtime.domain.vo.RuntimeLiveCheckSummaryVo;
+import com.linguaframe.common.runtime.domain.vo.RuntimeProbeResultVo;
+import com.linguaframe.common.runtime.service.RuntimeLiveCheckService;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
@@ -22,6 +26,7 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.zip.ZipInputStream;
@@ -52,6 +57,9 @@ class MediaUploadControllerTests {
     @MockitoBean
     private MediaDurationProbeService mediaDurationProbeService;
 
+    @MockitoBean
+    private RuntimeLiveCheckService runtimeLiveCheckService;
+
     @Autowired
     private LocalizationJobRepository jobRepository;
 
@@ -74,6 +82,18 @@ class MediaUploadControllerTests {
         properties.getOwnerQuota().setMaxQueuedJobs(0);
         properties.getOwnerQuota().setDailyBudgetGuardEnabled(false);
         properties.getOwnerQuota().setMaxDailyCostUsd(java.math.BigDecimal.ZERO);
+        when(runtimeLiveCheckService.check()).thenReturn(liveChecks());
+    }
+
+    private RuntimeLiveCheckSummaryVo liveChecks() {
+        Map<String, RuntimeProbeResultVo> checks = new LinkedHashMap<>();
+        checks.put("database", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "Database query succeeded"));
+        checks.put("redis", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "Redis ping succeeded"));
+        checks.put("rabbitmq", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "RabbitMQ connection opened"));
+        checks.put("minio", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "MinIO bucket is reachable"));
+        checks.put("ffmpeg", new RuntimeProbeResultVo(RuntimeProbeStatus.UP, 1L, "FFmpeg binary responded"));
+        checks.put("openai", new RuntimeProbeResultVo(RuntimeProbeStatus.SKIPPED, 1L, "OpenAI connectivity check is disabled"));
+        return new RuntimeLiveCheckSummaryVo(true, Instant.parse("2026-06-28T00:00:00Z"), checks);
     }
 
     @Test

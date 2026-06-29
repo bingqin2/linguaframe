@@ -80,6 +80,65 @@ export interface DemoEvidenceClosurePackage {
   safetyNotes: string[];
 }
 
+export type OpenAiSmokeProofStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface OpenAiSmokeProofCheck {
+  name: string;
+  status: OpenAiSmokeProofStatus;
+  detail: string;
+  nextAction: string;
+}
+
+export interface OpenAiSmokeProofCall {
+  stage: string;
+  operation: string;
+  provider: string;
+  model: string | null;
+  promptVersion: string | null;
+  status: string;
+  latencyMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  audioSeconds: number | null;
+  characterCount: number | null;
+  estimatedCostUsd: number | null;
+  safeErrorSummary: string | null;
+}
+
+export interface OpenAiSmokeProofArtifact {
+  artifactId: string;
+  type: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  contentSha256: string | null;
+  cacheHit: boolean;
+  createdAt: string | null;
+}
+
+export interface OpenAiSmokeProofLink {
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface OpenAiSmokeProof {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  overallStatus: OpenAiSmokeProofStatus;
+  phase: string;
+  recommendedNextAction: string;
+  completedAt: string | null;
+  requiredChecks: OpenAiSmokeProofCheck[];
+  optionalChecks: OpenAiSmokeProofCheck[];
+  modelCalls: OpenAiSmokeProofCall[];
+  artifacts: OpenAiSmokeProofArtifact[];
+  safeLinks: OpenAiSmokeProofLink[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'

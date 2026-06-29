@@ -449,7 +449,15 @@ LINGUAFRAME_DEMO_SAMPLE_PATH=/absolute/path/to/short-speech.mp4 \
 scripts/demo/docker-e2e-openai-smoke.sh
 ```
 
-Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, AI audit package, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
+Expected output includes successful `MODEL_CALL TRANSCRIPTION OPENAI ... SUCCEEDED` and `MODEL_CALL TRANSLATION OPENAI ... SUCCEEDED`, quality score output when evaluation is enabled, downloaded artifacts under `/tmp/linguaframe-demo/openai-smoke/`, diagnostics, backend evidence Markdown, evidence bundle, demo run package, AI audit package, OpenAI smoke proof JSON/Markdown, and result bundle. This path can consume OpenAI credits and must never print or commit the API key.
+
+For an already completed smoke job, export only the post-run proof:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/openai-smoke-proof.sh
+```
+
+The proof is metadata-only and checks successful OpenAI transcription and translation calls, required transcript/target-subtitle artifacts, optional quality/TTS evidence, and safe package links.
 
 ## Optional OpenAI Transcription Demo
 

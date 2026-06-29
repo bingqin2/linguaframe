@@ -31,6 +31,7 @@ import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
@@ -59,6 +60,7 @@ import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.OpenAiSmokeProofService;
 import com.linguaframe.job.service.QualityEvaluationEvidenceService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
 import com.linguaframe.job.service.ReviewedSubtitleWorkflowService;
@@ -118,6 +120,7 @@ public class LocalizationJobController {
     private final DemoShareSheetService demoShareSheetService;
     private final JobComparisonService jobComparisonService;
     private final QualityEvaluationEvidenceService qualityEvaluationEvidenceService;
+    private final OpenAiSmokeProofService openAiSmokeProofService;
     private final TranscriptService transcriptService;
     private final SubtitleService subtitleService;
     private final SubtitleDraftService subtitleDraftService;
@@ -150,6 +153,7 @@ public class LocalizationJobController {
             DemoShareSheetService demoShareSheetService,
             JobComparisonService jobComparisonService,
             QualityEvaluationEvidenceService qualityEvaluationEvidenceService,
+            OpenAiSmokeProofService openAiSmokeProofService,
             TranscriptService transcriptService,
             SubtitleService subtitleService,
             SubtitleDraftService subtitleDraftService,
@@ -181,6 +185,7 @@ public class LocalizationJobController {
         this.demoShareSheetService = demoShareSheetService;
         this.jobComparisonService = jobComparisonService;
         this.qualityEvaluationEvidenceService = qualityEvaluationEvidenceService;
+        this.openAiSmokeProofService = openAiSmokeProofService;
         this.transcriptService = transcriptService;
         this.subtitleService = subtitleService;
         this.subtitleDraftService = subtitleDraftService;
@@ -721,6 +726,45 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(aiAuditPackage.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/openai-smoke-proof")
+    @Operation(summary = "Get post-run OpenAI smoke proof for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OpenAI smoke proof was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public OpenAiSmokeProofVo getOpenAiSmokeProof(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return openAiSmokeProofService.getProof(jobId);
+    }
+
+    @GetMapping("/{jobId}/openai-smoke-proof/markdown/download")
+    @Operation(summary = "Download post-run OpenAI smoke proof Markdown for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OpenAI smoke proof Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadOpenAiSmokeProofMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = openAiSmokeProofService.renderMarkdown(jobId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-openai-smoke-proof.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping("/{jobId}/comparison/{comparisonJobId}")
