@@ -29,7 +29,13 @@ class FfmpegAudioReplacementServiceTests {
         RecordingCommandRunner runner = new RecordingCommandRunner(0, "", false);
         FfmpegAudioReplacementService service = new FfmpegAudioReplacementServiceImpl(properties(), runner);
 
-        var result = service.replaceAudio(new ReplaceVideoAudioCommand("job-1", inputVideo, inputAudio, output));
+        var result = service.replaceAudio(new ReplaceVideoAudioCommand(
+                "job-1",
+                inputVideo,
+                inputAudio,
+                output,
+                "dubbed-video.mp4"
+        ));
 
         assertThat(runner.lastCommand).containsExactly(
                 "ffmpeg",
@@ -57,6 +63,30 @@ class FfmpegAudioReplacementServiceTests {
     }
 
     @Test
+    void returnsCallerRequestedOutputFilename() throws IOException {
+        Path inputVideo = tempDir.resolve("base-video.mp4");
+        Path inputAudio = tempDir.resolve("narration-audio.mp3");
+        Path output = tempDir.resolve("narrated-video.mp4");
+        Files.write(inputVideo, new byte[] {1, 2, 3});
+        Files.write(inputAudio, new byte[] {4, 5, 6});
+        RecordingCommandRunner runner = new RecordingCommandRunner(0, "", false);
+        FfmpegAudioReplacementService service = new FfmpegAudioReplacementServiceImpl(properties(), runner);
+
+        var result = service.replaceAudio(new ReplaceVideoAudioCommand(
+                "job-narrated",
+                inputVideo,
+                inputAudio,
+                output,
+                "narrated-video.mp4"
+        ));
+
+        assertThat(runner.lastCommand).endsWith(output.toString());
+        assertThat(result.filename()).isEqualTo("narrated-video.mp4");
+        assertThat(result.contentType()).isEqualTo("video/mp4");
+        assertThat(result.content()).containsExactly(7, 8, 9);
+    }
+
+    @Test
     void failsWithSafeErrorSummaryWhenFfmpegReturnsNonZero() throws IOException {
         Path inputVideo = tempDir.resolve("bad-video.mp4");
         Path inputAudio = tempDir.resolve("bad-audio.mp3");
@@ -68,7 +98,13 @@ class FfmpegAudioReplacementServiceTests {
                 new RecordingCommandRunner(1, "very long ffmpeg stderr ".repeat(50), false)
         );
 
-        assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand("job-2", inputVideo, inputAudio, output)))
+        assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand(
+                "job-2",
+                inputVideo,
+                inputAudio,
+                output,
+                "dubbed-video.mp4"
+        )))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("FFmpeg audio replacement failed")
                 .hasMessageNotContaining("repeat");
@@ -84,7 +120,13 @@ class FfmpegAudioReplacementServiceTests {
         RecordingCommandRunner runner = new RecordingCommandRunner(0, "", true);
         FfmpegAudioReplacementService service = new FfmpegAudioReplacementServiceImpl(properties(), runner);
 
-        assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand("job-3", inputVideo, inputAudio, output)))
+        assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand(
+                "job-3",
+                inputVideo,
+                inputAudio,
+                output,
+                "dubbed-video.mp4"
+        )))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("FFmpeg audio replacement timed out.");
         assertThat(runner.destroyed).isTrue();
@@ -101,7 +143,13 @@ class FfmpegAudioReplacementServiceTests {
         FfmpegAudioReplacementService service = new FfmpegAudioReplacementServiceImpl(properties(), runner);
 
         try {
-            assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand("job-4", inputVideo, inputAudio, output)))
+            assertThatThrownBy(() -> service.replaceAudio(new ReplaceVideoAudioCommand(
+                    "job-4",
+                    inputVideo,
+                    inputAudio,
+                    output,
+                    "dubbed-video.mp4"
+            )))
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessage("FFmpeg audio replacement failed.");
             assertThat(runner.destroyed).isTrue();

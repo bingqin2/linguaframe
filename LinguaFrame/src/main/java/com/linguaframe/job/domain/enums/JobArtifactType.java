@@ -16,6 +16,7 @@ public enum JobArtifactType {
     NARRATION_AUDIO,
     BURNED_VIDEO,
     DUBBED_VIDEO,
+    NARRATED_VIDEO,
     REVIEWED_BURNED_VIDEO,
     WORKER_SUMMARY
 }

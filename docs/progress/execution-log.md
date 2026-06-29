@@ -3661,6 +3661,18 @@ Validation so far:
 
 Work:
 
+- Planned narrated video export in `docs/plans/133-narrated-video-export.md`.
+- Added `NARRATED_VIDEO` as a separate playable artifact type.
+- Extended the FFmpeg audio replacement command with caller-selected output filenames so existing dubbed-video delivery keeps `dubbed-video.mp4` while narrated export can produce `narrated-video.mp4`.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests -q` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned time-coded narration workspace MVP in `docs/plans/132-time-coded-narration-workspace-mvp.md`.
 - Added persisted job-level narration segments with validation, workspace APIs, replacement/clear behavior, and repository coverage.
 - Added narration audio generation through the existing TTS provider boundary, storing output as `NARRATION_AUDIO` without replacing subtitle dubbing or video delivery artifacts.

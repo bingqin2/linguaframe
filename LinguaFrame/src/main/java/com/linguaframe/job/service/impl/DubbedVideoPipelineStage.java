@@ -74,7 +74,8 @@ public class DubbedVideoPipelineStage implements LocalizationPipelineStage {
                     jobId,
                     inputVideoPath,
                     inputAudioPath,
-                    outputVideoPath
+                    outputVideoPath,
+                    "dubbed-video.mp4"
             ));
             artifactService.createArtifact(new CreateJobArtifactCommand(
                     jobId,

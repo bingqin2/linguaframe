@@ -78,7 +78,7 @@ public class FfmpegAudioReplacementServiceImpl implements FfmpegAudioReplacement
         }
         try {
             return new DubbedVideoBo(
-                    "dubbed-video.mp4",
+                    command.outputFilename(),
                     "video/mp4",
                     Files.readAllBytes(command.outputVideoPath())
             );

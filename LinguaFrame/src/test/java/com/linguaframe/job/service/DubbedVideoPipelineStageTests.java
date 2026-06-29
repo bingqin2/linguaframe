@@ -87,6 +87,7 @@ class DubbedVideoPipelineStageTests {
         assertThat(Files.readAllBytes(replacementService.command.inputAudioPath())).containsExactly(4, 5, 6);
         assertThat(replacementService.command.outputVideoPath())
                 .isEqualTo(workDirectoryService.workDirectory.resolve("dubbed-video.mp4"));
+        assertThat(replacementService.command.outputFilename()).isEqualTo("dubbed-video.mp4");
         assertThat(artifactService.commands).hasSize(1);
         CreateJobArtifactCommand command = artifactService.commands.getFirst();
         assertThat(command.jobId()).isEqualTo("dubbed-video-job-1");

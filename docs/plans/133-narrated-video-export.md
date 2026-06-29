@@ -33,14 +33,14 @@
 - Extend `ReplaceVideoAudioCommand` to include `String outputFilename`.
 - Keep existing `FfmpegAudioReplacementService.replaceAudio(ReplaceVideoAudioCommand)` signature.
 
-- [ ] Add enum value `NARRATED_VIDEO` next to other playable video artifacts.
-- [ ] Add `outputFilename` to `ReplaceVideoAudioCommand` so callers can request `dubbed-video.mp4` or `narrated-video.mp4`.
-- [ ] Update `DubbedVideoPipelineStage` construction sites to pass `dubbed-video.mp4`.
-- [ ] Update `FfmpegAudioReplacementServiceImpl` to return `command.outputFilename()` instead of hardcoded `dubbed-video.mp4`.
-- [ ] Preserve current FFmpeg command behavior: copy video stream, encode AAC audio, use `-shortest`, and `+faststart`.
-- [ ] Add/update tests proving existing dubbed-video output still returns `dubbed-video.mp4` and custom output returns `narrated-video.mp4`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add enum value `NARRATED_VIDEO` next to other playable video artifacts.
+- [x] Add `outputFilename` to `ReplaceVideoAudioCommand` so callers can request `dubbed-video.mp4` or `narrated-video.mp4`.
+- [x] Update `DubbedVideoPipelineStage` construction sites to pass `dubbed-video.mp4`.
+- [x] Update `FfmpegAudioReplacementServiceImpl` to return `command.outputFilename()` instead of hardcoded `dubbed-video.mp4`.
+- [x] Preserve current FFmpeg command behavior: copy video stream, encode AAC audio, use `-shortest`, and `+faststart`.
+- [x] Add/update tests proving existing dubbed-video output still returns `dubbed-video.mp4` and custom output returns `narrated-video.mp4`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 2: Backend Narrated Video Generation API
 

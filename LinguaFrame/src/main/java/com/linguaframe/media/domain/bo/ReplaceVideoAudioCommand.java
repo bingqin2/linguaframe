@@ -6,6 +6,7 @@ public record ReplaceVideoAudioCommand(
         String jobId,
         Path inputVideoPath,
         Path inputAudioPath,
-        Path outputVideoPath
+        Path outputVideoPath,
+        String outputFilename
 ) {
 }
