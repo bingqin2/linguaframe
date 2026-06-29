@@ -17,6 +17,7 @@ Environment:
   LINGUAFRAME_FULL_DEMO_OUTPUT_DIR          Default: /tmp/linguaframe-demo/tears-of-steel-full
   LINGUAFRAME_FULL_DEMO_WAIT_ATTEMPTS       Default: 240
   LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS  Default: 5
+  LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET   Default: false
   LINGUAFRAME_COMPARISON_BASELINE_JOB_ID    Optional completed baseline job to compare against
 USAGE
 }
@@ -35,6 +36,7 @@ OUTPUT_DIR="${LINGUAFRAME_FULL_DEMO_OUTPUT_DIR:-/tmp/linguaframe-demo/tears-of-s
 WAIT_ATTEMPTS="${LINGUAFRAME_FULL_DEMO_WAIT_ATTEMPTS:-240}"
 WAIT_DELAY_SECONDS="${LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS:-5}"
 COMPARISON_BASELINE_JOB_ID="${LINGUAFRAME_COMPARISON_BASELINE_JOB_ID:-}"
+APPLY_NARRATION_DEMO_PRESET="${LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET:-false}"
 
 if [[ ! -s "$SAMPLE_PATH" ]]; then
   echo "Missing Tears of Steel sample: $SAMPLE_PATH" >&2
@@ -138,6 +140,16 @@ download_subtitle_review_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/su
 download_subtitle_review_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.zip"
 print_subtitle_review_evidence_summary_file "$OUTPUT_DIR/subtitle-review-evidence.json" "$OUTPUT_DIR/subtitle-review-evidence.md" "$OUTPUT_DIR/subtitle-review-evidence.zip"
 echo "Downloaded subtitle review evidence to $OUTPUT_DIR/subtitle-review-evidence.json, $OUTPUT_DIR/subtitle-review-evidence.md, and $OUTPUT_DIR/subtitle-review-evidence.zip"
+
+if [[ "$APPLY_NARRATION_DEMO_PRESET" == "true" ]]; then
+  echo "Narration demo preset:"
+  LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+    LINGUAFRAME_NARRATION_DEMO_PRESET_PROFILE_ID="${LINGUAFRAME_NARRATION_DEMO_PRESET_PROFILE_ID:-${LINGUAFRAME_DEMO_PROFILE_ID:-tears-showcase}}" \
+    LINGUAFRAME_NARRATION_DEMO_PRESET_OUTPUT_DIR="$OUTPUT_DIR/narration-demo-preset" \
+    "$SCRIPT_DIR/narration-demo-preset.sh"
+else
+  echo "Skipping narration demo preset. Set LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true to apply the profile narration preset before evidence export."
+fi
 
 echo "Narration evidence:"
 download_narration_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.json"

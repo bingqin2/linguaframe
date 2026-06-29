@@ -61,6 +61,7 @@ Stage 1 goals:
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.
+- Validate demo narration setup through the browser `Demo narration preset` panel, backend preset apply response, terminal `scripts/demo/narration-demo-preset.sh`, and optional full Tears preset application before narration evidence export.
 - Validate final demo readiness through the browser `Demo acceptance gate`, backend gate JSON, and terminal full-video `demo-acceptance-gate.json` output.
 - Validate offline reviewer handoff through the browser `Demo handoff portal`, backend portal JSON/Markdown/ZIP, and terminal full-video `demo-handoff-portal.zip` output.
 - Keep secrets local.

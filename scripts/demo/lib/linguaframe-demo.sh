@@ -587,6 +587,42 @@ download_narration_workspace_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-workspace" -o "$output_path"
 }
 
+download_narration_demo_presets_json() {
+  local base_url="$1"
+  local output_path="$2"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/demo-run-profiles/narration-presets" -o "$output_path"
+}
+
+download_narration_demo_preset_json() {
+  local base_url="$1"
+  local profile_id="$2"
+  local output_path="$3"
+  local encoded_profile_id
+  encoded_profile_id="$(url_encode_path_segment "$profile_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/demo-run-profiles/$encoded_profile_id/narration-preset" -o "$output_path"
+}
+
+apply_narration_demo_preset_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local preset_id="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"presetId\":\"$preset_id\",\"replaceExisting\":true}" \
+    "$base_url/api/jobs/$encoded_job_id/narration-demo-preset/apply" \
+    -o "$output_path"
+}
+
 generate_narrated_video_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3321,6 +3357,73 @@ print("narrationScriptPackageZipEntryCount=" + str(len(required_entries)))
 print("narrationScriptPackageJsonPath=" + str(json_path))
 print("narrationScriptPackageMarkdownPath=" + str(markdown_path))
 print("narrationScriptPackageZipPath=" + str(zip_path))
+PY
+}
+
+print_narration_demo_preset_summary_file() {
+  local preset_json_path="$1"
+  local apply_json_path="${2:-}"
+
+  python3 - "$preset_json_path" "$apply_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+preset_path = Path(sys.argv[1])
+apply_path = Path(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2] else None
+preset_text = preset_path.read_text(encoding="utf-8").strip()
+preset = json.loads(preset_text) if preset_text else {}
+
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+combined = json.dumps(preset, ensure_ascii=False)
+if apply_path and apply_path.exists():
+    combined += "\n" + apply_path.read_text(encoding="utf-8")
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration demo preset output contains forbidden sensitive string: " + marker)
+
+segments = preset.get("segments", [])
+mix = preset.get("mixSettings") or {}
+print("narrationDemoPresetId=" + str(preset.get("presetId", "")))
+print("narrationDemoPresetProfileId=" + str(preset.get("profileId", "")))
+print("narrationDemoPresetSampleHint=" + str(preset.get("sampleIdHint", "")))
+print("narrationDemoPresetTargetLanguage=" + str(preset.get("targetLanguage", "")))
+print("narrationDemoPresetSegmentCount=" + str(preset.get("segmentCount", len(segments))))
+print("narrationDemoPresetCharacterCount=" + str(preset.get("totalCharacterCount", 0)))
+print("narrationDemoPresetTimeSpan=" + str(preset.get("timeSpan", "")))
+print("narrationDemoPresetVoiceSummary=" + str(preset.get("voiceSummary", "")))
+print("narrationDemoPresetDuckingVolume=" + str(mix.get("duckingVolume", "")))
+print("narrationDemoPresetNarrationVolume=" + str(mix.get("narrationVolume", "")))
+print("narrationDemoPresetFadeDurationMs=" + str(mix.get("fadeDurationMs", "")))
+print("narrationDemoPresetJsonPath=" + str(preset_path))
+
+if apply_path and apply_path.exists():
+    applied = json.loads(apply_path.read_text(encoding="utf-8"))
+    package = applied.get("scriptPackage") or {}
+    evidence = applied.get("narrationEvidence") or {}
+    print("narrationDemoPresetApplyJobId=" + str(applied.get("jobId", "")))
+    print("narrationDemoPresetApplyPresetId=" + str(applied.get("presetId", "")))
+    print("narrationDemoPresetApplyImportedSegmentCount=" + str(applied.get("importedSegmentCount", 0)))
+    print("narrationDemoPresetApplyGeneratedMedia=" + str(applied.get("generatedMedia", False)).lower())
+    print("narrationDemoPresetApplyScriptStatus=" + str(package.get("status", "")))
+    print("narrationDemoPresetApplyEvidenceStatus=" + str(evidence.get("status", "")))
+    print("narrationDemoPresetApplyJsonPath=" + str(apply_path))
 PY
 }
 

@@ -42,7 +42,7 @@
 - [x] Add controller tests for both routes.
 - [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration demo preset catalog`.
+- [x] Commit with message `Add narration demo preset catalog`.
 
 ## Task 2: Apply Preset To Job Through Script Package Import
 
@@ -67,7 +67,7 @@
 - [x] Add controller tests for route encoding and validation error bodies.
 - [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Apply narration demo presets to jobs`.
+- [x] Commit with message `Apply narration demo presets to jobs`.
 
 ## Task 3: React Preset Workbench Integration
 
@@ -94,7 +94,7 @@
 - [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
 - [x] Run `npm run build`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration demo preset UI`.
+- [x] Commit with message `Add narration demo preset UI`.
 
 ## Task 4: Terminal Demo Script, Docs, And Final Verification
 
@@ -111,17 +111,17 @@
 - Modify: `docs/plans/139-narration-demo-preset-package.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Add `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh` to list presets, apply the recommended preset with explicit replace mode, and download refreshed narration script/evidence summaries.
-- [ ] Add dry-run/report-only mode that lists recommended preset metadata without mutating a job.
-- [ ] Extend the full Tears script to optionally apply the preset before narration evidence export when `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true`.
-- [ ] Document the run order: upload full demo, apply narration preset, generate narration audio/video, export narration evidence, then run acceptance/completion/handoff packages.
-- [ ] Update smoke checklist with browser and terminal expectations for preset apply, replace confirmation, separate generation, and metadata safety exclusions.
-- [ ] Run focused backend validations from Tasks 1-2.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Add `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh` to list presets, apply the recommended preset with explicit replace mode, and download refreshed narration script/evidence summaries.
+- [x] Add dry-run/report-only mode that lists recommended preset metadata without mutating a job.
+- [x] Extend the full Tears script to optionally apply the preset before narration evidence export when `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true`.
+- [x] Document the run order: upload full demo, apply narration preset, generate narration audio/video, export narration evidence, then run acceptance/completion/handoff packages.
+- [x] Update smoke checklist with browser and terminal expectations for preset apply, replace confirmation, separate generation, and metadata safety exclusions.
+- [x] Run focused backend validations from Tasks 1-2.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration demo preset package`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

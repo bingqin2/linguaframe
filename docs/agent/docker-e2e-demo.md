@@ -402,7 +402,17 @@ Override the input path when needed:
 LINGUAFRAME_TEARS_SAMPLE_PATH=/absolute/path/to/video.mp4 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
-The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video, `demo-presenter-pack.json`, `demo-acceptance-gate.json`, `demo-run-snapshot.json`, `demo-run-snapshot.zip`, `demo-reviewer-workspace.json`, `demo-reviewer-workspace.md`, and `demo-reviewer-workspace.zip` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, acceptance readiness, snapshot entries, reviewer workspace status, and safe download routes. `BURNED_VIDEO`, `DUBBING_AUDIO`, and `DUBBED_VIDEO` are optional because burn-in and TTS can be disabled for stable local runs.
+To include the built-in Tears narration script preset in the full run, apply it after upload and before narration evidence export:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true \
+scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+The full narration order is upload full demo, apply narration preset, generate narration audio, optionally generate narrated video, export narration evidence, then run acceptance, completion, reviewer, snapshot, and handoff packages. The preset step only imports operator-authored script rows and mix settings; audio/video generation remains a separate user or script action.
+
+The script downloads core artifacts to `/tmp/linguaframe-demo/tears-of-steel-full/`. It also downloads `demo-run-matrix.json` for the completed source video, `demo-presenter-pack.json`, `demo-acceptance-gate.json`, `demo-run-snapshot.json`, `demo-run-snapshot.zip`, `demo-reviewer-workspace.json`, `demo-reviewer-workspace.md`, and `demo-reviewer-workspace.zip` for the selected job, then prints metadata-only summaries with profile, status, quality, estimated cost, model calls, provider cache hits, handoff readiness, recommended runs, acceptance readiness, snapshot entries, reviewer workspace status, and safe download routes. When `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true`, it also writes preset apply evidence under `narration-demo-preset/`. `BURNED_VIDEO`, `DUBBING_AUDIO`, `DUBBED_VIDEO`, and `NARRATED_VIDEO` are optional because burn-in, TTS, and narration generation can be disabled for stable local runs.
 
 To compare two complete Tears of Steel runs, first run a baseline profile and keep the completed job id:
 
@@ -560,8 +570,11 @@ Use the browser `Narration workspace` panel when you need explanatory voiceover 
 Terminal evidence export:
 
 ```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-evidence.sh
 ```
+
+The preset script writes `narration-demo-presets.json`, `narration-demo-preset.json`, `narration-demo-preset-apply.json`, refreshed script package files, and refreshed narration evidence under `/tmp/linguaframe-demo/narration-demo-preset/`. Set `LINGUAFRAME_NARRATION_DEMO_PRESET_REPORT_ONLY=true` to list the recommended profile preset without changing a job. Applying a preset requires a job id and always uses explicit replace mode so existing narration rows are not silently merged.
 
 The script writes `narration-evidence.json`, `narration-evidence.md`, and `narration-evidence.zip` under `/tmp/linguaframe-demo/narration-evidence/`. Set `LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO=true` to call the narrated-video generation endpoint when narration audio is ready and print `mixMode=DUCKED_ORIGINAL_AUDIO`, `duckingVolume`, `narrationVolume`, `fadeDurationMs`, `mixSettingsSource`, and `narrationWindowCount`. It exits non-zero when evidence is `BLOCKED`; set `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true` to export a blocked report. The ZIP must contain `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`, and must not include narration script bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 

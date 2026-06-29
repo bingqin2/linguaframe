@@ -173,7 +173,7 @@ Focused handoff portal checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/narration-demo-preset.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -183,6 +183,25 @@ Expected:
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-handoff-portal.sh` writes JSON, Markdown, and ZIP under `/tmp/linguaframe-demo/demo-handoff-portal/`.
 - The ZIP includes `index.html`, `manifest.json`, `handoff-portal.md`, `reviewer-workspace.json`, `README.md`, `acceptance-gate.json`, `completion-certificate.json`, `share-sheet.json`, and `run-monitor.json`.
 - Portal exports exclude media bytes, raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, and API keys.
+
+Focused narration preset checks:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests
+cd frontend
+npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
+bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+```
+
+Expected:
+
+- Browser selected-job narration workspace shows `Demo narration preset` next to script package import/export.
+- Apply remains disabled until the replace confirmation is checked.
+- Applying `tears-showcase-narration` refreshes narration workspace, script package, narration evidence, and artifact metadata without generating audio or video.
+- `LINGUAFRAME_NARRATION_DEMO_PRESET_REPORT_ONLY=true scripts/demo/narration-demo-preset.sh` writes preset catalog metadata without a job id or mutation.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh` writes preset apply evidence plus refreshed script/evidence files under `/tmp/linguaframe-demo/narration-demo-preset/`.
+- `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true scripts/demo/docker-e2e-tears-of-steel-full.sh` applies the preset before narration evidence export.
+- Preset summaries exclude transcript text, subtitle text, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 
 With the Docker stack running, open:
 

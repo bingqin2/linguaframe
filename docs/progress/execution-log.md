@@ -15,6 +15,9 @@ Work:
 - Preset apply returns refreshed workspace, script package, and narration evidence status without generating narration audio or narrated video.
 - Added frontend narration demo preset types and API helpers for list, profile lookup, and apply.
 - Added a compact `Demo narration preset` panel to the selected-job narration workspace with profile/sample metadata, replace confirmation, separate generation guidance, and apply refresh behavior.
+- Added `scripts/demo/narration-demo-preset.sh` to list preset metadata, apply the recommended preset with explicit replace mode, and export refreshed narration script/evidence files.
+- Extended the full Tears demo script with `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true` so a completed full-video run can apply the preset before narration evidence export.
+- Updated README, Docker E2E docs, smoke checklist, roadmap, target state, decisions, and this plan with the browser and terminal narration preset workflow.
 
 Validation:
 
@@ -27,6 +30,13 @@ Validation:
 - `npm test -- --run src/App.test.tsx -t "applies narration demo preset"` first failed because the narration workspace did not render a `Demo narration preset` region.
 - After adding frontend API helpers and UI, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 187 passed`; jsdom printed expected navigation warnings from download actions.
 - `npm run build` passed.
+- `bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests` passed with `Tests run: 86, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 187 passed`; jsdom printed expected navigation warnings from download actions.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 757, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 194 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `git diff --check` passed.
 
 ## 2026-06-29
 

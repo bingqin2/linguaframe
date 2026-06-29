@@ -777,3 +777,11 @@ Decision: Add narration mix controls as persisted numeric settings before wavefo
 Reason: The next demo improvement needs operator control over intelligibility without expanding LinguaFrame into a nonlinear editor. Numeric ducking volume, narration volume, and fade duration are easy to validate, persist, replay in FFmpeg, and verify in metadata-only evidence.
 
 Impact: `PUT /api/jobs/{jobId}/narration-workspace/mix-settings` stores job-level mix settings with defaults `0.35`, `1.00`, and `250 ms`; narrated-video generation applies those values and evidence reports whether they came from defaults or saved settings. Waveform editing, drag/drop timeline editing, and automation curves remain future work.
+
+## 2026-06-30
+
+Decision: Treat narration demo presets as explicit post-processing imports instead of upload-time automation.
+
+Reason: Demo profiles already define localization settings at upload time, while narration scripts are operator-authored timeline rows that may replace existing workspace content. Keeping preset application as a separate confirmed step makes replacement, duration validation, voice validation, script package export, narration evidence, and later audio/video generation easy to explain and audit.
+
+Impact: `GET /api/demo-run-profiles/narration-presets`, `GET /api/demo-run-profiles/{profileId}/narration-preset`, and `POST /api/jobs/{jobId}/narration-demo-preset/apply` provide a reusable Tears showcase script without generating media automatically. The browser panel and terminal script require explicit replacement, refresh script/evidence metadata, and keep `NARRATION_AUDIO` plus `NARRATED_VIDEO` generation as separate actions.
