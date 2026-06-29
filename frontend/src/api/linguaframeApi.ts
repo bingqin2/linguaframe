@@ -46,6 +46,7 @@ import type {
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
   SubtitleDraftSummary,
+  SubtitleReviewEvidence,
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment,
@@ -846,6 +847,33 @@ export async function getReviewedSubtitleWorkflow(jobId: string): Promise<Review
   );
 }
 
+export async function getSubtitleReviewEvidence(jobId: string): Promise<SubtitleReviewEvidence> {
+  return requestJson<SubtitleReviewEvidence>(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadSubtitleReviewEvidenceMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadSubtitleReviewEvidenceZip(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function updateSubtitleDraft(
   jobId: string,
   language: string,
@@ -1044,6 +1072,9 @@ export const linguaFrameApi = {
   getSubtitleReview,
   getSubtitleDraft,
   getReviewedSubtitleWorkflow,
+  getSubtitleReviewEvidence,
+  downloadSubtitleReviewEvidenceMarkdown,
+  downloadSubtitleReviewEvidenceZip,
   updateSubtitleDraft,
   clearSubtitleDraft,
   publishReviewedSubtitles,

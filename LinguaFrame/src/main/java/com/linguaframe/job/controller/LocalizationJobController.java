@@ -17,6 +17,7 @@ import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
+import com.linguaframe.job.domain.bo.StoredSubtitleReviewEvidencePackageBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
@@ -39,6 +40,7 @@ import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewEvidenceVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
@@ -72,6 +74,7 @@ import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
 import com.linguaframe.job.service.ReviewedSubtitleWorkflowService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.SubtitleDraftService;
+import com.linguaframe.job.service.SubtitleReviewEvidenceService;
 import com.linguaframe.job.service.SubtitleReviewService;
 import com.linguaframe.job.service.TranscriptService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -134,6 +137,7 @@ public class LocalizationJobController {
     private final SubtitleDraftService subtitleDraftService;
     private final ReviewedSubtitleDeliveryService reviewedSubtitleDeliveryService;
     private final ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService;
+    private final SubtitleReviewEvidenceService subtitleReviewEvidenceService;
     private final SubtitleReviewService subtitleReviewService;
     private final ObjectMapper objectMapper;
 
@@ -169,6 +173,7 @@ public class LocalizationJobController {
             SubtitleDraftService subtitleDraftService,
             ReviewedSubtitleDeliveryService reviewedSubtitleDeliveryService,
             ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService,
+            SubtitleReviewEvidenceService subtitleReviewEvidenceService,
             SubtitleReviewService subtitleReviewService,
             ObjectMapper objectMapper
     ) {
@@ -203,6 +208,7 @@ public class LocalizationJobController {
         this.subtitleDraftService = subtitleDraftService;
         this.reviewedSubtitleDeliveryService = reviewedSubtitleDeliveryService;
         this.reviewedSubtitleWorkflowService = reviewedSubtitleWorkflowService;
+        this.subtitleReviewEvidenceService = subtitleReviewEvidenceService;
         this.subtitleReviewService = subtitleReviewService;
         this.objectMapper = objectMapper;
     }
@@ -1099,6 +1105,71 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return reviewedSubtitleWorkflowService.workflow(jobId);
+    }
+
+    @GetMapping("/{jobId}/subtitle-review-evidence")
+    @Operation(summary = "Build metadata-only subtitle review evidence for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle review evidence was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public SubtitleReviewEvidenceVo subtitleReviewEvidence(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return subtitleReviewEvidenceService.buildEvidence(jobId);
+    }
+
+    @GetMapping("/{jobId}/subtitle-review-evidence/markdown/download")
+    @Operation(summary = "Download metadata-only subtitle review evidence Markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle review evidence Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadSubtitleReviewEvidenceMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = subtitleReviewEvidenceService.buildMarkdownEvidence(jobId)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-subtitle-review-evidence.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @GetMapping("/{jobId}/subtitle-review-evidence/download")
+    @Operation(summary = "Download metadata-only subtitle review evidence ZIP")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Subtitle review evidence package bytes were opened for download."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadSubtitleReviewEvidencePackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredSubtitleReviewEvidencePackageBo packageBo = subtitleReviewEvidenceService.openEvidencePackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(packageBo.contentType()))
+                .contentLength(packageBo.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(packageBo.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(packageBo.inputStream()));
     }
 
     @GetMapping("/{jobId}/subtitle-draft")

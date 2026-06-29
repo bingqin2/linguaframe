@@ -1843,7 +1843,13 @@ class LocalizationJobControllerTests {
                         .content("""
                                 {
                                   "segments": [
-                                    {"index": 1, "text": "修正后的第二行"}
+                                    {
+                                      "index": 1,
+                                      "text": "修正后的第二行",
+                                      "decision": "EDITED",
+                                      "issueCategories": ["TERM", "READABILITY"],
+                                      "reviewerNote": "controller note must stay out of evidence"
+                                    }
                                   ]
                                 }
                                 """))
@@ -1859,7 +1865,11 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segments[1].sourceText").value("Second source line"))
                 .andExpect(jsonPath("$.segments[1].generatedText").value("第二行"))
                 .andExpect(jsonPath("$.segments[1].draftText").value("修正后的第二行"))
-                .andExpect(jsonPath("$.segments[1].edited").value(true));
+                .andExpect(jsonPath("$.segments[1].edited").value(true))
+                .andExpect(jsonPath("$.segments[1].decision").value("EDITED"))
+                .andExpect(jsonPath("$.segments[1].issueCategories[0]").value("TERM"))
+                .andExpect(jsonPath("$.segments[1].reviewerNote").value("controller note must stay out of evidence"))
+                .andExpect(jsonPath("$.segments[1].noteLength").value(41));
 
         mockMvc.perform(get("/api/jobs/{jobId}/subtitle-draft/export", "job-controller-job-draft")
                         .param("language", "zh-CN")
@@ -1886,7 +1896,109 @@ class LocalizationJobControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.editedSegmentCount").value(0))
                 .andExpect(jsonPath("$.segments[1].draftText").value("第二行"))
-                .andExpect(jsonPath("$.segments[1].edited").value(false));
+                .andExpect(jsonPath("$.segments[1].edited").value(false))
+                .andExpect(jsonPath("$.segments[1].decision").value("UNREVIEWED"));
+    }
+
+    @Test
+    void returnsSubtitleReviewEvidenceJsonMarkdownAndPackage() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:18:00Z");
+        createJob("job-controller-video-review-evidence", "job-controller-job-review-evidence", "review-evidence.mp4", LocalizationJobStatus.COMPLETED, createdAt);
+        transcriptService.replaceTranscript("job-controller-job-review-evidence", new TranscriptionResultBo(List.of(
+                new TranscriptionSegmentBo(0, 0L, 1_000L, "First source line"),
+                new TranscriptionSegmentBo(1, 1_200L, 2_800L, "Second source line")
+        )));
+        subtitleService.replaceSubtitles("job-controller-job-review-evidence", "zh-CN", new TranslationResultBo(List.of(
+                new TranslationSegmentBo(0, 0L, 1_000L, "第一行"),
+                new TranslationSegmentBo(1, 1_200L, 2_800L, "第二行")
+        )));
+        mockMvc.perform(put("/api/jobs/{jobId}/subtitle-draft", "job-controller-job-review-evidence")
+                        .param("language", "zh-CN")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "text": "第一行",
+                                      "decision": "ACCEPTED",
+                                      "issueCategories": [],
+                                      "reviewerNote": "accepted note must stay private"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "text": "修正后的第二行",
+                                      "decision": "EDITED",
+                                      "issueCategories": ["TERM"],
+                                      "reviewerNote": "edited note must stay private"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/jobs/{jobId}/subtitle-draft/publish", "job-controller-job-review-evidence")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "language": "zh-CN",
+                                  "includeBurnedVideo": false
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        String evidenceJson = mockMvc.perform(get("/api/jobs/{jobId}/subtitle-review-evidence", "job-controller-job-review-evidence"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-review-evidence"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.reviewedSegmentCount").value(2))
+                .andExpect(jsonPath("$.acceptedSegmentCount").value(1))
+                .andExpect(jsonPath("$.editedDecisionCount").value(1))
+                .andExpect(jsonPath("$.annotationCount").value(1))
+                .andExpect(jsonPath("$.reviewerNoteCount").value(2))
+                .andExpect(jsonPath("$.reviewedSubtitleArtifactCount").value(3))
+                .andExpect(jsonPath("$.issueCategoryCounts[0].category").value("TERM"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(evidenceJson)
+                .doesNotContain("First source line")
+                .doesNotContain("修正后的第二行")
+                .doesNotContain("accepted note must stay private")
+                .doesNotContain("edited note must stay private")
+                .doesNotContain("job-artifacts/job-controller-job-review-evidence");
+
+        String markdown = mockMvc.perform(get("/api/jobs/{jobId}/subtitle-review-evidence/markdown/download", "job-controller-job-review-evidence"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-job-review-evidence-subtitle-review-evidence.md\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(markdown)
+                .contains("# Subtitle Review Evidence")
+                .contains("- Status: READY")
+                .contains("- TERM: 1")
+                .doesNotContain("Second source line")
+                .doesNotContain("edited note must stay private");
+
+        byte[] packageBytes = mockMvc.perform(get("/api/jobs/{jobId}/subtitle-review-evidence/download", "job-controller-job-review-evidence"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-job-review-evidence-subtitle-review-evidence.zip\"")))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+        Map<String, String> entries = readZipEntries(packageBytes);
+        assertThat(entries.keySet()).containsExactlyInAnyOrder(
+                "manifest.json",
+                "subtitle-review-evidence.md",
+                "review-summary.json",
+                "release-notes.md",
+                "README.md"
+        );
+        assertThat(entries.get("manifest.json")).contains("\"includesReviewerNoteBodies\":false");
+        assertThat(entries.get("subtitle-review-evidence.md"))
+                .doesNotContain("第一行")
+                .doesNotContain("edited note must stay private");
     }
 
     @Test

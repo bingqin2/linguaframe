@@ -123,6 +123,10 @@ public class ReviewedSubtitleWorkflowServiceImpl implements ReviewedSubtitleWork
                 review.qualityIssueCount(),
                 review.qualitySuggestedFixCount(),
                 draft.editedSegmentCount(),
+                draft.reviewedSegmentCount(),
+                draft.followupSegmentCount(),
+                draft.annotationCount(),
+                draft.reviewerNoteCount(),
                 draft.lastUpdatedAt(),
                 generatedSubtitleArtifactCount,
                 reviewedSubtitleArtifactCount,
@@ -182,6 +186,22 @@ public class ReviewedSubtitleWorkflowServiceImpl implements ReviewedSubtitleWork
                 draft.editedSegmentCount() > 0
                         ? "Export or publish the reviewed draft."
                         : "Edit subtitle rows only when generated text needs correction.",
+                false
+        ));
+        checks.add(check(
+                "REVIEW_COMPLETION",
+                "Review annotations",
+                draft.reviewedSegmentCount() == draft.segmentCount() && draft.followupSegmentCount() == 0 ? READY : ATTENTION,
+                "Reviewed segments: %d of %d, follow-up segments: %d, issue annotations: %d, reviewer notes: %d.".formatted(
+                        draft.reviewedSegmentCount(),
+                        draft.segmentCount(),
+                        draft.followupSegmentCount(),
+                        draft.annotationCount(),
+                        draft.reviewerNoteCount()
+                ),
+                draft.reviewedSegmentCount() == draft.segmentCount() && draft.followupSegmentCount() == 0
+                        ? "Download subtitle review evidence."
+                        : "Resolve unreviewed or follow-up subtitle segments before handoff.",
                 false
         ));
         checks.add(check(
@@ -288,6 +308,9 @@ public class ReviewedSubtitleWorkflowServiceImpl implements ReviewedSubtitleWork
         links.add(link("DRAFT_EXPORT_SRT", "Corrected SRT export", "/api/jobs/" + jobId + "/subtitle-draft/export?language=" + language + "&format=srt"));
         links.add(link("DRAFT_EXPORT_VTT", "Corrected VTT export", "/api/jobs/" + jobId + "/subtitle-draft/export?language=" + language + "&format=vtt"));
         links.add(link("PUBLISH_REVIEWED_SUBTITLES", "Publish reviewed subtitles", "/api/jobs/" + jobId + "/subtitle-draft/publish"));
+        links.add(link("SUBTITLE_REVIEW_EVIDENCE", "Subtitle review evidence", "/api/jobs/" + jobId + "/subtitle-review-evidence"));
+        links.add(link("SUBTITLE_REVIEW_EVIDENCE_MARKDOWN", "Subtitle review evidence Markdown", "/api/jobs/" + jobId + "/subtitle-review-evidence/markdown/download"));
+        links.add(link("SUBTITLE_REVIEW_EVIDENCE_PACKAGE", "Subtitle review evidence package", "/api/jobs/" + jobId + "/subtitle-review-evidence/download"));
         links.add(link("DELIVERY_MANIFEST", "Delivery manifest", "/api/jobs/" + jobId + "/delivery-manifest"));
         links.add(link("DELIVERY_MANIFEST_MARKDOWN", "Delivery manifest Markdown", "/api/jobs/" + jobId + "/delivery-manifest/markdown/download"));
         links.add(link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download"));
@@ -312,7 +335,7 @@ public class ReviewedSubtitleWorkflowServiceImpl implements ReviewedSubtitleWork
     private List<String> safetyNotes() {
         return List.of(
                 "Metadata-only workflow: IDs, counts, statuses, timestamps, and safe routes are included.",
-                "Transcript text, subtitle text, draft corrections, object keys, local paths, external request bodies, secrets, and media bytes are excluded."
+                "Transcript text, subtitle text, draft corrections, reviewer note bodies, object keys, local paths, external request bodies, secrets, and media bytes are excluded."
         );
     }
 }

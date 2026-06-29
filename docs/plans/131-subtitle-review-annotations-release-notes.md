@@ -1,6 +1,6 @@
 # Subtitle Review Annotations And Release Notes Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add reviewer annotations and release notes to the reviewed subtitle workflow so a demo can prove what was checked, why segments changed, and what was published.
 
@@ -40,13 +40,13 @@
 - `SubtitleDraftSegmentVo` gains `decision`, `issueCategories`, `reviewerNote`, and `noteLength`.
 - `SubtitleDraftSummaryVo` gains `reviewedSegmentCount`, `acceptedSegmentCount`, `editedDecisionCount`, `followupSegmentCount`, `annotationCount`, and `reviewerNoteCount`.
 
-- [ ] Add Flyway columns to `subtitle_draft_segments`: `review_decision VARCHAR(32) NOT NULL DEFAULT 'EDITED'`, `issue_categories VARCHAR(256) NOT NULL DEFAULT ''`, and `reviewer_note TEXT NULL`.
-- [ ] Add enum parsing/validation with safe defaults: unchanged existing rows should read as `EDITED` when a draft row exists, while generated rows without draft rows should render as `UNREVIEWED`.
-- [ ] Extend repository upsert/find mapping without losing existing draft text behavior.
-- [ ] Validate request segments: valid index, nonblank text, valid decision, at most 4 issue categories, note max 500 chars, and no duplicate categories.
-- [ ] Preserve existing draft export: JSON/SRT/VTT still export only corrected subtitle text, not reviewer notes.
-- [ ] Add service tests for accepted unchanged segment, edited segment with categories/note, follow-up segment, validation failures, clear draft removing annotations, and export excluding notes.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=SubtitleDraftServiceTests,SubtitleDraftSegmentRepositoryTests`.
+- [x] Add Flyway columns to `subtitle_draft_segments`: `review_decision VARCHAR(32) NOT NULL DEFAULT 'EDITED'`, `issue_categories VARCHAR(256) NOT NULL DEFAULT ''`, and `reviewer_note TEXT NULL`.
+- [x] Add enum parsing/validation with safe defaults: unchanged existing rows should read as `EDITED` when a draft row exists, while generated rows without draft rows should render as `UNREVIEWED`.
+- [x] Extend repository upsert/find mapping without losing existing draft text behavior.
+- [x] Validate request segments: valid index, nonblank text, valid decision, at most 4 issue categories, note max 500 chars, and no duplicate categories.
+- [x] Preserve existing draft export: JSON/SRT/VTT still export only corrected subtitle text, not reviewer notes.
+- [x] Add service tests for accepted unchanged segment, edited segment with categories/note, follow-up segment, validation failures, clear draft removing annotations, and export excluding notes.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=SubtitleDraftServiceTests,SubtitleDraftSegmentRepositoryTests`.
 
 ## Task 2: Review Evidence Aggregate, Markdown, And ZIP
 
@@ -68,14 +68,14 @@
 - `GET /api/jobs/{jobId}/subtitle-review-evidence/markdown/download`
 - `GET /api/jobs/{jobId}/subtitle-review-evidence/download`
 
-- [ ] Build metadata-only evidence from job detail, subtitle review summary, subtitle draft summary, reviewed subtitle workflow, and reviewed publish artifacts.
-- [ ] Return status `READY` when all generated target subtitle segments have review decisions and no follow-up remains; `ATTENTION` for partial review/follow-up; `BLOCKED` when target subtitles are missing.
-- [ ] Include counts by decision and issue category, note count, reviewed artifact readiness, release-note summary, safe links, package entries, and safety notes.
-- [ ] Render Markdown without raw transcript text, generated subtitle text, corrected subtitle text, or annotation note bodies.
-- [ ] Build ZIP with `manifest.json`, `subtitle-review-evidence.md`, `review-summary.json`, `release-notes.md`, and `README.md`.
-- [ ] Add controller endpoints with attachment filenames `linguaframe-job-{jobId}-subtitle-review-evidence.md` and `.zip`.
-- [ ] Add runtime required routes.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=SubtitleReviewEvidenceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests`.
+- [x] Build metadata-only evidence from job detail, subtitle review summary, subtitle draft summary, reviewed subtitle workflow, and reviewed publish artifacts.
+- [x] Return status `READY` when all generated target subtitle segments have review decisions and no follow-up remains; `ATTENTION` for partial review/follow-up; `BLOCKED` when target subtitles are missing.
+- [x] Include counts by decision and issue category, note count, reviewed artifact readiness, release-note summary, safe links, package entries, and safety notes.
+- [x] Render Markdown without raw transcript text, generated subtitle text, corrected subtitle text, or annotation note bodies.
+- [x] Build ZIP with `manifest.json`, `subtitle-review-evidence.md`, `review-summary.json`, `release-notes.md`, and `README.md`.
+- [x] Add controller endpoints with attachment filenames `linguaframe-job-{jobId}-subtitle-review-evidence.md` and `.zip`.
+- [x] Add runtime required routes.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=SubtitleReviewEvidenceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests`.
 
 ## Task 3: Publish Release Notes And Handoff Integration
 
@@ -95,12 +95,12 @@
 - `PublishReviewedSubtitlesRequest(String language, boolean includeBurnedVideo, String releaseNotes)`
 - `ReviewedSubtitlePublishVo` gains `releaseNotesLength`, `reviewDecisionCounts`, and `issueCategoryCounts`.
 
-- [ ] Accept optional release notes up to 1000 chars during publish; do not persist note bodies in artifacts unless represented as metadata counts and safe release summary.
-- [ ] Include review decision/category counts in publish response.
-- [ ] Update reviewed subtitle workflow checks with review completion counts and follow-up warnings.
-- [ ] Add subtitle review evidence links to job evidence Markdown, handoff package manifest/README, and demo handoff portal safe links/package inventory.
-- [ ] Ensure all added handoff/package surfaces remain metadata-only and exclude free-form note text.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=ReviewedSubtitleDeliveryServiceTests,JobHandoffPackageServiceTests,DemoHandoffPortalServiceTests`.
+- [x] Accept optional release notes up to 1000 chars during publish; do not persist note bodies in artifacts unless represented as metadata counts and safe release summary.
+- [x] Include review decision/category counts in publish response.
+- [x] Update reviewed subtitle workflow checks with review completion counts and follow-up warnings.
+- [x] Add subtitle review evidence links to job evidence Markdown, handoff package manifest/README, and demo handoff portal safe links/package inventory.
+- [x] Ensure all added handoff/package surfaces remain metadata-only and exclude free-form note text.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=ReviewedSubtitleDeliveryServiceTests,JobHandoffPackageServiceTests,DemoHandoffPortalServiceTests`.
 
 ## Task 4: React Review Annotation UI
 
@@ -116,15 +116,15 @@
 - `downloadSubtitleReviewEvidenceMarkdown(jobId: string): Promise<Blob>`
 - `downloadSubtitleReviewEvidenceZip(jobId: string): Promise<Blob>`
 
-- [ ] Add TS types for review decisions, issue categories, draft annotation fields, evidence summary, and publish response counts.
-- [ ] Extend subtitle draft editor rows with decision select, category checkboxes, reviewer note textarea, and compact counts.
-- [ ] Keep free-form notes visible only in the editing UI; metadata/evidence panels show note counts and categories.
-- [ ] Add release notes textarea to publish controls and send it with `publishReviewedSubtitles`.
-- [ ] Add a `Subtitle review evidence` panel near reviewed workflow with status, decision counts, issue category counts, note count, release-note length, safe links, Markdown/ZIP download actions, and refresh.
-- [ ] Refresh evidence after draft save/clear and reviewed publish.
-- [ ] Add Vitest coverage for API paths, annotation editing payload, publish release notes payload, evidence panel rendering, downloads, and unsafe marker absence.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
+- [x] Add TS types for review decisions, issue categories, draft annotation fields, evidence summary, and publish response counts.
+- [x] Extend subtitle draft editor rows with decision select, category checkboxes, reviewer note textarea, and compact counts.
+- [x] Keep free-form notes visible only in the editing UI; metadata/evidence panels show note counts and categories.
+- [x] Add release notes textarea to publish controls and send it with `publishReviewedSubtitles`.
+- [x] Add a `Subtitle review evidence` panel near reviewed workflow with status, decision counts, issue category counts, note count, release-note length, safe links, Markdown/ZIP download actions, and refresh.
+- [x] Refresh evidence after draft save/clear and reviewed publish.
+- [x] Add Vitest coverage for API paths, annotation editing payload, publish release notes payload, evidence panel rendering, downloads, and unsafe marker absence.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 5: Terminal Export, Demo Scripts, And Docs
 
@@ -146,12 +146,12 @@
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/subtitle-review-evidence.sh`
 - Default output directory: `/tmp/linguaframe-demo/subtitle-review-evidence/`
 
-- [ ] Add helpers for evidence JSON, Markdown, ZIP download, and `print_subtitle_review_evidence_summary_file`.
-- [ ] Add standalone script that exits non-zero on `BLOCKED` unless `LINGUAFRAME_SUBTITLE_REVIEW_EVIDENCE_REPORT_ONLY=true`.
-- [ ] Extend deterministic, OpenAI smoke, and full Tears scripts to export subtitle review evidence after job completion.
-- [ ] Document how review annotations differ from subtitle text edits, reviewed subtitle workflow, handoff package, and demo handoff portal.
-- [ ] Update smoke checklist with browser annotation expectations, terminal output, ZIP entries, and safety exclusions.
-- [ ] Run `bash -n scripts/demo/subtitle-review-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Add helpers for evidence JSON, Markdown, ZIP download, and `print_subtitle_review_evidence_summary_file`.
+- [x] Add standalone script that exits non-zero on `BLOCKED` unless `LINGUAFRAME_SUBTITLE_REVIEW_EVIDENCE_REPORT_ONLY=true`.
+- [x] Extend deterministic, OpenAI smoke, and full Tears scripts to export subtitle review evidence after job completion.
+- [x] Document how review annotations differ from subtitle text edits, reviewed subtitle workflow, handoff package, and demo handoff portal.
+- [x] Update smoke checklist with browser annotation expectations, terminal output, ZIP entries, and safety exclusions.
+- [x] Run `bash -n scripts/demo/subtitle-review-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 6: Final Verification, Commit, And Merge
 
@@ -159,16 +159,16 @@
 - Modify: `docs/plans/131-subtitle-review-annotations-release-notes.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Mark completed plan tasks.
-- [ ] Run focused backend validation from Tasks 1-3.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run script syntax validation from Task 5.
-- [ ] Run `git diff --check`.
-- [ ] Commit with message `Add subtitle review annotations`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Mark completed plan tasks.
+- [x] Run focused backend validation from Tasks 1-3.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run script syntax validation from Task 5.
+- [x] Run `git diff --check`.
+- [x] Commit with message `Add subtitle review annotations`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 

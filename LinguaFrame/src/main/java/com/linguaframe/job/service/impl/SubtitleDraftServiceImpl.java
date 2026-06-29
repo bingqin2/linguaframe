@@ -3,6 +3,8 @@ package com.linguaframe.job.service.impl;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
 import com.linguaframe.job.domain.entity.SubtitleDraftSegmentRecord;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
+import com.linguaframe.job.domain.enums.SubtitleReviewDecision;
+import com.linguaframe.job.domain.enums.SubtitleReviewIssueCategory;
 import com.linguaframe.job.domain.vo.SubtitleDraftSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -74,6 +77,24 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
                 .map(segment -> toDraftVo(segment, sourceByIndex.get(segment.index()), draftByIndex.get(segment.index())))
                 .toList();
         int editedSegmentCount = (int) segments.stream().filter(SubtitleDraftSegmentVo::edited).count();
+        int reviewedSegmentCount = (int) segments.stream()
+                .filter(segment -> segment.decision() != SubtitleReviewDecision.UNREVIEWED)
+                .count();
+        int acceptedSegmentCount = (int) segments.stream()
+                .filter(segment -> segment.decision() == SubtitleReviewDecision.ACCEPTED)
+                .count();
+        int editedDecisionCount = (int) segments.stream()
+                .filter(segment -> segment.decision() == SubtitleReviewDecision.EDITED)
+                .count();
+        int followupSegmentCount = (int) segments.stream()
+                .filter(segment -> segment.decision() == SubtitleReviewDecision.NEEDS_FOLLOWUP)
+                .count();
+        int annotationCount = segments.stream()
+                .mapToInt(segment -> segment.issueCategories().size())
+                .sum();
+        int reviewerNoteCount = (int) segments.stream()
+                .filter(segment -> segment.reviewerNote() != null && !segment.reviewerNote().isBlank())
+                .count();
         Instant lastUpdatedAt = segments.stream()
                 .map(SubtitleDraftSegmentVo::updatedAt)
                 .filter(value -> value != null)
@@ -85,6 +106,12 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
                 normalizedLanguage,
                 segments.size(),
                 editedSegmentCount,
+                reviewedSegmentCount,
+                acceptedSegmentCount,
+                editedDecisionCount,
+                followupSegmentCount,
+                annotationCount,
+                reviewerNoteCount,
                 lastUpdatedAt,
                 segments
         );
@@ -103,6 +130,9 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
                     normalizedLanguage,
                     segment.index(),
                     segment.text().trim(),
+                    normalizeDecision(segment.decision()),
+                    normalizeIssueCategories(segment.issueCategories()),
+                    normalizeReviewerNote(segment.reviewerNote()),
                     now,
                     now
             ));
@@ -150,6 +180,9 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
             SubtitleDraftSegmentRecord draft
     ) {
         boolean edited = draft != null;
+        SubtitleReviewDecision decision = edited ? normalizeDecision(draft.reviewDecision()) : SubtitleReviewDecision.UNREVIEWED;
+        List<SubtitleReviewIssueCategory> issueCategories = edited ? normalizeIssueCategories(draft.issueCategories()) : List.of();
+        String reviewerNote = edited ? normalizeReviewerNote(draft.reviewerNote()) : null;
         return new SubtitleDraftSegmentVo(
                 generated.index(),
                 generated.startMs(),
@@ -158,7 +191,11 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
                 generated.text(),
                 edited ? draft.text() : generated.text(),
                 edited,
-                edited ? draft.updatedAt() : null
+                edited ? draft.updatedAt() : null,
+                decision,
+                issueCategories,
+                reviewerNote,
+                reviewerNote == null ? 0 : reviewerNote.length()
         );
     }
 
@@ -184,7 +221,45 @@ public class SubtitleDraftServiceImpl implements SubtitleDraftService {
             if (segment.text() == null || segment.text().isBlank()) {
                 throw new IllegalArgumentException("Subtitle draft text must not be blank.");
             }
+            validateIssueCategories(segment.issueCategories());
+            String reviewerNote = normalizeReviewerNote(segment.reviewerNote());
+            if (reviewerNote != null && reviewerNote.length() > 500) {
+                throw new IllegalArgumentException("Reviewer note must be at most 500 characters.");
+            }
         }
+    }
+
+    private void validateIssueCategories(List<SubtitleReviewIssueCategory> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return;
+        }
+        Set<SubtitleReviewIssueCategory> seen = new HashSet<>();
+        for (SubtitleReviewIssueCategory category : categories) {
+            if (category == null) {
+                throw new IllegalArgumentException("Subtitle review issue category must not be null.");
+            }
+            if (!seen.add(category)) {
+                throw new IllegalArgumentException("Duplicate subtitle review issue category: " + category + ".");
+            }
+        }
+    }
+
+    private SubtitleReviewDecision normalizeDecision(SubtitleReviewDecision decision) {
+        return decision == null ? SubtitleReviewDecision.EDITED : decision;
+    }
+
+    private List<SubtitleReviewIssueCategory> normalizeIssueCategories(List<SubtitleReviewIssueCategory> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return List.of();
+        }
+        return List.copyOf(categories);
+    }
+
+    private String normalizeReviewerNote(String reviewerNote) {
+        if (reviewerNote == null || reviewerNote.isBlank()) {
+            return null;
+        }
+        return reviewerNote.trim();
     }
 
     private String normalizeLanguage(String language) {

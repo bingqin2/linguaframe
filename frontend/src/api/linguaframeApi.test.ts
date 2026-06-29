@@ -8,6 +8,7 @@ import {
   getJob,
   getMediaUpload,
   getReviewedSubtitleWorkflow,
+  getSubtitleReviewEvidence,
   getSubtitleDraft,
   getSubtitleReview,
   jobDiagnosticsDownloadUrl,
@@ -43,6 +44,8 @@ import {
   getDemoHandoffPortal,
   downloadDemoHandoffPortalMarkdown,
   downloadDemoHandoffPortalZip,
+  downloadSubtitleReviewEvidenceMarkdown,
+  downloadSubtitleReviewEvidenceZip,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -2021,6 +2024,12 @@ describe('linguaframeApi', () => {
       targetLanguage: 'zh-CN',
       segmentCount: 2,
       editedSegmentCount: 1,
+      reviewedSegmentCount: 1,
+      acceptedSegmentCount: 0,
+      editedDecisionCount: 1,
+      followupSegmentCount: 0,
+      annotationCount: 1,
+      reviewerNoteCount: 1,
       lastUpdatedAt: '2026-06-28T10:00:00Z',
       segments: [
         {
@@ -2031,7 +2040,11 @@ describe('linguaframeApi', () => {
           generatedText: '你好。',
           draftText: '你好。',
           edited: false,
-          updatedAt: null
+          updatedAt: null,
+          decision: 'UNREVIEWED',
+          issueCategories: [],
+          reviewerNote: null,
+          noteLength: 0
         },
         {
           index: 1,
@@ -2041,7 +2054,11 @@ describe('linguaframeApi', () => {
           generatedText: '欢迎。',
           draftText: '欢迎你。',
           edited: true,
-          updatedAt: '2026-06-28T10:00:00Z'
+          updatedAt: '2026-06-28T10:00:00Z',
+          decision: 'EDITED',
+          issueCategories: ['TERM'],
+          reviewerNote: 'Use consistent term.',
+          noteLength: 20
         }
       ]
     };
@@ -2053,7 +2070,15 @@ describe('linguaframeApi', () => {
 
     const draft = await getSubtitleDraft('job with/slash', 'zh-CN');
     const updated = await updateSubtitleDraft('job with/slash', 'zh-CN', {
-      segments: [{ index: 1, text: '欢迎你。' }]
+      segments: [
+        {
+          index: 1,
+          text: '欢迎你。',
+          decision: 'EDITED',
+          issueCategories: ['TERM'],
+          reviewerNote: 'Use consistent term.'
+        }
+      ]
     });
     const cleared = await clearSubtitleDraft('job with/slash', 'zh-CN');
 
@@ -2071,7 +2096,17 @@ describe('linguaframeApi', () => {
       expect.objectContaining({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ segments: [{ index: 1, text: '欢迎你。' }] })
+        body: JSON.stringify({
+          segments: [
+            {
+              index: 1,
+              text: '欢迎你。',
+              decision: 'EDITED',
+              issueCategories: ['TERM'],
+              reviewerNote: 'Use consistent term.'
+            }
+          ]
+        })
       })
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -2103,6 +2138,10 @@ describe('linguaframeApi', () => {
         qualityIssueCount: 0,
         qualitySuggestedFixCount: 0,
         editedSegmentCount: 1,
+        reviewedSegmentCount: 1,
+        followupSegmentCount: 0,
+        annotationCount: 1,
+        reviewerNoteCount: 1,
         draftLastUpdatedAt: '2026-06-29T13:50:00Z',
         generatedSubtitleArtifactCount: 3,
         reviewedSubtitleArtifactCount: 0,
@@ -2136,6 +2175,9 @@ describe('linguaframeApi', () => {
         targetLanguage: 'zh-CN',
         burnedVideoRequested: true,
         burnedVideoCreated: false,
+        releaseNotesLength: 13,
+        reviewDecisionCounts: [{ category: 'EDITED', count: 1 }],
+        issueCategoryCounts: [{ category: 'TERM', count: 1 }],
         artifacts: [
           {
             artifactId: 'reviewed-srt',
@@ -2155,10 +2197,12 @@ describe('linguaframeApi', () => {
 
     const result = await publishReviewedSubtitles('job reviewed/slash', {
       language: 'zh-CN',
-      includeBurnedVideo: true
+      includeBurnedVideo: true,
+      releaseNotes: 'Ready to ship'
     });
 
     expect(result.artifacts[0].type).toBe('REVIEWED_SUBTITLE_SRT');
+    expect(result.releaseNotesLength).toBe(13);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/jobs/job%20reviewed%2Fslash/subtitle-draft/publish',
       {
@@ -2167,7 +2211,77 @@ describe('linguaframeApi', () => {
           'Content-Type': 'application/json',
           'X-LinguaFrame-Demo-Token': 'private-demo-token'
         },
-        body: JSON.stringify({ language: 'zh-CN', includeBurnedVideo: true })
+        body: JSON.stringify({ language: 'zh-CN', includeBurnedVideo: true, releaseNotes: 'Ready to ship' })
+      }
+    );
+  });
+
+  test('fetches and downloads subtitle review evidence with encoded job id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse({
+        jobId: 'job evidence/slash',
+        videoId: 'video-evidence',
+        targetLanguage: 'zh-CN',
+        generatedAt: '2026-06-29T14:00:00Z',
+        status: 'READY',
+        summary: 'All subtitle segments are reviewed.',
+        segmentCount: 2,
+        reviewedSegmentCount: 2,
+        acceptedSegmentCount: 1,
+        editedDecisionCount: 1,
+        followupSegmentCount: 0,
+        annotationCount: 1,
+        reviewerNoteCount: 1,
+        reviewedSubtitleArtifactCount: 3,
+        reviewedBurnedVideoAvailable: false,
+        releaseNotesLength: 0,
+        decisionCounts: [{ category: 'EDITED', count: 1 }],
+        issueCategoryCounts: [{ category: 'TERM', count: 1 }],
+        checks: [],
+        links: [],
+        packageEntries: ['manifest.json'],
+        safetyNotes: ['metadata only']
+      }))
+      .mockResolvedValueOnce(new Response('# Subtitle Review Evidence', { status: 200 }))
+      .mockResolvedValueOnce(new Response('zip', { status: 200, headers: { 'Content-Type': 'application/zip' } }));
+
+    const evidence = await getSubtitleReviewEvidence('job evidence/slash');
+    const markdown = await downloadSubtitleReviewEvidenceMarkdown('job evidence/slash');
+    const zip = await downloadSubtitleReviewEvidenceZip('job evidence/slash');
+
+    expect(evidence.status).toBe('READY');
+    await expect(markdown.text()).resolves.toContain('Subtitle Review Evidence');
+    expect(zip.type).toBe('application/zip');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/jobs/job%20evidence%2Fslash/subtitle-review-evidence',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/jobs/job%20evidence%2Fslash/subtitle-review-evidence/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      3,
+      '/api/jobs/job%20evidence%2Fslash/subtitle-review-evidence/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
       }
     );
   });

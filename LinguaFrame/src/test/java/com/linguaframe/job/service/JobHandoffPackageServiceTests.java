@@ -90,7 +90,11 @@ class JobHandoffPackageServiceTests {
                 .contains("\"jobId\":\"job-handoff-package\"")
                 .contains("\"handoffReady\":true")
                 .contains("\"reviewedArtifactCount\":4")
+                .contains("\"subtitleReviewEvidence\"")
+                .contains("/api/jobs/job-handoff-package/subtitle-review-evidence/download")
                 .contains("\"includesRawTranscriptText\":false")
+                .contains("\"includesRawSubtitleText\":false")
+                .contains("\"includesReviewerNoteBodies\":false")
                 .contains("\"includesProviderPayloads\":false");
         String zipText = String.join("\n", entries.values());
         assertThat(zipText)

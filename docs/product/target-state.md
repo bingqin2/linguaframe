@@ -127,21 +127,23 @@ A user should be able to:
 7. Preview transcript segments and translated subtitles.
 8. Download SRT or VTT files.
 9. Correct generated target subtitles in a draft layer and export corrected JSON, SRT, or VTT without changing generated media artifacts.
-10. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
-11. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
-12. Download a reviewed handoff package that contains the delivery manifest, diagnostics, evidence report, reviewed subtitles, and optional reviewed burned video without internal audit artifacts or secrets.
-13. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
-14. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
-15. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
-16. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
-17. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
-18. Open a presenter pack that combines handoff readiness, recommended run IDs, safe package links, and copy/download presenter notes for one selected job.
-19. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
-20. Download a demo handoff portal ZIP with `index.html` as an offline reviewer entry point to all safe job evidence.
-21. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
-22. Play the generated dubbing audio with visible file metadata and download evidence.
-23. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-24. Inspect cost and processing time.
+10. Add per-segment review decisions, issue categories, reviewer notes, and publish release notes as review metadata separate from subtitle text.
+11. Download subtitle review evidence as safe JSON, Markdown, and ZIP files that expose counts, checks, and links without raw subtitle text or reviewer note bodies.
+12. Publish reviewed JSON/SRT/VTT artifacts and optionally create a separate reviewed subtitle-burned video for handoff.
+13. Download a safe delivery manifest that explains handoff readiness, reviewed outputs, generated audit artifacts, evidence links, and hashes.
+14. Download a reviewed handoff package that contains the delivery manifest, diagnostics, evidence report, reviewed subtitles, and optional reviewed burned video without internal audit artifacts or secrets.
+15. Review a final demo handoff checklist that summarizes job completion, reviewed subtitles, media outputs, evidence links, cost/model-call evidence, cache evidence, and failure triage without exposing raw media text or secrets.
+16. Download or copy a demo session report that explains the input job, generated outputs, handoff evidence, cost/cache evidence, and failure triage for one run.
+17. Download one safe demo run package that combines job detail, diagnostics, evidence, quality evidence, delivery manifest, handoff checklist, and session report for reviewer handoff.
+18. Download one safe AI audit package that connects model calls, prompt versions, active prompt templates, usage, latency, and cost for a selected job.
+19. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
+20. Open a presenter pack that combines handoff readiness, recommended run IDs, safe package links, and copy/download presenter notes for one selected job.
+21. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
+22. Download a demo handoff portal ZIP with `index.html` as an offline reviewer entry point to all safe job evidence.
+23. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
+24. Play the generated dubbing audio with visible file metadata and download evidence.
+25. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+26. Inspect cost and processing time.
 25. Retry the job if a step fails.
 26. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
 27. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.

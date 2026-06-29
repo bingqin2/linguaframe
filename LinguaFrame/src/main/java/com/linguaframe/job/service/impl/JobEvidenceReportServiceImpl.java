@@ -174,11 +174,24 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
             );
             lines.add("- Subtitle draft segments: " + subtitleDraft.segmentCount());
             lines.add("- Subtitle draft edited segments: " + subtitleDraft.editedSegmentCount());
+            lines.add("- Subtitle review decisions: reviewed " + subtitleDraft.reviewedSegmentCount()
+                    + " / " + subtitleDraft.segmentCount()
+                    + ", accepted " + subtitleDraft.acceptedSegmentCount()
+                    + ", edited " + subtitleDraft.editedDecisionCount()
+                    + ", follow-up " + subtitleDraft.followupSegmentCount());
+            lines.add("- Subtitle review annotations: " + subtitleDraft.annotationCount()
+                    + " issue categories / " + subtitleDraft.reviewerNoteCount() + " reviewer notes");
+            lines.add("- Subtitle review evidence: /api/jobs/" + job.jobId() + "/subtitle-review-evidence");
+            lines.add("- Subtitle review evidence package: /api/jobs/" + job.jobId() + "/subtitle-review-evidence/download");
             lines.add("- Subtitle draft last updated: "
                     + valueOrDefault(subtitleDraft.lastUpdatedAt(), "Not saved"));
         } catch (NoSuchElementException ex) {
             lines.add("- Subtitle draft segments: 0");
             lines.add("- Subtitle draft edited segments: 0");
+            lines.add("- Subtitle review decisions: reviewed 0 / 0, accepted 0, edited 0, follow-up 0");
+            lines.add("- Subtitle review annotations: 0 issue categories / 0 reviewer notes");
+            lines.add("- Subtitle review evidence: /api/jobs/" + job.jobId() + "/subtitle-review-evidence");
+            lines.add("- Subtitle review evidence package: /api/jobs/" + job.jobId() + "/subtitle-review-evidence/download");
             lines.add("- Subtitle draft last updated: Not saved");
         }
     }

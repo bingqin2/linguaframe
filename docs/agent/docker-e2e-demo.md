@@ -539,6 +539,18 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/reviewed-subtitle-workflow.sh
 
 The script downloads `/api/jobs/{jobId}/reviewed-subtitle-workflow` to `/tmp/linguaframe-demo/reviewed-subtitle-workflow-<job-id>.json` and prints status, phase, next action, subtitle artifact counts, and handoff readiness. Use it to decide whether to review subtitles, export a draft, publish reviewed JSON/SRT/VTT, request a reviewed burned video, or download the handoff package. The JSON and summary must stay metadata-only: no transcript text, subtitle text, corrected draft text, object keys, local paths, provider payloads, tokens, credentials, or media bytes.
 
+## Subtitle Review Evidence Export
+
+Use subtitle review evidence when you need proof of the human review pass, not the corrected subtitle text itself:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/subtitle-review-evidence.sh
+```
+
+The script writes `subtitle-review-evidence.json`, `subtitle-review-evidence.md`, and `subtitle-review-evidence.zip` under `/tmp/linguaframe-demo/subtitle-review-evidence/`. It exits non-zero when the evidence is `BLOCKED`; set `LINGUAFRAME_SUBTITLE_REVIEW_EVIDENCE_REPORT_ONLY=true` to export a blocked report for triage. The ZIP must contain `manifest.json`, `subtitle-review-evidence.md`, `review-summary.json`, `release-notes.md`, and `README.md`.
+
+In the browser, edit subtitle text in the subtitle draft editor and separately set review decision, issue categories, reviewer note, and publish release notes. The review metadata explains acceptance, edits, follow-up, terminology, timing, tone, readability, missing text, or other issues. Evidence exports and handoff packages include counts and safe links only; they must not include raw transcript text, generated subtitle text, corrected subtitle text, reviewer note bodies, local paths, object keys, provider payloads, tokens, API keys, or media bytes. The deterministic, OpenAI smoke, and full Tears scripts all export the same subtitle review evidence after job completion.
+
 ## Optional OpenAI TTS Demo
 
 Use this path only with a local `.env` file that contains real OpenAI credentials:

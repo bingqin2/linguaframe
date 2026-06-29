@@ -705,3 +705,11 @@ Decision: Add a reviewed subtitle workflow cockpit as a derived read-only aggreg
 Reason: Subtitle review, draft edits, reviewed artifact publishing, reviewed burned-video creation, delivery manifest readiness, and handoff package export were already implemented, but reviewers still had to inspect several panels to know the next step.
 
 Impact: `GET /api/jobs/{jobId}/reviewed-subtitle-workflow`, the browser `Reviewed subtitle workflow` panel, and `scripts/demo/reviewed-subtitle-workflow.sh` compose existing job, subtitle review, draft, artifact, and manifest state into `READY`, `ATTENTION`, or `BLOCKED` with actionable checks and safe links. The cockpit is metadata-only and does not edit drafts, publish artifacts, create media, call providers, expose raw text, reveal local paths, or embed media bytes.
+
+## 2026-06-29
+
+Decision: Store subtitle review annotations in the draft overlay and export review evidence as metadata-only packages.
+
+Reason: The demo needs to prove what a reviewer accepted, edited, or marked for follow-up without turning the MVP into a multi-user review system or leaking free-form note text into handoff packages.
+
+Impact: Draft rows now carry review decision, issue categories, and reviewer note metadata beside corrected text. `GET /api/jobs/{jobId}/subtitle-review-evidence`, Markdown download, ZIP download, the browser review-evidence panel, and `scripts/demo/subtitle-review-evidence.sh` summarize review completion, category counts, note counts, release-note length, checks, safe links, and package entries. Evidence packages exclude raw transcript text, generated subtitle text, corrected subtitle text, reviewer note bodies, local paths, object keys, provider payloads, tokens, API keys, and media bytes.

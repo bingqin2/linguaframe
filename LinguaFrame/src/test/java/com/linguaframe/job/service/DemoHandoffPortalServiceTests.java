@@ -86,6 +86,7 @@ class DemoHandoffPortalServiceTests {
                 .contains(
                         "/api/jobs/job-portal/demo-handoff-portal/download",
                         "/api/jobs/job-portal/demo-reviewer-workspace/download",
+                        "/api/jobs/job-portal/subtitle-review-evidence/download",
                         "/api/jobs/job-portal/demo-run-snapshot/download",
                         "/api/jobs/job-portal/demo-run-package/download"
                 );
@@ -175,6 +176,7 @@ class DemoHandoffPortalServiceTests {
                 openAiProof("READY")
         );
 
+        DemoHandoffPortalVo portal = service.getPortal("job-portal");
         String markdown = service.renderMarkdown("job-portal");
         StoredDemoHandoffPortalPackageBo portalPackage = service.openPackage("job-portal");
         Map<String, String> entries = zipEntries(portalPackage.inputStream());
@@ -186,6 +188,10 @@ class DemoHandoffPortalServiceTests {
                 .contains("- Overall status: READY")
                 .contains("Demo reviewer workspace")
                 .contains("Static handoff portal ZIP");
+        assertThat(portal.safeLinks()).extracting("href")
+                .contains("/api/jobs/job-portal/subtitle-review-evidence/download");
+        assertThat(portal.packageEntries())
+                .contains("Linked safe route: /api/jobs/job-portal/subtitle-review-evidence/download");
         assertThat(combined)
                 .doesNotContain("sk-test")
                 .doesNotContain("OPENAI_API_KEY")
