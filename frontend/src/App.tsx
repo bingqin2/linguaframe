@@ -10,6 +10,8 @@ import type {
   DemoRunLauncher,
   DemoReplayCard,
   DemoSampleMediaCatalog,
+  DemoSessionCommandCenter,
+  DemoSessionCommandCenterStatus,
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -366,6 +368,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoPresentationCockpit, setDemoPresentationCockpit] = useState<DemoPresentationCockpit | null>(null);
   const [demoPresentationCockpitError, setDemoPresentationCockpitError] = useState<string | null>(null);
   const [isLoadingDemoPresentationCockpit, setIsLoadingDemoPresentationCockpit] = useState(false);
+  const [demoSessionCommandCenter, setDemoSessionCommandCenter] = useState<DemoSessionCommandCenter | null>(null);
+  const [demoSessionCommandCenterError, setDemoSessionCommandCenterError] = useState<string | null>(null);
+  const [isLoadingDemoSessionCommandCenter, setIsLoadingDemoSessionCommandCenter] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -857,6 +862,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoSessionCommandCenter = useCallback(async (jobId?: string) => {
+    setIsLoadingDemoSessionCommandCenter(true);
+    try {
+      const commandCenter = await linguaFrameApi.getDemoSessionCommandCenter(jobId);
+      setDemoSessionCommandCenter(commandCenter);
+      setDemoSessionCommandCenterError(null);
+      return commandCenter;
+    } catch (commandCenterLoadError) {
+      setDemoSessionCommandCenter(null);
+      setDemoSessionCommandCenterError(toErrorMessage(commandCenterLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoSessionCommandCenter(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
@@ -1049,6 +1070,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadDemoPresentationCockpit]);
 
   useEffect(() => {
+    void loadDemoSessionCommandCenter();
+  }, [loadDemoSessionCommandCenter]);
+
+  useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
 
@@ -1127,11 +1152,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       void loadJob(job.jobId, { silent: true }).then((nextJob) => {
         void loadSourceMedia(nextJob.videoId);
         void loadDemoPresentationCockpit(nextJob.jobId);
+        void loadDemoSessionCommandCenter(nextJob.jobId);
       });
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadJob, loadSourceMedia, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoPresentationCockpit, loadDemoSessionCommandCenter, loadJob, loadSourceMedia, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1147,6 +1173,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadSourceMedia(nextJob.videoId);
         void loadDemoRunMonitor(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
+        void loadDemoSessionCommandCenter(nextJob.jobId);
         if (TERMINAL_STATUSES.has(nextJob.status)) {
           void loadPreviewData(nextJob.jobId, nextJob.targetLanguage);
           void loadDemoRunMatrix(nextJob.jobId);
@@ -1170,7 +1197,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadPreviewData, loadSourceMedia]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1446,6 +1473,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunSnapshot(upload.jobId);
       await loadDemoShareSheet(upload.jobId);
       await loadDemoPresentationCockpit(upload.jobId);
+      await loadDemoSessionCommandCenter(upload.jobId);
       await loadHistory(historyStatusFilter);
     } catch (uploadError) {
       setError(toErrorMessage(uploadError));
@@ -1476,6 +1504,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunSnapshot(jobId);
     await loadDemoShareSheet(jobId);
     await loadDemoPresentationCockpit(jobId);
+    await loadDemoSessionCommandCenter(jobId);
   }
 
   async function handleRetry() {
@@ -1497,6 +1526,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunSnapshot(retriedJob.jobId);
       await loadDemoShareSheet(retriedJob.jobId);
       await loadDemoPresentationCockpit(retriedJob.jobId);
+      await loadDemoSessionCommandCenter(retriedJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (retryError) {
@@ -1525,6 +1555,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoRunSnapshot(cancelledJob.jobId);
       await loadDemoShareSheet(cancelledJob.jobId);
       await loadDemoPresentationCockpit(cancelledJob.jobId);
+      await loadDemoSessionCommandCenter(cancelledJob.jobId);
       setError(null);
       await loadHistory(historyStatusFilter);
     } catch (cancelError) {
@@ -1556,6 +1587,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunSnapshot(recentJob.jobId);
     await loadDemoShareSheet(recentJob.jobId);
     await loadDemoPresentationCockpit(recentJob.jobId);
+    await loadDemoSessionCommandCenter(recentJob.jobId);
   }
 
   async function openHistoryJob(historyJob: LocalizationJobSummary) {
@@ -1580,6 +1612,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunSnapshot(historyJob.jobId);
     await loadDemoShareSheet(historyJob.jobId);
     await loadDemoPresentationCockpit(historyJob.jobId);
+    await loadDemoSessionCommandCenter(historyJob.jobId);
   }
 
   async function openDashboardFailure(failure: OperatorDashboard['recentFailures'][number]) {
@@ -1605,6 +1638,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoRunSnapshot(failure.jobId);
     await loadDemoShareSheet(failure.jobId);
     await loadDemoPresentationCockpit(failure.jobId);
+    await loadDemoSessionCommandCenter(failure.jobId);
   }
 
   function handlePinCacheReplayBaseline() {
@@ -2219,6 +2253,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={modelUsageLedgerError}
             isLoading={isLoadingModelUsageLedger}
             onRefresh={loadModelUsageLedger}
+          />
+
+          <DemoSessionCommandCenterPanel
+            commandCenter={demoSessionCommandCenter}
+            error={demoSessionCommandCenterError}
+            isLoading={isLoadingDemoSessionCommandCenter}
+            onRefresh={() => void loadDemoSessionCommandCenter(job?.jobId)}
           />
 
           <DemoPresentationCockpitPanel
@@ -3804,6 +3845,190 @@ function ModelUsageLedgerPanel({
   );
 }
 
+function DemoSessionCommandCenterPanel({
+  commandCenter,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  commandCenter: DemoSessionCommandCenter | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const canCopy = typeof navigator !== 'undefined' && Boolean(navigator.clipboard?.writeText);
+  const notes = commandCenter ? formatDemoSessionCommandCenterNotes(commandCenter) : '';
+  const focusRun = commandCenter?.focusRun ?? commandCenter?.activeRun ?? commandCenter?.recommendedCompletedRun ?? null;
+  const primaryAction = commandCenter?.actions.find((action) => action.primary) ?? commandCenter?.actions[0] ?? null;
+
+  const handleCopyNotes = async () => {
+    if (!commandCenter || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(notes);
+    setStatus('Command center copied.');
+  };
+
+  const handleCopyCommand = async () => {
+    if (!primaryAction || !canCopy) {
+      setStatus('Clipboard copy is unavailable in this browser.');
+      return;
+    }
+    await navigator.clipboard.writeText(primaryAction.command);
+    setStatus('Primary command copied.');
+  };
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadDemoSessionCommandCenterMarkdown(focusRun?.jobId);
+      downloadBlob(blob, 'linguaframe-demo-session-command-center.md');
+      setStatus('Command center Markdown downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Demo session command center">
+      <div className="panel-heading">
+        <h2>Demo session command center</h2>
+        {commandCenter ? (
+          <span className={demoSessionStatusClassName(commandCenter.overallStatus)}>
+            {commandCenter.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Demo session command center unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !commandCenter ? <p className="muted">Loading demo session command center...</p> : null}
+      {commandCenter ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Phase</dt>
+              <dd>{commandCenter.phase}</dd>
+            </div>
+            <div>
+              <dt>Focus run</dt>
+              <dd>{focusRun?.jobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatLedgerCost(commandCenter.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Calls</dt>
+              <dd>{commandCenter.modelCallCount} calls</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>
+                {commandCenter.failedModelCallCount} failed · {commandCenter.failureRatePercent}%
+              </dd>
+            </div>
+            <div>
+              <dt>Latency</dt>
+              <dd>{formatDurationMs(commandCenter.averageLatencyMs)} avg</dd>
+            </div>
+          </dl>
+          <p className={commandCenter.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {commandCenter.recommendedNextAction}
+          </p>
+          {focusRun ? (
+            <div className="evidence-gallery-recommended">
+              <h3>Run focus</h3>
+              <p>
+                <strong>{focusRun.jobId}</strong> · {focusRun.status} · {focusRun.profileId}
+              </p>
+              <ul className="inline-evidence-list">
+                <li>{focusRun.role}</li>
+                <li>{focusRun.acceptanceStatus}</li>
+                <li>{focusRun.readiness}</li>
+                <li>{focusRun.currentStage ?? 'No active stage'}</li>
+                <li>{focusRun.elapsedMs === null ? 'No elapsed time' : formatDurationMs(focusRun.elapsedMs)}</li>
+              </ul>
+              <small>{focusRun.nextAction}</small>
+            </div>
+          ) : (
+            <p className="muted">No selected, active, or completed run is available yet.</p>
+          )}
+          {primaryAction ? (
+            <div className="command-highlight">
+              <h3>Primary command</h3>
+              <code>{primaryAction.command}</code>
+              <small>{primaryAction.description}</small>
+            </div>
+          ) : null}
+          <ul className="operations-section-list" aria-label="Demo session phases">
+            {commandCenter.phases.map((phase) => (
+              <li key={phase.id}>
+                <div className="operations-section-heading">
+                  <strong>{phase.label}</strong>
+                  <span className={demoSessionStatusClassName(phase.status)}>{phase.status}</span>
+                </div>
+                <p>{phase.detail}</p>
+                <small>{phase.nextAction}</small>
+                {phase.blocking ? <small className="error-text">Blocking demo session readiness.</small> : null}
+              </li>
+            ))}
+          </ul>
+          {commandCenter.actions.length > 0 ? (
+            <>
+              <h3>Actions</h3>
+              <ul className="command-list">
+                {commandCenter.actions.map((action) => (
+                  <li key={action.id}>
+                    <strong>{action.label}</strong>
+                    <code>{action.command}</code>
+                    <small>{action.description}</small>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
+          <h3>Evidence links</h3>
+          <ul className="link-list">
+            {commandCenter.evidenceLinks.slice(0, 12).map((link) => (
+              <li key={`${link.label}-${link.href}`}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.contentType} · {link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Safety</h3>
+          <ul className="compact-list">
+            {commandCenter.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" disabled={!canCopy} onClick={handleCopyNotes}>
+              Copy command center
+            </button>
+            <button type="button" className="secondary-button" disabled={!primaryAction || !canCopy} onClick={handleCopyCommand}>
+              Copy command
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download command center
+            </button>
+          </div>
+          {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function DemoPresentationCockpitPanel({
   cockpit,
   error,
@@ -4594,6 +4819,55 @@ function formatDemoPresentationCockpitNotes(cockpit: DemoPresentationCockpit): s
   return `${lines.join('\n')}\n`;
 }
 
+function formatDemoSessionCommandCenterNotes(commandCenter: DemoSessionCommandCenter): string {
+  const focusRun = commandCenter.focusRun ?? commandCenter.activeRun ?? commandCenter.recommendedCompletedRun ?? null;
+  const lines = [
+    '# LinguaFrame Demo Session Command Center',
+    '',
+    `- Overall: ${safeMarkdownLine(commandCenter.overallStatus)}`,
+    `- Phase: ${safeMarkdownLine(commandCenter.phase)}`,
+    `- Generated at: ${safeMarkdownLine(commandCenter.generatedAt)}`,
+    `- Next action: ${safeMarkdownLine(commandCenter.recommendedNextAction)}`,
+    `- Primary command: ${safeMarkdownLine(commandCenter.primaryCommand)}`,
+    `- Focus job: ${focusRun ? safeMarkdownLine(focusRun.jobId) : 'none'}`,
+    `- Estimated cost: ${safeMarkdownLine(formatLedgerCost(commandCenter.estimatedCostUsd))}`,
+    `- Calls: ${commandCenter.modelCallCount}`,
+    `- Failed calls: ${commandCenter.failedModelCallCount}`,
+    `- Failure rate: ${safeMarkdownLine(commandCenter.failureRatePercent)}%`,
+    '',
+    '## Focus Run'
+  ];
+  if (focusRun) {
+    lines.push(`- Role: ${safeMarkdownLine(focusRun.role)}`);
+    lines.push(`- Job: ${safeMarkdownLine(focusRun.jobId)}`);
+    lines.push(`- Video: ${safeMarkdownLine(focusRun.videoId)}`);
+    lines.push(`- Profile: ${safeMarkdownLine(focusRun.profileId)}`);
+    lines.push(`- Status: ${safeMarkdownLine(focusRun.status)}`);
+    lines.push(`- Acceptance: ${safeMarkdownLine(focusRun.acceptanceStatus)}`);
+    lines.push(`- Next: ${safeMarkdownLine(focusRun.nextAction)}`);
+  } else {
+    lines.push('- No selected, active, or completed run is available.');
+  }
+  lines.push('', '## Phases');
+  commandCenter.phases.forEach((phase) => {
+    lines.push(`- ${safeMarkdownLine(phase.status)} ${safeMarkdownLine(phase.label)}: ${safeMarkdownLine(phase.detail)}`);
+    lines.push(`  Next: ${safeMarkdownLine(phase.nextAction)}`);
+  });
+  lines.push('', '## Actions');
+  commandCenter.actions.forEach((action) => {
+    lines.push(`- ${safeMarkdownLine(action.label)}: ${safeMarkdownLine(action.command)}`);
+  });
+  lines.push('', '## Evidence');
+  commandCenter.evidenceLinks.forEach((link) => {
+    lines.push(`- ${safeMarkdownLine(link.label)}: ${safeMarkdownLine(link.href)}`);
+  });
+  lines.push('', '## Safety');
+  commandCenter.safetyNotes.forEach((note) => {
+    lines.push(`- ${safeMarkdownLine(note)}`);
+  });
+  return `${lines.join('\n')}\n`;
+}
+
 function formatPrivateDemoEvidenceGalleryNotes(gallery: PrivateDemoEvidenceGallery): string {
   if (gallery.galleryNotesMarkdown.trim().length > 0) {
     return `${gallery.galleryNotesMarkdown.trim()}\n`;
@@ -4692,6 +4966,19 @@ function operationsStatusClassName(status: string): string {
 }
 
 function modelUsageStatusClassName(status: ModelUsageLedger['summary']['ledgerStatus']): string {
+  if (status === 'BLOCKED') {
+    return 'status-pill danger';
+  }
+  if (status === 'ATTENTION') {
+    return 'status-pill warning';
+  }
+  if (status === 'EMPTY') {
+    return 'status-pill muted-pill';
+  }
+  return 'status-pill';
+}
+
+function demoSessionStatusClassName(status: DemoSessionCommandCenterStatus): string {
   if (status === 'BLOCKED') {
     return 'status-pill danger';
   }

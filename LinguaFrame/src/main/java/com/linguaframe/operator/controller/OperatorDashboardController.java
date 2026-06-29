@@ -3,6 +3,7 @@ package com.linguaframe.operator.controller;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
@@ -12,6 +13,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
+import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
@@ -44,6 +46,7 @@ public class OperatorDashboardController {
     private final DemoRunLauncherService demoRunLauncherService;
     private final DemoPresentationCockpitService demoPresentationCockpitService;
     private final ModelUsageLedgerService modelUsageLedgerService;
+    private final DemoSessionCommandCenterService demoSessionCommandCenterService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -54,7 +57,8 @@ public class OperatorDashboardController {
             DemoSampleMediaCatalogService sampleMediaCatalogService,
             DemoRunLauncherService demoRunLauncherService,
             DemoPresentationCockpitService demoPresentationCockpitService,
-            ModelUsageLedgerService modelUsageLedgerService
+            ModelUsageLedgerService modelUsageLedgerService,
+            DemoSessionCommandCenterService demoSessionCommandCenterService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -65,6 +69,7 @@ public class OperatorDashboardController {
         this.demoRunLauncherService = demoRunLauncherService;
         this.demoPresentationCockpitService = demoPresentationCockpitService;
         this.modelUsageLedgerService = modelUsageLedgerService;
+        this.demoSessionCommandCenterService = demoSessionCommandCenterService;
     }
 
     @GetMapping("/dashboard")
@@ -172,5 +177,32 @@ public class OperatorDashboardController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"model-usage-ledger.md\"")
                 .contentType(MediaType.TEXT_MARKDOWN)
                 .body(modelUsageLedgerService.ledgerMarkdown(limit));
+    }
+
+    @GetMapping("/demo-session-command-center")
+    @Operation(summary = "Get demo session command center")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session command center was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoSessionCommandCenterVo demoSessionCommandCenter(
+            @RequestParam(required = false) String jobId
+    ) {
+        return demoSessionCommandCenterService.commandCenter(jobId);
+    }
+
+    @GetMapping(value = "/demo-session-command-center/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download demo session command center markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session command center markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> demoSessionCommandCenterMarkdown(
+            @RequestParam(required = false) String jobId
+    ) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-command-center.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(demoSessionCommandCenterService.commandCenterMarkdown(jobId));
     }
 }

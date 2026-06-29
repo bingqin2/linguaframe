@@ -4,6 +4,7 @@ import type {
   DemoAcceptanceGate,
   DemoPresentationCockpit,
   DemoSampleMediaCatalog,
+  DemoSessionCommandCenter,
   DemoCompletionCertificate,
   DemoRunLauncher,
   JobArtifact,
@@ -615,6 +616,30 @@ export async function downloadModelUsageLedgerMarkdown(limit?: number): Promise<
   });
 }
 
+export async function getDemoSessionCommandCenter(jobId?: string): Promise<DemoSessionCommandCenter> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoSessionCommandCenter>(`/api/operator/demo-session-command-center${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoSessionCommandCenterMarkdown(jobId?: string): Promise<Blob> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/demo-session-command-center/markdown/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
 export async function getPrivateDemoOperations(): Promise<PrivateDemoOperations> {
   return requestJson<PrivateDemoOperations>('/api/operator/private-demo/operations', {
     method: 'GET'
@@ -914,6 +939,8 @@ export const linguaFrameApi = {
   getOperatorDashboard,
   getModelUsageLedger,
   downloadModelUsageLedgerMarkdown,
+  getDemoSessionCommandCenter,
+  downloadDemoSessionCommandCenterMarkdown,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,

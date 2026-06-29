@@ -20,6 +20,8 @@ import {
   getOperatorDashboard,
   getModelUsageLedger,
   downloadModelUsageLedgerMarkdown,
+  getDemoSessionCommandCenter,
+  downloadDemoSessionCommandCenterMarkdown,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,
@@ -1244,6 +1246,49 @@ describe('linguaframeApi', () => {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
     });
+  });
+
+  test('fetches demo session command center with selected job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(demoSessionCommandCenterFixture())
+    );
+
+    const commandCenter = await getDemoSessionCommandCenter('job with spaces');
+
+    expect(commandCenter.phase).toBe('READY_TO_PRESENT');
+    expect(commandCenter.focusRun?.jobId).toBe('job-session');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-session-command-center?jobId=job+with+spaces', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads demo session command center markdown with selected job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Demo Session Command Center', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadDemoSessionCommandCenterMarkdown('job with spaces');
+
+    expect(await result.text()).toContain('Demo Session Command Center');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/demo-session-command-center/markdown/download?jobId=job+with+spaces',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
   });
 
   test('fetches private demo operations with demo access token header when stored', async () => {
@@ -2553,6 +2598,64 @@ function modelUsageLedgerFixture() {
     ],
     safeLinks: ['/api/operator/model-usage-ledger/markdown/download'],
     safetyNotes: ['Raw media object keys, prompts, provider responses, and secrets are intentionally excluded.']
+  };
+}
+
+function demoSessionCommandCenterFixture() {
+  return {
+    generatedAt: '2026-06-29T08:20:00Z',
+    overallStatus: 'READY',
+    phase: 'READY_TO_PRESENT',
+    recommendedNextAction: 'Open the presenter pack.',
+    primaryCommand: 'LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh',
+    focusRun: {
+      role: 'SELECTED',
+      jobId: 'job-session',
+      videoId: 'video-session',
+      profileId: 'tears-showcase',
+      status: 'COMPLETED',
+      readiness: 'READY',
+      acceptanceStatus: 'READY',
+      currentStage: 'RESULT_BUNDLE',
+      elapsedMs: 120000,
+      nextAction: 'Use this run for the demo.'
+    },
+    activeRun: null,
+    recommendedCompletedRun: null,
+    phases: [
+      {
+        id: 'model-usage',
+        label: 'Model usage ledger',
+        status: 'READY',
+        detail: 'Calls 2, failed 0, cost 0.00020000.',
+        nextAction: 'Use the ledger links as cost evidence.',
+        blocking: false
+      }
+    ],
+    actions: [
+      {
+        id: 'session-command-center',
+        label: 'Export command center',
+        command: 'LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh',
+        description: 'Export focused session command center JSON and Markdown.',
+        primary: true
+      }
+    ],
+    evidenceLinks: [
+      {
+        label: 'Command center Markdown',
+        href: '/api/operator/demo-session-command-center/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable command center notes.'
+      }
+    ],
+    estimatedCostUsd: '0.00020000',
+    modelCallCount: 2,
+    failedModelCallCount: 0,
+    failureRatePercent: '0.00',
+    averageLatencyMs: 120,
+    providerCacheHitCount: 1,
+    safetyNotes: ['Demo session command center is metadata-only and read-only.']
   };
 }
 

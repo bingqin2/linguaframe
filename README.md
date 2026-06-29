@@ -229,6 +229,18 @@ LINGUAFRAME_MODEL_USAGE_LEDGER_LIMIT=50 scripts/demo/model-usage-ledger.sh
 
 The script calls `GET /api/operator/model-usage-ledger` and `GET /api/operator/model-usage-ledger/markdown/download`, writing `model-usage-ledger.json` and `model-usage-ledger.md` under `/tmp/linguaframe-demo/model-usage-ledger/`. Use it with the operator dashboard for high-level health, job diagnostics or AI audit package for a single job, private-demo operations for launch readiness, and demo evidence closure for final reviewer packaging.
 
+### Demo session command center
+
+Use the demo session command center as the run-day top-level surface after the backend is running. It combines private-demo operations, launch rehearsal, launcher, presentation cockpit, evidence gallery, run archive, model usage ledger, focused run links, and the next command into one metadata-only index. It is useful before upload, while a job is running, and after completion when you need one place to decide the next action.
+
+```bash
+scripts/demo/demo-session-command-center.sh
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-session-command-center.sh
+LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true scripts/demo/demo-session-command-center.sh
+```
+
+The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-command-center/markdown/download`, writing `demo-session-command-center.json` and `demo-session-command-center.md` under `/tmp/linguaframe-demo/demo-session-command-center/`. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true` to export evidence without failing the shell step. Use it as the operator table of contents, not as a replacement for per-job demo run packages, AI audit packages, or reviewed handoff packages.
+
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 
 ```bash
@@ -320,6 +332,8 @@ LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-acceptance-gate.sh
 ```
 
 The script writes `demo-acceptance-gate.json` under `/tmp/linguaframe-demo/demo-acceptance-gate/` by default. Use this gate when you need one final readiness answer; use the completion certificate for proof details, the replay card for rerun settings, and the snapshot for offline review.
+
+The browser demo also shows a `Demo session command center` panel backed by `GET /api/operator/demo-session-command-center`. Use it as the run-day entry point when you want one status, focused job, primary command, phase gates, model-call cost summary, and safe evidence links before moving into the more detailed presentation cockpit or per-job evidence panels.
 
 The browser demo also shows a `Demo presentation cockpit` panel backed by `GET /api/operator/demo-presentation-cockpit`. Use it as the first run-day surface before upload, during processing, and after completion: it combines launcher, upload readiness, live checks, private-demo operations, active run monitor, recommended completed run, acceptance gate, package links, and safety notes into one metadata-only next-action view. Terminal export is available with:
 
