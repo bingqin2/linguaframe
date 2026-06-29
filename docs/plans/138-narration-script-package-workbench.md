@@ -126,8 +126,8 @@
 - [x] Run `bash -n scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 - [x] Run `git diff --check`.
 - [x] Commit with message `Document narration script package workbench`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 
