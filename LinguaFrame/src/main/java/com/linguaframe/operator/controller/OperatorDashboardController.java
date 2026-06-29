@@ -3,6 +3,7 @@ package com.linguaframe.operator.controller;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
+import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
@@ -11,6 +12,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
+import com.linguaframe.operator.service.ModelUsageLedgerService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
@@ -20,6 +22,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,6 +43,7 @@ public class OperatorDashboardController {
     private final DemoSampleMediaCatalogService sampleMediaCatalogService;
     private final DemoRunLauncherService demoRunLauncherService;
     private final DemoPresentationCockpitService demoPresentationCockpitService;
+    private final ModelUsageLedgerService modelUsageLedgerService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -47,7 +53,8 @@ public class OperatorDashboardController {
             PrivateDemoRunArchiveService runArchiveService,
             DemoSampleMediaCatalogService sampleMediaCatalogService,
             DemoRunLauncherService demoRunLauncherService,
-            DemoPresentationCockpitService demoPresentationCockpitService
+            DemoPresentationCockpitService demoPresentationCockpitService,
+            ModelUsageLedgerService modelUsageLedgerService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -57,6 +64,7 @@ public class OperatorDashboardController {
         this.sampleMediaCatalogService = sampleMediaCatalogService;
         this.demoRunLauncherService = demoRunLauncherService;
         this.demoPresentationCockpitService = demoPresentationCockpitService;
+        this.modelUsageLedgerService = modelUsageLedgerService;
     }
 
     @GetMapping("/dashboard")
@@ -141,5 +149,28 @@ public class OperatorDashboardController {
             @RequestParam(required = false) String jobId
     ) {
         return demoPresentationCockpitService.cockpit(jobId);
+    }
+
+    @GetMapping("/model-usage-ledger")
+    @Operation(summary = "Get owner-scoped model usage ledger")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Model usage ledger was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ModelUsageLedgerVo modelUsageLedger(@RequestParam(required = false) Integer limit) {
+        return modelUsageLedgerService.ledger(limit);
+    }
+
+    @GetMapping(value = "/model-usage-ledger/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download model usage ledger markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Model usage ledger markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> modelUsageLedgerMarkdown(@RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"model-usage-ledger.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(modelUsageLedgerService.ledgerMarkdown(limit));
     }
 }

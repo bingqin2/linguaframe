@@ -18,6 +18,8 @@ import {
   listArtifacts,
   listPromptTemplates,
   getOperatorDashboard,
+  getModelUsageLedger,
+  downloadModelUsageLedgerMarkdown,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,
@@ -1197,6 +1199,46 @@ describe('linguaframeApi', () => {
     expect(dashboard.modelCalls.modelCallCount).toBe(2);
     expect(dashboard.cache.providerCacheHitCount).toBe(1);
     expect(fetchMock).toHaveBeenCalledWith('/api/operator/dashboard', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('fetches model usage ledger with limit and demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(modelUsageLedgerFixture())
+    );
+
+    const ledger = await getModelUsageLedger(20);
+
+    expect(ledger.summary.ledgerStatus).toBe('READY');
+    expect(ledger.operations[0]?.operation).toBe('TRANSLATION');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/model-usage-ledger?limit=20', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads model usage ledger markdown with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Model Usage Ledger', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadModelUsageLedgerMarkdown(10);
+
+    expect(await result.text()).toContain('Model Usage Ledger');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/model-usage-ledger/markdown/download?limit=10', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
@@ -2436,6 +2478,81 @@ function operatorDashboardFixture() {
       generatedArtifactCount: 3,
       providerCacheHitCount: 1
     }
+  };
+}
+
+function modelUsageLedgerFixture() {
+  return {
+    generatedAt: '2026-06-28T08:00:00Z',
+    limit: 20,
+    ownerId: 'demo-owner',
+    ownershipScope: 'CONFIGURED_DEMO_OWNER',
+    summary: {
+      ledgerStatus: 'READY',
+      jobCount: 1,
+      modelCallCount: 2,
+      failedModelCallCount: 0,
+      providerCacheHitCount: 1,
+      generatedArtifactCount: 1,
+      totalLatencyMs: 240,
+      estimatedCostUsd: '0.00020000',
+      averageLatencyMs: 120,
+      failureRatePercent: '0.00',
+      recommendedNextAction: 'Use the ledger links as cost and latency evidence for the current demo run.'
+    },
+    jobs: [
+      {
+        jobId: 'job-ledger',
+        videoId: 'video-ledger',
+        jobStatus: 'COMPLETED',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        modelCallCount: 2,
+        failedModelCallCount: 0,
+        providerCacheHitCount: 1,
+        generatedArtifactCount: 1,
+        totalLatencyMs: 240,
+        estimatedCostUsd: '0.00020000',
+        latestModelCallAt: '2026-06-28T08:01:00Z',
+        safeLinks: ['/api/jobs/job-ledger/demo-run-package/download']
+      }
+    ],
+    operations: [
+      {
+        operation: 'TRANSLATION',
+        provider: 'OPENAI',
+        model: 'gpt-test',
+        promptVersion: 'openai-translation-v1',
+        modelCallCount: 2,
+        failedModelCallCount: 0,
+        totalLatencyMs: 240,
+        estimatedCostUsd: '0.00020000',
+        averageLatencyMs: 120
+      }
+    ],
+    recentCalls: [
+      {
+        modelCallId: 'call-ledger',
+        jobId: 'job-ledger',
+        videoId: 'video-ledger',
+        stage: 'TARGET_SUBTITLE_EXPORT',
+        operation: 'TRANSLATION',
+        provider: 'OPENAI',
+        model: 'gpt-test',
+        promptVersion: 'openai-translation-v1',
+        status: 'SUCCEEDED',
+        latencyMs: 120,
+        inputTokens: 100,
+        outputTokens: 50,
+        audioSeconds: null,
+        characterCount: null,
+        estimatedCostUsd: '0.00010000',
+        safeErrorSummary: null,
+        createdAt: '2026-06-28T08:01:00Z'
+      }
+    ],
+    safeLinks: ['/api/operator/model-usage-ledger/markdown/download'],
+    safetyNotes: ['Raw media object keys, prompts, provider responses, and secrets are intentionally excluded.']
   };
 }
 

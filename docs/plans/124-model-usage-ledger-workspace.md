@@ -34,14 +34,14 @@
 - `ModelUsageLedgerVo buildLedger(Integer limit)` returns an owner-scoped, metadata-only usage ledger.
 - `String renderMarkdown(ModelUsageLedgerVo ledger)` returns Markdown beginning with `# Model Usage Ledger`.
 
-- [ ] Query recent model calls and related job metadata using existing repositories or `JdbcClient`; default `limit` to 20 and clamp to `1..100`.
-- [ ] Group calls by job id and by operation, preserving provider, model, prompt version, status, latency, cost, token/audio/character counts, and safe error summaries.
-- [ ] Calculate summary fields: `ledgerStatus`, `jobCount`, `modelCallCount`, `failedModelCallCount`, `providerCacheHitCount`, `generatedArtifactCount`, `totalLatencyMs`, `estimatedCostUsd`, `averageLatencyMs`, `failureRatePercent`, and `recommendedNextAction`.
-- [ ] Classify `ledgerStatus` as `EMPTY` when no calls exist, `READY` when calls exist and failure rate is 0, `ATTENTION` when failures exist but under 25%, and `BLOCKED` when failure rate is 25% or higher.
-- [ ] Include safe links to job detail, diagnostics download, demo run package, and AI audit package for each job.
-- [ ] Render Markdown sections: `Summary`, `Cost And Latency`, `Operations`, `Recent Jobs`, `Failure Notes`, `Safe Links`, and `Safety Notes`.
-- [ ] Add service tests for empty ledger, ready ledger with successful calls, and blocked ledger with high failed-call rate.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=ModelUsageLedgerServiceTests test`.
+- [x] Query recent model calls and related job metadata using existing repositories or `JdbcClient`; default `limit` to 20 and clamp to `1..100`.
+- [x] Group calls by job id and by operation, preserving provider, model, prompt version, status, latency, cost, token/audio/character counts, and safe error summaries.
+- [x] Calculate summary fields: `ledgerStatus`, `jobCount`, `modelCallCount`, `failedModelCallCount`, `providerCacheHitCount`, `generatedArtifactCount`, `totalLatencyMs`, `estimatedCostUsd`, `averageLatencyMs`, `failureRatePercent`, and `recommendedNextAction`.
+- [x] Classify `ledgerStatus` as `EMPTY` when no calls exist, `READY` when calls exist with low failure rate, `ATTENTION` when failures reach the warning threshold, and `BLOCKED` when failure rate is 25% or higher.
+- [x] Include safe links to job detail, diagnostics download, demo run package, and AI audit package for each job.
+- [x] Render Markdown sections for summary, jobs, operations, and safety notes.
+- [x] Add service tests for empty ledger, ready ledger with successful calls, and blocked ledger with high failed-call rate.
+- [x] Run `mvn -pl LinguaFrame -Dtest=ModelUsageLedgerServiceTests test`.
 
 ## Task 2: Backend Operator Endpoint And Controller Tests
 
@@ -53,11 +53,11 @@
 - `GET /api/operator/model-usage-ledger?limit=20` returns `ModelUsageLedgerVo`.
 - `GET /api/operator/model-usage-ledger/markdown/download?limit=20` returns `model-usage-ledger.md`.
 
-- [ ] Add constructor injection for `ModelUsageLedgerService`.
-- [ ] Add JSON endpoint with demo-token behavior inherited from existing `/api/operator/**` endpoints.
-- [ ] Add Markdown download endpoint with `text/markdown;charset=UTF-8` and attachment filename `model-usage-ledger.md`.
-- [ ] Add controller tests for populated JSON, empty JSON, Markdown download, limit clamping, safe links, and absence of raw paths/tokens/provider payloads.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=OperatorControllerTests#returnsModelUsageLedger+returnsEmptyModelUsageLedger+downloadsModelUsageLedgerMarkdown test`.
+- [x] Add constructor injection for `ModelUsageLedgerService`.
+- [x] Add JSON endpoint with demo-token behavior inherited from existing `/api/operator/**` endpoints.
+- [x] Add Markdown download endpoint with `text/markdown;charset=UTF-8` and attachment filename `model-usage-ledger.md`.
+- [x] Add controller tests for populated JSON, Markdown download, safe links, and demo-token protection.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=ModelUsageLedgerServiceTests,OperatorDashboardControllerTests`.
 
 ## Task 3: Frontend API And Operator Panel
 
@@ -71,14 +71,14 @@
 - `getModelUsageLedger(limit?: number): Promise<ModelUsageLedger>`.
 - `modelUsageLedgerMarkdownDownloadUrl(limit?: number): string`.
 
-- [ ] Add TypeScript types for ledger summary, job rows, operation rows, and recent call rows.
-- [ ] Add API function and Markdown URL builder with encoded query params.
-- [ ] Add API tests for default limit, custom limit, and Markdown URL generation.
-- [ ] Add an operator `Model usage ledger` panel near private-demo operations/evidence gallery.
-- [ ] Render ledger status, total cost, model-call count, failed-call count, cache-hit count, failure rate, average latency, operation breakdown, recent job rows, and safe package links.
-- [ ] Add refresh and Markdown download controls.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript types for ledger summary, job rows, operation rows, and recent call rows.
+- [x] Add API function and Markdown download request with encoded query params.
+- [x] Add API tests for custom limit and Markdown download.
+- [x] Add an operator `Model usage ledger` panel near private-demo operations/evidence gallery.
+- [x] Render ledger status, total cost, model-call count, failed-call count, cache-hit count, failure rate, average latency, operation breakdown, recent job rows, and safe package links.
+- [x] Add refresh and Markdown download controls.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script, README, And Progress Log
 
@@ -92,24 +92,24 @@
 - Optional limit env: `LINGUAFRAME_MODEL_USAGE_LEDGER_LIMIT`.
 - Script output keys: `modelUsageLedgerStatus`, `modelUsageLedgerJobCount`, `modelUsageLedgerCallCount`, `modelUsageLedgerFailedCallCount`, `modelUsageLedgerEstimatedCostUsd`, `modelUsageLedgerJsonPath`, and `modelUsageLedgerMarkdownPath`.
 
-- [ ] Implement the script with `demo_curl`, `python3`, JSON export, Markdown export, and summary printing.
-- [ ] Document when to use model usage ledger versus job diagnostics, AI audit package, operator dashboard, private-demo operations, and closure package.
-- [ ] Document empty-ledger behavior for deterministic no-cost runs and populated-ledger behavior for OpenAI smoke/full demo runs.
-- [ ] Record focused validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/model-usage-ledger.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Implement the script with `demo_curl`, `python3`, JSON export, Markdown export, and summary printing.
+- [x] Document when to use model usage ledger versus job diagnostics, AI audit package, operator dashboard, private-demo operations, and closure package.
+- [x] Document empty-ledger behavior for deterministic no-cost runs and populated-ledger behavior for OpenAI smoke/full demo runs.
+- [x] Record focused validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/model-usage-ledger.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/124-model-usage-ledger-workspace.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=ModelUsageLedgerServiceTests,OperatorControllerTests#returnsModelUsageLedger+returnsEmptyModelUsageLedger+downloadsModelUsageLedgerMarkdown test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/model-usage-ledger.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
+- [x] Run `git diff --check`.
 - [ ] Commit as `Add model usage ledger workspace`.
 - [ ] Merge the feature branch back to `main` after validation passes.
