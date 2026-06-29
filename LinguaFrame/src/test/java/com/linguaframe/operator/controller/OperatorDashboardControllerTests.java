@@ -26,7 +26,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.io.ByteArrayInputStream;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.zip.ZipInputStream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -328,6 +332,45 @@ class OperatorDashboardControllerTests {
                             .doesNotContain("source-videos/session-markdown-controller-video"));
         }
 
+        @Test
+        void downloadsDemoSessionEvidencePackageZip() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T10:00:00Z");
+            createJob("session-package-controller-video", "session-package-controller-job", "session-package.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("session-package-controller-call", "session-package-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/demo-session-evidence-package/download")
+                            .param("jobId", "session-package-controller-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("linguaframe-demo-session-session-package-controller-job-evidence-package.zip"))
+                    .andExpect(result -> {
+                        Map<String, String> entries = zipEntries(result.getResponse().getContentAsByteArray());
+                        org.assertj.core.api.Assertions.assertThat(entries.keySet())
+                                .contains(
+                                        "manifest.json",
+                                        "README.md",
+                                        "command-center.json",
+                                        "command-center.md",
+                                        "operations.json",
+                                        "launch-rehearsal.json",
+                                        "model-usage-ledger.json",
+                                        "presentation-cockpit.json",
+                                        "evidence-gallery.json",
+                                        "run-archive.json"
+                                );
+                        org.assertj.core.api.Assertions.assertThat(entries.get("manifest.json"))
+                                .contains("DEMO_SESSION_EVIDENCE_PACKAGE", "session-package-controller-job");
+                        org.assertj.core.api.Assertions.assertThat(String.join("\n", entries.values()))
+                                .doesNotContain("source-videos/session-package-controller-video")
+                                .doesNotContain("OPENAI_API_KEY")
+                                .doesNotContain("private-demo-token")
+                                .doesNotContain("provider request payload")
+                                .doesNotContain("raw transcript text:");
+                    });
+        }
+
         private void createJob(
                 String videoId,
                 String jobId,
@@ -369,6 +412,17 @@ class OperatorDashboardControllerTests {
                     null,
                     createdAt
             ));
+        }
+
+        private Map<String, String> zipEntries(byte[] bytes) throws Exception {
+            Map<String, String> entries = new LinkedHashMap<>();
+            try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(bytes))) {
+                java.util.zip.ZipEntry entry;
+                while ((entry = zipInputStream.getNextEntry()) != null) {
+                    entries.put(entry.getName(), new String(zipInputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8));
+                }
+            }
+            return entries;
         }
     }
 
@@ -464,6 +518,13 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-session-command-center/markdown/download")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-evidence-package/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-evidence-package/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

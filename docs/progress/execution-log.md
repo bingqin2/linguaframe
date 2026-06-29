@@ -6,6 +6,25 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the demo session evidence package workspace in `docs/plans/126-demo-session-evidence-package.md`.
+- Added backend `GET /api/operator/demo-session-evidence-package/download` for a read-only ZIP aggregating command center, operations, launch rehearsal, model usage ledger, presentation cockpit, evidence gallery, and run archive.
+- Added a React `Download session package` action to the demo session command center panel.
+- Added `scripts/demo/demo-session-evidence-package.sh` for command-center JSON plus ZIP export under `/tmp/linguaframe-demo/demo-session-evidence-package/`.
+- Updated README and the private demo deployment guide with session evidence package usage and testing notes.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=DemoSessionEvidencePackageServiceTests` first failed because a safety-marker assertion matched explanatory safety copy, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests` passed with `Tests run: 17, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 165 passed`.
+- `bash -n scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned the demo session command center workspace in `docs/plans/125-demo-session-command-center.md`.
 - Added backend `GET /api/operator/demo-session-command-center` and Markdown download for a read-only run-day command center aggregating operations, launch rehearsal, launcher, cockpit, gallery, archive, and model usage.
 - Added a React `Demo session command center` panel with phase gates, focused run summary, primary command copy, safe evidence links, and backend Markdown download.

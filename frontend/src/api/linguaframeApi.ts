@@ -640,6 +640,18 @@ export async function downloadDemoSessionCommandCenterMarkdown(jobId?: string): 
   });
 }
 
+export async function downloadDemoSessionEvidencePackageZip(jobId?: string): Promise<Blob> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/demo-session-evidence-package/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
 export async function getPrivateDemoOperations(): Promise<PrivateDemoOperations> {
   return requestJson<PrivateDemoOperations>('/api/operator/private-demo/operations', {
     method: 'GET'
@@ -941,6 +953,7 @@ export const linguaFrameApi = {
   downloadModelUsageLedgerMarkdown,
   getDemoSessionCommandCenter,
   downloadDemoSessionCommandCenterMarkdown,
+  downloadDemoSessionEvidencePackageZip,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,

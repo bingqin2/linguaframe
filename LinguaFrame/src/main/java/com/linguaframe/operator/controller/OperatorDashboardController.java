@@ -1,5 +1,6 @@
 package com.linguaframe.operator.controller;
 
+import com.linguaframe.operator.domain.bo.DemoSessionEvidencePackageBo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
@@ -14,6 +15,7 @@ import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
+import com.linguaframe.operator.service.DemoSessionEvidencePackageService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
@@ -24,6 +26,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +50,7 @@ public class OperatorDashboardController {
     private final DemoPresentationCockpitService demoPresentationCockpitService;
     private final ModelUsageLedgerService modelUsageLedgerService;
     private final DemoSessionCommandCenterService demoSessionCommandCenterService;
+    private final DemoSessionEvidencePackageService demoSessionEvidencePackageService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -58,7 +62,8 @@ public class OperatorDashboardController {
             DemoRunLauncherService demoRunLauncherService,
             DemoPresentationCockpitService demoPresentationCockpitService,
             ModelUsageLedgerService modelUsageLedgerService,
-            DemoSessionCommandCenterService demoSessionCommandCenterService
+            DemoSessionCommandCenterService demoSessionCommandCenterService,
+            DemoSessionEvidencePackageService demoSessionEvidencePackageService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -70,6 +75,7 @@ public class OperatorDashboardController {
         this.demoPresentationCockpitService = demoPresentationCockpitService;
         this.modelUsageLedgerService = modelUsageLedgerService;
         this.demoSessionCommandCenterService = demoSessionCommandCenterService;
+        this.demoSessionEvidencePackageService = demoSessionEvidencePackageService;
     }
 
     @GetMapping("/dashboard")
@@ -204,5 +210,22 @@ public class OperatorDashboardController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-command-center.md\"")
                 .contentType(MediaType.TEXT_MARKDOWN)
                 .body(demoSessionCommandCenterService.commandCenterMarkdown(jobId));
+    }
+
+    @GetMapping(value = "/demo-session-evidence-package/download", produces = "application/zip")
+    @Operation(summary = "Download demo session evidence package")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session evidence package ZIP was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<InputStreamResource> demoSessionEvidencePackage(
+            @RequestParam(required = false) String jobId
+    ) {
+        DemoSessionEvidencePackageBo evidencePackage = demoSessionEvidencePackageService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + evidencePackage.filename() + "\"")
+                .contentLength(evidencePackage.sizeBytes())
+                .contentType(MediaType.parseMediaType(evidencePackage.contentType()))
+                .body(new InputStreamResource(evidencePackage.inputStream()));
     }
 }

@@ -118,6 +118,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'downloadDemoSessionCommandCenterMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Demo Session Command Center'], { type: 'text/markdown' })
     );
+    vi.spyOn(linguaFrameApi, 'downloadDemoSessionEvidencePackageZip').mockResolvedValue(
+      new Blob(['zip-bytes'], { type: 'application/zip' })
+    );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
@@ -641,6 +644,9 @@ describe('App', () => {
     const downloadSpy = vi.spyOn(linguaFrameApi, 'downloadDemoSessionCommandCenterMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Demo Session Command Center'], { type: 'text/markdown' })
     );
+    const packageSpy = vi.spyOn(linguaFrameApi, 'downloadDemoSessionEvidencePackageZip').mockResolvedValue(
+      new Blob(['zip-bytes'], { type: 'application/zip' })
+    );
 
     render(<App />);
 
@@ -658,6 +664,8 @@ describe('App', () => {
     );
     await userEvent.click(within(panel).getByRole('button', { name: /download command center/i }));
     expect(downloadSpy).toHaveBeenCalledWith('job-session');
+    await userEvent.click(within(panel).getByRole('button', { name: /download session package/i }));
+    expect(packageSpy).toHaveBeenCalledWith('job-session');
     expect(panel).not.toHaveTextContent('raw transcript text');
     expect(panel).not.toHaveTextContent('private-demo-token');
   });

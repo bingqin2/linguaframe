@@ -3890,6 +3890,16 @@ function DemoSessionCommandCenterPanel({
     }
   };
 
+  const handleDownloadPackage = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadDemoSessionEvidencePackageZip(focusRun?.jobId);
+      downloadBlob(blob, 'linguaframe-demo-session-evidence-package.zip');
+      setStatus('Demo session evidence package downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
   return (
     <section className="panel private-demo-operations-panel" aria-label="Demo session command center">
       <div className="panel-heading">
@@ -4019,6 +4029,9 @@ function DemoSessionCommandCenterPanel({
             </button>
             <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
               Download command center
+            </button>
+            <button type="button" className="secondary-button" onClick={() => void handleDownloadPackage()}>
+              Download session package
             </button>
           </div>
           {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}

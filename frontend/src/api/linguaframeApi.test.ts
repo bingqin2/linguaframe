@@ -22,6 +22,7 @@ import {
   downloadModelUsageLedgerMarkdown,
   getDemoSessionCommandCenter,
   downloadDemoSessionCommandCenterMarkdown,
+  downloadDemoSessionEvidencePackageZip,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,
@@ -1287,6 +1288,49 @@ describe('linguaframeApi', () => {
         headers: {
           'X-LinguaFrame-Demo-Token': 'private-demo-token'
         }
+      }
+    );
+  });
+
+  test('downloads demo session evidence package zip with demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadDemoSessionEvidencePackageZip();
+
+    expect(await result.text()).toBe('zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-session-evidence-package/download', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads focused demo session evidence package zip with encoded job id', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadDemoSessionEvidencePackageZip(' job with spaces/slash ');
+
+    expect(await result.text()).toBe('zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/demo-session-evidence-package/download?jobId=job+with+spaces%2Fslash',
+      {
+        method: 'GET'
       }
     );
   });
