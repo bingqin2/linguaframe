@@ -30,6 +30,31 @@ export interface DemoRunProfile {
   translationGlossary: string;
 }
 
+export interface DemoRunVarianceMetric {
+  id: string;
+  label: string;
+  status: string;
+  estimatedValue: string;
+  actualValue: string;
+  detail: string;
+}
+
+export interface DemoRunVarianceReport {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  overallStatus: string;
+  baselineMode: string;
+  jobStatus: string;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  recommendedNextAction: string;
+  metrics: DemoRunVarianceMetric[];
+  notes: string[];
+  safeLinks: string[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'

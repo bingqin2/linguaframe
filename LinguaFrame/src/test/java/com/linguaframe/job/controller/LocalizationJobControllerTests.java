@@ -2226,6 +2226,94 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoRunVarianceReport() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:05:00Z");
+        createJob("job-controller-video-variance", "job-controller-variance", "variance.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        updateComparisonSettings("job-controller-variance", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-variance", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-variance", "job-controller-variance", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("variance-json", "job-controller-variance", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-run-variance",
+                        "job-controller-variance"
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "preUploadJson": "{\\"overallStatus\\":\\"READY\\",\\"estimatedCostUsd\\":\\"0.01000000\\",\\"estimatedDurationSecondsUpper\\":120,\\"sourceReuseDecision\\":{\\"status\\":\\"UPLOAD_NEW_SOURCE\\"},\\"stages\\":[{\\"executionType\\":\\"PAID\\"}]}"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-variance"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-variance"))
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.baselineMode").value("EXECUTION_PLAN"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.metrics[?(@.id == 'estimatedCostUsd')].status").value("LOWER_THAN_ESTIMATE"))
+                .andExpect(jsonPath("$.metrics[?(@.id == 'modelCallCount')].status").value("MATCH"))
+                .andExpect(jsonPath("$.metrics[?(@.id == 'sourceReuseDecision')].estimatedValue").value("UPLOAD_NEW_SOURCE"))
+                .andExpect(jsonPath("$.safeLinks").value(org.hamcrest.Matchers.hasItem(
+                        "/api/jobs/job-controller-variance/demo-run-package/download"
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source-videos/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoRunVarianceMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:10:00Z");
+        createJob("job-controller-video-variance-md", "job-controller-variance-md", "variance-md.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        modelCallAuditService.recordSuccess(modelCall("job-controller-variance-md", 130, 120, 100, "0.00007800"));
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-run-variance/markdown/download",
+                        "job-controller-variance-md"
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "preUploadJson": "{\\"overallStatus\\":\\"READY\\",\\"estimatedCostUsd\\":\\"0.01000000\\",\\"estimatedDurationSecondsUpper\\":120,\\"stages\\":[{\\"executionType\\":\\"PAID\\"}]}"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-run-variance.md\""))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# Demo Run Variance Report")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("## Variance Metrics")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/api/jobs/job-controller-variance-md/demo-run-package/download")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source-videos/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void returnsActualOnlyDemoRunVarianceWithoutBaseline() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:15:00Z");
+        createJob("job-controller-video-variance-actual", "job-controller-variance-actual", "variance-actual.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-run-variance",
+                        "job-controller-variance-actual"
+                )
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-variance-actual"))
+                .andExpect(jsonPath("$.baselineMode").value("MISSING"))
+                .andExpect(jsonPath("$.notes").value(org.hamcrest.Matchers.hasItem(
+                        "No pre-upload baseline was supplied; report is actual-only."
+                )))
+                .andExpect(jsonPath("$.metrics[?(@.id == 'estimatedCostUsd')].status").value("BASELINE_MISSING"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source-videos/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
     void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
         createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",

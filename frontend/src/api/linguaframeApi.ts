@@ -14,6 +14,7 @@ import type {
   DemoPresenterPack,
   DemoRunMatrix,
   DemoRunProfile,
+  DemoRunVarianceReport,
   DemoShareSheet,
   DemoSessionStatus,
   DemoUploadReadiness,
@@ -470,6 +471,32 @@ export async function getDemoAcceptanceGate(jobId: string): Promise<DemoAcceptan
   });
 }
 
+export async function getDemoRunVariance(
+  jobId: string,
+  preUploadJson?: string
+): Promise<DemoRunVarianceReport> {
+  return requestJson<DemoRunVarianceReport>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-variance`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ preUploadJson: preUploadJson?.trim() || null })
+  });
+}
+
+export async function downloadDemoRunVarianceMarkdown(
+  jobId: string,
+  preUploadJson?: string
+): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-variance/markdown/download`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ preUploadJson: preUploadJson?.trim() || null })
+  });
+}
+
 export async function getDemoRunSnapshot(jobId: string): Promise<DemoRunSnapshot> {
   return requestJson<DemoRunSnapshot>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-snapshot`, {
     method: 'GET'
@@ -808,6 +835,8 @@ export const linguaFrameApi = {
   getDemoReplayCard,
   getDemoCompletionCertificate,
   getDemoAcceptanceGate,
+  getDemoRunVariance,
+  downloadDemoRunVarianceMarkdown,
   getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,

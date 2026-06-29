@@ -37,6 +37,8 @@ import {
   getDemoRunMatrix,
   getDemoRunMonitor,
   getDemoPresenterPack,
+  getDemoRunVariance,
+  downloadDemoRunVarianceMarkdown,
   getDemoShareSheet,
   getDemoUploadReadiness,
   getOwnerQuotaPreflight,
@@ -2080,6 +2082,73 @@ describe('linguaframeApi', () => {
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
+    });
+  });
+
+  test('gets demo run variance with encoded id and baseline body', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-variance',
+        videoId: 'video-variance',
+        generatedAt: '2026-06-29T12:00:00Z',
+        overallStatus: 'READY',
+        baselineMode: 'EXECUTION_PLAN',
+        jobStatus: 'COMPLETED',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        recommendedNextAction: 'Use delivery evidence.',
+        metrics: [
+          {
+            id: 'estimatedCostUsd',
+            label: 'Estimated cost USD',
+            status: 'LOWER_THAN_ESTIMATE',
+            estimatedValue: '0.01000000',
+            actualValue: '0.00007800',
+            detail: 'Compares estimated and actual cost.'
+          }
+        ],
+        notes: [],
+        safeLinks: ['/api/jobs/job-variance/demo-run-package/download'],
+        safetyNotes: ['Metadata-only report.']
+      })
+    );
+
+    const result = await getDemoRunVariance('job variance/slash', '{"overallStatus":"READY"}');
+
+    expect(result.baselineMode).toBe('EXECUTION_PLAN');
+    expect(result.metrics[0]?.status).toBe('LOWER_THAN_ESTIMATE');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20variance%2Fslash/demo-run-variance', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      },
+      body: JSON.stringify({ preUploadJson: '{"overallStatus":"READY"}' })
+    });
+  });
+
+  test('downloads demo run variance markdown with encoded id and optional baseline', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# Demo Run Variance Report\n', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown;charset=UTF-8'
+        }
+      })
+    );
+
+    const result = await downloadDemoRunVarianceMarkdown('job variance/slash', '  ');
+
+    expect(await result.text()).toBe('# Demo Run Variance Report\n');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20variance%2Fslash/demo-run-variance/markdown/download', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      },
+      body: JSON.stringify({ preUploadJson: null })
     });
   });
 

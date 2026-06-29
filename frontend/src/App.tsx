@@ -14,6 +14,7 @@ import type {
   DemoRunMatrix,
   DemoRunMonitor,
   DemoRunSnapshot,
+  DemoRunVarianceReport,
   DemoShareSheet,
   FailureTriage,
   DemoUploadReadiness,
@@ -449,6 +450,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoAcceptanceGate, setDemoAcceptanceGate] = useState<DemoAcceptanceGate | null>(null);
   const [demoAcceptanceGateError, setDemoAcceptanceGateError] = useState<string | null>(null);
   const [isLoadingDemoAcceptanceGate, setIsLoadingDemoAcceptanceGate] = useState(false);
+  const [demoRunVariance, setDemoRunVariance] = useState<DemoRunVarianceReport | null>(null);
+  const [demoRunVarianceError, setDemoRunVarianceError] = useState<string | null>(null);
+  const [isLoadingDemoRunVariance, setIsLoadingDemoRunVariance] = useState(false);
   const [demoRunSnapshot, setDemoRunSnapshot] = useState<DemoRunSnapshot | null>(null);
   const [demoRunSnapshotError, setDemoRunSnapshotError] = useState<string | null>(null);
   const [isLoadingDemoRunSnapshot, setIsLoadingDemoRunSnapshot] = useState(false);
@@ -522,6 +526,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoCompletionCertificateError(null);
           setDemoAcceptanceGate(null);
           setDemoAcceptanceGateError(null);
+          setDemoRunVariance(null);
+          setDemoRunVarianceError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
         }
@@ -632,6 +638,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoAcceptanceGateError(toErrorMessage(gateLoadError));
     } finally {
       setIsLoadingDemoAcceptanceGate(false);
+    }
+  }, []);
+
+  const loadDemoRunVariance = useCallback(async (jobId: string, preUploadJson?: string) => {
+    setIsLoadingDemoRunVariance(true);
+    try {
+      const variance = await linguaFrameApi.getDemoRunVariance(jobId, preUploadJson);
+      setDemoRunVariance(variance);
+      setDemoRunVarianceError(null);
+    } catch (varianceLoadError) {
+      setDemoRunVariance(null);
+      setDemoRunVarianceError(toErrorMessage(varianceLoadError));
+    } finally {
+      setIsLoadingDemoRunVariance(false);
     }
   }, []);
 
@@ -2262,6 +2282,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoCompletionCertificateError={demoCompletionCertificateError}
               demoAcceptanceGate={demoAcceptanceGate}
               demoAcceptanceGateError={demoAcceptanceGateError}
+              demoRunVariance={demoRunVariance}
+              demoRunVarianceError={demoRunVarianceError}
               demoRunSnapshot={demoRunSnapshot}
               demoRunSnapshotError={demoRunSnapshotError}
               demoPresenterPack={demoPresenterPack}
@@ -2275,6 +2297,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoReplayCard={isLoadingDemoReplayCard}
               isLoadingDemoCompletionCertificate={isLoadingDemoCompletionCertificate}
               isLoadingDemoAcceptanceGate={isLoadingDemoAcceptanceGate}
+              isLoadingDemoRunVariance={isLoadingDemoRunVariance}
               isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
@@ -2286,6 +2309,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshDemoReplayCard={() => void loadDemoReplayCard(job.jobId)}
               onRefreshDemoCompletionCertificate={() => void loadDemoCompletionCertificate(job.jobId)}
               onRefreshDemoAcceptanceGate={() => void loadDemoAcceptanceGate(job.jobId)}
+              onRefreshDemoRunVariance={(preUploadJson) => void loadDemoRunVariance(job.jobId, preUploadJson)}
               onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
@@ -4538,6 +4562,8 @@ function JobDetail({
   demoCompletionCertificateError,
   demoAcceptanceGate,
   demoAcceptanceGateError,
+  demoRunVariance,
+  demoRunVarianceError,
   demoRunSnapshot,
   demoRunSnapshotError,
   demoPresenterPack,
@@ -4551,6 +4577,7 @@ function JobDetail({
   isLoadingDemoReplayCard,
   isLoadingDemoCompletionCertificate,
   isLoadingDemoAcceptanceGate,
+  isLoadingDemoRunVariance,
   isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
@@ -4562,6 +4589,7 @@ function JobDetail({
   onRefreshDemoReplayCard,
   onRefreshDemoCompletionCertificate,
   onRefreshDemoAcceptanceGate,
+  onRefreshDemoRunVariance,
   onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
@@ -4614,6 +4642,8 @@ function JobDetail({
   demoCompletionCertificateError: string | null;
   demoAcceptanceGate: DemoAcceptanceGate | null;
   demoAcceptanceGateError: string | null;
+  demoRunVariance: DemoRunVarianceReport | null;
+  demoRunVarianceError: string | null;
   demoRunSnapshot: DemoRunSnapshot | null;
   demoRunSnapshotError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
@@ -4627,6 +4657,7 @@ function JobDetail({
   isLoadingDemoReplayCard: boolean;
   isLoadingDemoCompletionCertificate: boolean;
   isLoadingDemoAcceptanceGate: boolean;
+  isLoadingDemoRunVariance: boolean;
   isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
@@ -4638,6 +4669,7 @@ function JobDetail({
   onRefreshDemoReplayCard: () => void;
   onRefreshDemoCompletionCertificate: () => void;
   onRefreshDemoAcceptanceGate: () => void;
+  onRefreshDemoRunVariance: (preUploadJson: string) => void;
   onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
@@ -4838,6 +4870,13 @@ function JobDetail({
         error={demoCompletionCertificateError}
         isLoading={isLoadingDemoCompletionCertificate}
         onRefresh={onRefreshDemoCompletionCertificate}
+      />
+
+      <DemoRunVariancePanel
+        error={demoRunVarianceError}
+        isLoading={isLoadingDemoRunVariance}
+        onRefresh={onRefreshDemoRunVariance}
+        report={demoRunVariance}
       />
 
       <DemoReplayCardPanel
@@ -6680,6 +6719,149 @@ function DemoCompletionCertificatePanel({
               </a>
             ))}
           </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoRunVariancePanel({
+  report,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  report: DemoRunVarianceReport | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: (preUploadJson: string) => void;
+}) {
+  const [preUploadJson, setPreUploadJson] = useState('');
+  const [isDownloadingMarkdown, setIsDownloadingMarkdown] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+
+  async function handleDownloadMarkdown() {
+    if (!report?.jobId) {
+      return;
+    }
+    setIsDownloadingMarkdown(true);
+    setDownloadError(null);
+    try {
+      const blob = await linguaFrameApi.downloadDemoRunVarianceMarkdown(report.jobId, preUploadJson);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = 'demo-run-variance.md';
+      link.click();
+      URL.revokeObjectURL(objectUrl);
+    } catch (markdownError) {
+      setDownloadError(toErrorMessage(markdownError));
+    } finally {
+      setIsDownloadingMarkdown(false);
+    }
+  }
+
+  return (
+    <section className="panel demo-run-variance-panel" aria-label="Demo run variance report">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo run variance</h3>
+          <p className="muted">Compare a pre-upload estimate or decision package with this completed run.</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={() => onRefresh(preUploadJson)} disabled={isLoading}>
+            {isLoading ? 'Building...' : 'Build report'}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void handleDownloadMarkdown()}
+            disabled={isDownloadingMarkdown || !report}
+          >
+            {isDownloadingMarkdown ? 'Downloading...' : 'Download Markdown'}
+          </button>
+        </div>
+      </div>
+      <label className="field-label" htmlFor="demo-run-variance-baseline">
+        Pre-upload JSON baseline
+      </label>
+      <textarea
+        id="demo-run-variance-baseline"
+        className="json-textarea"
+        value={preUploadJson}
+        onChange={(event) => setPreUploadJson(event.target.value)}
+        placeholder='Paste upload decision package JSON or execution-plan JSON. Leave blank for actual-only mode.'
+        rows={6}
+      />
+      {error ? <p className="error-text">{error}</p> : null}
+      {downloadError ? <p className="error-text">{downloadError}</p> : null}
+      {report ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Status</dt>
+              <dd>{report.overallStatus}</dd>
+            </div>
+            <div>
+              <dt>Baseline</dt>
+              <dd>{report.baselineMode}</dd>
+            </div>
+            <div>
+              <dt>Job</dt>
+              <dd>{report.jobStatus}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(report.demoProfileId)}</dd>
+            </div>
+          </dl>
+          <p className={report.overallStatus === 'READY' ? 'success-text' : report.overallStatus === 'BLOCKED' ? 'error-text' : 'warning-text'}>
+            {report.recommendedNextAction}
+          </p>
+          {report.notes.length > 0 ? (
+            <ul className="compact-list">
+              {report.notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
+          <div className="responsive-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Status</th>
+                  <th>Estimated</th>
+                  <th>Actual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.metrics.map((metric) => (
+                  <tr key={metric.id}>
+                    <td>
+                      <strong>{metric.label}</strong>
+                      <span>{metric.detail}</span>
+                    </td>
+                    <td>{metric.status}</td>
+                    <td>{metric.estimatedValue}</td>
+                    <td>{metric.actualValue}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="link-list">
+            {report.safeLinks.map((link) => (
+              <a key={link} href={link}>
+                {link}
+              </a>
+            ))}
+          </div>
+          <ul className="compact-list">
+            {report.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
         </>
       ) : null}
     </section>
