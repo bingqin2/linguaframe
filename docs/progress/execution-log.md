@@ -4279,6 +4279,19 @@ Validation:
 
 Work:
 
+- Started the narration preview playhead workbench feature slice.
+- Added frontend narration preview helper tests and a pure `narrationPreview` helper for source selection and playhead percentage calculation.
+- Preview source selection prefers `NARRATED_VIDEO`, then `BURNED_VIDEO`, then source video through existing safe download URL builders.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationPreview.test.ts` first failed because `frontend/src/domain/narrationPreview.ts` did not exist.
+- After adding the helper, `npm test -- --run src/domain/narrationPreview.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Added the narration timeline drag-editing helper module for snapping, clamping, moving, resizing, duration recalculation, and local timeline metadata recomputation.
 - Wired the narration timeline workbench to shared unsaved segment state so selected bars, table inputs, inspector details, validation, and save payloads stay synchronized.
 - Added keyboard editing for selected timeline bars: ArrowLeft/ArrowRight moves by 0.25 seconds, Shift+ArrowLeft/Right resizes the end, and Alt+ArrowLeft/Right resizes the start.

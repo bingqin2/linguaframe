@@ -37,11 +37,11 @@
   - `export function calculateNarrationPlayheadPercent(currentSeconds: number, startSeconds: number, endSeconds: number): number`
 - Consumes: `JobArtifact` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing helper tests proving source priority is `NARRATED_VIDEO` over `BURNED_VIDEO` over source video, URLs are generated through existing API URL builders, unavailable artifacts are ignored, and playhead percent clamps between `0` and `100`.
-- [ ] Run `npm test -- --run src/domain/narrationPreview.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement `selectNarrationPreviewSource` and `calculateNarrationPlayheadPercent` with no DOM dependencies.
-- [ ] Run `npm test -- --run src/domain/narrationPreview.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Write failing helper tests proving source priority is `NARRATED_VIDEO` over `BURNED_VIDEO` over source video, URLs are generated through existing API URL builders, unavailable artifacts are ignored, and playhead percent clamps between `0` and `100`.
+- [x] Run `npm test -- --run src/domain/narrationPreview.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement `selectNarrationPreviewSource` and `calculateNarrationPlayheadPercent` with no DOM dependencies.
+- [x] Run `npm test -- --run src/domain/narrationPreview.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration preview source helpers`.
 
 ## Task 2: Narration Preview Panel And Timeline Playhead
