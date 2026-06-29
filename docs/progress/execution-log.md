@@ -6,6 +6,23 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration render preflight package feature slice from `docs/plans/141-narration-render-preflight-package.md`.
+- Added backend narration demo render preflight DTOs, checks, service, and `POST /api/jobs/{jobId}/narration-demo/render/preflight`.
+- Preflight composes preset metadata, current narration workspace, script package, evidence, artifacts, and TTS provider configuration without mutating jobs or calling providers.
+- Preflight reports `READY`, `ATTENTION`, or `BLOCKED`, includes replacement and paid-provider confirmations, and returns safe next commands plus evidence routes without raw narration text, local paths, object keys, provider payloads, or secrets.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests` first failed at test compilation because `NarrationDemoRenderPreflightRequestDto`, `NarrationDemoRenderPreflightVo`, `NarrationDemoRenderPreflightService`, and `NarrationDemoRenderPreflightServiceImpl` did not exist.
+- After adding the service and records, `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests#preflightsNarrationDemoRenderBeforeGeneratingMedia` first failed with 404 because the preflight route was not implemented.
+- After adding the controller route, the same test failed because the realistic pre-render job has blocked script/evidence status and correctly returns `ATTENTION`; the assertion was updated to match the preflight semantics.
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 86, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration one-click render package feature slice from `docs/plans/140-narration-one-click-render-package.md`.
 - Added backend narration demo render orchestration records and service.
 - Added `POST /api/jobs/{jobId}/narration-demo/render` to apply a preset, generate narration audio, optionally generate narrated video, refresh script package/evidence, and return step-by-step render status.

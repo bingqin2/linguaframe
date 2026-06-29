@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
 import com.linguaframe.job.domain.dto.ApplyNarrationDemoPresetDto;
+import com.linguaframe.job.domain.dto.NarrationDemoRenderPreflightRequestDto;
 import com.linguaframe.job.domain.dto.RenderNarrationDemoDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
@@ -45,6 +46,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
 import com.linguaframe.job.domain.vo.NarrationDemoPresetApplyVo;
+import com.linguaframe.job.domain.vo.NarrationDemoRenderPreflightVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
@@ -85,6 +87,7 @@ import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.NarrationAudioService;
 import com.linguaframe.job.service.NarrationDemoPresetApplyService;
+import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
@@ -163,6 +166,7 @@ public class LocalizationJobController {
     private final SubtitleReviewService subtitleReviewService;
     private final NarrationAudioService narrationAudioService;
     private final NarrationDemoPresetApplyService narrationDemoPresetApplyService;
+    private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
     private final NarrationEvidenceService narrationEvidenceService;
     private final NarrationScriptPackageService narrationScriptPackageService;
@@ -206,6 +210,7 @@ public class LocalizationJobController {
             SubtitleReviewService subtitleReviewService,
             NarrationAudioService narrationAudioService,
             NarrationDemoPresetApplyService narrationDemoPresetApplyService,
+            NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
             NarrationEvidenceService narrationEvidenceService,
             NarrationScriptPackageService narrationScriptPackageService,
@@ -248,6 +253,7 @@ public class LocalizationJobController {
         this.subtitleReviewService = subtitleReviewService;
         this.narrationAudioService = narrationAudioService;
         this.narrationDemoPresetApplyService = narrationDemoPresetApplyService;
+        this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
         this.narrationEvidenceService = narrationEvidenceService;
         this.narrationScriptPackageService = narrationScriptPackageService;
@@ -1452,6 +1458,22 @@ public class LocalizationJobController {
             @RequestBody RenderNarrationDemoDto request
     ) {
         return narrationDemoRenderService.render(jobId, request);
+    }
+
+    @PostMapping("/{jobId}/narration-demo/render/preflight")
+    @Operation(summary = "Preflight a one-click narration demo render without mutating the job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration demo render preflight was built."),
+            @ApiResponse(responseCode = "400", description = "The narration demo render preflight request failed validation."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationDemoRenderPreflightVo preflightNarrationDemoRender(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) NarrationDemoRenderPreflightRequestDto request
+    ) {
+        return narrationDemoRenderPreflightService.preflight(jobId, request);
     }
 
     @GetMapping("/{jobId}/narration-script-package/markdown/download")

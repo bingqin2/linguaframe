@@ -38,16 +38,16 @@
 - Request: `NarrationDemoRenderPreflightRequestDto(String presetId, boolean replaceExisting, boolean generateNarratedVideo)`
 - Response: `NarrationDemoRenderPreflightVo` with job id, preset id, overall status, checks, estimated segment count, estimated character count, provider mode, paid-provider flag, existing workspace segment count, generated-video requested flag, required confirmations, safe next command, and evidence routes.
 
-- [ ] Write failing service tests for ready demo-provider preflight, missing preset id, existing workspace without replace confirmation, paid OpenAI provider attention, missing source artifact for video generation, and generated-video disabled.
-- [ ] Implement DTO/VO records with exact status unions represented as strings: `READY`, `ATTENTION`, `BLOCKED`, and check statuses `PASS`, `WARN`, `BLOCK`.
-- [ ] Implement `NarrationDemoRenderPreflightServiceImpl` by composing `NarrationDemoPresetService`, `NarrationWorkspaceService`, `NarrationScriptPackageService`, `NarrationEvidenceService`, `JobArtifactService`, and `LinguaFrameProperties`.
-- [ ] Compute estimated character count from preset metadata only, not raw script text in the response.
-- [ ] Mark preflight `BLOCKED` when no preset exists, preset id is blank, replacement is false while workspace has segments, or generated-video is requested without an available base video path/artifact.
-- [ ] Mark preflight `ATTENTION` when TTS provider is not `demo`, when workspace replacement will discard existing segments, or when evidence is not already ready.
-- [ ] Add safe next commands such as `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh` without local paths or secrets.
-- [ ] Add controller route with OpenAPI summary, 400/401/404 responses, and route-encoding MockMvc coverage.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing service tests for ready demo-provider preflight, missing preset id, existing workspace without replace confirmation, paid OpenAI provider attention, missing source artifact for video generation, and generated-video disabled.
+- [x] Implement DTO/VO records with exact status unions represented as strings: `READY`, `ATTENTION`, `BLOCKED`, and check statuses `PASS`, `WARN`, `BLOCK`.
+- [x] Implement `NarrationDemoRenderPreflightServiceImpl` by composing `NarrationDemoPresetService`, `NarrationWorkspaceService`, `NarrationScriptPackageService`, `NarrationEvidenceService`, `JobArtifactService`, and `LinguaFrameProperties`.
+- [x] Compute estimated character count from preset metadata only, not raw script text in the response.
+- [x] Mark preflight `BLOCKED` when no preset exists, preset id is blank, replacement is false while workspace has segments, or generated-video is requested without an available base video path/artifact.
+- [x] Mark preflight `ATTENTION` when TTS provider is not `demo`, when workspace replacement will discard existing segments, or when evidence is not already ready.
+- [x] Add safe next commands such as `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh` without local paths or secrets.
+- [x] Add controller route with OpenAPI summary, 400/401/404 responses, and route-encoding MockMvc coverage.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration render preflight endpoint`.
 
 ## Task 2: Frontend Preflight Decision Panel

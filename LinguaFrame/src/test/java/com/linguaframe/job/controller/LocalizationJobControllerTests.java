@@ -2413,6 +2413,51 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void preflightsNarrationDemoRenderBeforeGeneratingMedia() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:40Z");
+        createJobWithDuration("job-controller-video-demo-preflight", "job-controller-job-demo-preflight", 300, createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-demo-preflight-base",
+                "job-controller-job-demo-preflight",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-job-demo-preflight/job-controller-demo-preflight-base/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                3L,
+                "burned-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-demo/render/preflight", "job-controller-job-demo-preflight")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "presetId": "tears-showcase-narration",
+                                  "replaceExisting": true,
+                                  "generateNarratedVideo": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-demo-preflight"))
+                .andExpect(jsonPath("$.presetId").value("tears-showcase-narration"))
+                .andExpect(jsonPath("$.status").value("ATTENTION"))
+                .andExpect(jsonPath("$.providerMode").value("demo"))
+                .andExpect(jsonPath("$.paidProvider").value(false))
+                .andExpect(jsonPath("$.estimatedSegmentCount").value(4))
+                .andExpect(jsonPath("$.estimatedCharacterCount").isNumber())
+                .andExpect(jsonPath("$.existingWorkspaceSegmentCount").value(0))
+                .andExpect(jsonPath("$.generateNarratedVideo").value(true))
+                .andExpect(jsonPath("$.safeNextCommand").value("LINGUAFRAME_DEMO_JOB_ID=job-controller-job-demo-preflight scripts/demo/narration-demo-render.sh"))
+                .andExpect(jsonPath("$.checks[0].key").value("PRESET"))
+                .andExpect(jsonPath("$.checks[0].status").value("PASS"))
+                .andExpect(jsonPath("$.checks[4].key").value("SCRIPT_PACKAGE"))
+                .andExpect(jsonPath("$.checks[4].status").value("WARN"))
+                .andExpect(jsonPath("$.evidenceRoutes[0]").value("/api/jobs/job-controller-job-demo-preflight/narration-demo/render"));
+    }
+
+    @Test
     void rendersNarrationDemoPresetAudioAndVideoForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:17:45Z");
         createJobWithDuration("job-controller-video-demo-render", "job-controller-job-demo-render", 300, createdAt);
