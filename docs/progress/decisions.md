@@ -226,6 +226,14 @@ Reason: Operators need to verify where explanatory voiceover will land against t
 
 Impact: The browser narration workspace now previews the best available media in priority order: `NARRATED_VIDEO`, `BURNED_VIDEO`, then source video. Jump and play-window controls update local preview state and timeline playhead only; they do not save narration rows, call OpenAI, synthesize audio, generate videos, or mutate object storage.
 
+## 2026-06-30
+
+Decision: Add a metadata-derived narration waveform overview before decoded audio waveform rendering.
+
+Reason: Operators need a denser overview of narration coverage and silence while authoring scripts, but real waveform decoding would require generated audio, browser audio analysis, or a backend waveform route. Deriving buckets from timing and text density gives immediate editing value before TTS spend while preserving the current saved narration contract.
+
+Impact: The React narration workspace now shows deterministic waveform-style buckets, selected-window overlay, active/gap counts, and local scrub controls. Scrubbing seeks only the browser preview player and updates local playhead state; it does not save rows, call providers, synthesize audio, generate videos, refresh evidence, or mutate object storage. Real decoded-audio waveform rendering and multitrack automation remain later work.
+
 ## 2026-06-26
 
 Decision: Add subtitle-burned video as an FFmpeg-backed worker stage after generated subtitles.
