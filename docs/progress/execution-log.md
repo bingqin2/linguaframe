@@ -3998,6 +3998,9 @@ Validation:
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+- Merged `narration-voice-preset-workbench` back to `main` with a fast-forward merge.
+- Post-merge on `main`, `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests,LocalizationJobControllerTests#managesNarrationWorkspaceForLocalizationJob,LocalizationJobControllerTests#generatesNarrationAudioForLocalizationJobWithoutReplacingDeliveryArtifacts` passed with `Tests run: 24, Failures: 0, Errors: 0, Skipped: 0`.
+- Post-merge on `main`, `npm test -- --run src/App.test.tsx` passed with `Test Files 1 passed` and `Tests 93 passed`; jsdom printed expected navigation warnings.
 
 ## 2026-06-29
 
