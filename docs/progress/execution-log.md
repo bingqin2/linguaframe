@@ -3423,3 +3423,19 @@ Validation so far:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 62 passed`.
 - `npm --prefix frontend run build` passed.
 - `mvn -pl LinguaFrame test` currently fails on existing environment-dependent readiness/health checks because local Redis/dependency health is down: `ActuatorHealthTests.actuatorHealthReturnsUp`, `DemoAccessInterceptorTests.leavesDeploymentReadinessEndpointsOpen`, and `MediaUploadControllerTests.returnsDemoUploadReadiness`.
+
+## 2026-06-29
+
+Work:
+
+- Planned upload execution plan preflight in `docs/plans/117-upload-execution-plan-preflight.md`.
+- Added backend `POST /api/media/uploads/execution-plan` that composes upload validation, cost estimate, upload readiness, owner quota, ordered stages, estimated runtime, blocking gates, safe commands, and safety notes.
+- Added a React `Execution plan` panel in the upload form with status, next action, time/cost estimates, gates, stages, and commands.
+- Added `scripts/demo/upload-execution-plan.sh` and README usage for full Tears/sample pre-upload planning.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests test` first failed because execution-plan service/VO types did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests,MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` first failed with HTTP 405 before the endpoint was added, then passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
+- `npm --prefix frontend run build` passed.

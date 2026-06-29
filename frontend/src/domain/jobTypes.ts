@@ -124,6 +124,68 @@ export interface UploadCostEstimate {
   safetyNotes: string[];
 }
 
+export interface UploadExecutionPlanStage {
+  id: string;
+  label: string;
+  status: string;
+  executionType: 'LOCAL' | 'PAID' | 'DISABLED' | string;
+  provider: string;
+  model: string;
+  runnable: boolean;
+  estimatedCostUsd: number;
+  estimatedDurationSecondsLower: number;
+  estimatedDurationSecondsUpper: number;
+  detail: string;
+}
+
+export interface UploadExecutionPlanGate {
+  id: string;
+  label: string;
+  status: DemoUploadReadinessStatus;
+  blocking: boolean;
+  detail: string;
+  nextAction: string;
+}
+
+export interface UploadExecutionPlanCommand {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+}
+
+export interface UploadExecutionPlan {
+  overallStatus: DemoUploadReadinessStatus;
+  recommendedNextAction: string;
+  filename: string | null;
+  contentType: string | null;
+  fileSizeBytes: number;
+  maxFileSizeBytes: number;
+  durationSeconds: number | null;
+  maxDurationSeconds: number;
+  valid: boolean;
+  validationCode: MediaUploadValidationCode;
+  validationMessage: string;
+  targetLanguage: string;
+  ttsVoice: string | null;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
+  subtitlePolishingMode: string;
+  demoProfileId: string | null;
+  estimatedCostUsdLower: number;
+  estimatedCostUsd: number;
+  estimatedCostUsdUpper: number;
+  estimatedDurationSecondsLower: number;
+  estimatedDurationSecondsUpper: number;
+  stages: UploadExecutionPlanStage[];
+  gates: UploadExecutionPlanGate[];
+  commands: UploadExecutionPlanCommand[];
+  cacheNotes: string[];
+  safetyNotes: string[];
+}
+
 export type DemoUploadReadinessStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
 
 export interface DemoUploadReadinessCheck {

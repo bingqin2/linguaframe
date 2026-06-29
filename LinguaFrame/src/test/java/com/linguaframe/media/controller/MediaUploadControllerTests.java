@@ -163,6 +163,48 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void estimatesUploadExecutionPlanBeforeCreatingUpload() throws Exception {
+        properties.getCost().setTranscriptionUsdPerMinute(new java.math.BigDecimal("0.006"));
+        properties.getCost().setTranslationInputUsdPerMillionTokens(new java.math.BigDecimal("5"));
+        properties.getCost().setTranslationOutputUsdPerMillionTokens(new java.math.BigDecimal("15"));
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads/execution-plan")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", "formal")
+                        .param("subtitleStylePreset", "high_contrast")
+                        .param("subtitlePolishingMode", "balanced")
+                        .param("translationGlossary", "Maya => 玛雅")
+                        .param("demoProfileId", "tears-showcase"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value(not(isEmptyOrNullString())))
+                .andExpect(jsonPath("$.filename").value("sample.mp4"))
+                .andExpect(jsonPath("$.translationStyle").value("FORMAL"))
+                .andExpect(jsonPath("$.subtitleStylePreset").value("HIGH_CONTRAST"))
+                .andExpect(jsonPath("$.subtitlePolishingMode").value("BALANCED"))
+                .andExpect(jsonPath("$.estimatedDurationSecondsLower").isNumber())
+                .andExpect(jsonPath("$.estimatedDurationSecondsUpper").isNumber())
+                .andExpect(jsonPath("$.stages[?(@.id == 'translation')]").isArray())
+                .andExpect(jsonPath("$.gates[?(@.id == 'uploadValidation')]").isArray())
+                .andExpect(jsonPath("$.commands[?(@.id == 'upload')]").isArray());
+    }
+
+    @Test
+    void returnsBlockedExecutionPlanForInvalidFile() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "notes.txt", "text/plain", new byte[] {1});
+
+        mockMvc.perform(multipart("/api/media/uploads/execution-plan").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("BLOCKED"))
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.validationCode").value("UNSUPPORTED_CONTENT_TYPE"))
+                .andExpect(jsonPath("$.stages").isEmpty())
+                .andExpect(jsonPath("$.gates[?(@.id == 'uploadValidation' && @.status == 'BLOCKED')]").isArray());
+    }
+
+    @Test
     void returnsBadRequestForTooLongValidationFile() throws Exception {
         when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(300.001));
         MockMultipartFile file = new MockMultipartFile(

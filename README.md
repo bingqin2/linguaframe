@@ -140,6 +140,7 @@ Lower-level private demo commands:
 docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/upload-readiness.sh
+scripts/demo/upload-execution-plan.sh
 scripts/demo/upload-cost-estimate.sh
 scripts/demo/demo-sample-media-catalog.sh
 scripts/demo/demo-run-launcher.sh
@@ -164,6 +165,16 @@ LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/upload-readiness.sh
 ```
 
 It fetches `GET /api/media/uploads/readiness`, writes `/tmp/linguaframe-demo/upload-readiness.json`, prints metadata-only `uploadReadiness*` lines, and exits non-zero when backend readiness is `BLOCKED` unless `LINGUAFRAME_UPLOAD_READINESS_REPORT_ONLY=true`. It also downloads `GET /api/runtime/dependencies` to `/tmp/linguaframe-demo/runtime-dependencies.json` and prints `workerTopology*` lines for the active role, listener queue, FFmpeg route, OpenAI route, and safe startup commands. It checks the runtime contract, live dependencies, owner quota, demo profile, paid-provider warning state, and worker topology without uploading media, persisting jobs, or calling OpenAI.
+
+Upload execution planning combines validation, readiness, quota, cost, stage order, estimated runtime, and next commands for the selected file/profile:
+
+```bash
+LINGUAFRAME_TEARS_SAMPLE_PATH=/Users/wangbingqin/Downloads/tos_casting-720p.mp4 \
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+scripts/demo/upload-execution-plan.sh
+```
+
+It calls `POST /api/media/uploads/execution-plan`, writes `/tmp/linguaframe-demo/upload-execution-plan.json`, and prints metadata-only status, duration, cost, estimated processing time, blocking gates, paid stages, and commands. The browser upload form exposes the same `Execution plan` panel beside validation/readiness/cost. Use it as the main pre-upload decision surface; it does not store media, create jobs, dispatch queues, execute FFmpeg, or call OpenAI.
 
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 

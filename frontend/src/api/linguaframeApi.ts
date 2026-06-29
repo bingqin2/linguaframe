@@ -42,7 +42,8 @@ import type {
   SubtitleSegment,
   TranscriptSegment,
   UpdateSubtitleDraftRequest,
-  UploadCostEstimate
+  UploadCostEstimate,
+  UploadExecutionPlan
 } from '../domain/jobTypes';
 
 export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
@@ -139,6 +140,33 @@ export async function estimateUploadCost(
   );
 
   return requestJson<UploadCostEstimate>('/api/media/uploads/cost-estimate', {
+    method: 'POST',
+    body
+  });
+}
+
+export async function estimateUploadExecutionPlan(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): Promise<UploadExecutionPlan> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestJson<UploadExecutionPlan>('/api/media/uploads/execution-plan', {
     method: 'POST',
     body
   });
@@ -627,6 +655,7 @@ export const linguaFrameApi = {
   logoutAuthSession,
   validateUpload,
   estimateUploadCost,
+  estimateUploadExecutionPlan,
   getOwnerQuotaPreflight,
   getDemoUploadReadiness,
   uploadMedia,
