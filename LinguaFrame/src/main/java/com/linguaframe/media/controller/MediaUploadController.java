@@ -3,13 +3,16 @@ package com.linguaframe.media.controller;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.common.quota.OwnerQuotaPreflightService;
 import com.linguaframe.common.quota.OwnerQuotaPreflightVo;
+import com.linguaframe.media.domain.bo.UploadCostEstimateOptionsBo;
 import com.linguaframe.media.domain.vo.DemoUploadReadinessVo;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.domain.vo.MediaUploadValidationVo;
 import com.linguaframe.media.domain.vo.MediaUploadVo;
+import com.linguaframe.media.domain.vo.UploadCostEstimateVo;
 import com.linguaframe.media.service.DemoUploadReadinessService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaUploadValidationService;
+import com.linguaframe.media.service.UploadCostEstimateService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -40,17 +43,20 @@ public class MediaUploadController {
     private final MediaUploadService uploadService;
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
     private final DemoUploadReadinessService demoUploadReadinessService;
+    private final UploadCostEstimateService uploadCostEstimateService;
 
     public MediaUploadController(
             MediaUploadValidationService validationService,
             MediaUploadService uploadService,
             OwnerQuotaPreflightService ownerQuotaPreflightService,
-            DemoUploadReadinessService demoUploadReadinessService
+            DemoUploadReadinessService demoUploadReadinessService,
+            UploadCostEstimateService uploadCostEstimateService
     ) {
         this.validationService = validationService;
         this.uploadService = uploadService;
         this.ownerQuotaPreflightService = ownerQuotaPreflightService;
         this.demoUploadReadinessService = demoUploadReadinessService;
+        this.uploadCostEstimateService = uploadCostEstimateService;
     }
 
     @GetMapping("/preflight")
@@ -92,6 +98,41 @@ public class MediaUploadController {
             return ResponseEntity.ok(result);
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
+
+    @PostMapping(value = "/cost-estimate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Estimate provider cost before uploading media")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The upload cost estimate was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public UploadCostEstimateVo estimateUploadCost(
+            @Parameter(description = "Source video file to estimate.", required = true)
+            @RequestPart(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "BCP 47 target language code such as zh-CN.")
+            @RequestParam(value = "targetLanguage", required = false) String targetLanguage,
+            @Parameter(description = "Optional text-to-speech voice identifier.")
+            @RequestParam(value = "ttsVoice", required = false) String ttsVoice,
+            @Parameter(description = "Optional translation style: NATURAL, FORMAL, or CONCISE.")
+            @RequestParam(value = "translationStyle", required = false) String translationStyle,
+            @Parameter(description = "Optional subtitle burn-in style preset: STANDARD, LARGE, or HIGH_CONTRAST.")
+            @RequestParam(value = "subtitleStylePreset", required = false) String subtitleStylePreset,
+            @Parameter(description = "Optional translation glossary, one source-to-target mapping per line.")
+            @RequestParam(value = "translationGlossary", required = false) String translationGlossary,
+            @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
+            @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
+            @Parameter(description = "Optional built-in demo run profile id.")
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+    ) {
+        return uploadCostEstimateService.estimate(file, new UploadCostEstimateOptionsBo(
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        ));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

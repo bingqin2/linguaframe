@@ -43,7 +43,8 @@ import type {
   SubtitleDraftSummary,
   SubtitleReviewSummary,
   SubtitleSegment,
-  TranscriptSegment
+  TranscriptSegment,
+  UploadCostEstimate
 } from './domain/jobTypes';
 import { loadRecentJobs, RecentJob, saveRecentJob } from './domain/recentJobs';
 
@@ -338,6 +339,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isValidatingUpload, setIsValidatingUpload] = useState(false);
   const [uploadValidation, setUploadValidation] = useState<MediaUploadValidation | null>(null);
   const [uploadValidationError, setUploadValidationError] = useState<string | null>(null);
+  const [uploadCostEstimate, setUploadCostEstimate] = useState<UploadCostEstimate | null>(null);
+  const [uploadCostEstimateError, setUploadCostEstimateError] = useState<string | null>(null);
+  const [isEstimatingUploadCost, setIsEstimatingUploadCost] = useState(false);
   const [ownerQuotaPreflight, setOwnerQuotaPreflight] = useState<OwnerQuotaPreflight | null>(null);
   const [ownerQuotaPreflightError, setOwnerQuotaPreflightError] = useState<string | null>(null);
   const [isLoadingOwnerQuotaPreflight, setIsLoadingOwnerQuotaPreflight] = useState(false);
@@ -1147,6 +1151,37 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await runUploadValidation(file);
   }
 
+  async function handleEstimateUploadCost(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadCostEstimate(null);
+      setUploadCostEstimateError('Choose a video file before estimating cost.');
+      return;
+    }
+    setIsEstimatingUploadCost(true);
+    try {
+      const estimate = await linguaFrameApi.estimateUploadCost(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset,
+        translationGlossary,
+        subtitlePolishingMode,
+        demoProfileId
+      );
+      setUploadCostEstimate(estimate);
+      setUploadCostEstimateError(null);
+    } catch (estimateError) {
+      setUploadCostEstimate(null);
+      setUploadCostEstimateError(toErrorMessage(estimateError));
+    } finally {
+      setIsEstimatingUploadCost(false);
+      void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
+    }
+  }
+
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1729,6 +1764,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 onChange={() => {
                   setUploadValidation(null);
                   setUploadValidationError(null);
+                  setUploadCostEstimate(null);
+                  setUploadCostEstimateError(null);
                 }}
               />
             </label>
@@ -1799,16 +1836,25 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               <button
                 type="button"
                 className="secondary-button"
-                disabled={isUploading || isValidatingUpload}
+                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost}
                 onClick={(event) => void handleValidateUpload(event.currentTarget.form)}
               >
                 {isValidatingUpload ? 'Validating...' : 'Validate file'}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost}
+                onClick={(event) => void handleEstimateUploadCost(event.currentTarget.form)}
+              >
+                {isEstimatingUploadCost ? 'Estimating...' : 'Estimate cost'}
               </button>
               <button
                 type="submit"
                 disabled={
                   isUploading ||
                   isValidatingUpload ||
+                  isEstimatingUploadCost ||
                   ownerQuotaPreflight?.allowed === false ||
                   demoUploadReadiness?.overallStatus === 'BLOCKED'
                 }
@@ -1843,6 +1889,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             <UploadValidationPanel
               validation={uploadValidation}
               error={uploadValidationError}
+            />
+            <UploadCostEstimatePanel
+              estimate={uploadCostEstimate}
+              error={uploadCostEstimateError}
+              isLoading={isEstimatingUploadCost}
+              onRefresh={(form) => void handleEstimateUploadCost(form)}
             />
           </form>
 
@@ -2897,6 +2949,117 @@ function UploadValidationPanel({
               </dd>
             </div>
           </dl>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function UploadCostEstimatePanel({
+  estimate,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  estimate: UploadCostEstimate | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: (form: HTMLFormElement | null) => void;
+}) {
+  if (!estimate && !error && !isLoading) {
+    return null;
+  }
+
+  const paidStages = estimate?.stages.filter((stage) => stage.paidProviderCall) ?? [];
+  return (
+    <section className="upload-validation-panel" aria-label="Upload cost estimate">
+      <div className="panel-heading">
+        <h3>Cost estimate</h3>
+        {estimate ? (
+          <span className={readinessStatusClassName(estimate.overallStatus)}>
+            {estimate.overallStatus}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading}
+          onClick={(event) => onRefresh(event.currentTarget.form)}
+        >
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !estimate ? <p className="muted">Estimating upload cost...</p> : null}
+      {estimate ? (
+        <>
+          <p className={estimate.overallStatus === 'BLOCKED' ? 'error-text' : 'muted validation-message'}>
+            {estimate.recommendedNextAction}
+          </p>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Estimate</dt>
+              <dd>
+                {formatCost(estimate.estimatedCostUsdLower)} - {formatCost(estimate.estimatedCostUsdUpper)}
+              </dd>
+            </div>
+            <div>
+              <dt>Point cost</dt>
+              <dd>{formatCost(estimate.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>
+                {estimate.durationSeconds === null ? 'Unknown' : `${estimate.durationSeconds} seconds`}
+              </dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(estimate.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Glossary</dt>
+              <dd>{estimate.translationGlossaryEntryCount} entries</dd>
+            </div>
+            <div>
+              <dt>Polishing</dt>
+              <dd>{estimate.subtitlePolishingMode}</dd>
+            </div>
+          </dl>
+          {estimate.budgets.length > 0 ? (
+            <ul className="readiness-list upload-readiness-list" aria-label="Upload cost budget checks">
+              {estimate.budgets.map((budget) => (
+                <li key={budget.id}>
+                  <span>{budget.label}</span>
+                  <span className={readinessStatusClassName(budget.status)}>{budget.status}</span>
+                  <span>
+                    {formatCost(budget.projectedUsd)}
+                    {budget.enabled ? ` / ${formatCost(budget.limitUsd)}` : ' projected'}
+                  </span>
+                  <span>{budget.detail}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {paidStages.length > 0 ? (
+            <ul className="readiness-list" aria-label="Upload cost paid provider stages">
+              {paidStages.map((stage) => (
+                <li key={stage.id}>
+                  <span>{stage.label}</span>
+                  <span>{stage.provider}</span>
+                  <span>{formatCost(stage.estimatedCostUsd)}</span>
+                  <span>{stage.basis}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {estimate.cacheNotes.length > 0 ? (
+            <ul className="muted-list" aria-label="Upload cost estimate notes">
+              {estimate.cacheNotes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
         </>
       ) : null}
     </section>
