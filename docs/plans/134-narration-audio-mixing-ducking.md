@@ -154,13 +154,13 @@
 **Interfaces:**
 - Preserve existing env: `LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO=true`.
 
-- [ ] Extend narration evidence terminal summaries with `audioLayout`, `timeAligned`, `mixMode`, and `duckingVolume`.
-- [ ] Update deterministic, OpenAI smoke, and full Tears scripts to print the mixed/ducked video result when generated.
-- [ ] Document the browser workflow: save rows, generate timed narration audio, generate ducked narrated video, verify `NARRATION_AUDIO` and `NARRATED_VIDEO`.
-- [ ] Update product docs to move audio ducking/mixing from future work to implemented status while keeping waveform and drag/drop timeline editing future.
-- [ ] Add a decision record explaining why fixed ducking volume is used before adding manual audio controls.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Extend narration evidence terminal summaries with `audioLayout`, `timeAligned`, `mixMode`, and `duckingVolume`.
+- [x] Update deterministic, OpenAI smoke, and full Tears scripts to print the mixed/ducked video result when generated.
+- [x] Document the browser workflow: save rows, generate timed narration audio, generate ducked narrated video, verify `NARRATION_AUDIO` and `NARRATED_VIDEO`.
+- [x] Update product docs to move audio ducking/mixing from future work to implemented status while keeping waveform and drag/drop timeline editing future.
+- [x] Add a decision record explaining why fixed ducking volume is used before adding manual audio controls.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 7: Final Verification, Commit, And Merge
 

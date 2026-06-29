@@ -3837,3 +3837,15 @@ Validation so far:
 - `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because the UI did not show `Timed audio bed`.
 - After adding the metrics and moving the assertion to the post-generation state, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 182 passed`; jsdom printed expected navigation warnings.
 - `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
+- Extended narration evidence terminal summaries with `audioLayout`, `timeAligned`, `mixMode`, and `duckingVolume`.
+- Added narrated-video generation summaries for deterministic, OpenAI smoke, full Tears, and standalone narration evidence scripts, including `mixMode`, `duckingVolume`, and narration window count.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, and decisions so timed narration audio and fixed original-audio ducking are documented as implemented while waveform editing, drag/drop timeline editing, and adjustable mix controls remain future work.
+
+Validation so far:
+
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.

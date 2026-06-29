@@ -732,8 +732,16 @@ Impact: Narration segments are stored as job-level time-coded rows, synthesized 
 
 ## 2026-06-29
 
-Decision: Generate narrated videos as standalone artifacts through the existing FFmpeg audio replacement boundary.
+Decision: Generate narrated videos as standalone artifacts without replacing existing localization outputs.
 
 Reason: The narration workflow now needs a complete demo path from time-coded narration text to playable video, but the project still should not become a full nonlinear editor or mutate existing localization outputs.
 
-Impact: `POST /api/jobs/{jobId}/narration-workspace/generate-video` combines the preferred available base video with existing `NARRATION_AUDIO`, stores `narrated-video.mp4` as `NARRATED_VIDEO`, and leaves dubbing, burned-video, reviewed subtitle, and handoff artifacts unchanged. Evidence, handoff links, demo scripts, and frontend media delivery treat narrated video as an independent output; ducking, mixing, waveform editing, and drag/drop timeline controls remain future work.
+Impact: `POST /api/jobs/{jobId}/narration-workspace/generate-video` combines the preferred available base video with existing `NARRATION_AUDIO`, stores `narrated-video.mp4` as `NARRATED_VIDEO`, and leaves dubbing, burned-video, reviewed subtitle, and handoff artifacts unchanged. A later same-day decision upgraded the implementation from simple audio replacement to fixed original-audio ducking while keeping waveform editing and drag/drop timeline controls as future work.
+
+## 2026-06-29
+
+Decision: Use fixed original-audio ducking for narrated video before exposing manual mix controls.
+
+Reason: The demo needs a reliable end-to-end narration result that preserves the base video's original audio while keeping explanatory voiceover intelligible. A fixed `0.35` ducking volume is predictable, easy to verify in backend evidence, frontend status, and terminal scripts, and avoids introducing an unfinished multitrack editor surface.
+
+Impact: `NARRATION_AUDIO` is generated as a timed audio bed from saved narration windows, and `NARRATED_VIDEO` mixes that bed with the selected base video while ducking original/base audio to `0.35` during narration windows. Evidence surfaces report `TIMED_AUDIO_BED`, `DUCKED_ORIGINAL_AUDIO`, `timeAligned`, `duckingVolume`, and narration window count. Adjustable ducking, waveform editing, and drag/drop timeline editing remain future feature slices.

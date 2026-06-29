@@ -147,6 +147,7 @@ else
     narration_audio_ready="$(printf '%s' "$(cat "$NARRATION_EVIDENCE_JSON_PATH")" | extract_json_field narrationAudioReady)"
     if [[ "$narration_audio_ready" == "true" ]]; then
       generate_narrated_video_json "$BASE_URL" "$job_id" "/tmp/linguaframe-demo/narrated-video-generation.json"
+      print_narrated_video_generation_summary_file "/tmp/linguaframe-demo/narrated-video-generation.json"
       download_narration_evidence_json "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_JSON_PATH"
     else
       echo "Skipping narrated video generation because narration audio is not ready."

@@ -3195,13 +3195,38 @@ print("narrationEvidenceJobId=" + str(evidence.get("jobId", "")))
 print("narrationEvidenceStatus=" + str(evidence.get("status", "")))
 print("narrationEvidenceSegmentCount=" + str(evidence.get("segmentCount", 0)))
 print("narrationEvidenceAudioArtifactCount=" + str(evidence.get("audioArtifactCount", 0)))
+print("narrationEvidenceAudioLayout=" + str(evidence.get("audioLayout", "")))
+print("narrationEvidenceTimeAligned=" + str(evidence.get("timeAligned", False)).lower())
 print("narrationEvidenceNarratedVideoReady=" + str(evidence.get("narratedVideoReady", False)).lower())
 print("narrationEvidenceNarratedVideoArtifactCount=" + str(evidence.get("narratedVideoArtifactCount", 0)))
+print("narrationEvidenceMixMode=" + str(evidence.get("mixMode", "")))
+print("narrationEvidenceDuckingVolume=" + str(evidence.get("duckingVolume", "")))
 print("narrationEvidenceCharacterCount=" + str(evidence.get("totalCharacterCount", 0)))
 print("narrationEvidencePackageEntryCount=" + str(len(required_entries)))
 print("narrationEvidenceJsonPath=" + str(json_path))
 print("narrationEvidenceMarkdownPath=" + str(markdown_path))
 print("narrationEvidenceZipPath=" + str(zip_path))
+PY
+}
+
+print_narrated_video_generation_summary_file() {
+  local generation_json_path="$1"
+
+  python3 - "$generation_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+generation = json.loads(path.read_text(encoding="utf-8"))
+print("narratedVideoGenerationJobId=" + str(generation.get("jobId", "")))
+print("narratedVideoGenerationArtifactId=" + str(generation.get("artifactId", "")))
+print("narratedVideoGenerationFilename=" + str(generation.get("filename", "")))
+print("narratedVideoGenerationBaseVideoType=" + str(generation.get("baseVideoType", "")))
+print("narratedVideoGenerationMixMode=" + str(generation.get("mixMode", "")))
+print("narratedVideoGenerationDuckingVolume=" + str(generation.get("duckingVolume", "")))
+print("narratedVideoGenerationNarrationWindowCount=" + str(generation.get("narrationWindowCount", 0)))
+print("narratedVideoGenerationJsonPath=" + str(path))
 PY
 }
 

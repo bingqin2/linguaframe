@@ -48,6 +48,7 @@ PY
 )"
   if [[ "$audio_ready" == "true" ]]; then
     generate_narrated_video_json "$BASE_URL" "$JOB_ID" "$NARRATED_VIDEO_JSON_PATH"
+    print_narrated_video_generation_summary_file "$NARRATED_VIDEO_JSON_PATH"
     download_narration_evidence_json "$BASE_URL" "$JOB_ID" "$JSON_PATH"
   else
     echo "Skipping narrated video generation because narration audio is not ready."
