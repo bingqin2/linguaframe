@@ -3533,3 +3533,21 @@ Validation so far:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 68 passed`.
 - `npm --prefix frontend run build` passed.
 - `bash -n scripts/demo/demo-run-variance.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned demo evidence closure package in `docs/plans/123-demo-evidence-closure-package.md`.
+- Added backend closure aggregation that combines demo run variance, acceptance gate, completion certificate, safe package links, Markdown, and ZIP export.
+- Added `POST /api/jobs/{jobId}/demo-evidence-closure`, Markdown download, and ZIP download endpoints.
+- Added browser `Demo evidence closure` panel with baseline JSON input, closure status, section summaries, safe links, and Markdown/ZIP downloads.
+- Added `scripts/demo/demo-evidence-closure.sh` and README usage guidance for actual-only and saved-baseline closure testing.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoEvidenceClosurePackageServiceTests test` first failed because a safety-note exclusion assertion matched the phrase `provider payloads`; the assertion was narrowed to raw payload leakage, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoEvidenceClosurePackage+downloadsDemoEvidenceClosureMarkdown+downloadsDemoEvidenceClosureZip test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 71 passed`.
+- `npm --prefix frontend run build` passed.
+- `bash -n scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh` passed.

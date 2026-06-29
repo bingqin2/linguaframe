@@ -1,6 +1,6 @@
 # Demo Evidence Closure Package Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a final read-only demo evidence closure package that ties pre-upload decision evidence, post-run variance, acceptance, completion, and safe delivery links into one reviewer-facing JSON/Markdown/ZIP artifact.
 
@@ -33,14 +33,14 @@
 - `String renderMarkdown(DemoEvidenceClosurePackageVo closure)` returns Markdown beginning with `# Demo Evidence Closure Package`.
 - `StoredDemoEvidenceClosurePackageBo openClosurePackage(String jobId, String preUploadJson)` returns a ZIP containing `manifest.json`, `demo-evidence-closure.md`, and `demo-run-variance.md`.
 
-- [ ] Add VO records with stable fields: `jobId`, `videoId`, `generatedAt`, `closureStatus`, `baselineMode`, `jobStatus`, `targetLanguage`, `demoProfileId`, `recommendedNextAction`, `varianceReport`, `sections`, `safeLinks`, and `safetyNotes`.
-- [ ] Inject existing safe services: `DemoRunVarianceReportService`, `DemoAcceptanceGateService`, `DemoCompletionCertificateService`, and `ObjectMapper`.
-- [ ] Build closure sections for `PRE_UPLOAD_BASELINE`, `POST_RUN_VARIANCE`, `ACCEPTANCE_GATE`, `COMPLETION_CERTIFICATE`, `DELIVERY_PACKAGE`, and `REVIEWER_HANDOFF`.
-- [ ] Classify closure status as `READY` only when the variance report is `READY`, acceptance gate is `READY`, and completion certificate is `READY`; use `BLOCKED` if any source reports `BLOCKED`; otherwise use `ATTENTION`.
-- [ ] Render Markdown sections: `Summary`, `Baseline`, `Post-Run Variance`, `Acceptance`, `Completion`, `Safe Links`, and `Safety Notes`.
-- [ ] Build ZIP entries without touching object storage: `manifest.json`, `demo-evidence-closure.md`, `demo-run-variance.md`, and `README.md`.
-- [ ] Add service tests for completed READY closure with execution-plan baseline, actual-only closure without baseline, and attention closure when variance has invalid baseline JSON.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=DemoEvidenceClosurePackageServiceTests test`.
+- [x] Add VO records with stable fields: `jobId`, `videoId`, `generatedAt`, `closureStatus`, `baselineMode`, `jobStatus`, `targetLanguage`, `demoProfileId`, `recommendedNextAction`, `varianceReport`, `sections`, `safeLinks`, and `safetyNotes`.
+- [x] Inject existing safe services: `DemoRunVarianceReportService`, `DemoAcceptanceGateService`, `DemoCompletionCertificateService`, and `ObjectMapper`.
+- [x] Build closure sections for `PRE_UPLOAD_BASELINE`, `POST_RUN_VARIANCE`, `ACCEPTANCE_GATE`, `COMPLETION_CERTIFICATE`, `DELIVERY_PACKAGE`, and `REVIEWER_HANDOFF`.
+- [x] Classify closure status as `READY` only when the variance report is `READY`, acceptance gate is `READY`, and completion certificate is `READY`; use `BLOCKED` if any source reports `BLOCKED`; otherwise use `ATTENTION`.
+- [x] Render Markdown sections: `Summary`, `Baseline`, `Post-Run Variance`, `Acceptance`, `Completion`, `Safe Links`, and `Safety Notes`.
+- [x] Build ZIP entries without touching object storage: `manifest.json`, `demo-evidence-closure.md`, `demo-run-variance.md`, and `README.md`.
+- [x] Add service tests for completed READY closure with execution-plan baseline, actual-only closure without baseline, and attention closure when variance has invalid baseline JSON.
+- [x] Run `mvn -pl LinguaFrame -Dtest=DemoEvidenceClosurePackageServiceTests test`.
 
 ## Task 2: Backend JSON, Markdown, And ZIP Endpoints
 
@@ -53,13 +53,13 @@
 - `POST /api/jobs/{jobId}/demo-evidence-closure/markdown/download` returns `demo-evidence-closure.md`.
 - `POST /api/jobs/{jobId}/demo-evidence-closure/download` returns `linguaframe-job-{jobId}-demo-evidence-closure.zip`.
 
-- [ ] Add controller request record for closure baseline JSON; reuse the variance request shape where practical without exposing it publicly.
-- [ ] Add the JSON endpoint with demo-token behavior inherited from existing `/api/jobs/**` endpoints.
-- [ ] Add Markdown response with `text/markdown;charset=UTF-8` and attachment filename `demo-evidence-closure.md`.
-- [ ] Add ZIP response with service-provided content type, length, and filename.
-- [ ] Add controller tests: `returnsDemoEvidenceClosurePackage`, `downloadsDemoEvidenceClosureMarkdown`, and `downloadsDemoEvidenceClosureZip`.
-- [ ] Assert tests cover status, baseline mode, embedded variance fields, acceptance/completion sections, ZIP entries, safe links, and absence of raw object keys, local paths, provider payloads, and token-like strings.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoEvidenceClosurePackage+downloadsDemoEvidenceClosureMarkdown+downloadsDemoEvidenceClosureZip test`.
+- [x] Add controller request record for closure baseline JSON; reuse the variance request shape where practical without exposing it publicly.
+- [x] Add the JSON endpoint with demo-token behavior inherited from existing `/api/jobs/**` endpoints.
+- [x] Add Markdown response with `text/markdown;charset=UTF-8` and attachment filename `demo-evidence-closure.md`.
+- [x] Add ZIP response with service-provided content type, length, and filename.
+- [x] Add controller tests: `returnsDemoEvidenceClosurePackage`, `downloadsDemoEvidenceClosureMarkdown`, and `downloadsDemoEvidenceClosureZip`.
+- [x] Assert tests cover status, baseline mode, embedded variance fields, acceptance/completion sections, ZIP entries, safe links, and absence of raw object keys, local paths, provider payloads, and token-like strings.
+- [x] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoEvidenceClosurePackage+downloadsDemoEvidenceClosureMarkdown+downloadsDemoEvidenceClosureZip test`.
 
 ## Task 3: Frontend API And Selected-Job Panel
 
@@ -74,14 +74,14 @@
 - `downloadDemoEvidenceClosureMarkdown(jobId: string, preUploadJson?: string): Promise<Blob>`.
 - `downloadDemoEvidenceClosureZip(jobId: string, preUploadJson?: string): Promise<Blob>`.
 
-- [ ] Add TypeScript types for closure package and closure sections.
-- [ ] Add API functions with POST JSON bodies and encoded job ids.
-- [ ] Add API tests for JSON, Markdown, and ZIP requests, including demo-token header propagation.
-- [ ] Add a `Demo evidence closure` panel near the variance, acceptance, and completion panels.
-- [ ] Let the operator paste pre-upload baseline JSON or leave it blank, then build JSON, download Markdown, or download ZIP using the same baseline text.
-- [ ] Render closure status, baseline mode, recommended next action, section statuses, embedded variance status, safe links, and safety notes.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript types for closure package and closure sections.
+- [x] Add API functions with POST JSON bodies and encoded job ids.
+- [x] Add API tests for JSON, Markdown, and ZIP requests, including demo-token header propagation.
+- [x] Add a `Demo evidence closure` panel near the variance, acceptance, and completion panels.
+- [x] Let the operator paste pre-upload baseline JSON or leave it blank, then build JSON, download Markdown, or download ZIP using the same baseline text.
+- [x] Render closure status, baseline mode, recommended next action, section statuses, embedded variance status, safe links, and safety notes.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script, README, And Progress Log
 
@@ -96,24 +96,24 @@
 - Required job id: `LINGUAFRAME_DEMO_JOB_ID`.
 - Script output keys: `demoEvidenceClosureStatus`, `demoEvidenceClosureBaselineMode`, `demoEvidenceClosureJsonPath`, `demoEvidenceClosureMarkdownPath`, `demoEvidenceClosureZipPath`, and `demoEvidenceClosureSectionCount`.
 
-- [ ] Implement the script with `demo_curl`, `python3`, safe request JSON generation, and separate JSON/Markdown/ZIP downloads.
-- [ ] Document when to use closure package versus variance report, acceptance gate, completion certificate, snapshot, demo run package, and upload decision package.
-- [ ] Document actual-only testing and baseline-path testing using a saved upload decision package manifest.
-- [ ] Record focused validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Implement the script with `demo_curl`, `python3`, safe request JSON generation, and separate JSON/Markdown/ZIP downloads.
+- [x] Document when to use closure package versus variance report, acceptance gate, completion certificate, snapshot, demo run package, and upload decision package.
+- [x] Document actual-only testing and baseline-path testing using a saved upload decision package manifest.
+- [x] Record focused validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/123-demo-evidence-closure-package.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=DemoEvidenceClosurePackageServiceTests,LocalizationJobControllerTests#returnsDemoEvidenceClosurePackage+downloadsDemoEvidenceClosureMarkdown+downloadsDemoEvidenceClosureZip test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
-- [ ] Commit as `Add demo evidence closure package`.
-- [ ] Merge the feature branch back to `main` after validation passes.
+- [x] Run `git diff --check`.
+- [x] Commit as `Add demo evidence closure package`.
+- [x] Merge the feature branch back to `main` after validation passes.

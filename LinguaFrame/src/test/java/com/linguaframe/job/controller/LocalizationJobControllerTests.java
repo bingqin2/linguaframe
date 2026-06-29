@@ -2314,6 +2314,106 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsDemoEvidenceClosurePackage() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:20:00Z");
+        createJob("job-controller-video-closure", "job-controller-closure", "closure.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        updateComparisonSettings("job-controller-closure", "tears-showcase", "FORMAL", "HIGH_CONTRAST", 3, "abc123", "BALANCED");
+        modelCallAuditService.recordSuccess(modelCall("job-controller-closure", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-closure", "job-controller-closure", 91, createdAt.plusSeconds(31)));
+        artifactRepository.save(reviewedArtifact("closure-json", "job-controller-closure", JobArtifactType.REVIEWED_SUBTITLE_JSON));
+        artifactRepository.save(reviewedArtifact("closure-srt", "job-controller-closure", JobArtifactType.REVIEWED_SUBTITLE_SRT));
+        artifactRepository.save(reviewedArtifact("closure-vtt", "job-controller-closure", JobArtifactType.REVIEWED_SUBTITLE_VTT));
+        artifactRepository.save(reviewedArtifact("closure-dubbed", "job-controller-closure", JobArtifactType.DUBBED_VIDEO));
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-evidence-closure",
+                        "job-controller-closure"
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "preUploadJson": "{\\"overallStatus\\":\\"READY\\",\\"estimatedCostUsd\\":\\"0.01000000\\",\\"estimatedDurationSecondsUpper\\":120,\\"stages\\":[{\\"executionType\\":\\"PAID\\"}]}"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-closure"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-closure"))
+                .andExpect(jsonPath("$.closureStatus").value("READY"))
+                .andExpect(jsonPath("$.baselineMode").value("EXECUTION_PLAN"))
+                .andExpect(jsonPath("$.varianceReport.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.sections[?(@.key == 'ACCEPTANCE_GATE')].status").value("READY"))
+                .andExpect(jsonPath("$.sections[?(@.key == 'COMPLETION_CERTIFICATE')].status").value("READY"))
+                .andExpect(jsonPath("$.safeLinks").value(org.hamcrest.Matchers.hasItem(
+                        "/api/jobs/job-controller-closure/demo-evidence-closure/download"
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source-videos/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw provider payload"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoEvidenceClosureMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:25:00Z");
+        createJob("job-controller-video-closure-md", "job-controller-closure-md", "closure-md.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        modelCallAuditService.recordSuccess(modelCall("job-controller-closure-md", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-closure-md", "job-controller-closure-md", 91, createdAt.plusSeconds(31)));
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-evidence-closure/markdown/download",
+                        "job-controller-closure-md"
+                )
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-evidence-closure.md\""))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# Demo Evidence Closure Package")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("## Post-Run Variance")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Baseline mode: `MISSING`")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("source-videos/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsDemoEvidenceClosureZip() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-29T12:30:00Z");
+        createJob("job-controller-video-closure-zip", "job-controller-closure-zip", "closure-zip.mp4",
+                LocalizationJobStatus.COMPLETED, createdAt);
+        modelCallAuditService.recordSuccess(modelCall("job-controller-closure-zip", 130, 120, 100, "0.00007800"));
+        qualityEvaluationRepository.save(quality("quality-closure-zip", "job-controller-closure-zip", 91, createdAt.plusSeconds(31)));
+
+        byte[] body = mockMvc.perform(post(
+                        "/api/jobs/{jobId}/demo-evidence-closure/download",
+                        "job-controller-closure-zip"
+                )
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-closure-zip-demo-evidence-closure.zip\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(body))) {
+            java.util.ArrayList<String> entries = new java.util.ArrayList<>();
+            java.util.zip.ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                entries.add(entry.getName());
+            }
+            assertThat(entries).containsExactlyInAnyOrder(
+                    "manifest.json",
+                    "demo-evidence-closure.md",
+                    "demo-run-variance.md",
+                    "README.md"
+            );
+        }
+    }
+
+    @Test
     void returnsDemoShareSheetForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T17:45:00Z");
         createJob("job-controller-video-share", "job-controller-share-baseline", "share.mp4",

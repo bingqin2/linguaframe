@@ -39,6 +39,9 @@ import {
   getDemoPresenterPack,
   getDemoRunVariance,
   downloadDemoRunVarianceMarkdown,
+  getDemoEvidenceClosure,
+  downloadDemoEvidenceClosureMarkdown,
+  downloadDemoEvidenceClosureZip,
   getDemoShareSheet,
   getDemoUploadReadiness,
   getOwnerQuotaPreflight,
@@ -2149,6 +2152,111 @@ describe('linguaframeApi', () => {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       },
       body: JSON.stringify({ preUploadJson: null })
+    });
+  });
+
+  test('gets demo evidence closure with encoded id and baseline body', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-closure',
+        videoId: 'video-closure',
+        generatedAt: '2026-06-29T12:00:00Z',
+        closureStatus: 'READY',
+        baselineMode: 'EXECUTION_PLAN',
+        jobStatus: 'COMPLETED',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        recommendedNextAction: 'Share closure package.',
+        varianceReport: {
+          jobId: 'job-closure',
+          videoId: 'video-closure',
+          generatedAt: '2026-06-29T12:00:00Z',
+          overallStatus: 'READY',
+          baselineMode: 'EXECUTION_PLAN',
+          jobStatus: 'COMPLETED',
+          targetLanguage: 'zh-CN',
+          demoProfileId: 'tears-showcase',
+          recommendedNextAction: 'Use delivery evidence.',
+          metrics: [],
+          notes: [],
+          safeLinks: [],
+          safetyNotes: []
+        },
+        sections: [
+          {
+            key: 'ACCEPTANCE_GATE',
+            title: 'Acceptance gate',
+            status: 'READY',
+            summary: 'Ready.',
+            facts: ['Gate status: READY'],
+            links: ['/api/jobs/job-closure/demo-acceptance-gate']
+          }
+        ],
+        safeLinks: ['/api/jobs/job-closure/demo-evidence-closure/download'],
+        safetyNotes: ['Metadata-only closure.']
+      })
+    );
+
+    const result = await getDemoEvidenceClosure('job closure/slash', '{"estimatedCostUsd":"0.01000000"}');
+
+    expect(result.closureStatus).toBe('READY');
+    expect(result.sections[0]?.key).toBe('ACCEPTANCE_GATE');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20closure%2Fslash/demo-evidence-closure', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      },
+      body: JSON.stringify({ preUploadJson: '{"estimatedCostUsd":"0.01000000"}' })
+    });
+  });
+
+  test('downloads demo evidence closure markdown with encoded id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# Demo Evidence Closure Package\n', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown;charset=UTF-8'
+        }
+      })
+    );
+
+    const result = await downloadDemoEvidenceClosureMarkdown('job closure/slash');
+
+    expect(await result.text()).toBe('# Demo Evidence Closure Package\n');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20closure%2Fslash/demo-evidence-closure/markdown/download', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      },
+      body: JSON.stringify({ preUploadJson: null })
+    });
+  });
+
+  test('downloads demo evidence closure zip with encoded id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadDemoEvidenceClosureZip('job closure/slash', '{"overallStatus":"READY"}');
+
+    expect(await result.text()).toBe('zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20closure%2Fslash/demo-evidence-closure/download', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      },
+      body: JSON.stringify({ preUploadJson: '{"overallStatus":"READY"}' })
     });
   });
 
