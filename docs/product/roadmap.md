@@ -165,7 +165,7 @@ Build:
 - OpenAI TTS client.
 - Job-level TTS voice selection. Status: implemented through upload API, React form, job/list/detail responses, dispatch payloads, provider requests, and TTS cache identity.
 - Dubbing text preparation.
-- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, provider-aware voice preset selection, React narration timeline workbench, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, explicit narration script package export/import for workspace reuse, one-click demo render orchestration, and terminal evidence/package/render exports. The workbench shows span, covered time, gaps, readiness, proportional segment bars, selected-segment diagnostics, default/explicit voice preset state, render step status, and script package checks.
+- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, provider-aware voice preset selection, React narration timeline workbench with move/resize editing, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, explicit narration script package export/import for workspace reuse, one-click demo render orchestration, and terminal evidence/package/render exports. The workbench shows span, covered time, gaps, readiness, proportional segment bars, selected-segment diagnostics, default/explicit voice preset state, render step status, and script package checks.
 - TTS artifact storage.
 - Audio preview and download API.
 - TTS usage and cost record.
@@ -175,14 +175,14 @@ Do not build yet:
 - Perfect segment-level alignment.
 - Voice cloning, uploaded reference audio, and voice preview playback.
 - Lip sync.
-- Full nonlinear video editing, timeline drag/drop, waveform editing, multitrack automation curves, or replacing existing subtitle review artifacts.
+- Full nonlinear video editing, waveform editing, multitrack automation curves, voice cloning, uploaded reference audio, or replacing existing subtitle review artifacts.
 
 Exit criteria:
 
 - A completed transcript or translation can produce a TTS audio file.
 - The frontend can play or download the generated audio.
 - TTS failures are retryable and visible.
-- Operators can add multiple time-coded explanatory voiceover segments, inspect intentional gaps before generation, and produce separate timed narration audio plus a standalone narrated video with configurable original-audio ducking, narration gain, and fades without disrupting the current localization pipeline. Future slices can add waveform editing, automation curves, and drag/drop timeline editing.
+- Operators can add multiple time-coded explanatory voiceover segments, inspect intentional gaps, move or resize windows before generation, and produce separate timed narration audio plus a standalone narrated video with configurable original-audio ducking, narration gain, and fades without disrupting the current localization pipeline. Future slices can add waveform rendering and automation curves.
 
 Suggested ExecPlan:
 

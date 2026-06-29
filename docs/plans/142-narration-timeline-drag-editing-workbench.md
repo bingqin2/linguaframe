@@ -133,17 +133,17 @@
 - Modify: `docs/plans/142-narration-timeline-drag-editing-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser editing order: open completed job, use timeline bars or table inputs, drag/move/resize narration windows, inspect validation, save narration, generate audio/video or run render preflight.
-- [ ] Document keyboard shortcuts for selected bars in the smoke checklist, not as visible in-app instructional text.
-- [ ] State that drag editing is local-only until `Save narration` and does not call OpenAI or create artifacts.
-- [ ] Add a decision record explaining why this slice adds timeline drag editing before waveform rendering or multitrack automation.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
+- [x] Document the browser editing order: open completed job, use timeline bars or table inputs, drag/move/resize narration windows, inspect validation, save narration, generate audio/video or run render preflight.
+- [x] Document keyboard shortcuts for selected bars in the smoke checklist, not as visible in-app instructional text.
+- [x] State that drag editing is local-only until `Save narration` and does not call OpenAI or create artifacts.
+- [x] Add a decision record explaining why this slice adds timeline drag editing before waveform rendering or multitrack automation.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
 - [ ] Commit with message `Document narration timeline drag editing`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

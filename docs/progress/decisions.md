@@ -680,7 +680,7 @@ Decision: Add provider voice preset selection before voice cloning or voice prev
 
 Reason: Narration needs a reliable, repeatable way to choose TTS voices per segment without accepting arbitrary provider strings or expanding into custom voice cloning. Provider preset identifiers are easy to validate, cache, audit, and expose in safe evidence.
 
-Impact: The narration workspace now returns a provider-aware voice catalog, segment saves reject unknown voice identifiers, blank voices inherit the default, React uses compact voice selects, and narration evidence reports voice preset count, voice summary, and default voice. Uploaded reference audio, voice cloning, voice preview playback, waveform editing, and drag/drop timeline controls remain future slices.
+Impact: The narration workspace now returns a provider-aware voice catalog, segment saves reject unknown voice identifiers, blank voices inherit the default, React uses compact voice selects, and narration evidence reports voice preset count, voice summary, and default voice. Uploaded reference audio, voice cloning, voice preview playback, and waveform editing remain future slices.
 
 ## 2026-06-29
 
@@ -688,7 +688,7 @@ Decision: Add narration timeline inspection before waveform or drag editing.
 
 Reason: Operators need to see where explanatory voiceover segments land, how much time is covered, and whether gaps or overlaps exist before spending TTS/video-generation cost. A computed timeline workbench gives demo-ready feedback without introducing a nonlinear editor surface.
 
-Impact: The narration workspace now exposes backend-computed span, covered time, gap count/seconds, overlap state, readiness, proportional segment bars, and selected-segment diagnostics in React. Gaps are allowed as intentional silence; overlaps and invalid ranges still block save/generate actions. Waveform rendering, drag/drop segment editing, multitrack automation curves, and voice-cloning style controls remain future slices.
+Impact: The narration workspace now exposes backend-computed span, covered time, gap count/seconds, overlap state, readiness, proportional segment bars, and selected-segment diagnostics in React. Gaps are allowed as intentional silence; overlaps and invalid ranges still block save/generate actions. Waveform rendering, multitrack automation curves, and voice-cloning style controls remain future slices.
 
 ## 2026-06-29
 
@@ -760,7 +760,7 @@ Decision: Generate narrated videos as standalone artifacts without replacing exi
 
 Reason: The narration workflow now needs a complete demo path from time-coded narration text to playable video, but the project still should not become a full nonlinear editor or mutate existing localization outputs.
 
-Impact: `POST /api/jobs/{jobId}/narration-workspace/generate-video` combines the preferred available base video with existing `NARRATION_AUDIO`, stores `narrated-video.mp4` as `NARRATED_VIDEO`, and leaves dubbing, burned-video, reviewed subtitle, and handoff artifacts unchanged. A later same-day decision upgraded the implementation from simple audio replacement to fixed original-audio ducking while keeping waveform editing and drag/drop timeline controls as future work.
+Impact: `POST /api/jobs/{jobId}/narration-workspace/generate-video` combines the preferred available base video with existing `NARRATION_AUDIO`, stores `narrated-video.mp4` as `NARRATED_VIDEO`, and leaves dubbing, burned-video, reviewed subtitle, and handoff artifacts unchanged. A later same-day decision upgraded the implementation from simple audio replacement to fixed original-audio ducking while keeping waveform editing as future work.
 
 ## 2026-06-29
 
@@ -768,7 +768,7 @@ Decision: Use fixed original-audio ducking for narrated video before exposing ma
 
 Reason: The demo needs a reliable end-to-end narration result that preserves the base video's original audio while keeping explanatory voiceover intelligible. A fixed `0.35` ducking volume is predictable, easy to verify in backend evidence, frontend status, and terminal scripts, and avoids introducing an unfinished multitrack editor surface.
 
-Impact: `NARRATION_AUDIO` is generated as a timed audio bed from saved narration windows, and `NARRATED_VIDEO` mixes that bed with the selected base video while ducking original/base audio to `0.35` during narration windows. Evidence surfaces report `TIMED_AUDIO_BED`, `DUCKED_ORIGINAL_AUDIO`, `timeAligned`, `duckingVolume`, and narration window count. Adjustable ducking, waveform editing, and drag/drop timeline editing remain future feature slices.
+Impact: `NARRATION_AUDIO` is generated as a timed audio bed from saved narration windows, and `NARRATED_VIDEO` mixes that bed with the selected base video while ducking original/base audio to `0.35` during narration windows. Evidence surfaces report `TIMED_AUDIO_BED`, `DUCKED_ORIGINAL_AUDIO`, `timeAligned`, `duckingVolume`, and narration window count. Adjustable ducking and waveform editing remain future feature slices.
 
 ## 2026-06-29
 
@@ -776,7 +776,15 @@ Decision: Add narration mix controls as persisted numeric settings before wavefo
 
 Reason: The next demo improvement needs operator control over intelligibility without expanding LinguaFrame into a nonlinear editor. Numeric ducking volume, narration volume, and fade duration are easy to validate, persist, replay in FFmpeg, and verify in metadata-only evidence.
 
-Impact: `PUT /api/jobs/{jobId}/narration-workspace/mix-settings` stores job-level mix settings with defaults `0.35`, `1.00`, and `250 ms`; narrated-video generation applies those values and evidence reports whether they came from defaults or saved settings. Waveform editing, drag/drop timeline editing, and automation curves remain future work.
+Impact: `PUT /api/jobs/{jobId}/narration-workspace/mix-settings` stores job-level mix settings with defaults `0.35`, `1.00`, and `250 ms`; narrated-video generation applies those values and evidence reports whether they came from defaults or saved settings. Waveform editing and automation curves remain future work.
+
+## 2026-06-30 - Narration Timeline Drag Editing Workbench
+
+Decision: Add timeline move/resize editing before waveform rendering or multitrack automation.
+
+Reason: Operators need to correct time-coded narration windows before spending TTS or narrated-video cost, and the existing table-only workflow is too slow for demo review. A compact bar editor over the existing segment state gives the product a practical narration editor without adding audio decoding, waveform rendering, provider calls, storage writes, or a new backend route.
+
+Impact: The React `Narration workspace` now recomputes local timeline metadata from unsaved segment state, lets selected bars move or resize by pointer or keyboard, keeps table inputs and inspector details synchronized, blocks overlap/invalid saves locally, and persists only through the existing `Save narration` API. Timeline editing is local until save and does not call OpenAI, generate narration audio/video, create artifacts, or mutate object storage. Waveform rendering, automation curves, uploaded reference audio, and voice cloning remain future slices.
 
 ## 2026-06-30
 

@@ -1065,6 +1065,8 @@ LINGUAFRAME_TTS_PROVIDER=openai
 
 The TTS MVP creates one continuous `dubbing-audio.mp3` artifact from target subtitles. It does not do lip sync or audio/video mixing.
 
+For explanatory voiceover, open a completed job in the browser and use `Narration workspace`. Add or import time-coded rows, then edit windows either through the table inputs or the proportional `Timeline workbench` bars. Select a bar, use ArrowLeft/ArrowRight to move it by 0.25 seconds, Shift+ArrowLeft/Right to resize the end, or Alt+ArrowLeft/Right to resize the start. Timeline edits are local until `Save narration`; they do not call OpenAI, generate audio/video, or create artifacts. After validation passes, save narration, optionally generate narration audio/video, or run render preflight before the one-click narration demo render.
+
 The React upload form can optionally choose a job-level TTS voice (`alloy`, `verse`, `aria`, `sage`, or `coral`). Leaving the selector on `Default voice` uses `OPENAI_TTS_VOICE`. Job detail, job history, recent jobs, dispatch messages, OpenAI TTS requests, and TTS provider cache keys all carry the selected voice.
 
 ```bash

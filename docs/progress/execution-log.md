@@ -4299,6 +4299,13 @@ Validation:
 - `npm test -- --run src/App.test.tsx -t "timeline"` passed with `Test Files 1 passed` and `Tests 4 passed | 96 skipped`; jsdom printed expected navigation warnings.
 - `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 107 passed`; jsdom printed expected navigation warnings.
 - `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` passed with `Tests run: 79, Failures: 0, Errors: 0, Skipped: 0`.
+- Documented the browser narration timeline edit order, keyboard controls, local-only save semantics, and the decision to add drag editing before waveform or automation work.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 4 passed` and `Tests 208 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 771, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
 
 ## 2026-06-29
 
