@@ -1116,6 +1116,61 @@ export interface PrivateDemoRunArchiveLink {
   description: string;
 }
 
+export interface OpenAiReadinessEvidence {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus | 'SKIPPED';
+  phase: string;
+  recommendedNextAction: string;
+  providers: OpenAiReadinessProvider[];
+  liveCheck: OpenAiReadinessLiveCheck;
+  readinessSignals: OpenAiReadinessSignal[];
+  modelUsage: OpenAiReadinessModelUsage;
+  commands: OpenAiReadinessCommand[];
+  safeLinks: string[];
+  safetyNotes: string[];
+}
+
+export interface OpenAiReadinessProvider {
+  stage: string;
+  enabled: boolean;
+  provider: string;
+  model: string | null;
+  credentialsConfigured: boolean;
+  status: PrivateDemoOperationsStatus | 'SKIPPED';
+  detail: string;
+  paidProvider: boolean;
+}
+
+export interface OpenAiReadinessLiveCheck {
+  status: RuntimeProbeStatus | 'BLOCKED';
+  latencyMs: number;
+  message: string;
+}
+
+export interface OpenAiReadinessSignal {
+  id: string;
+  label: string;
+  status: PrivateDemoOperationsStatus | 'SKIPPED';
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface OpenAiReadinessModelUsage {
+  ledgerStatus: string;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  failureRatePercent: string;
+  estimatedCostUsd: string;
+  recommendedNextAction: string;
+}
+
+export interface OpenAiReadinessCommand {
+  label: string;
+  command: string;
+  description: string;
+}
+
 export interface RuntimeDependencySummary {
   runtime: RuntimeContract;
   database: NetworkDependency;

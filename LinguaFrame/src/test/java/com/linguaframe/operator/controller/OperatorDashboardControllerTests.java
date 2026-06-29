@@ -295,6 +295,56 @@ class OperatorDashboardControllerTests {
         }
 
         @Test
+        void returnsOpenAiReadinessEvidence() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:45:00Z");
+            createJob("openai-readiness-controller-video", "openai-readiness-controller-job", "openai-readiness.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("openai-readiness-controller-call", "openai-readiness-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.phase").exists())
+                    .andExpect(jsonPath("$.recommendedNextAction").exists())
+                    .andExpect(jsonPath("$.providers[?(@.stage == 'transcription')]").exists())
+                    .andExpect(jsonPath("$.providers[?(@.stage == 'translation')]").exists())
+                    .andExpect(jsonPath("$.providers[?(@.stage == 'evaluation')]").exists())
+                    .andExpect(jsonPath("$.liveCheck.status").exists())
+                    .andExpect(jsonPath("$.modelUsage.modelCallCount").value(1))
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/openai-demo-preflight.sh')]").exists())
+                    .andExpect(jsonPath("$.commands[?(@.command == 'scripts/demo/upload-readiness.sh')]").exists())
+                    .andExpect(jsonPath("$.safeLinks[?(@ == '/api/operator/openai-readiness-evidence/markdown/download')]").exists())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                            .doesNotContain("OPENAI_API_KEY")
+                            .doesNotContain("private-demo-token")
+                            .doesNotContain("source-videos/openai-readiness-controller-video")
+                            .doesNotContain("provider request payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
+        void downloadsOpenAiReadinessEvidenceMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:50:00Z");
+            createJob("openai-readiness-markdown-video", "openai-readiness-markdown-job", "openai-readiness-markdown.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("openai-readiness-markdown-call", "openai-readiness-markdown-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence/markdown/download"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("openai-readiness-evidence.md"))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame OpenAI Readiness Evidence", "OpenAI live check", "scripts/demo/openai-demo-preflight.sh")
+                            .doesNotContain("OPENAI_API_KEY")
+                            .doesNotContain("private-demo-token")
+                            .doesNotContain("source-videos/openai-readiness-markdown-video")
+                            .doesNotContain("provider request payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
         void returnsDemoSessionCommandCenter() throws Exception {
             Instant createdAt = Instant.parse("2026-06-27T09:00:00Z");
             createJob("session-controller-video", "session-controller-job", "session.mp4",
@@ -525,6 +575,20 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-session-evidence-package/download")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence/markdown/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/openai-readiness-evidence/markdown/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
         }

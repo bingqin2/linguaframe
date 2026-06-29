@@ -6,6 +6,25 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned the OpenAI readiness evidence center in `docs/plans/127-openai-readiness-evidence-center.md`.
+- Added backend `GET /api/operator/openai-readiness-evidence` and Markdown download for metadata-only OpenAI provider readiness, live-check, upload readiness, budget, and model-usage evidence.
+- Added a React `OpenAI readiness evidence` panel with provider rows, readiness signals, safe commands, and backend Markdown download.
+- Added `scripts/demo/openai-readiness-evidence.sh` for JSON/Markdown export under `/tmp/linguaframe-demo/openai-readiness-evidence/`.
+- Updated README, Docker E2E guide, smoke checklist, and private demo deployment docs with when to use readiness evidence versus OpenAI preflight and paid smoke.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=OpenAiReadinessEvidenceServiceTests` first failed because a test stub helper was shadowed by the interface method name, then passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=OpenAiReadinessEvidenceServiceTests,OperatorDashboardControllerTests` passed with `Tests run: 21, Failures: 0, Errors: 0, Skipped: 0`.
+- `cd frontend && npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because the new panel intentionally renders multiple `READY` labels, then passed with `Test Files 2 passed` and `Tests 170 passed`.
+- `bash -n scripts/demo/openai-readiness-evidence.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `cd frontend && npm run build` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned the demo session evidence package workspace in `docs/plans/126-demo-session-evidence-package.md`.
 - Added backend `GET /api/operator/demo-session-evidence-package/download` for a read-only ZIP aggregating command center, operations, launch rehearsal, model usage ledger, presentation cockpit, evidence gallery, and run archive.
 - Added a React `Download session package` action to the demo session command center panel.

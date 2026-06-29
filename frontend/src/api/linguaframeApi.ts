@@ -28,6 +28,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  OpenAiReadinessEvidence,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -717,6 +718,18 @@ export async function getRuntimeLiveChecks(): Promise<RuntimeLiveCheckSummary> {
   });
 }
 
+export async function getOpenAiReadinessEvidence(): Promise<OpenAiReadinessEvidence> {
+  return requestJson<OpenAiReadinessEvidence>('/api/operator/openai-readiness-evidence', {
+    method: 'GET'
+  });
+}
+
+export async function downloadOpenAiReadinessEvidenceMarkdown(): Promise<Blob> {
+  return requestBlob('/api/operator/openai-readiness-evidence/markdown/download', {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -963,6 +976,8 @@ export const linguaFrameApi = {
   getDemoPresentationCockpit,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
+  getOpenAiReadinessEvidence,
+  downloadOpenAiReadinessEvidenceMarkdown,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

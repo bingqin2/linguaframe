@@ -32,6 +32,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  OpenAiReadinessEvidence,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -430,6 +431,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [runtimeDependenciesError, setRuntimeDependenciesError] = useState<string | null>(null);
   const [runtimeLiveChecks, setRuntimeLiveChecks] = useState<RuntimeLiveCheckSummary | null>(null);
   const [runtimeLiveChecksError, setRuntimeLiveChecksError] = useState<string | null>(null);
+  const [openAiReadinessEvidence, setOpenAiReadinessEvidence] = useState<OpenAiReadinessEvidence | null>(null);
+  const [openAiReadinessEvidenceError, setOpenAiReadinessEvidenceError] = useState<string | null>(null);
   const [isLoadingRuntimeDependencies, setIsLoadingRuntimeDependencies] = useState(false);
   const [previewErrors, setPreviewErrors] = useState<string[]>([]);
   const [cacheReplayBaseline, setCacheReplayBaseline] = useState<CacheReplayBaseline | null>(null);
@@ -880,9 +883,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
-    const [dependenciesResult, liveChecksResult] = await Promise.allSettled([
+    const [dependenciesResult, liveChecksResult, openAiReadinessResult] = await Promise.allSettled([
       linguaFrameApi.getRuntimeDependencies(),
-      linguaFrameApi.getRuntimeLiveChecks()
+      linguaFrameApi.getRuntimeLiveChecks(),
+      linguaFrameApi.getOpenAiReadinessEvidence()
     ]);
 
     if (dependenciesResult.status === 'fulfilled') {
@@ -899,6 +903,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setRuntimeLiveChecks(null);
       setRuntimeLiveChecksError(toErrorMessage(liveChecksResult.reason));
+    }
+
+    if (openAiReadinessResult.status === 'fulfilled') {
+      setOpenAiReadinessEvidence(openAiReadinessResult.value);
+      setOpenAiReadinessEvidenceError(null);
+    } else {
+      setOpenAiReadinessEvidence(null);
+      setOpenAiReadinessEvidenceError(toErrorMessage(openAiReadinessResult.reason));
     }
 
     setIsLoadingRuntimeDependencies(false);
@@ -1981,6 +1993,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             onRefresh={loadRuntimeDependencies}
           />
 
+          <OpenAiReadinessEvidencePanel
+            evidence={openAiReadinessEvidence}
+            error={openAiReadinessEvidenceError}
+            isLoading={isLoadingRuntimeDependencies}
+            onRefresh={loadRuntimeDependencies}
+          />
+
           <DemoRunbookPanel
             dependencies={runtimeDependencies}
             error={runtimeDependenciesError}
@@ -2777,6 +2796,125 @@ function RuntimeLiveChecksPanel({
               </li>
             ))}
           </ul>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function OpenAiReadinessEvidencePanel({
+  evidence,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  evidence: OpenAiReadinessEvidence | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadOpenAiReadinessEvidenceMarkdown();
+      downloadBlob(blob, 'openai-readiness-evidence.md');
+      setStatus('OpenAI readiness evidence downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel" aria-label="OpenAI readiness evidence">
+      <div className="panel-heading">
+        <h2>OpenAI readiness evidence</h2>
+        {evidence ? (
+          <span className={demoSessionStatusClassName(evidence.overallStatus)}>
+            {evidence.overallStatus}
+          </span>
+        ) : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">OpenAI readiness unavailable: {error}</p> : null}
+      {isLoading && !evidence ? <p className="muted">Checking OpenAI readiness...</p> : null}
+      {evidence ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Phase</dt>
+              <dd>{evidence.phase}</dd>
+            </div>
+            <div>
+              <dt>Live check</dt>
+              <dd>{evidence.liveCheck.status}</dd>
+            </div>
+            <div>
+              <dt>Calls</dt>
+              <dd>{evidence.modelUsage.modelCallCount} calls</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>
+                {evidence.modelUsage.failedModelCallCount} failed · {evidence.modelUsage.failureRatePercent}%
+              </dd>
+            </div>
+            <div>
+              <dt>Cost</dt>
+              <dd>{formatLedgerCost(evidence.modelUsage.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Latency</dt>
+              <dd>{evidence.liveCheck.latencyMs} ms probe</dd>
+            </div>
+          </dl>
+          <p className={evidence.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {evidence.recommendedNextAction}
+          </p>
+          <ul className="feature-list live-check-list" aria-label="OpenAI provider readiness">
+            {evidence.providers.map((provider) => (
+              <li key={provider.stage}>
+                <span>{formatOpenAiStage(provider.stage)}</span>
+                <span className={demoSessionStatusClassName(provider.status)}>{provider.status}</span>
+                <small>
+                  {provider.provider} · {provider.enabled ? 'enabled' : 'disabled'} ·{' '}
+                  {provider.credentialsConfigured ? 'credentials configured' : 'credentials not configured'} ·{' '}
+                  {provider.detail}
+                </small>
+              </li>
+            ))}
+          </ul>
+          <h3>Readiness signals</h3>
+          <ul className="operations-section-list">
+            {evidence.readinessSignals.map((signal) => (
+              <li key={signal.id}>
+                <div className="operations-section-heading">
+                  <strong>{signal.label}</strong>
+                  <span className={demoSessionStatusClassName(signal.status)}>{signal.status}</span>
+                </div>
+                <p>{signal.detail}</p>
+                <small>{signal.nextAction}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Commands</h3>
+          <ul className="command-list">
+            {evidence.commands.map((command) => (
+              <li key={command.command}>
+                <strong>{command.label}</strong>
+                <code>{command.command}</code>
+                <small>{command.description}</small>
+              </li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download readiness evidence
+            </button>
+          </div>
+          {status ? <p className="muted">{status}</p> : null}
         </>
       ) : null}
     </section>
@@ -4991,14 +5129,14 @@ function modelUsageStatusClassName(status: ModelUsageLedger['summary']['ledgerSt
   return 'status-pill';
 }
 
-function demoSessionStatusClassName(status: DemoSessionCommandCenterStatus): string {
+function demoSessionStatusClassName(status: string): string {
   if (status === 'BLOCKED') {
     return 'status-pill danger';
   }
   if (status === 'ATTENTION') {
     return 'status-pill warning';
   }
-  if (status === 'EMPTY') {
+  if (status === 'EMPTY' || status === 'SKIPPED') {
     return 'status-pill muted-pill';
   }
   return 'status-pill';
@@ -9379,6 +9517,16 @@ function formatRuntimeCheckName(name: RuntimeLiveCheckName): string {
     openai: 'OpenAI'
   };
   return labels[name];
+}
+
+function formatOpenAiStage(stage: string): string {
+  const labels: Record<string, string> = {
+    transcription: 'Transcription',
+    translation: 'Translation',
+    evaluation: 'Quality evaluation',
+    tts: 'TTS'
+  };
+  return labels[stage] ?? stage;
 }
 
 function runtimeProbeStatusClassName(status: string): string {

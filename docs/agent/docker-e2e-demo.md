@@ -435,8 +435,11 @@ Recreate the backend and run preflight:
 ```bash
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
 docker compose --env-file .env.openai-demo up -d --build
+LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-readiness-evidence.sh
 LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-demo-preflight.sh
 ```
+
+`scripts/demo/openai-readiness-evidence.sh` writes `/tmp/linguaframe-demo/openai-readiness-evidence/openai-readiness-evidence.json` and `.md`. It is a metadata-only readiness report over provider modes, live-check status, upload readiness, budget posture, and recent model-call failures. It does not upload media or execute OpenAI transcription, translation, TTS, or evaluation.
 
 Then run the smoke with a real short speech MP4:
 
