@@ -117,7 +117,7 @@
 - [x] Run `git diff --check`.
 - [x] Commit with message `Document narration voice preset workbench`.
 - [x] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 
