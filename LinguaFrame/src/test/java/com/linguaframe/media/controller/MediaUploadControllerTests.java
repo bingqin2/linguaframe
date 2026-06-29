@@ -21,7 +21,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 import java.io.ByteArrayInputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.zip.ZipInputStream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.mockito.ArgumentMatchers.any;
@@ -232,6 +237,79 @@ class MediaUploadControllerTests {
                         .doesNotContain("source-videos/")
                         .doesNotContain("/Users/")
                         .doesNotContain("sk-"));
+    }
+
+    @Test
+    void downloadsUploadDecisionPackageMarkdown() throws Exception {
+        properties.getCost().setTranscriptionUsdPerMinute(new java.math.BigDecimal("0.006"));
+        properties.getCost().setTranslationInputUsdPerMillionTokens(new java.math.BigDecimal("5"));
+        properties.getCost().setTranslationOutputUsdPerMillionTokens(new java.math.BigDecimal("15"));
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads/decision-package/markdown/download")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", "formal")
+                        .param("subtitleStylePreset", "high_contrast")
+                        .param("subtitlePolishingMode", "balanced")
+                        .param("translationGlossary", "Maya => 玛雅")
+                        .param("demoProfileId", "tears-showcase"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/markdown"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"upload-decision-package.md\""))
+                .andExpect(result -> assertThat(result.getResponse().getContentAsString())
+                        .contains("# Upload Decision Package")
+                        .contains("## Owner Quota")
+                        .contains("## Upload Readiness")
+                        .contains("## Source Reuse Decision")
+                        .contains("UPLOAD_NEW_SOURCE")
+                        .contains("sample.mp4")
+                        .doesNotContain("source-videos/")
+                        .doesNotContain("/Users/")
+                        .doesNotContain("sk-"));
+    }
+
+    @Test
+    void downloadsUploadDecisionPackageZip() throws Exception {
+        properties.getCost().setTranscriptionUsdPerMinute(new java.math.BigDecimal("0.006"));
+        properties.getCost().setTranslationInputUsdPerMillionTokens(new java.math.BigDecimal("5"));
+        properties.getCost().setTranslationOutputUsdPerMillionTokens(new java.math.BigDecimal("15"));
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads/decision-package/download")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", "formal")
+                        .param("subtitleStylePreset", "high_contrast")
+                        .param("subtitlePolishingMode", "balanced")
+                        .param("translationGlossary", "Maya => 玛雅")
+                        .param("demoProfileId", "tears-showcase"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"upload-decision-package.zip\""))
+                .andExpect(result -> {
+                    Map<String, String> entries = unzipEntries(result.getResponse().getContentAsByteArray());
+                    assertThat(entries).containsKeys(
+                            "manifest.json",
+                            "upload-decision-package.md",
+                            "upload-execution-plan.md"
+                    );
+                    assertThat(entries.get("manifest.json"))
+                            .contains("UPLOAD_DECISION_PACKAGE")
+                            .contains("recommendedDecision")
+                            .doesNotContain("source-videos/")
+                            .doesNotContain("/Users/")
+                            .doesNotContain("sk-");
+                    assertThat(entries.get("upload-decision-package.md"))
+                            .contains("# Upload Decision Package")
+                            .contains("## Package Contents");
+                    assertThat(entries.get("upload-execution-plan.md"))
+                            .contains("# Upload Execution Plan")
+                            .contains("UPLOAD_NEW_SOURCE")
+                            .contains("No previous source match found.");
+                });
     }
 
     @Test
@@ -507,5 +585,17 @@ class MediaUploadControllerTests {
         mockMvc.perform(get("/api/media/uploads/{videoId}", "missing-video"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+    }
+
+    private static Map<String, String> unzipEntries(byte[] zipBytes) throws Exception {
+        Map<String, String> entries = new LinkedHashMap<>();
+        try (ZipInputStream zipInputStream = new ZipInputStream(new ByteArrayInputStream(zipBytes))) {
+            java.util.zip.ZipEntry entry = zipInputStream.getNextEntry();
+            while (entry != null) {
+                entries.put(entry.getName(), new String(zipInputStream.readAllBytes(), StandardCharsets.UTF_8));
+                entry = zipInputStream.getNextEntry();
+            }
+        }
+        return entries;
     }
 }

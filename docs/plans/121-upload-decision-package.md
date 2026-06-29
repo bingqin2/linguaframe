@@ -30,12 +30,12 @@
 - `UploadDecisionPackageVo build(MultipartFile file, UploadCostEstimateOptionsBo options)` returns the safe aggregate.
 - `String renderMarkdown(UploadDecisionPackageVo value)` returns `# Upload Decision Package`.
 
-- [ ] Compose `UploadExecutionPlanService.plan(...)`, `OwnerQuotaPreflightService.getPreflight()`, `DemoUploadReadinessService.getReadiness(options.demoProfileId())`, and `UploadExecutionPlanReportService.renderMarkdown(...)`.
-- [ ] Add package fields: generatedAt, overallStatus, recommendedDecision, executionPlan, ownerQuotaPreflight, uploadReadiness, executionPlanMarkdown, safetyNotes.
-- [ ] Decide `recommendedDecision`: `BLOCKED` when execution plan, owner quota, or readiness is blocked; `REUSE_COMPLETED_RUN` when source reuse decision recommends a completed run; `WAIT_FOR_ACTIVE_RUN` for active duplicate runs; otherwise `UPLOAD_NEW_SOURCE`.
-- [ ] Render Markdown sections: summary, owner quota, upload readiness, execution plan summary, source reuse decision, commands, package contents, and safety notes.
-- [ ] Add tests for ready upload, blocked invalid file, and completed duplicate reuse decision.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests test`.
+- [x] Compose `UploadExecutionPlanService.plan(...)`, `OwnerQuotaPreflightService.getPreflight()`, `DemoUploadReadinessService.getReadiness(options.demoProfileId())`, and `UploadExecutionPlanReportService.renderMarkdown(...)`.
+- [x] Add package fields: generatedAt, overallStatus, recommendedDecision, executionPlan, ownerQuotaPreflight, uploadReadiness, executionPlanMarkdown, safetyNotes.
+- [x] Decide `recommendedDecision`: `BLOCKED` when execution plan, owner quota, or readiness is blocked; `REUSE_COMPLETED_RUN` when source reuse decision recommends a completed run; `WAIT_FOR_ACTIVE_RUN` for active duplicate runs; otherwise `UPLOAD_NEW_SOURCE`.
+- [x] Render Markdown sections: summary, owner quota, upload readiness, execution plan summary, source reuse decision, commands, package contents, and safety notes.
+- [x] Add tests for ready upload, blocked invalid file, and completed duplicate reuse decision.
+- [x] Run `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests test`.
 
 ## Task 2: Backend Markdown And ZIP Endpoints
 
@@ -47,12 +47,12 @@
 - `POST /api/media/uploads/decision-package/markdown/download` consumes the same multipart fields as `/execution-plan`.
 - `POST /api/media/uploads/decision-package/download` consumes the same multipart fields and returns `upload-decision-package.zip`.
 
-- [ ] Add controller methods using the same request params as `/execution-plan`.
-- [ ] Markdown response content type is `text/markdown` with attachment filename `upload-decision-package.md`.
-- [ ] ZIP response content type is `application/zip` with attachment filename `upload-decision-package.zip`.
-- [ ] ZIP entries must include `manifest.json`, `upload-decision-package.md`, and `upload-execution-plan.md`.
-- [ ] Controller tests must assert content headers, Markdown headings, ZIP entry names, source reuse fields, and no local path/object-key/token leakage.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test`.
+- [x] Add controller methods using the same request params as `/execution-plan`.
+- [x] Markdown response content type is `text/markdown` with attachment filename `upload-decision-package.md`.
+- [x] ZIP response content type is `application/zip` with attachment filename `upload-decision-package.zip`.
+- [x] ZIP entries must include `manifest.json`, `upload-decision-package.md`, and `upload-execution-plan.md`.
+- [x] Controller tests must assert content headers, Markdown headings, ZIP entry names, source reuse fields, and no local path/object-key/token leakage.
+- [x] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test`.
 
 ## Task 3: Frontend API And Upload Panel Controls
 
@@ -66,14 +66,14 @@
 - `downloadUploadDecisionPackageMarkdown(...)` returns a `Blob`.
 - `downloadUploadDecisionPackageZip(...)` returns a `Blob`.
 
-- [ ] Add typed `UploadDecisionPackage` only if the browser renders package metadata; otherwise keep downloads as blob-only functions.
-- [ ] Add API functions that reuse the same multipart builder as execution plan.
-- [ ] Add API tests proving target language, profile, style, glossary, subtitle style, and polishing fields are sent.
-- [ ] Add `Download decision report` and `Download decision ZIP` controls to the execution-plan panel.
-- [ ] Keep controls disabled while planning/downloading or when no file/plan exists.
-- [ ] Show download status without blocking validation, upload readiness, or cost estimate panels.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add typed `UploadDecisionPackage` only if the browser renders package metadata; otherwise keep downloads as blob-only functions.
+- [x] Add API functions that reuse the same multipart builder as execution plan.
+- [x] Add API tests proving target language, profile, style, glossary, subtitle style, and polishing fields are sent.
+- [x] Add `Download decision report` and `Download decision ZIP` controls to the execution-plan panel.
+- [x] Keep controls disabled while planning/downloading or when no file/plan exists.
+- [x] Show download status without blocking validation, upload readiness, or cost estimate panels.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script And Documentation
 
@@ -86,25 +86,25 @@
 - Default output directory: `/tmp/linguaframe-demo/upload-decision-package/`.
 - Print `uploadDecisionPackageMarkdownPath`, `uploadDecisionPackageZipPath`, `uploadDecisionPackageZipBytes`, and `uploadDecisionPackageStatus=written`.
 
-- [ ] Script posts the selected sample/options to both package endpoints.
-- [ ] Write `upload-decision-package.md` and `upload-decision-package.zip`.
-- [ ] Document when to use the decision package versus the JSON execution plan, Markdown execution plan, source reuse decision, and full E2E scripts.
-- [ ] Document that the package is safe for demo handoff and contains no media bytes or secrets.
-- [ ] Record validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Script posts the selected sample/options to both package endpoints.
+- [x] Write `upload-decision-package.md` and `upload-decision-package.zip`.
+- [x] Document when to use the decision package versus the JSON execution plan, Markdown execution plan, source reuse decision, and full E2E scripts.
+- [x] Document that the package is safe for demo handoff and contains no media bytes or secrets.
+- [x] Record validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification And Merge
 
 **Files:**
 - Modify: `docs/plans/121-upload-decision-package.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests,MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
-- [ ] Commit as `Add upload decision package`.
+- [x] Run `git diff --check`.
+- [x] Commit as `Add upload decision package`.
 - [ ] Merge the feature branch back to `main` after validation passes.
