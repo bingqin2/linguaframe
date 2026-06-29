@@ -113,12 +113,12 @@
 - Consumes: Existing `saveNarrationWorkspace(jobId, { segments })` frontend API and backend `PUT /api/jobs/{jobId}/narration-workspace`.
 - Produces: Regression evidence that drag-edited times round-trip through the existing API and keep timeline/evidence metadata correct.
 
-- [ ] Add App regression tests proving drag/keyboard edits that create overlap show `Row N: time range overlaps the previous row.`, disable `Save narration`, disable `Generate narration audio`, but leave `Refresh evidence` enabled.
-- [ ] Add App regression tests proving deleting a selected segment after a drag reindexes rows and timeline bars without stale selected index errors.
-- [ ] Add backend service/controller tests, only if missing, that saving changed start/end values returns recomputed `timeline.startSeconds`, `timeline.endSeconds`, `coveredSeconds`, `gapCount`, `hasOverlap`, and segment percentages.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` and verify backend contract tests pass.
-- [ ] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
-- [ ] Update execution log with validation details.
+- [x] Add App regression tests proving drag/keyboard edits that create overlap show `Row N: time range overlaps the previous row.`, disable `Save narration`, disable `Generate narration audio`, but leave `Refresh evidence` enabled.
+- [x] Add App regression tests proving deleting a selected segment after a drag reindexes rows and timeline bars without stale selected index errors.
+- [x] Add backend service/controller tests, only if missing, that saving changed start/end values returns recomputed `timeline.startSeconds`, `timeline.endSeconds`, `coveredSeconds`, `gapCount`, `hasOverlap`, and segment percentages.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` and verify backend contract tests pass.
+- [x] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
+- [x] Update execution log with validation details.
 - [ ] Commit with message `Stabilize narration timeline save validation`.
 
 ## Task 4: Documentation, Final Verification, And Merge

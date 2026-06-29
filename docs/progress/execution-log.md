@@ -4293,6 +4293,12 @@ Validation:
 - After guarding pointer capture and matching the current `Narration saved.` status text, `npm test -- --run src/App.test.tsx -t "narration timeline"` passed with `Test Files 1 passed` and `Tests 1 passed | 97 skipped`.
 - `npm test -- --run src/domain/narrationTimelineEditing.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
 - `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 105 passed`; jsdom printed expected navigation warnings.
+- Added regression coverage for keyboard-created timeline overlap blocking save/generation while leaving evidence refresh enabled.
+- Added regression coverage for deleting a selected, edited segment and reindexing the remaining row and timeline bar.
+- Existing backend service/controller tests already cover narration workspace save metadata recomputation for `timeline.startSeconds`, `timeline.endSeconds`, `coveredSeconds`, `gapCount`, `hasOverlap`, and segment percentages, so no duplicate backend test was added.
+- `npm test -- --run src/App.test.tsx -t "timeline"` passed with `Test Files 1 passed` and `Tests 4 passed | 96 skipped`; jsdom printed expected navigation warnings.
+- `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 107 passed`; jsdom printed expected navigation warnings.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` passed with `Tests run: 79, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-29
 

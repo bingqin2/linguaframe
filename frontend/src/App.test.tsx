@@ -2522,6 +2522,78 @@ describe('App', () => {
     expect(await within(narrationPanel).findByText('Narration saved.')).toBeInTheDocument();
   });
 
+  test('blocks save and narration generation when timeline keyboard editing creates overlap', async () => {
+    const overlappingWorkspace = narrationWorkspaceFixture({
+      jobId: 'narration-overlap-edit-job',
+      segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+        index === 1
+          ? { ...segment, startSeconds: 28.5, endSeconds: 40, durationSeconds: 11.5 }
+          : segment
+      )
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-overlap-edit-job', videoId: 'narration-overlap-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(overlappingWorkspace);
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-overlap-edit-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const secondTimelineSegment = within(narrationPanel).getByLabelText('Timeline segment 2: 28.5 s to 40 s, READY');
+
+    secondTimelineSegment.focus();
+    await userEvent.keyboard('{Alt>}{ArrowLeft}{ArrowLeft}{ArrowLeft}{/Alt}');
+
+    expect(within(narrationPanel).getByLabelText(/narration 2 start/i)).toHaveValue(27.75);
+    expect(within(narrationPanel).getByText('Row 2: time range overlaps the previous row.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('button', { name: /save narration/i })).toBeDisabled();
+    expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeDisabled();
+    expect(within(narrationPanel).getByRole('button', { name: /refresh evidence/i })).toBeEnabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+  });
+
+  test('reindexes narration rows and timeline bars after deleting a drag-edited segment', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-delete-edit-job', videoId: 'narration-delete-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-delete-edit-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-delete-edit-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const firstTimelineSegment = within(narrationPanel).getByLabelText('Timeline segment 1: 15 s to 28 s, READY');
+
+    firstTimelineSegment.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(15.25);
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /delete row/i }));
+
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(55);
+    expect(within(narrationPanel).getByLabelText('Timeline segment 1: 55 s to 70.5 s, READY')).toBeInTheDocument();
+    expect(within(narrationPanel).queryByLabelText(/narration 2 start/i)).not.toBeInTheDocument();
+    expect(within(narrationPanel).queryByLabelText(/Timeline segment 2:/i)).not.toBeInTheDocument();
+  });
+
   test('exports and imports narration script packages from the narration workspace', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })
