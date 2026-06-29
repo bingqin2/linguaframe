@@ -3516,3 +3516,20 @@ Validation so far:
 - `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests,MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
 - `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned demo run variance report in `docs/plans/122-demo-run-variance-report.md`.
+- Added backend `POST /api/jobs/{jobId}/demo-run-variance` and Markdown download for comparing pre-upload estimates with actual job evidence.
+- Added browser `Demo run variance` panel with pasted baseline JSON, actual-only mode, metric table, safe links, and Markdown download.
+- Added `scripts/demo/demo-run-variance.sh` and README usage guidance for baseline-path, inline-baseline, and actual-only testing.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoRunVarianceReportServiceTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoRunVarianceReport+downloadsDemoRunVarianceMarkdown+returnsActualOnlyDemoRunVarianceWithoutBaseline test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 68 passed`.
+- `npm --prefix frontend run build` passed.
+- `bash -n scripts/demo/demo-run-variance.sh scripts/demo/lib/linguaframe-demo.sh` passed.

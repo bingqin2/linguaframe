@@ -19,6 +19,7 @@ import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
+import com.linguaframe.job.domain.vo.DemoRunVarianceReportVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
 import com.linguaframe.job.domain.vo.DemoReplayCardVo;
@@ -40,6 +41,7 @@ import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
 import com.linguaframe.job.service.DemoPresenterPackService;
+import com.linguaframe.job.service.DemoRunVarianceReportService;
 import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunMonitorService;
 import com.linguaframe.job.service.DemoRunPackageService;
@@ -105,6 +107,7 @@ public class LocalizationJobController {
     private final DemoAcceptanceGateService demoAcceptanceGateService;
     private final DemoCompletionCertificateService demoCompletionCertificateService;
     private final DemoPresenterPackService demoPresenterPackService;
+    private final DemoRunVarianceReportService demoRunVarianceReportService;
     private final DemoRunMonitorService demoRunMonitorService;
     private final DemoReplayCardService demoReplayCardService;
     private final DemoRunSnapshotService demoRunSnapshotService;
@@ -135,6 +138,7 @@ public class LocalizationJobController {
             DemoAcceptanceGateService demoAcceptanceGateService,
             DemoCompletionCertificateService demoCompletionCertificateService,
             DemoPresenterPackService demoPresenterPackService,
+            DemoRunVarianceReportService demoRunVarianceReportService,
             DemoRunMonitorService demoRunMonitorService,
             DemoReplayCardService demoReplayCardService,
             DemoRunSnapshotService demoRunSnapshotService,
@@ -164,6 +168,7 @@ public class LocalizationJobController {
         this.demoAcceptanceGateService = demoAcceptanceGateService;
         this.demoCompletionCertificateService = demoCompletionCertificateService;
         this.demoPresenterPackService = demoPresenterPackService;
+        this.demoRunVarianceReportService = demoRunVarianceReportService;
         this.demoRunMonitorService = demoRunMonitorService;
         this.demoReplayCardService = demoReplayCardService;
         this.demoRunSnapshotService = demoRunSnapshotService;
@@ -266,6 +271,55 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return demoPresenterPackService.buildPresenterPack(jobId);
+    }
+
+    @PostMapping("/{jobId}/demo-run-variance")
+    @Operation(summary = "Build a safe post-run variance report")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run variance report was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoRunVarianceReportVo getDemoRunVariance(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) DemoRunVarianceRequest request
+    ) {
+        return demoRunVarianceReportService.build(
+                jobId,
+                request == null ? null : request.preUploadJson()
+        );
+    }
+
+    @PostMapping("/{jobId}/demo-run-variance/markdown/download")
+    @Operation(summary = "Download a safe Markdown post-run variance report")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo run variance Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoRunVarianceMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) DemoRunVarianceRequest request
+    ) {
+        DemoRunVarianceReportVo report = demoRunVarianceReportService.build(
+                jobId,
+                request == null ? null : request.preUploadJson()
+        );
+        byte[] body = demoRunVarianceReportService.renderMarkdown(report)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("demo-run-variance.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
     }
 
     @GetMapping("/{jobId}/demo-run-monitor")
@@ -936,5 +990,8 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(archive.inputStream()));
+    }
+
+    private record DemoRunVarianceRequest(String preUploadJson) {
     }
 }

@@ -1,6 +1,6 @@
 # Demo Run Variance Report Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a post-run variance report that compares the upload decision package or execution-plan estimate with the completed job's actual safe evidence, closing the loop from pre-upload decision to final demo proof.
 
@@ -31,13 +31,13 @@
 - `DemoRunVarianceReportVo build(String jobId, String preUploadJson)` returns safe variance evidence.
 - `String renderMarkdown(DemoRunVarianceReportVo report)` returns `# Demo Run Variance Report`.
 
-- [ ] Parse optional `preUploadJson` as either `UploadDecisionPackageVo`, `UploadExecutionPlanVo`, or a minimal safe map; invalid JSON produces an `ATTENTION` report note instead of failing.
-- [ ] Load actual evidence from existing query services: job detail, diagnostics, delivery manifest, acceptance gate, and demo run package links where available.
-- [ ] Produce metrics for estimated vs actual cost, estimated vs actual model-call count, estimated vs actual runtime seconds, status, source reuse decision, cache hits, quality score, and delivery readiness.
-- [ ] Classify each metric as `MATCH`, `LOWER_THAN_ESTIMATE`, `HIGHER_THAN_ESTIMATE`, `ACTUAL_ONLY`, or `BASELINE_MISSING`.
-- [ ] Render Markdown sections: summary, baseline, actual run, variance metrics, delivery evidence, safe links, and safety notes.
-- [ ] Add service tests for completed job with execution-plan baseline, completed job with no baseline, and invalid baseline JSON.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=DemoRunVarianceReportServiceTests test`.
+- [x] Parse optional `preUploadJson` as either `UploadDecisionPackageVo`, `UploadExecutionPlanVo`, or a minimal safe map; invalid JSON produces an `ATTENTION` report note instead of failing.
+- [x] Load actual evidence from existing query services: job detail, diagnostics, delivery manifest, acceptance gate, and demo run package links where available.
+- [x] Produce metrics for estimated vs actual cost, estimated vs actual model-call count, estimated vs actual runtime seconds, status, source reuse decision, cache hits, quality score, and delivery readiness.
+- [x] Classify each metric as `MATCH`, `LOWER_THAN_ESTIMATE`, `HIGHER_THAN_ESTIMATE`, `ACTUAL_ONLY`, or `BASELINE_MISSING`.
+- [x] Render Markdown sections: summary, baseline, actual run, variance metrics, delivery evidence, safe links, and safety notes.
+- [x] Add service tests for completed job with execution-plan baseline, completed job with no baseline, and invalid baseline JSON.
+- [x] Run `mvn -pl LinguaFrame -Dtest=DemoRunVarianceReportServiceTests test`.
 
 ## Task 2: Backend JSON And Markdown Endpoints
 
@@ -49,10 +49,10 @@
 - `POST /api/jobs/{jobId}/demo-run-variance` accepts optional JSON body `{ "preUploadJson": "..." }` and returns `DemoRunVarianceReportVo`.
 - `POST /api/jobs/{jobId}/demo-run-variance/markdown/download` accepts the same body and returns `demo-run-variance.md`.
 
-- [ ] Add controller endpoints with auth/demo access behavior matching existing job evidence endpoints.
-- [ ] Markdown response content type is `text/markdown` and attachment filename is `demo-run-variance.md`.
-- [ ] Controller tests must assert JSON status, Markdown headings, actual-only missing-baseline note, parsed baseline fields, safe links, and no raw object/local path/token leakage.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoRunVarianceReport+downloadsDemoRunVarianceMarkdown+returnsActualOnlyDemoRunVarianceWithoutBaseline test`.
+- [x] Add controller endpoints with auth/demo access behavior matching existing job evidence endpoints.
+- [x] Markdown response content type is `text/markdown` and attachment filename is `demo-run-variance.md`.
+- [x] Controller tests must assert JSON status, Markdown headings, actual-only missing-baseline note, parsed baseline fields, safe links, and no raw object/local path/token leakage.
+- [x] Run `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsDemoRunVarianceReport+downloadsDemoRunVarianceMarkdown+returnsActualOnlyDemoRunVarianceWithoutBaseline test`.
 
 ## Task 3: Frontend API And Selected-Job Panel
 
@@ -66,14 +66,14 @@
 - `getDemoRunVariance(jobId: string, preUploadJson?: string): Promise<DemoRunVarianceReport>`.
 - `demoRunVarianceMarkdownDownloadUrl(jobId: string)` is not enough because the endpoint is POST; add `downloadDemoRunVarianceMarkdown(jobId, preUploadJson?)`.
 
-- [ ] Add TypeScript types for report and metric rows.
-- [ ] Add API functions and tests for JSON and Markdown POST bodies.
-- [ ] Add a selected-job `Demo run variance` panel near demo acceptance/completion evidence.
-- [ ] Let the operator paste pre-upload JSON or leave it blank for actual-only mode.
-- [ ] Render summary status, metric rows, missing-baseline notes, and safe package links.
-- [ ] Add `Download variance Markdown` button using the same pasted baseline text.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript types for report and metric rows.
+- [x] Add API functions and tests for JSON and Markdown POST bodies.
+- [x] Add a selected-job `Demo run variance` panel near demo acceptance/completion evidence.
+- [x] Let the operator paste pre-upload JSON or leave it blank for actual-only mode.
+- [x] Render summary status, metric rows, missing-baseline notes, and safe package links.
+- [x] Add `Download variance Markdown` button using the same pasted baseline text.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script And Demo Docs
 
@@ -87,25 +87,25 @@
 - Optional baseline input: `LINGUAFRAME_PRE_UPLOAD_JSON_PATH=/tmp/linguaframe-demo/upload-decision-package/manifest.json` or `LINGUAFRAME_PRE_UPLOAD_JSON_INLINE`.
 - Print `demoRunVarianceStatus`, `demoRunVarianceMarkdownPath`, `demoRunVarianceJsonPath`, `demoRunVarianceMetricCount`, and `demoRunVarianceBaselineMode`.
 
-- [ ] Script posts optional baseline JSON to both endpoints for `LINGUAFRAME_DEMO_JOB_ID`.
-- [ ] Write `demo-run-variance.json` and `demo-run-variance.md`.
-- [ ] Document when to use variance report versus acceptance gate, completion certificate, demo run package, job comparison, and upload decision package.
-- [ ] Document testing with actual-only mode and with a saved pre-upload JSON baseline.
-- [ ] Record validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/demo-run-variance.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Script posts optional baseline JSON to both endpoints for `LINGUAFRAME_DEMO_JOB_ID`.
+- [x] Write `demo-run-variance.json` and `demo-run-variance.md`.
+- [x] Document when to use variance report versus acceptance gate, completion certificate, demo run package, job comparison, and upload decision package.
+- [x] Document testing with actual-only mode and with a saved pre-upload JSON baseline.
+- [x] Record validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/demo-run-variance.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification And Merge
 
 **Files:**
 - Modify: `docs/plans/122-demo-run-variance-report.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=DemoRunVarianceReportServiceTests,LocalizationJobControllerTests#returnsDemoRunVarianceReport+downloadsDemoRunVarianceMarkdown+returnsActualOnlyDemoRunVarianceWithoutBaseline test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/demo-run-variance.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
-- [ ] Commit as `Add demo run variance report`.
-- [ ] Merge the feature branch back to `main` after validation passes.
+- [x] Run `git diff --check`.
+- [x] Commit as `Add demo run variance report`.
+- [x] Merge the feature branch back to `main` after validation passes.
