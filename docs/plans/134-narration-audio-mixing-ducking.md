@@ -168,13 +168,13 @@
 - Modify: `docs/plans/134-narration-audio-mixing-ducking.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Mark completed plan tasks.
-- [ ] Run focused backend validation from Tasks 1-4.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run script syntax validation from Task 6.
-- [ ] Run `git diff --check`.
+- [x] Mark completed plan tasks.
+- [x] Run focused backend validation from Tasks 1-4.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run script syntax validation from Task 6.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Add narration audio mixing and ducking`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

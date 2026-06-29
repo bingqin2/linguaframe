@@ -3849,3 +3849,18 @@ Work:
 Validation so far:
 
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Completed final verification for narration audio mixing and ducking before merge.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=FfmpegTimedAudioBedServiceTests,NarrationAudioServiceTests,FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed with `Tests run: 94, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 723, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
