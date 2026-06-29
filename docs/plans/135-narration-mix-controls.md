@@ -28,7 +28,7 @@
 - Create: `LinguaFrame/src/main/resources/db/migration/V29__create_narration_mix_settings.sql`
 - Create: `LinguaFrame/src/main/java/com/linguaframe/job/domain/entity/NarrationMixSettingsRecord.java`
 - Create: `LinguaFrame/src/main/java/com/linguaframe/job/repository/NarrationMixSettingsRepository.java`
-- Create: `LinguaFrame/src/main/java/com/linguaframe/job/repository/jdbc/JdbcNarrationMixSettingsRepository.java`
+- Create: `LinguaFrame/src/main/java/com/linguaframe/job/repository/JdbcNarrationMixSettingsRepository.java`
 - Test: `LinguaFrame/src/test/java/com/linguaframe/job/repository/NarrationMixSettingsRepositoryTests.java`
 
 **Interfaces:**
@@ -37,11 +37,11 @@
 - `NarrationMixSettingsRepository.upsert(NarrationMixSettingsRecord settings): NarrationMixSettingsRecord`
 - `NarrationMixSettingsRepository.deleteByJobId(String jobId): void`
 
-- [ ] Add Flyway migration with one row per job and strict numeric columns for ducking, narration gain, fade duration, and `updated_at`.
-- [ ] Implement JDBC read/upsert/delete with defaults handled by service layer, not SQL magic.
-- [ ] Add repository tests for insert, update, find-missing, and delete.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationMixSettingsRepositoryTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add Flyway migration with one row per job and strict numeric columns for ducking, narration gain, fade duration, and `updated_at`.
+- [x] Implement JDBC read/upsert/delete with defaults handled by service layer, not SQL magic.
+- [x] Add repository tests for insert, update, find-missing, and delete.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationMixSettingsRepositoryTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 2: Workspace API For Mix Settings
 

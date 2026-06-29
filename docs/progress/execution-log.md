@@ -3732,6 +3732,19 @@ Validation:
 
 Work:
 
+- Planned narration mix controls in `docs/plans/135-narration-mix-controls.md`.
+- Added `narration_mix_settings` persistence with ducking volume, narration volume, fade duration, and updated timestamp.
+- Added JDBC repository support for finding, upserting, and deleting job-level narration mix settings.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationMixSettingsRepositoryTests` first failed because `NarrationMixSettingsRecord` and `NarrationMixSettingsRepository` did not exist.
+- After adding migration, record, interface, and JDBC implementation, `mvn -pl LinguaFrame test -Dtest=NarrationMixSettingsRepositoryTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Planned demo run variance report in `docs/plans/122-demo-run-variance-report.md`.
 - Added backend `POST /api/jobs/{jobId}/demo-run-variance` and Markdown download for comparing pre-upload estimates with actual job evidence.
 - Added browser `Demo run variance` panel with pasted baseline JSON, actual-only mode, metric table, safe links, and Markdown download.
