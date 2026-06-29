@@ -41,19 +41,19 @@
   - `export function summarizeNarrationDraftChanges(saved: NarrationWorkspace['segments'], present: NarrationWorkspace['segments']): NarrationDraftChangeSummary`
 - Consumes: `NarrationWorkspace` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests proving `createNarrationDraftHistory` copies saved/present arrays and starts with empty past/future stacks.
-- [ ] Write failing tests proving `applyNarrationDraftChange` pushes the previous present snapshot to `past`, replaces `present`, clears `future`, stores the action label, and never mutates caller-owned segment objects.
-- [ ] Write failing tests proving `undoNarrationDraftChange` moves one snapshot from `past` to `present`, pushes the previous present into `future`, and leaves state unchanged when no undo is available.
-- [ ] Write failing tests proving `redoNarrationDraftChange` restores the next future snapshot, pushes the previous present into `past`, and leaves state unchanged when no redo is available.
-- [ ] Write failing tests proving `resetNarrationDraftToSaved` returns to the saved baseline, clears undo/redo stacks, and marks the last action as `Reverted to saved narration.`
-- [ ] Write failing tests proving `markNarrationDraftSaved` replaces the saved baseline with backend-returned segments and clears history stacks.
-- [ ] Write failing tests proving `summarizeNarrationDraftChanges` reports added, removed, timing, text, and voice changes with stable row labels.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement immutable snapshot helpers with copied arrays only.
-- [ ] Keep comparisons deterministic by matching rows by `index` first and falling back to array position for added/removed rows.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration draft history helpers`.
+- [x] Write failing tests proving `createNarrationDraftHistory` copies saved/present arrays and starts with empty past/future stacks.
+- [x] Write failing tests proving `applyNarrationDraftChange` pushes the previous present snapshot to `past`, replaces `present`, clears `future`, stores the action label, and never mutates caller-owned segment objects.
+- [x] Write failing tests proving `undoNarrationDraftChange` moves one snapshot from `past` to `present`, pushes the previous present into `future`, and leaves state unchanged when no undo is available.
+- [x] Write failing tests proving `redoNarrationDraftChange` restores the next future snapshot, pushes the previous present into `past`, and leaves state unchanged when no redo is available.
+- [x] Write failing tests proving `resetNarrationDraftToSaved` returns to the saved baseline, clears undo/redo stacks, and marks the last action as `Reverted to saved narration.`
+- [x] Write failing tests proving `markNarrationDraftSaved` replaces the saved baseline with backend-returned segments and clears history stacks.
+- [x] Write failing tests proving `summarizeNarrationDraftChanges` reports added, removed, timing, text, and voice changes with stable row labels.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement immutable snapshot helpers with copied arrays only.
+- [x] Keep comparisons deterministic by matching rows by `index` first and falling back to array position for added/removed rows.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration draft history helpers`.
 
 ## Task 2: Draft History UI Integration
 

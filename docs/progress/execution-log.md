@@ -6,6 +6,19 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration draft history workbench feature slice from `docs/plans/146-narration-draft-history-workbench.md`.
+- Added pure frontend narration draft history helpers for saved/present snapshots, apply, undo, redo, revert-to-saved, mark-saved, and unsaved-change summaries.
+- Draft history helpers clone segment snapshots, keep history in memory only, and summarize added, removed, timing, text, and voice changes without mutating caller-owned rows.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationDraftHistory.test.ts` first failed because `frontend/src/domain/narrationDraftHistory.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationDraftHistory.test.ts` passed with `Test Files 1 passed` and `Tests 8 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration editing command workbench feature slice from `docs/plans/145-narration-editing-command-workbench.md`.
 - Added pure frontend narration editing command helpers for duplicate, split-at-playhead, merge-next, insert-after, and immutable reindexing.
 - Command helpers only mutate local draft arrays, reset generated rows to `updatedAt: null`, keep timing/duration rounded to `0.001` seconds, and return blocked reasons for impossible commands.
