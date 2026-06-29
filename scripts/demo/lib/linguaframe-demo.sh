@@ -641,6 +641,25 @@ render_narration_demo_json() {
     -o "$output_path"
 }
 
+preflight_narration_demo_render_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local preset_id="$3"
+  local replace_existing="$4"
+  local generate_video="$5"
+  local output_path="$6"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"presetId\":\"$preset_id\",\"replaceExisting\":$replace_existing,\"generateNarratedVideo\":$generate_video}" \
+    "$base_url/api/jobs/$encoded_job_id/narration-demo/render/preflight" \
+    -o "$output_path"
+}
+
 generate_narrated_video_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3503,6 +3522,68 @@ print("narrationDemoRenderScriptPackageStatus=" + text(package.get("status")))
 print("narrationDemoRenderEvidenceStatus=" + text(evidence.get("status")))
 print("narrationDemoRenderGeneratedArtifactCount=" + text(render.get("generatedArtifactCount", 0)))
 print("narrationDemoRenderJsonPath=" + str(path))
+PY
+}
+
+print_narration_demo_render_preflight_summary_file() {
+  local preflight_json_path="$1"
+
+  python3 - "$preflight_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+preflight = json.loads(path.read_text(encoding="utf-8"))
+
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+combined = json.dumps(preflight, ensure_ascii=False)
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration demo render preflight output contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("narrationDemoRenderPreflightJobId=" + text(preflight.get("jobId")))
+print("narrationDemoRenderPreflightPresetId=" + text(preflight.get("presetId")))
+print("narrationDemoRenderPreflightStatus=" + text(preflight.get("status")))
+print("narrationDemoRenderPreflightProviderMode=" + text(preflight.get("providerMode")))
+print("narrationDemoRenderPreflightPaidProvider=" + text(preflight.get("paidProvider")).lower())
+print("narrationDemoRenderPreflightEstimatedSegmentCount=" + text(preflight.get("estimatedSegmentCount")))
+print("narrationDemoRenderPreflightEstimatedCharacterCount=" + text(preflight.get("estimatedCharacterCount")))
+print("narrationDemoRenderPreflightExistingWorkspaceSegmentCount=" + text(preflight.get("existingWorkspaceSegmentCount")))
+print("narrationDemoRenderPreflightGenerateNarratedVideo=" + text(preflight.get("generateNarratedVideo")).lower())
+print("narrationDemoRenderPreflightRequiredConfirmations=" + ",".join(preflight.get("requiredConfirmations", [])))
+print("narrationDemoRenderPreflightSafeNextCommand=" + text(preflight.get("safeNextCommand")))
+for check in preflight.get("checks", []):
+    print(
+        "narrationDemoRenderPreflightCheck="
+        + text(check.get("key"))
+        + "|"
+        + text(check.get("status"))
+        + "|"
+        + text(check.get("message"))
+    )
+for route in preflight.get("evidenceRoutes", []):
+    print("narrationDemoRenderPreflightEvidenceRoute=" + text(route))
+print("narrationDemoRenderPreflightJsonPath=" + str(path))
 PY
 }
 

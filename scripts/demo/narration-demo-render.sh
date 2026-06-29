@@ -15,6 +15,7 @@ PRESET_ID="${LINGUAFRAME_NARRATION_DEMO_PRESET_ID:-}"
 GENERATE_VIDEO="${LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO:-true}"
 OUTPUT_DIR="${LINGUAFRAME_NARRATION_DEMO_RENDER_OUTPUT_DIR:-/tmp/linguaframe-demo/narration-demo-render}"
 REPORT_ONLY="${LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY:-false}"
+PREFLIGHT_REQUIRED="${LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED:-false}"
 
 case "$GENERATE_VIDEO" in
   true|false)
@@ -30,6 +31,7 @@ mkdir -p "$OUTPUT_DIR"
 CATALOG_PATH="$OUTPUT_DIR/narration-demo-presets.json"
 PRESET_PATH="$OUTPUT_DIR/narration-demo-preset.json"
 RENDER_PATH="$OUTPUT_DIR/narration-demo-render.json"
+PREFLIGHT_PATH="$OUTPUT_DIR/narration-demo-render-preflight.json"
 SCRIPT_PACKAGE_JSON_PATH="$OUTPUT_DIR/narration-script-package.json"
 SCRIPT_PACKAGE_MARKDOWN_PATH="$OUTPUT_DIR/narration-script-package.md"
 SCRIPT_PACKAGE_ZIP_PATH="$OUTPUT_DIR/narration-script-package.zip"
@@ -67,6 +69,22 @@ if [[ -z "$JOB_ID" ]]; then
   echo "Set LINGUAFRAME_DEMO_JOB_ID or pass a job id as the first argument to render narration demo media." >&2
   echo "Use LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY=true to inspect preset metadata without a job." >&2
   exit 2
+fi
+
+if [[ "$PREFLIGHT_REQUIRED" == "true" ]]; then
+  preflight_narration_demo_render_json "$BASE_URL" "$JOB_ID" "$resolved_preset_id" true "$GENERATE_VIDEO" "$PREFLIGHT_PATH"
+  print_narration_demo_render_preflight_summary_file "$PREFLIGHT_PATH"
+  preflight_status="$(python3 - "$PREFLIGHT_PATH" <<'PY'
+import json
+import sys
+
+print(json.load(open(sys.argv[1], encoding="utf-8")).get("status", ""))
+PY
+)"
+  if [[ "$preflight_status" == "BLOCKED" ]]; then
+    echo "Narration demo render preflight is BLOCKED; refusing to render." >&2
+    exit 1
+  fi
 fi
 
 render_narration_demo_json "$BASE_URL" "$JOB_ID" "$resolved_preset_id" "$GENERATE_VIDEO" "$RENDER_PATH"

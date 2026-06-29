@@ -43,6 +43,19 @@ Validation:
 - After adding frontend API/types/UI, the same command failed because the render panel test queried duplicate preset label text across the select option and metrics row.
 - After tightening the assertion to accept duplicated visible preset labels, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings from download actions.
 - `npm run build` passed.
+
+## 2026-06-30
+
+Work:
+
+- Added a read-only terminal preflight helper for narration demo render.
+- Added `scripts/demo/narration-demo-render-preflight.sh` to resolve the configured preset, call the preflight endpoint, print status/provider/count/check/command summaries, and fail on `BLOCKED` unless report-only mode is enabled.
+- Added `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true` support to `scripts/demo/narration-demo-render.sh` so terminal render refuses blocked preflight before calling TTS or video generation.
+- Updated the full Tears script usage and render path so full narration render runs preflight by default.
+
+Validation:
+
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `bash -n scripts/demo/narration-demo-render.sh` first failed because the render script did not exist.
 - After adding the render script and full Tears integration, `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.

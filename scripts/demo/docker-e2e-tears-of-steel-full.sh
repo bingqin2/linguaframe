@@ -19,6 +19,8 @@ Environment:
   LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS  Default: 5
   LINGUAFRAME_RENDER_NARRATION_DEMO         Default: false
   LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET   Default: false
+  LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED
+                                              Default for full render: true
   LINGUAFRAME_COMPARISON_BASELINE_JOB_ID    Optional completed baseline job to compare against
 USAGE
 }
@@ -148,6 +150,7 @@ if [[ "$RENDER_NARRATION_DEMO" == "true" ]]; then
   LINGUAFRAME_DEMO_JOB_ID="$job_id" \
     LINGUAFRAME_NARRATION_DEMO_PRESET_PROFILE_ID="${LINGUAFRAME_NARRATION_DEMO_PRESET_PROFILE_ID:-${LINGUAFRAME_DEMO_PROFILE_ID:-tears-showcase}}" \
     LINGUAFRAME_NARRATION_DEMO_RENDER_OUTPUT_DIR="$OUTPUT_DIR/narration-demo-render" \
+    LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED="${LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED:-true}" \
     "$SCRIPT_DIR/narration-demo-render.sh"
 elif [[ "$APPLY_NARRATION_DEMO_PRESET" == "true" ]]; then
   echo "Narration demo preset:"
@@ -157,6 +160,7 @@ elif [[ "$APPLY_NARRATION_DEMO_PRESET" == "true" ]]; then
     "$SCRIPT_DIR/narration-demo-preset.sh"
 else
   echo "Skipping narration demo render. Set LINGUAFRAME_RENDER_NARRATION_DEMO=true to apply the preset, generate narration audio/video, and export refreshed evidence."
+  echo "Run scripts/demo/narration-demo-render-preflight.sh with LINGUAFRAME_DEMO_JOB_ID=$job_id to inspect the read-only preflight first."
   echo "Set LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true for the apply-only workflow."
 fi
 

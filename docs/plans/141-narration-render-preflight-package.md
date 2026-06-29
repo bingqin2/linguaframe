@@ -75,7 +75,7 @@
 - [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
 - [x] Run `npm run build`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration render preflight UI`.
+- [x] Commit with message `Add narration render preflight UI`.
 
 ## Task 3: Terminal Preflight Script And Full Tears Guidance
 
@@ -90,14 +90,14 @@
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render-preflight.sh`
 - `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true scripts/demo/narration-demo-render.sh`
 
-- [ ] Add shared Bash helper `preflight_narration_demo_render_json "$base_url" "$job_id" "$preset_id" "$replace_existing" "$generate_video" "$output_path"`.
-- [ ] Add `print_narration_demo_render_preflight_summary_file` that prints status, provider mode, paid-provider flag, estimated counts, existing segment count, check rows, safe command, and output path.
-- [ ] Create `scripts/demo/narration-demo-render-preflight.sh` with env vars `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_OUTPUT_DIR`, `LINGUAFRAME_NARRATION_DEMO_PRESET_ID`, `LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO`, and `LINGUAFRAME_NARRATION_DEMO_RENDER_REPLACE_EXISTING`.
-- [ ] Exit non-zero on `BLOCKED` unless `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REPORT_ONLY=true`.
-- [ ] Extend `scripts/demo/narration-demo-render.sh` so `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true` runs preflight first and refuses blocked render.
-- [ ] Extend full Tears usage text to recommend preflight before `LINGUAFRAME_RENDER_NARRATION_DEMO=true`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add shared Bash helper `preflight_narration_demo_render_json "$base_url" "$job_id" "$preset_id" "$replace_existing" "$generate_video" "$output_path"`.
+- [x] Add `print_narration_demo_render_preflight_summary_file` that prints status, provider mode, paid-provider flag, estimated counts, existing segment count, check rows, safe command, and output path.
+- [x] Create `scripts/demo/narration-demo-render-preflight.sh` with env vars `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_OUTPUT_DIR`, `LINGUAFRAME_NARRATION_DEMO_PRESET_ID`, `LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO`, and `LINGUAFRAME_NARRATION_DEMO_RENDER_REPLACE_EXISTING`.
+- [x] Exit non-zero on `BLOCKED` unless `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REPORT_ONLY=true`.
+- [x] Extend `scripts/demo/narration-demo-render.sh` so `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true` runs preflight first and refuses blocked render.
+- [x] Extend full Tears usage text to recommend preflight before `LINGUAFRAME_RENDER_NARRATION_DEMO=true`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration render preflight script`.
 
 ## Task 4: Documentation, Final Verification, And Merge
