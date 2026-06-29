@@ -2243,6 +2243,16 @@ describe('App', () => {
         contentSha256: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         cacheHit: false,
         sourceArtifactId: null
+      }),
+      artifactFixture({
+        artifactId: 'narrated-video',
+        jobId: 'reviewed-media-job',
+        type: 'NARRATED_VIDEO',
+        filename: 'narrated-video.mp4',
+        contentType: 'video/mp4',
+        contentSha256: '456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123',
+        cacheHit: false,
+        sourceArtifactId: null
       })
     ]);
 
@@ -2254,6 +2264,7 @@ describe('App', () => {
     const mediaDelivery = await screen.findByRole('region', { name: /media delivery/i });
     expect(within(mediaDelivery).getByText('Generated burned video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('Dubbed video')).toBeInTheDocument();
+    expect(within(mediaDelivery).getByText('Narrated video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('Reviewed burned video')).toBeInTheDocument();
     expect(within(mediaDelivery).getByLabelText(/generated burned video player/i)).toHaveAttribute(
       'src',
@@ -2262,6 +2273,10 @@ describe('App', () => {
     expect(within(mediaDelivery).getByLabelText(/dubbed video player/i)).toHaveAttribute(
       'src',
       '/api/jobs/reviewed-media-job/artifacts/dubbed-video/download'
+    );
+    expect(within(mediaDelivery).getByLabelText(/narrated video player/i)).toHaveAttribute(
+      'src',
+      '/api/jobs/reviewed-media-job/artifacts/narrated-video/download'
     );
     expect(within(mediaDelivery).getByLabelText(/reviewed burned video player/i)).toHaveAttribute(
       'src',

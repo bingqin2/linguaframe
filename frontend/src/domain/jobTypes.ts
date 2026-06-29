@@ -1459,6 +1459,7 @@ export interface JobArtifact {
     | 'NARRATION_AUDIO'
     | 'BURNED_VIDEO'
     | 'DUBBED_VIDEO'
+    | 'NARRATED_VIDEO'
     | 'REVIEWED_BURNED_VIDEO'
     | 'WORKER_SUMMARY';
   filename: string;
@@ -1517,6 +1518,17 @@ export interface NarrationGeneration {
   status: string;
 }
 
+export interface NarratedVideoGeneration {
+  jobId: string;
+  artifactId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  baseVideoType: string;
+  narrationAudioArtifactId: string;
+  status: string;
+}
+
 export interface NarrationEvidenceCheck {
   key: string;
   label: string;
@@ -1539,6 +1551,8 @@ export interface NarrationEvidence {
   totalTimelineDurationSeconds: number;
   narrationAudioReady: boolean;
   audioArtifactCount: number;
+  narratedVideoReady: boolean;
+  narratedVideoArtifactCount: number;
   checks: NarrationEvidenceCheck[];
   safeLinks: NarrationEvidenceLink[];
   packageEntries: string[];

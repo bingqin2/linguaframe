@@ -419,6 +419,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isSavingNarration, setIsSavingNarration] = useState(false);
   const [isClearingNarration, setIsClearingNarration] = useState(false);
   const [isGeneratingNarration, setIsGeneratingNarration] = useState(false);
+  const [isGeneratingNarratedVideo, setIsGeneratingNarratedVideo] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -2004,6 +2005,28 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleGenerateNarratedVideo() {
+    if (!job) {
+      return;
+    }
+    setIsGeneratingNarratedVideo(true);
+    try {
+      const generation = await linguaFrameApi.generateNarratedVideo(job.jobId);
+      const [refreshedArtifacts, refreshedEvidence] = await Promise.all([
+        linguaFrameApi.listArtifacts(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId)
+      ]);
+      setArtifacts(refreshedArtifacts);
+      setNarrationEvidence(refreshedEvidence);
+      setNarrationError(null);
+      setNarrationStatus(`Generated ${generation.filename} from ${generation.baseVideoType}.`);
+    } catch (narratedVideoError) {
+      setNarrationError(toErrorMessage(narratedVideoError));
+    } finally {
+      setIsGeneratingNarratedVideo(false);
+    }
+  }
+
   async function handleRefreshNarrationEvidence() {
     if (!job) {
       return;
@@ -2617,6 +2640,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isClearingNarration={isClearingNarration}
               isClearingSubtitleDraft={isClearingSubtitleDraft}
               isGeneratingNarration={isGeneratingNarration}
+              isGeneratingNarratedVideo={isGeneratingNarratedVideo}
               isLoadingJob={isLoadingJob}
               isPublishingReviewedSubtitles={isPublishingReviewedSubtitles}
               isRetrying={isRetrying}
@@ -2680,6 +2704,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onClearNarrationWorkspace={handleClearNarrationWorkspace}
               onClearSubtitleDraft={handleClearSubtitleDraft}
               onGenerateNarrationAudio={handleGenerateNarrationAudio}
+              onGenerateNarratedVideo={handleGenerateNarratedVideo}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
@@ -5567,10 +5592,12 @@ function JobDetail({
   isLoadingOpenAiSmokeProof,
   isLoadingDemoReviewerWorkspace,
   isLoadingDemoHandoffPortal,
+  isGeneratingNarratedVideo,
   onCancel,
   onClearNarrationWorkspace,
   onClearSubtitleDraft,
   onGenerateNarrationAudio,
+  onGenerateNarratedVideo,
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
@@ -5619,6 +5646,7 @@ function JobDetail({
   isClearingNarration: boolean;
   isClearingSubtitleDraft: boolean;
   isGeneratingNarration: boolean;
+  isGeneratingNarratedVideo: boolean;
   isLoadingJob: boolean;
   isPublishingReviewedSubtitles: boolean;
   isRetrying: boolean;
@@ -5682,6 +5710,7 @@ function JobDetail({
   onClearNarrationWorkspace: () => void;
   onClearSubtitleDraft: () => void;
   onGenerateNarrationAudio: () => void;
+  onGenerateNarratedVideo: () => void;
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
@@ -6005,10 +6034,12 @@ function JobDetail({
         evidence={narrationEvidence}
         isClearing={isClearingNarration}
         isGenerating={isGeneratingNarration}
+        isGeneratingVideo={isGeneratingNarratedVideo}
         isSaving={isSavingNarration}
         jobId={job.jobId}
         onClear={onClearNarrationWorkspace}
         onGenerateAudio={onGenerateNarrationAudio}
+        onGenerateVideo={onGenerateNarratedVideo}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onSave={onSaveNarrationWorkspace}
         status={narrationStatus}
@@ -9010,10 +9041,12 @@ function NarrationWorkspacePanel({
   evidence,
   isClearing,
   isGenerating,
+  isGeneratingVideo,
   isSaving,
   jobId,
   onClear,
   onGenerateAudio,
+  onGenerateVideo,
   onRefreshEvidence,
   onSave,
   status,
@@ -9023,10 +9056,12 @@ function NarrationWorkspacePanel({
   evidence: NarrationEvidence | null;
   isClearing: boolean;
   isGenerating: boolean;
+  isGeneratingVideo: boolean;
   isSaving: boolean;
   jobId: string;
   onClear: () => void;
   onGenerateAudio: () => void;
+  onGenerateVideo: () => void;
   onRefreshEvidence: () => void;
   onSave: (segments: NarrationWorkspace['segments']) => void;
   status: string | null;
@@ -9088,6 +9123,13 @@ function NarrationWorkspacePanel({
           </button>
           <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady}>
             {isGenerating ? 'Generating...' : 'Generate narration audio'}
+          </button>
+          <button
+            type="button"
+            onClick={onGenerateVideo}
+            disabled={isGeneratingVideo || !evidence?.narrationAudioReady}
+          >
+            {isGeneratingVideo ? 'Generating video...' : 'Generate narrated video'}
           </button>
           <button type="button" onClick={onClear} disabled={isClearing}>Clear</button>
         </div>
@@ -9173,6 +9215,14 @@ function NarrationWorkspacePanel({
                 <div>
                   <dt>Audio</dt>
                   <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
+                </div>
+                <div>
+                  <dt>Video</dt>
+                  <dd>{evidence?.narratedVideoReady ? 'Ready' : 'Missing'}</dd>
+                </div>
+                <div>
+                  <dt>Video artifacts</dt>
+                  <dd>{evidence?.narratedVideoArtifactCount ?? 0}</dd>
                 </div>
               </dl>
               <div className="panel-actions">
@@ -9723,6 +9773,13 @@ function buildMediaDeliveryItems(artifacts: JobArtifact[]): MediaDeliveryItem[] 
       playerLabel: 'Dubbed video player',
       kind: 'video',
       artifact: findFirstArtifact(artifacts, 'DUBBED_VIDEO')
+    },
+    {
+      key: 'narrated-video',
+      label: 'Narrated video',
+      playerLabel: 'Narrated video player',
+      kind: 'video',
+      artifact: findFirstArtifact(artifacts, 'NARRATED_VIDEO')
     },
     {
       key: 'reviewed-burned-video',

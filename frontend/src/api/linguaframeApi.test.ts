@@ -52,6 +52,7 @@ import {
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
+  generateNarratedVideo,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -348,7 +349,7 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'DELETE' });
   });
 
-  test('generates narration audio and downloads narration evidence', async () => {
+  test('generates narration audio, narrated video, and downloads narration evidence', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       jsonResponse({
         jobId: 'job-narration',
@@ -368,12 +369,27 @@ describe('linguaframeApi', () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
         jobId: 'job-narration',
+        artifactId: 'artifact-narrated-video',
+        filename: 'narrated-video.mp4',
+        contentType: 'video/mp4',
+        sizeBytes: 3,
+        baseVideoType: 'BURNED_VIDEO',
+        narrationAudioArtifactId: 'artifact-narration',
+        status: 'READY'
+      })
+    );
+    await generateNarratedVideo('job-narration');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
         status: 'READY',
         segmentCount: 1,
         totalCharacterCount: 24,
         totalTimelineDurationSeconds: 13,
         narrationAudioReady: true,
         audioArtifactCount: 1,
+        narratedVideoReady: true,
+        narratedVideoArtifactCount: 1,
         checks: [],
         safeLinks: [],
         packageEntries: [],
@@ -388,9 +404,11 @@ describe('linguaframeApi', () => {
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job-narration/narration-workspace/generate-audio');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' });
-    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
-    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
-    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job-narration/narration-workspace/generate-video');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'POST' });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
+    expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
   });
 
   test('uploads media with selected demo profile id when provided', async () => {

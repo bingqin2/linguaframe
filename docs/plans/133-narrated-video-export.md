@@ -110,16 +110,16 @@
 - Add `generateNarratedVideo(jobId: string): Promise<NarratedVideoGeneration>`.
 - Extend `NarrationEvidence` with `narratedVideoReady` and `narratedVideoArtifactCount`.
 
-- [ ] Add API helper and tests for `POST /api/jobs/{jobId}/narration-workspace/generate-video`.
-- [ ] Add `Generate narrated video` action to the existing `Narration workspace` panel.
-- [ ] Disable or clearly surface blocked state when narration audio is not ready.
-- [ ] Show generated result filename, base video type, and status after generation.
-- [ ] Render `NARRATED_VIDEO` as a playable video card in media delivery with the label `Narrated video`.
-- [ ] Extend evidence rendering to show narrated-video readiness without exposing narration text.
-- [ ] Add Vitest coverage for the generate-video action, evidence rendering, blocked state, and `NARRATED_VIDEO` media card.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add API helper and tests for `POST /api/jobs/{jobId}/narration-workspace/generate-video`.
+- [x] Add `Generate narrated video` action to the existing `Narration workspace` panel.
+- [x] Disable or clearly surface blocked state when narration audio is not ready.
+- [x] Show generated result filename, base video type, and status after generation.
+- [x] Render `NARRATED_VIDEO` as a playable video card in media delivery with the label `Narrated video`.
+- [x] Extend evidence rendering to show narrated-video readiness without exposing narration text.
+- [x] Add Vitest coverage for the generate-video action, evidence rendering, blocked state, and `NARRATED_VIDEO` media card.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 5: Terminal Demo Scripts And Documentation
 

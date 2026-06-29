@@ -32,6 +32,7 @@ import type {
   ModelUsageLedger,
   NarrationEvidence,
   NarrationGeneration,
+  NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
@@ -903,6 +904,15 @@ export async function generateNarrationAudio(jobId: string): Promise<NarrationGe
   );
 }
 
+export async function generateNarratedVideo(jobId: string): Promise<NarratedVideoGeneration> {
+  return requestJson<NarratedVideoGeneration>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/generate-video`,
+    {
+      method: 'POST'
+    }
+  );
+}
+
 export async function getNarrationEvidence(jobId: string): Promise<NarrationEvidence> {
   return requestJson<NarrationEvidence>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence`,
@@ -1151,6 +1161,7 @@ export const linguaFrameApi = {
   saveNarrationWorkspace,
   clearNarrationWorkspace,
   generateNarrationAudio,
+  generateNarratedVideo,
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
