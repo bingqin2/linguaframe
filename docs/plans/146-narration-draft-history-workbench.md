@@ -110,18 +110,18 @@
 - Modify: `docs/plans/146-narration-draft-history-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser order: open completed job, edit narration locally, use undo/redo/revert while previewing, save only when the draft is ready, then generate audio/video only through explicit actions.
-- [ ] State that draft history is in-memory only and resets on workspace reload or successful save response.
-- [ ] State that undo, redo, and revert are local draft controls and never call providers or create artifacts.
-- [ ] Add a decision record explaining why this slice adds local draft history before decoded waveform rendering, persisted editor sessions, or multitrack automation.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
+- [x] Document the browser order: open completed job, edit narration locally, use undo/redo/revert while previewing, save only when the draft is ready, then generate audio/video only through explicit actions.
+- [x] State that draft history is in-memory only and resets on workspace reload or successful save response.
+- [x] State that undo, redo, and revert are local draft controls and never call providers or create artifacts.
+- [x] Add a decision record explaining why this slice adds local draft history before decoded waveform rendering, persisted editor sessions, or multitrack automation.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
 - [ ] Commit with message `Document narration draft history workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

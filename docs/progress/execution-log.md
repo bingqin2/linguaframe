@@ -4367,6 +4367,23 @@ Validation:
 
 Work:
 
+- Documented narration draft history workflow, local-only semantics, in-memory reset behavior, and validation checklist coverage across README, Docker E2E guide, smoke checklist, roadmap, target state, and decisions.
+- Completed final verification for the narration draft history workbench feature slice.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 5 passed` and `Tests 145 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run` passed with `Test Files 8 passed` and `Tests 251 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 771, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Added the narration draft history UI integration over the existing narration workspace editor.
 - Replaced direct narration segment state in the workspace panel with `draftHistory.present`, initialized from backend-loaded workspaces.
 - Routed table edits, inspector edits, timeline keyboard edits, add/delete row controls, and narration editing commands through local draft history snapshots.
