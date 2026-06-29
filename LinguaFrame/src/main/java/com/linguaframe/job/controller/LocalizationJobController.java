@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredAiAuditPackageBo;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
 import com.linguaframe.job.domain.bo.StoredDemoEvidenceClosurePackageBo;
+import com.linguaframe.job.domain.bo.StoredDemoHandoffPortalPackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoReviewerWorkspacePackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunPackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunSnapshotPackageBo;
@@ -21,6 +22,7 @@ import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoEvidenceClosurePackageVo;
+import com.linguaframe.job.domain.vo.DemoHandoffPortalVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoReviewerWorkspaceVo;
 import com.linguaframe.job.domain.vo.DemoRunVarianceReportVo;
@@ -46,6 +48,7 @@ import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
 import com.linguaframe.job.service.DemoEvidenceClosurePackageService;
+import com.linguaframe.job.service.DemoHandoffPortalService;
 import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoReviewerWorkspaceService;
 import com.linguaframe.job.service.DemoRunVarianceReportService;
@@ -115,6 +118,7 @@ public class LocalizationJobController {
     private final DemoAcceptanceGateService demoAcceptanceGateService;
     private final DemoCompletionCertificateService demoCompletionCertificateService;
     private final DemoEvidenceClosurePackageService demoEvidenceClosurePackageService;
+    private final DemoHandoffPortalService demoHandoffPortalService;
     private final DemoPresenterPackService demoPresenterPackService;
     private final DemoReviewerWorkspaceService demoReviewerWorkspaceService;
     private final DemoRunVarianceReportService demoRunVarianceReportService;
@@ -149,6 +153,7 @@ public class LocalizationJobController {
             DemoAcceptanceGateService demoAcceptanceGateService,
             DemoCompletionCertificateService demoCompletionCertificateService,
             DemoEvidenceClosurePackageService demoEvidenceClosurePackageService,
+            DemoHandoffPortalService demoHandoffPortalService,
             DemoPresenterPackService demoPresenterPackService,
             DemoReviewerWorkspaceService demoReviewerWorkspaceService,
             DemoRunVarianceReportService demoRunVarianceReportService,
@@ -182,6 +187,7 @@ public class LocalizationJobController {
         this.demoAcceptanceGateService = demoAcceptanceGateService;
         this.demoCompletionCertificateService = demoCompletionCertificateService;
         this.demoEvidenceClosurePackageService = demoEvidenceClosurePackageService;
+        this.demoHandoffPortalService = demoHandoffPortalService;
         this.demoPresenterPackService = demoPresenterPackService;
         this.demoReviewerWorkspaceService = demoReviewerWorkspaceService;
         this.demoRunVarianceReportService = demoRunVarianceReportService;
@@ -835,6 +841,70 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(new InputStreamResource(reviewerPackage.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/demo-handoff-portal")
+    @Operation(summary = "Get the demo handoff portal metadata")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo handoff portal was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoHandoffPortalVo getDemoHandoffPortal(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return demoHandoffPortalService.getPortal(jobId);
+    }
+
+    @GetMapping("/{jobId}/demo-handoff-portal/markdown/download")
+    @Operation(summary = "Download demo handoff portal Markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo handoff portal Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoHandoffPortalMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        byte[] body = demoHandoffPortalService.renderMarkdown(jobId).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-demo-handoff-portal.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @GetMapping("/{jobId}/demo-handoff-portal/download")
+    @Operation(summary = "Download a static demo handoff portal ZIP")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo handoff portal ZIP bytes were generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadDemoHandoffPortalPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredDemoHandoffPortalPackageBo portalPackage = demoHandoffPortalService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(portalPackage.contentType()))
+                .contentLength(portalPackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(portalPackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(portalPackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/comparison/{comparisonJobId}")

@@ -167,6 +167,23 @@ Expected:
 - Vitest exits with code 0.
 - Vite production build exits with code 0.
 
+Focused handoff portal checks:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests
+cd frontend
+npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
+bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+```
+
+Expected:
+
+- Browser selected-job view shows `Demo handoff portal` after `Demo reviewer workspace`.
+- The panel shows `HANDOFF_PORTAL_READY`, required checks, package entries, safe links, and Markdown/ZIP download buttons.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-handoff-portal.sh` writes JSON, Markdown, and ZIP under `/tmp/linguaframe-demo/demo-handoff-portal/`.
+- The ZIP includes `index.html`, `manifest.json`, `handoff-portal.md`, `reviewer-workspace.json`, `README.md`, `acceptance-gate.json`, `completion-certificate.json`, `share-sheet.json`, and `run-monitor.json`.
+- Portal exports exclude media bytes, raw transcript text, raw subtitles, corrected draft text, object keys, local paths, demo tokens, provider payloads, credentials, and API keys.
+
 With the Docker stack running, open:
 
 ```text

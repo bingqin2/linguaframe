@@ -61,6 +61,7 @@ Stage 1 goals:
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.
 - Validate final demo readiness through the browser `Demo acceptance gate`, backend gate JSON, and terminal full-video `demo-acceptance-gate.json` output.
+- Validate offline reviewer handoff through the browser `Demo handoff portal`, backend portal JSON/Markdown/ZIP, and terminal full-video `demo-handoff-portal.zip` output.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment
@@ -136,14 +137,15 @@ A user should be able to:
 17. Inspect a same-source demo run matrix that marks the recommended baseline, best quality run, and lowest cost run across recent profile attempts.
 18. Open a presenter pack that combines handoff readiness, recommended run IDs, safe package links, and copy/download presenter notes for one selected job.
 19. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
-20. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
-21. Play the generated dubbing audio with visible file metadata and download evidence.
-22. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-23. Inspect cost and processing time.
-24. Retry the job if a step fails.
-25. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-26. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-27. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+20. Download a demo handoff portal ZIP with `index.html` as an offline reviewer entry point to all safe job evidence.
+21. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
+22. Play the generated dubbing audio with visible file metadata and download evidence.
+23. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+24. Inspect cost and processing time.
+25. Retry the job if a step fails.
+26. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+27. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+28. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
