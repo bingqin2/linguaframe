@@ -745,3 +745,11 @@ Decision: Use fixed original-audio ducking for narrated video before exposing ma
 Reason: The demo needs a reliable end-to-end narration result that preserves the base video's original audio while keeping explanatory voiceover intelligible. A fixed `0.35` ducking volume is predictable, easy to verify in backend evidence, frontend status, and terminal scripts, and avoids introducing an unfinished multitrack editor surface.
 
 Impact: `NARRATION_AUDIO` is generated as a timed audio bed from saved narration windows, and `NARRATED_VIDEO` mixes that bed with the selected base video while ducking original/base audio to `0.35` during narration windows. Evidence surfaces report `TIMED_AUDIO_BED`, `DUCKED_ORIGINAL_AUDIO`, `timeAligned`, `duckingVolume`, and narration window count. Adjustable ducking, waveform editing, and drag/drop timeline editing remain future feature slices.
+
+## 2026-06-29
+
+Decision: Add narration mix controls as persisted numeric settings before waveform or multitrack editing.
+
+Reason: The next demo improvement needs operator control over intelligibility without expanding LinguaFrame into a nonlinear editor. Numeric ducking volume, narration volume, and fade duration are easy to validate, persist, replay in FFmpeg, and verify in metadata-only evidence.
+
+Impact: `PUT /api/jobs/{jobId}/narration-workspace/mix-settings` stores job-level mix settings with defaults `0.35`, `1.00`, and `250 ms`; narrated-video generation applies those values and evidence reports whether they came from defaults or saved settings. Waveform editing, drag/drop timeline editing, and automation curves remain future work.

@@ -150,15 +150,15 @@
 - Modify: `docs/plans/135-narration-mix-controls.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser workflow: set mix controls, save settings, generate timed narration audio, generate mixed video, verify evidence.
-- [ ] Document defaults and validation ranges.
-- [ ] Add a decision record explaining why mix controls are numeric settings before waveform editing.
-- [ ] Run focused backend validations from Tasks 1-4.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Document the browser workflow: set mix controls, save settings, generate timed narration audio, generate mixed video, verify evidence.
+- [x] Document defaults and validation ranges.
+- [x] Add a decision record explaining why mix controls are numeric settings before waveform editing.
+- [x] Run focused backend validations from Tasks 1-4.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Add narration mix controls`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

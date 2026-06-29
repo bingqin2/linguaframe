@@ -66,6 +66,8 @@ Validation so far:
 - `npm test -- --run src/api/linguaframeApi.test.ts` passed with `Tests 90 passed`.
 - `npm test -- --run src/App.test.tsx` passed with `Tests 91 passed`.
 - `npm run build` passed.
+- `mvn -pl LinguaFrame test` first failed because the runtime dependency contract still expected Flyway migration version 28 and did not list the narration mix-settings route.
+- After updating the runtime contract and test expectation, `mvn -pl LinguaFrame test -Dtest=RuntimeDependencyControllerTests` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-29
 
@@ -3917,6 +3919,27 @@ Work:
 Validation so far:
 
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Added persisted narration mix settings with job-level ducking volume, narration volume, fade duration, and saved/default source reporting.
+- Added `PUT /api/jobs/{jobId}/narration-workspace/mix-settings`, workspace response fields, validation ranges, and runtime dependency route coverage.
+- Applied saved/default mix settings to narrated video generation and FFmpeg command construction.
+- Surfaced mix settings in narration evidence JSON, Markdown, ZIP manifest, backend evidence report, demo handoff portal, and demo terminal summaries.
+- Added compact frontend narration mix controls with independent save, evidence refresh, and generated-video status values.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this plan with the browser workflow and defaults.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationMixSettingsRepositoryTests,NarrationWorkspaceServiceTests,LocalizationJobControllerTests,FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests,RuntimeDependencyControllerTests` passed with `Tests run: 100, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` first failed inside the restricted sandbox because Spring Boot web tests could not bind a random localhost port (`java.net.SocketException: Operation not permitted`).
+- Re-running `mvn -pl LinguaFrame test` with local socket permission passed with `Tests run: 698, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
 
 ## 2026-06-29
 
