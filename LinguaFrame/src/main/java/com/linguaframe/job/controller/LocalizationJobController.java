@@ -41,6 +41,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
+import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
@@ -76,6 +77,7 @@ import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.NarrationAudioService;
 import com.linguaframe.job.service.NarrationEvidenceService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
+import com.linguaframe.job.service.NarratedVideoService;
 import com.linguaframe.job.service.OpenAiSmokeProofService;
 import com.linguaframe.job.service.QualityEvaluationEvidenceService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
@@ -150,6 +152,7 @@ public class LocalizationJobController {
     private final NarrationAudioService narrationAudioService;
     private final NarrationEvidenceService narrationEvidenceService;
     private final NarrationWorkspaceService narrationWorkspaceService;
+    private final NarratedVideoService narratedVideoService;
     private final ObjectMapper objectMapper;
 
     public LocalizationJobController(
@@ -189,6 +192,7 @@ public class LocalizationJobController {
             NarrationAudioService narrationAudioService,
             NarrationEvidenceService narrationEvidenceService,
             NarrationWorkspaceService narrationWorkspaceService,
+            NarratedVideoService narratedVideoService,
             ObjectMapper objectMapper
     ) {
         this.queryService = queryService;
@@ -227,6 +231,7 @@ public class LocalizationJobController {
         this.narrationAudioService = narrationAudioService;
         this.narrationEvidenceService = narrationEvidenceService;
         this.narrationWorkspaceService = narrationWorkspaceService;
+        this.narratedVideoService = narratedVideoService;
         this.objectMapper = objectMapper;
     }
 
@@ -1296,6 +1301,21 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return narrationAudioService.generateAudio(jobId);
+    }
+
+    @PostMapping("/{jobId}/narration-workspace/generate-video")
+    @Operation(summary = "Generate a narrated video from saved narration audio")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narrated video artifact was generated."),
+            @ApiResponse(responseCode = "400", description = "Narration audio or a usable base video is missing."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarratedVideoGenerationVo generateNarratedVideo(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narratedVideoService.generateVideo(jobId);
     }
 
     @GetMapping("/{jobId}/narration-evidence")

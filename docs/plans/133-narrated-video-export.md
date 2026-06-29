@@ -56,16 +56,16 @@
 - `POST /api/jobs/{jobId}/narration-workspace/generate-video`
 - `NarratedVideoGenerationVo(String jobId, String artifactId, String filename, String contentType, long sizeBytes, String baseVideoType, String narrationAudioArtifactId, String status)`
 
-- [ ] Implement `NarratedVideoService.generateVideo(String jobId)`.
-- [ ] Require an existing `NARRATION_AUDIO`; reject with `IllegalArgumentException("Narration audio is required before generating narrated video.")` when missing.
-- [ ] Select base video in order: `REVIEWED_BURNED_VIDEO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, then source media video from the job.
-- [ ] Reject when no base video is available with `IllegalArgumentException("A source or generated video is required before generating narrated video.")`.
-- [ ] Use `MediaWorkDirectoryService` to create a job workspace, copy selected base video and narration audio into it, invoke `FfmpegAudioReplacementService.replaceAudio`, and always delete the workspace in `finally`.
-- [ ] Store the result as `narrated-video.mp4` with artifact type `NARRATED_VIDEO`.
-- [ ] Do not call TTS, do not mutate narration segments, and do not replace any existing artifacts.
-- [ ] Add tests for successful generation from `BURNED_VIDEO`, preference for `REVIEWED_BURNED_VIDEO`, source-video fallback, missing narration-audio rejection, missing-base-video rejection, and artifact isolation.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarratedVideoServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Implement `NarratedVideoService.generateVideo(String jobId)`.
+- [x] Require an existing `NARRATION_AUDIO`; reject with `IllegalArgumentException("Narration audio is required before generating narrated video.")` when missing.
+- [x] Select base video in order: `REVIEWED_BURNED_VIDEO`, `BURNED_VIDEO`, `DUBBED_VIDEO`, then source media video from the job.
+- [x] Reject when no base video is available with `IllegalArgumentException("A source or generated video is required before generating narrated video.")`.
+- [x] Use `MediaWorkDirectoryService` to create a job workspace, copy selected base video and narration audio into it, invoke `FfmpegAudioReplacementService.replaceAudio`, and always delete the workspace in `finally`.
+- [x] Store the result as `narrated-video.mp4` with artifact type `NARRATED_VIDEO`.
+- [x] Do not call TTS, do not mutate narration segments, and do not replace any existing artifacts.
+- [x] Add tests for successful generation from `BURNED_VIDEO`, preference for `REVIEWED_BURNED_VIDEO`, source-video fallback, missing narration-audio rejection, missing-base-video rejection, and artifact isolation.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarratedVideoServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 3: Evidence, Runtime Routes, And Handoff Integration
 

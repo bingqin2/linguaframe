@@ -29,7 +29,9 @@ import com.linguaframe.job.service.TranscriptService;
 import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
+import com.linguaframe.media.domain.bo.DubbedVideoBo;
 import com.linguaframe.media.repository.VideoRepository;
+import com.linguaframe.media.service.FfmpegAudioReplacementService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
 import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
@@ -111,6 +113,9 @@ class LocalizationJobControllerTests {
     @MockitoBean
     private ObjectStorageService objectStorageService;
 
+    @MockitoBean
+    private FfmpegAudioReplacementService ffmpegAudioReplacementService;
+
     @BeforeEach
     void cleanDatabase() {
         jdbcClient.sql("DELETE FROM quality_evaluations").update();
@@ -128,6 +133,9 @@ class LocalizationJobControllerTests {
             StoreObjectCommand command = invocation.getArgument(0);
             return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
         });
+        when(ffmpegAudioReplacementService.replaceAudio(any())).thenReturn(
+                new DubbedVideoBo("narrated-video.mp4", "video/mp4", new byte[] {9, 9, 9})
+        );
     }
 
     @Test
@@ -2009,6 +2017,62 @@ class LocalizationJobControllerTests {
                         JobArtifactType.DUBBING_AUDIO,
                         JobArtifactType.DUBBED_VIDEO,
                         JobArtifactType.BURNED_VIDEO,
+                        JobArtifactType.REVIEWED_BURNED_VIDEO
+                );
+    }
+
+    @Test
+    void generatesNarratedVideoForLocalizationJobWithoutReplacingDeliveryArtifacts() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:14:00Z");
+        createJob("job-controller-video-narrated", "job-controller-job-narrated", createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-narrated-base",
+                "job-controller-job-narrated",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-job-narrated/job-controller-narrated-base/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                3L,
+                "burned-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-narrated-audio",
+                "job-controller-job-narrated",
+                JobArtifactType.NARRATION_AUDIO,
+                "job-artifacts/job-controller-job-narrated/job-controller-narrated-audio/narration-audio.mp3",
+                "narration-audio.mp3",
+                "audio/mpeg",
+                3L,
+                "narration-audio-hash",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        when(objectStorageService.open("job-artifacts/job-controller-job-narrated/job-controller-narrated-base/burned-video.mp4"))
+                .thenReturn(new ByteArrayInputStream(new byte[] {1, 2, 3}));
+        when(objectStorageService.open("job-artifacts/job-controller-job-narrated/job-controller-narrated-audio/narration-audio.mp3"))
+                .thenReturn(new ByteArrayInputStream(new byte[] {4, 5, 6}));
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-workspace/generate-video", "job-controller-job-narrated"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-narrated"))
+                .andExpect(jsonPath("$.filename").value("narrated-video.mp4"))
+                .andExpect(jsonPath("$.contentType").value("video/mp4"))
+                .andExpect(jsonPath("$.sizeBytes").value(3))
+                .andExpect(jsonPath("$.baseVideoType").value("BURNED_VIDEO"))
+                .andExpect(jsonPath("$.narrationAudioArtifactId").value("job-controller-narrated-audio"))
+                .andExpect(jsonPath("$.status").value("READY"));
+
+        List<JobArtifactRecord> artifacts = artifactRepository.findByJobId("job-controller-job-narrated");
+        assertThat(artifacts)
+                .extracting(JobArtifactRecord::type)
+                .contains(JobArtifactType.BURNED_VIDEO, JobArtifactType.NARRATION_AUDIO, JobArtifactType.NARRATED_VIDEO)
+                .doesNotContain(
+                        JobArtifactType.DUBBING_AUDIO,
+                        JobArtifactType.DUBBED_VIDEO,
                         JobArtifactType.REVIEWED_BURNED_VIDEO
                 );
     }
