@@ -50,6 +50,9 @@ import type {
   RuntimeLiveCheckSummary,
   ReviewedSubtitleWorkflow,
   SubtitleDraftSummary,
+  SubtitleReviewDecision,
+  SubtitleReviewEvidence,
+  SubtitleReviewIssueCategory,
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment,
@@ -70,6 +73,15 @@ const HISTORY_STATUSES: Array<LocalizationJobStatus | 'ALL'> = [
   'COMPLETED',
   'FAILED',
   'CANCELLED'
+];
+const SUBTITLE_REVIEW_DECISIONS: SubtitleReviewDecision[] = ['UNREVIEWED', 'ACCEPTED', 'EDITED', 'NEEDS_FOLLOWUP'];
+const SUBTITLE_REVIEW_ISSUE_CATEGORIES: SubtitleReviewIssueCategory[] = [
+  'TERM',
+  'TONE',
+  'TIMING',
+  'READABILITY',
+  'MISSING_TEXT',
+  'OTHER'
 ];
 const TTS_VOICE_OPTIONS = [
   { value: '', label: 'Default voice' },
@@ -390,6 +402,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [subtitleReview, setSubtitleReview] = useState<SubtitleReviewSummary | null>(null);
   const [reviewedSubtitleWorkflow, setReviewedSubtitleWorkflow] = useState<ReviewedSubtitleWorkflow | null>(null);
   const [reviewedSubtitleWorkflowError, setReviewedSubtitleWorkflowError] = useState<string | null>(null);
+  const [subtitleReviewEvidence, setSubtitleReviewEvidence] = useState<SubtitleReviewEvidence | null>(null);
+  const [subtitleReviewEvidenceError, setSubtitleReviewEvidenceError] = useState<string | null>(null);
   const [subtitleDraft, setSubtitleDraft] = useState<SubtitleDraftSummary | null>(null);
   const [subtitleDraftError, setSubtitleDraftError] = useState<string | null>(null);
   const [subtitleDraftStatus, setSubtitleDraftStatus] = useState<string | null>(null);
@@ -1024,13 +1038,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, workflowResult, draftResult] = await Promise.allSettled([
+    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, workflowResult, evidenceResult, draftResult] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.getDeliveryManifest(jobId),
       linguaFrameApi.listTranscript(jobId),
       linguaFrameApi.listSubtitles(jobId, language),
       linguaFrameApi.getSubtitleReview(jobId, language),
       linguaFrameApi.getReviewedSubtitleWorkflow(jobId),
+      linguaFrameApi.getSubtitleReviewEvidence(jobId),
       linguaFrameApi.getSubtitleDraft(jobId, language)
     ]);
 
@@ -1078,6 +1093,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setReviewedSubtitleWorkflow(null);
       setReviewedSubtitleWorkflowError(toErrorMessage(workflowResult.reason));
       errors.push(`Reviewed subtitle workflow: ${toErrorMessage(workflowResult.reason)}`);
+    }
+
+    if (evidenceResult.status === 'fulfilled') {
+      setSubtitleReviewEvidence(evidenceResult.value);
+      setSubtitleReviewEvidenceError(null);
+    } else {
+      setSubtitleReviewEvidence(null);
+      setSubtitleReviewEvidenceError(toErrorMessage(evidenceResult.reason));
+      errors.push(`Subtitle review evidence: ${toErrorMessage(evidenceResult.reason)}`);
     }
 
     if (draftResult.status === 'fulfilled') {
@@ -1794,14 +1818,25 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
-  async function handleSaveSubtitleDraft(segments: Array<{ index: number; text: string }>) {
+  async function handleSaveSubtitleDraft(
+    segments: Array<{
+      index: number;
+      text: string;
+      decision: SubtitleReviewDecision;
+      issueCategories: SubtitleReviewIssueCategory[];
+      reviewerNote: string | null;
+    }>
+  ) {
     if (!job) {
       return;
     }
     setIsSavingSubtitleDraft(true);
     try {
       const updated = await linguaFrameApi.updateSubtitleDraft(job.jobId, selectedLanguage, { segments });
+      const evidence = await linguaFrameApi.getSubtitleReviewEvidence(job.jobId);
       setSubtitleDraft(updated);
+      setSubtitleReviewEvidence(evidence);
+      setSubtitleReviewEvidenceError(null);
       setSubtitleDraftError(null);
       setSubtitleDraftStatus('Draft saved.');
     } catch (draftError) {
@@ -1818,7 +1853,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setIsClearingSubtitleDraft(true);
     try {
       const cleared = await linguaFrameApi.clearSubtitleDraft(job.jobId, selectedLanguage);
+      const evidence = await linguaFrameApi.getSubtitleReviewEvidence(job.jobId);
       setSubtitleDraft(cleared);
+      setSubtitleReviewEvidence(evidence);
+      setSubtitleReviewEvidenceError(null);
       setSubtitleDraftError(null);
       setSubtitleDraftStatus('Draft cleared.');
     } catch (draftError) {
@@ -1828,7 +1866,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
-  async function handlePublishReviewedSubtitles(includeBurnedVideo: boolean) {
+  async function handlePublishReviewedSubtitles(includeBurnedVideo: boolean, releaseNotes: string) {
     if (!job) {
       return;
     }
@@ -1836,14 +1874,18 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     try {
       const published = await linguaFrameApi.publishReviewedSubtitles(job.jobId, {
         language: selectedLanguage,
-        includeBurnedVideo
+        includeBurnedVideo,
+        releaseNotes: releaseNotes.trim() || null
       });
-      const [refreshedArtifacts, refreshedManifest] = await Promise.all([
+      const [refreshedArtifacts, refreshedManifest, refreshedEvidence] = await Promise.all([
         linguaFrameApi.listArtifacts(job.jobId),
-        linguaFrameApi.getDeliveryManifest(job.jobId)
+        linguaFrameApi.getDeliveryManifest(job.jobId),
+        linguaFrameApi.getSubtitleReviewEvidence(job.jobId)
       ]);
       setArtifacts(refreshedArtifacts);
       setDeliveryManifest(refreshedManifest);
+      setSubtitleReviewEvidence(refreshedEvidence);
+      setSubtitleReviewEvidenceError(null);
       setDeliveryManifestError(null);
       setSubtitleDraftError(null);
       setSubtitleDraftStatus(`Published ${published.artifacts.length} reviewed artifacts.`);
@@ -2538,6 +2580,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               subtitleDraftError={subtitleDraftError}
               subtitleDraftStatus={subtitleDraftStatus}
               subtitleReview={subtitleReview}
+              subtitleReviewEvidence={subtitleReviewEvidence}
+              subtitleReviewEvidenceError={subtitleReviewEvidenceError}
               reviewedSubtitleWorkflow={reviewedSubtitleWorkflow}
               reviewedSubtitleWorkflowError={reviewedSubtitleWorkflowError}
               subtitles={subtitles}
@@ -5416,6 +5460,8 @@ function JobDetail({
   subtitleDraftError,
   subtitleDraftStatus,
   subtitleReview,
+  subtitleReviewEvidence,
+  subtitleReviewEvidenceError,
   reviewedSubtitleWorkflow,
   reviewedSubtitleWorkflowError,
   openAiSmokeProof,
@@ -5504,8 +5550,14 @@ function JobDetail({
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
-  onPublishReviewedSubtitles: (includeBurnedVideo: boolean) => void;
-  onSaveSubtitleDraft: (segments: Array<{ index: number; text: string }>) => void;
+  onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
+  onSaveSubtitleDraft: (segments: Array<{
+    index: number;
+    text: string;
+    decision: SubtitleReviewDecision;
+    issueCategories: SubtitleReviewIssueCategory[];
+    reviewerNote: string | null;
+  }>) => void;
   previewErrors: string[];
   selectedLanguage: string;
   sourceMedia: MediaUploadDetail | null;
@@ -5514,6 +5566,8 @@ function JobDetail({
   subtitleDraftError: string | null;
   subtitleDraftStatus: string | null;
   subtitleReview: SubtitleReviewSummary | null;
+  subtitleReviewEvidence: SubtitleReviewEvidence | null;
+  subtitleReviewEvidenceError: string | null;
   reviewedSubtitleWorkflow: ReviewedSubtitleWorkflow | null;
   reviewedSubtitleWorkflowError: string | null;
   subtitles: SubtitleSegment[];
@@ -5783,6 +5837,12 @@ function JobDetail({
       <ReviewedSubtitleWorkflowPanel
         error={reviewedSubtitleWorkflowError}
         workflow={reviewedSubtitleWorkflow}
+      />
+
+      <SubtitleReviewEvidencePanel
+        evidence={subtitleReviewEvidence}
+        error={subtitleReviewEvidenceError}
+        jobId={job.jobId}
       />
 
       <SubtitleDraftEditorPanel
@@ -8794,21 +8854,35 @@ function SubtitleDraftEditorPanel({
   isSaving: boolean;
   jobId: string;
   onClear: () => void;
-  onPublish: (includeBurnedVideo: boolean) => void;
-  onSave: (segments: Array<{ index: number; text: string }>) => void;
+  onPublish: (includeBurnedVideo: boolean, releaseNotes: string) => void;
+  onSave: (segments: Array<{
+    index: number;
+    text: string;
+    decision: SubtitleReviewDecision;
+    issueCategories: SubtitleReviewIssueCategory[];
+    reviewerNote: string | null;
+  }>) => void;
   status: string | null;
 }) {
   const [draftTextByIndex, setDraftTextByIndex] = useState<Record<number, string>>({});
+  const [decisionByIndex, setDecisionByIndex] = useState<Record<number, SubtitleReviewDecision>>({});
+  const [categoriesByIndex, setCategoriesByIndex] = useState<Record<number, SubtitleReviewIssueCategory[]>>({});
+  const [noteByIndex, setNoteByIndex] = useState<Record<number, string>>({});
   const [includeReviewedBurnedVideo, setIncludeReviewedBurnedVideo] = useState(false);
+  const [releaseNotes, setReleaseNotes] = useState('');
 
   useEffect(() => {
     if (!draft) {
       setDraftTextByIndex({});
+      setDecisionByIndex({});
+      setCategoriesByIndex({});
+      setNoteByIndex({});
       return;
     }
-    setDraftTextByIndex(
-      Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText]))
-    );
+    setDraftTextByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText])));
+    setDecisionByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.decision])));
+    setCategoriesByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.issueCategories])));
+    setNoteByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.reviewerNote ?? ''])));
   }, [draft]);
 
   const dirtySegments = useMemo(() => {
@@ -8816,21 +8890,44 @@ function SubtitleDraftEditorPanel({
       return [];
     }
     return draft.segments
-      .filter((segment) => (draftTextByIndex[segment.index] ?? segment.draftText) !== segment.draftText)
+      .filter((segment) => {
+        const text = draftTextByIndex[segment.index] ?? segment.draftText;
+        const decision = decisionByIndex[segment.index] ?? segment.decision;
+        const categories = categoriesByIndex[segment.index] ?? segment.issueCategories;
+        const note = noteByIndex[segment.index] ?? segment.reviewerNote ?? '';
+        return text !== segment.draftText
+          || decision !== segment.decision
+          || categories.join('|') !== segment.issueCategories.join('|')
+          || note !== (segment.reviewerNote ?? '');
+      })
       .map((segment) => ({
         index: segment.index,
-        text: draftTextByIndex[segment.index] ?? segment.draftText
+        text: draftTextByIndex[segment.index] ?? segment.draftText,
+        decision: decisionByIndex[segment.index] ?? segment.decision,
+        issueCategories: categoriesByIndex[segment.index] ?? segment.issueCategories,
+        reviewerNote: (noteByIndex[segment.index] ?? '').trim() || null
       }));
-  }, [draft, draftTextByIndex]);
+  }, [categoriesByIndex, decisionByIndex, draft, draftTextByIndex, noteByIndex]);
 
   const handleReset = useCallback(() => {
     if (!draft) {
       return;
     }
-    setDraftTextByIndex(
-      Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText]))
-    );
+    setDraftTextByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.draftText])));
+    setDecisionByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.decision])));
+    setCategoriesByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.issueCategories])));
+    setNoteByIndex(Object.fromEntries(draft.segments.map((segment) => [segment.index, segment.reviewerNote ?? ''])));
   }, [draft]);
+
+  const toggleCategory = useCallback((index: number, category: SubtitleReviewIssueCategory) => {
+    setCategoriesByIndex((current) => {
+      const existing = current[index] ?? [];
+      const next = existing.includes(category)
+        ? existing.filter((value) => value !== category)
+        : [...existing, category];
+      return { ...current, [index]: next };
+    });
+  }, []);
 
   if (!draft) {
     return (
@@ -8855,6 +8952,18 @@ function SubtitleDraftEditorPanel({
         <div>
           <dt>Saved edits</dt>
           <dd>{draft.editedSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Reviewed</dt>
+          <dd>{draft.reviewedSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Follow-up</dt>
+          <dd>{draft.followupSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Notes</dt>
+          <dd>{draft.reviewerNoteCount}</dd>
         </div>
         <div>
           <dt>Unsaved edits</dt>
@@ -8899,9 +9008,19 @@ function SubtitleDraftEditorPanel({
           />
           Include reviewed burned video
         </label>
+        <label className="stacked-field compact-field">
+          <span>Release notes</span>
+          <textarea
+            aria-label="Release notes"
+            maxLength={1000}
+            rows={2}
+            value={releaseNotes}
+            onChange={(event) => setReleaseNotes(event.target.value)}
+          />
+        </label>
         <button
           type="button"
-          onClick={() => onPublish(includeReviewedBurnedVideo)}
+          onClick={() => onPublish(includeReviewedBurnedVideo, releaseNotes)}
           disabled={isPublishing}
         >
           {isPublishing ? 'Publishing...' : 'Publish reviewed subtitles'}
@@ -8923,6 +9042,7 @@ function SubtitleDraftEditorPanel({
             <th>Source</th>
             <th>Generated</th>
             <th>Draft</th>
+            <th>Review</th>
           </tr>
         </thead>
         <tbody>
@@ -8944,10 +9064,164 @@ function SubtitleDraftEditorPanel({
                   rows={3}
                 />
               </td>
+              <td>
+                <label className="stacked-field compact-field">
+                  <span>Decision</span>
+                  <select
+                    aria-label={`Review decision ${segment.index}`}
+                    value={decisionByIndex[segment.index] ?? segment.decision}
+                    onChange={(event) =>
+                      setDecisionByIndex((current) => ({
+                        ...current,
+                        [segment.index]: event.target.value as SubtitleReviewDecision
+                      }))
+                    }
+                  >
+                    {SUBTITLE_REVIEW_DECISIONS.map((decision) => (
+                      <option key={decision} value={decision}>{decision}</option>
+                    ))}
+                  </select>
+                </label>
+                <div className="checkbox-grid" aria-label={`Issue categories ${segment.index}`}>
+                  {SUBTITLE_REVIEW_ISSUE_CATEGORIES.map((category) => (
+                    <label key={category} className="inline-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={(categoriesByIndex[segment.index] ?? segment.issueCategories).includes(category)}
+                        onChange={() => toggleCategory(segment.index, category)}
+                      />
+                      {category}
+                    </label>
+                  ))}
+                </div>
+                <textarea
+                  aria-label={`Reviewer note ${segment.index}`}
+                  maxLength={500}
+                  value={noteByIndex[segment.index] ?? ''}
+                  onChange={(event) =>
+                    setNoteByIndex((current) => ({
+                      ...current,
+                      [segment.index]: event.target.value
+                    }))
+                  }
+                  rows={2}
+                />
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+function SubtitleReviewEvidencePanel({
+  evidence,
+  error,
+  jobId
+}: {
+  evidence: SubtitleReviewEvidence | null;
+  error: string | null;
+  jobId: string;
+}) {
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+
+  async function handleDownloadMarkdown() {
+    setDownloadStatus(null);
+    try {
+      const blob = await linguaFrameApi.downloadSubtitleReviewEvidenceMarkdown(jobId);
+      downloadBlob(blob, `linguaframe-job-${sanitizeFilename(jobId)}-subtitle-review-evidence.md`);
+      setDownloadStatus('Markdown downloaded.');
+    } catch (downloadError) {
+      setDownloadStatus(toErrorMessage(downloadError));
+    }
+  }
+
+  async function handleDownloadZip() {
+    setDownloadStatus(null);
+    try {
+      const blob = await linguaFrameApi.downloadSubtitleReviewEvidenceZip(jobId);
+      downloadBlob(blob, `linguaframe-job-${sanitizeFilename(jobId)}-subtitle-review-evidence.zip`);
+      setDownloadStatus('ZIP downloaded.');
+    } catch (downloadError) {
+      setDownloadStatus(toErrorMessage(downloadError));
+    }
+  }
+
+  if (!evidence) {
+    return (
+      <section id="subtitle-review-evidence" className="panel" aria-label="Review evidence">
+        <h3>Subtitle review evidence</h3>
+        {error ? <p className="muted">{error}</p> : <p className="muted">No subtitle review evidence loaded yet.</p>}
+      </section>
+    );
+  }
+
+  return (
+    <section id="subtitle-review-evidence" className="panel" aria-label="Review evidence">
+      <div className="panel-heading">
+        <h3>Subtitle review evidence</h3>
+        <span className={`status-pill ${evidence.status === 'READY' ? 'success' : evidence.status === 'BLOCKED' ? 'danger' : 'warning'}`}>
+          {evidence.status}
+        </span>
+      </div>
+      <dl className="status-grid compact-status-grid">
+        <div>
+          <dt>Reviewed</dt>
+          <dd>{evidence.reviewedSegmentCount} / {evidence.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Accepted</dt>
+          <dd>{evidence.acceptedSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Edited</dt>
+          <dd>{evidence.editedDecisionCount}</dd>
+        </div>
+        <div>
+          <dt>Follow-up</dt>
+          <dd>{evidence.followupSegmentCount}</dd>
+        </div>
+        <div>
+          <dt>Categories</dt>
+          <dd>{evidence.annotationCount}</dd>
+        </div>
+        <div>
+          <dt>Notes</dt>
+          <dd>{evidence.reviewerNoteCount}</dd>
+        </div>
+      </dl>
+      <p className="mode-line">{evidence.summary}</p>
+      <div className="panel-actions">
+        <button type="button" className="secondary-button" onClick={handleDownloadMarkdown}>
+          Download review Markdown
+        </button>
+        <button type="button" className="secondary-button" onClick={handleDownloadZip}>
+          Download review ZIP
+        </button>
+      </div>
+      {downloadStatus ? <p className="mode-line">{downloadStatus}</p> : null}
+      <dl className="status-grid compact-status-grid">
+        {evidence.decisionCounts.map((count) => (
+          <div key={count.category}>
+            <dt>{count.category}</dt>
+            <dd>{count.count}</dd>
+          </div>
+        ))}
+        {evidence.issueCategoryCounts.map((count) => (
+          <div key={count.category}>
+            <dt>{count.category}</dt>
+            <dd>{count.count}</dd>
+          </div>
+        ))}
+      </dl>
+      <ul className="compact-list">
+        {evidence.checks.map((check) => (
+          <li key={check.key}>
+            <strong>{check.status}</strong> {check.label}: {check.detail}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

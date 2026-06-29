@@ -543,6 +543,39 @@ download_demo_handoff_portal_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-handoff-portal/download" -o "$output_path"
 }
 
+download_subtitle_review_evidence_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/subtitle-review-evidence" -o "$output_path"
+}
+
+download_subtitle_review_evidence_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/subtitle-review-evidence/markdown/download" -o "$output_path"
+}
+
+download_subtitle_review_evidence_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/subtitle-review-evidence/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -2961,6 +2994,91 @@ print("demoHandoffPortalRecommendedNextAction=" + str(portal.get("recommendedNex
 print("demoHandoffPortalJsonPath=" + str(json_path))
 print("demoHandoffPortalMarkdownPath=" + str(markdown_path))
 print("demoHandoffPortalZipPath=" + str(zip_path))
+PY
+}
+
+print_subtitle_review_evidence_summary_file() {
+  local evidence_json_path="$1"
+  local evidence_markdown_path="$2"
+  local evidence_zip_path="$3"
+
+  python3 - "$evidence_json_path" "$evidence_markdown_path" "$evidence_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+evidence = json.loads(json_path.read_text(encoding="utf-8"))
+checks = evidence.get("checks") or []
+categories = evidence.get("issueCategoryCounts") or []
+decision_counts = evidence.get("reviewDecisionCounts") or {}
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "reviewer note body",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(evidence, ensure_ascii=False) + "\n" + markdown
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Subtitle review evidence contains forbidden sensitive string: " + marker)
+
+required_entries = {
+    "manifest.json",
+    "subtitle-review-evidence.md",
+    "review-summary.json",
+    "release-notes.md",
+    "README.md",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Subtitle review evidence ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Subtitle review evidence ZIP contains forbidden sensitive string: " + marker)
+
+manifest = json.loads(zipfile.ZipFile(zip_path).read("manifest.json").decode("utf-8"))
+if manifest.get("jobId") != evidence.get("jobId"):
+    raise SystemExit("Subtitle review evidence manifest job id mismatch: " + str(manifest.get("jobId")))
+
+print("subtitleReviewEvidenceJobId=" + str(evidence.get("jobId", "")))
+print("subtitleReviewEvidenceStatus=" + str(evidence.get("overallStatus", "")))
+print("subtitleReviewEvidencePhase=" + str(evidence.get("phase", "")))
+print("subtitleReviewEvidenceReviewedSegmentCount=" + str(evidence.get("reviewedSegmentCount", 0)))
+print("subtitleReviewEvidenceFollowupSegmentCount=" + str(evidence.get("followupSegmentCount", 0)))
+print("subtitleReviewEvidenceAnnotationCount=" + str(evidence.get("annotationCount", 0)))
+print("subtitleReviewEvidenceReviewerNoteCount=" + str(evidence.get("reviewerNoteCount", 0)))
+print("subtitleReviewEvidenceReleaseNotesLength=" + str(evidence.get("releaseNotesLength", 0)))
+print("subtitleReviewEvidenceDecisionTypes=" + str(len(decision_counts)))
+print("subtitleReviewEvidenceIssueCategoryTypes=" + str(len(categories)))
+print("subtitleReviewEvidenceRequiredBlockedCount=" + str(sum(1 for check in checks if check.get("required") and check.get("status") == "BLOCKED")))
+print("subtitleReviewEvidencePackageEntryCount=" + str(len(required_entries)))
+print("subtitleReviewEvidenceJsonPath=" + str(json_path))
+print("subtitleReviewEvidenceMarkdownPath=" + str(markdown_path))
+print("subtitleReviewEvidenceZipPath=" + str(zip_path))
 PY
 }
 

@@ -5,8 +5,13 @@ import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
+import com.linguaframe.job.domain.enums.SubtitleReviewDecision;
+import com.linguaframe.job.domain.enums.SubtitleReviewIssueCategory;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSegmentVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
+import com.linguaframe.job.domain.vo.SubtitleReviewEvidenceCategoryVo;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
@@ -26,7 +31,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class ReviewedSubtitleDeliveryServiceImpl implements ReviewedSubtitleDeliveryService {
@@ -85,7 +92,9 @@ public class ReviewedSubtitleDeliveryServiceImpl implements ReviewedSubtitleDeli
     public ReviewedSubtitlePublishVo publish(String jobId, PublishReviewedSubtitlesRequest request) {
         String language = normalizeLanguage(request == null ? null : request.language());
         boolean includeBurnedVideo = request != null && request.includeBurnedVideo();
+        String releaseNotes = normalizeReleaseNotes(request == null ? null : request.releaseNotes());
         List<JobArtifactVo> artifacts = new ArrayList<>();
+        SubtitleDraftSummaryVo draft = subtitleDraftService.getDraft(jobId, language);
 
         byte[] json = subtitleDraftService.exportDraft(jobId, language, SubtitleDraftExportFormat.JSON);
         byte[] srt = subtitleDraftService.exportDraft(jobId, language, SubtitleDraftExportFormat.SRT);
@@ -109,6 +118,9 @@ public class ReviewedSubtitleDeliveryServiceImpl implements ReviewedSubtitleDeli
                 language,
                 includeBurnedVideo,
                 burnedVideoCreated,
+                releaseNotes == null ? 0 : releaseNotes.length(),
+                decisionCounts(draft),
+                issueCategoryCounts(draft),
                 List.copyOf(artifacts)
         );
     }
@@ -177,5 +189,41 @@ public class ReviewedSubtitleDeliveryServiceImpl implements ReviewedSubtitleDeli
 
     private String normalizeLanguage(String language) {
         return language == null || language.isBlank() ? "zh-CN" : language.trim();
+    }
+
+    private String normalizeReleaseNotes(String releaseNotes) {
+        if (releaseNotes == null || releaseNotes.isBlank()) {
+            return null;
+        }
+        String normalized = releaseNotes.trim();
+        if (normalized.length() > 1000) {
+            throw new IllegalArgumentException("Release notes must be at most 1000 characters.");
+        }
+        return normalized;
+    }
+
+    private List<SubtitleReviewEvidenceCategoryVo> decisionCounts(SubtitleDraftSummaryVo draft) {
+        Map<SubtitleReviewDecision, Integer> counts = new EnumMap<>(SubtitleReviewDecision.class);
+        for (SubtitleReviewDecision decision : SubtitleReviewDecision.values()) {
+            counts.put(decision, 0);
+        }
+        for (SubtitleDraftSegmentVo segment : draft.segments()) {
+            counts.merge(segment.decision(), 1, Integer::sum);
+        }
+        return counts.entrySet().stream()
+                .map(entry -> new SubtitleReviewEvidenceCategoryVo(entry.getKey().name(), entry.getValue()))
+                .toList();
+    }
+
+    private List<SubtitleReviewEvidenceCategoryVo> issueCategoryCounts(SubtitleDraftSummaryVo draft) {
+        Map<SubtitleReviewIssueCategory, Integer> counts = new EnumMap<>(SubtitleReviewIssueCategory.class);
+        for (SubtitleDraftSegmentVo segment : draft.segments()) {
+            for (SubtitleReviewIssueCategory category : segment.issueCategories()) {
+                counts.merge(category, 1, Integer::sum);
+            }
+        }
+        return counts.entrySet().stream()
+                .map(entry -> new SubtitleReviewEvidenceCategoryVo(entry.getKey().name(), entry.getValue()))
+                .toList();
     }
 }

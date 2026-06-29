@@ -5,8 +5,12 @@ import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
+import com.linguaframe.job.domain.enums.SubtitleReviewDecision;
+import com.linguaframe.job.domain.enums.SubtitleReviewIssueCategory;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSegmentVo;
+import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.service.impl.ReviewedSubtitleDeliveryServiceImpl;
 import com.linguaframe.media.domain.bo.BurnInSubtitlesCommand;
 import com.linguaframe.media.domain.bo.BurnedVideoBo;
@@ -53,13 +57,20 @@ class ReviewedSubtitleDeliveryServiceTests {
 
         ReviewedSubtitlePublishVo result = service.publish(
                 "job-reviewed",
-                new PublishReviewedSubtitlesRequest("zh-CN", false)
+                new PublishReviewedSubtitlesRequest("zh-CN", false, "Release note text.")
         );
 
         assertThat(result.jobId()).isEqualTo("job-reviewed");
         assertThat(result.targetLanguage()).isEqualTo("zh-CN");
         assertThat(result.burnedVideoRequested()).isFalse();
         assertThat(result.burnedVideoCreated()).isFalse();
+        assertThat(result.releaseNotesLength()).isEqualTo(18);
+        assertThat(result.reviewDecisionCounts())
+                .extracting(count -> count.category() + ":" + count.count())
+                .contains("ACCEPTED:1", "EDITED:1", "NEEDS_FOLLOWUP:0");
+        assertThat(result.issueCategoryCounts())
+                .extracting(count -> count.category() + ":" + count.count())
+                .containsExactly("TERM:1");
         assertThat(result.artifacts()).extracting(JobArtifactVo::type).containsExactly(
                 JobArtifactType.REVIEWED_SUBTITLE_JSON,
                 JobArtifactType.REVIEWED_SUBTITLE_SRT,
@@ -186,6 +197,27 @@ class ReviewedSubtitleDeliveryServiceTests {
     }
 
     @Test
+    void rejectsOversizedReleaseNotesBeforeCreatingArtifacts() {
+        RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
+        ReviewedSubtitleDeliveryService service = service(
+                properties(false),
+                new RecordingSubtitleDraftService(),
+                artifactService,
+                new RecordingObjectStorageService(new byte[] {1, 2, 3}),
+                new RecordingMediaWorkDirectoryService(tempDir),
+                new RecordingBurnInService()
+        );
+
+        assertThatThrownBy(() -> service.publish(
+                "job-reviewed",
+                new PublishReviewedSubtitlesRequest("zh-CN", false, "x".repeat(1001))
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Release notes must be at most 1000 characters");
+        assertThat(artifactService.commands).isEmpty();
+    }
+
+    @Test
     void doesNotCreateReviewedBurnedVideoArtifactWhenBurnInFails() {
         RecordingJobArtifactService artifactService = new RecordingJobArtifactService();
         RecordingBurnInService burnInService = new RecordingBurnInService();
@@ -238,8 +270,53 @@ class ReviewedSubtitleDeliveryServiceTests {
         private boolean failWithNotFound;
 
         @Override
-        public com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo getDraft(String jobId, String language) {
-            throw new UnsupportedOperationException();
+        public SubtitleDraftSummaryVo getDraft(String jobId, String language) {
+            if (failWithNotFound) {
+                throw new NoSuchElementException("Target subtitles not found");
+            }
+            return new SubtitleDraftSummaryVo(
+                    jobId,
+                    language,
+                    2,
+                    2,
+                    2,
+                    1,
+                    1,
+                    0,
+                    1,
+                    1,
+                    Instant.parse("2026-06-28T10:00:00Z"),
+                    List.of(
+                            new SubtitleDraftSegmentVo(
+                                    0,
+                                    0,
+                                    1_000,
+                                    "source text must not be in publish response",
+                                    "generated text must not be in publish response",
+                                    "draft text must not be in publish response",
+                                    true,
+                                    Instant.parse("2026-06-28T10:00:00Z"),
+                                    SubtitleReviewDecision.ACCEPTED,
+                                    List.of(),
+                                    "review note must not be in publish response",
+                                    43
+                            ),
+                            new SubtitleDraftSegmentVo(
+                                    1,
+                                    1_200,
+                                    2_800,
+                                    "source text must not be in publish response",
+                                    "generated text must not be in publish response",
+                                    "draft text must not be in publish response",
+                                    true,
+                                    Instant.parse("2026-06-28T10:00:00Z"),
+                                    SubtitleReviewDecision.EDITED,
+                                    List.of(SubtitleReviewIssueCategory.TERM),
+                                    "hidden note",
+                                    11
+                            )
+                    )
+            );
         }
 
         @Override

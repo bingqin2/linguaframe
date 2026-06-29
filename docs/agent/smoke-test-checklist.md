@@ -758,10 +758,22 @@ Expected:
 - `/tmp/linguaframe-demo/target-subtitles.srt` is downloaded.
 - `/tmp/linguaframe-demo/target-subtitles.vtt` is downloaded.
 - `/tmp/linguaframe-demo/burned-video.mp4` is downloaded.
+- `/tmp/linguaframe-demo/subtitle-review-evidence.json` is downloaded.
+- `/tmp/linguaframe-demo/subtitle-review-evidence.md` is downloaded.
+- `/tmp/linguaframe-demo/subtitle-review-evidence.zip` is downloaded.
+- Terminal output includes `subtitleReviewEvidenceStatus`, `subtitleReviewEvidenceReviewedSegmentCount`, `subtitleReviewEvidenceFollowupSegmentCount`, `subtitleReviewEvidenceAnnotationCount`, and `subtitleReviewEvidencePackageEntryCount=5`.
+- `subtitle-review-evidence.zip` contains `manifest.json`, `subtitle-review-evidence.md`, `review-summary.json`, `release-notes.md`, and `README.md`.
 - `/tmp/linguaframe-demo/worker-summary.json` is downloaded.
 - Forced smoke-stage failure produces `status=FAILED`.
 - Retry after disabling failure produces `status=COMPLETED`.
 - Job timeline includes worker receive, smoke stage, audio extraction, transcript/source subtitle export, target subtitle export, subtitle burn-in, artifact summary, and completion events.
+
+Browser subtitle review expectations:
+
+- The selected job shows subtitle draft rows with text edit, review decision, issue category, and reviewer note controls.
+- Publishing reviewed subtitles accepts optional release notes and reports review decision/category counts.
+- The `Review evidence` panel shows status, counts, safe links, and Markdown/ZIP download buttons.
+- Evidence surfaces exclude raw transcript text, generated subtitle text, corrected subtitle text, reviewer note bodies, local paths, object keys, provider payloads, tokens, API keys, and media bytes.
 
 ## Upload Smoke Test
 

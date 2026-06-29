@@ -266,6 +266,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Delivery handoff ready: " + manifest.handoffReady(),
                         "Demo run package link is available.",
                         "AI audit package link is available.",
+                        "Subtitle review evidence package link is available.",
                         "Handoff package link is available."
                 ))
         );
@@ -427,6 +428,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 link("DEMO_SNAPSHOT", "Demo snapshot", "/api/jobs/" + jobId + "/demo-run-snapshot/download", "application/zip", "Static snapshot package."),
                 link("DEMO_RUN_PACKAGE", "Demo run package", "/api/jobs/" + jobId + "/demo-run-package/download", "application/zip", "Detailed safe job package."),
                 link("AI_AUDIT_PACKAGE", "AI audit package", "/api/jobs/" + jobId + "/ai-audit-package/download", "application/zip", "Model-call audit package."),
+                link("SUBTITLE_REVIEW_EVIDENCE", "Subtitle review evidence", "/api/jobs/" + jobId + "/subtitle-review-evidence", "application/json", "Metadata-only subtitle review evidence."),
+                link("SUBTITLE_REVIEW_EVIDENCE_PACKAGE", "Subtitle review evidence package", "/api/jobs/" + jobId + "/subtitle-review-evidence/download", "application/zip", "Review coverage and release-note evidence package."),
                 link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download", "application/zip", "Reviewed delivery package."),
                 link("DIAGNOSTICS", "Diagnostics", "/api/jobs/" + jobId + "/diagnostics/download", "application/json", "Safe diagnostics report."),
                 link("EVIDENCE_MARKDOWN", "Evidence Markdown", "/api/jobs/" + jobId + "/evidence/markdown/download", "text/markdown", "Backend evidence report."),
@@ -445,6 +448,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 "completion-certificate.json",
                 "share-sheet.json",
                 "run-monitor.json",
+                "Linked safe route: /api/jobs/" + jobId + "/subtitle-review-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-reviewer-workspace/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download"
         );
@@ -454,6 +458,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         return List.of(
                 "Metadata only: no media bytes, transcript bodies, subtitle bodies, local filesystem paths, object storage keys, provider request or response bodies, credentials, authentication secrets, or demo access secrets are included.",
                 "The portal links to existing safe packages instead of embedding uploaded or generated media artifacts.",
+                "Reviewer note bodies stay in the editing UI and are not included in portal packages.",
                 "Use reviewer workspace for the compact handoff, demo snapshot for static run browsing, and this portal as the offline entry point."
         );
     }

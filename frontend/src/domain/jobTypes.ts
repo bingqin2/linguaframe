@@ -1507,9 +1507,25 @@ export interface SubtitleDraftSummary {
   targetLanguage: string;
   segmentCount: number;
   editedSegmentCount: number;
+  reviewedSegmentCount: number;
+  acceptedSegmentCount: number;
+  editedDecisionCount: number;
+  followupSegmentCount: number;
+  annotationCount: number;
+  reviewerNoteCount: number;
   lastUpdatedAt: string | null;
   segments: SubtitleDraftSegment[];
 }
+
+export type SubtitleReviewDecision = 'UNREVIEWED' | 'ACCEPTED' | 'EDITED' | 'NEEDS_FOLLOWUP';
+
+export type SubtitleReviewIssueCategory =
+  | 'TERM'
+  | 'TONE'
+  | 'TIMING'
+  | 'READABILITY'
+  | 'MISSING_TEXT'
+  | 'OTHER';
 
 export interface SubtitleDraftSegment {
   index: number;
@@ -1520,18 +1536,26 @@ export interface SubtitleDraftSegment {
   draftText: string;
   edited: boolean;
   updatedAt: string | null;
+  decision: SubtitleReviewDecision;
+  issueCategories: SubtitleReviewIssueCategory[];
+  reviewerNote: string | null;
+  noteLength: number;
 }
 
 export interface UpdateSubtitleDraftRequest {
   segments: Array<{
     index: number;
     text: string;
+    decision?: SubtitleReviewDecision;
+    issueCategories?: SubtitleReviewIssueCategory[];
+    reviewerNote?: string | null;
   }>;
 }
 
 export interface PublishReviewedSubtitlesRequest {
   language: string;
   includeBurnedVideo: boolean;
+  releaseNotes?: string | null;
 }
 
 export interface ReviewedSubtitlePublish {
@@ -1539,7 +1563,47 @@ export interface ReviewedSubtitlePublish {
   targetLanguage: string;
   burnedVideoRequested: boolean;
   burnedVideoCreated: boolean;
+  releaseNotesLength: number;
+  reviewDecisionCounts: SubtitleReviewEvidenceCategory[];
+  issueCategoryCounts: SubtitleReviewEvidenceCategory[];
   artifacts: JobArtifact[];
+}
+
+export interface SubtitleReviewEvidenceCategory {
+  category: string;
+  count: number;
+}
+
+export interface SubtitleReviewEvidenceCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface SubtitleReviewEvidence {
+  jobId: string;
+  videoId: string;
+  targetLanguage: string;
+  generatedAt: string;
+  status: string;
+  summary: string;
+  segmentCount: number;
+  reviewedSegmentCount: number;
+  acceptedSegmentCount: number;
+  editedDecisionCount: number;
+  followupSegmentCount: number;
+  annotationCount: number;
+  reviewerNoteCount: number;
+  reviewedSubtitleArtifactCount: number;
+  reviewedBurnedVideoAvailable: boolean;
+  releaseNotesLength: number;
+  decisionCounts: SubtitleReviewEvidenceCategory[];
+  issueCategoryCounts: SubtitleReviewEvidenceCategory[];
+  checks: SubtitleReviewEvidenceCheck[];
+  links: ReviewedSubtitleWorkflowLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
 }
 
 export interface DeliveryManifestArtifact {

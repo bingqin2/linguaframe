@@ -1,13 +1,17 @@
 package com.linguaframe.job.repository;
 
 import com.linguaframe.job.domain.entity.SubtitleDraftSegmentRecord;
+import com.linguaframe.job.domain.enums.SubtitleReviewDecision;
+import com.linguaframe.job.domain.enums.SubtitleReviewIssueCategory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Repository
 public class SubtitleDraftSegmentRepository {
@@ -26,6 +30,9 @@ public class SubtitleDraftSegmentRepository {
                             language,
                             segment_index,
                             text,
+                            review_decision,
+                            issue_categories,
+                            reviewer_note,
                             created_at,
                             updated_at
                         FROM subtitle_draft_segments
@@ -46,6 +53,9 @@ public class SubtitleDraftSegmentRepository {
                             language,
                             segment_index,
                             text,
+                            review_decision,
+                            issue_categories,
+                            reviewer_note,
                             created_at,
                             updated_at
                         )
@@ -55,11 +65,17 @@ public class SubtitleDraftSegmentRepository {
                             :language,
                             :segmentIndex,
                             :text,
+                            :reviewDecision,
+                            :issueCategories,
+                            :reviewerNote,
                             :createdAt,
                             :updatedAt
                         )
                         ON DUPLICATE KEY UPDATE
                             text = VALUES(text),
+                            review_decision = VALUES(review_decision),
+                            issue_categories = VALUES(issue_categories),
+                            reviewer_note = VALUES(reviewer_note),
                             updated_at = VALUES(updated_at)
                         """)
                 .param("id", record.id())
@@ -67,6 +83,9 @@ public class SubtitleDraftSegmentRepository {
                 .param("language", record.language())
                 .param("segmentIndex", record.segmentIndex())
                 .param("text", record.text())
+                .param("reviewDecision", normalizeDecision(record.reviewDecision()).name())
+                .param("issueCategories", serializeIssueCategories(record.issueCategories()))
+                .param("reviewerNote", record.reviewerNote())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("updatedAt", Timestamp.from(record.updatedAt()))
                 .update();
@@ -86,8 +105,42 @@ public class SubtitleDraftSegmentRepository {
                 rs.getString("language"),
                 rs.getInt("segment_index"),
                 rs.getString("text"),
+                parseDecision(rs.getString("review_decision")),
+                parseIssueCategories(rs.getString("issue_categories")),
+                rs.getString("reviewer_note"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant()
         );
+    }
+
+    private SubtitleReviewDecision parseDecision(String value) {
+        if (value == null || value.isBlank()) {
+            return SubtitleReviewDecision.EDITED;
+        }
+        return SubtitleReviewDecision.valueOf(value.trim());
+    }
+
+    private SubtitleReviewDecision normalizeDecision(SubtitleReviewDecision decision) {
+        return decision == null ? SubtitleReviewDecision.EDITED : decision;
+    }
+
+    private List<SubtitleReviewIssueCategory> parseIssueCategories(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(token -> !token.isEmpty())
+                .map(SubtitleReviewIssueCategory::valueOf)
+                .toList();
+    }
+
+    private String serializeIssueCategories(List<SubtitleReviewIssueCategory> categories) {
+        if (categories == null || categories.isEmpty()) {
+            return "";
+        }
+        return categories.stream()
+                .map(SubtitleReviewIssueCategory::name)
+                .collect(Collectors.joining(","));
     }
 }

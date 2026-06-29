@@ -115,11 +115,18 @@ public class JobHandoffPackageServiceImpl implements JobHandoffPackageService {
         manifest.put("status", diagnostics.job().status().name());
         manifest.put("handoffReady", handoffReady(reviewedArtifacts));
         manifest.put("reviewedArtifactCount", reviewedArtifacts.size());
+        manifest.put("subtitleReviewEvidence", Map.of(
+                "json", "/api/jobs/" + diagnostics.job().jobId() + "/subtitle-review-evidence",
+                "markdown", "/api/jobs/" + diagnostics.job().jobId() + "/subtitle-review-evidence/markdown/download",
+                "package", "/api/jobs/" + diagnostics.job().jobId() + "/subtitle-review-evidence/download"
+        ));
         manifest.put("entries", packageEntries(reviewedArtifacts));
         manifest.put("safety", Map.of(
                         "includesUploadedSourceVideo", false,
                         "includesGeneratedAuditArtifacts", false,
                         "includesRawTranscriptText", false,
+                        "includesRawSubtitleText", false,
+                        "includesReviewerNoteBodies", false,
                         "includesObjectKeys", false,
                         "includesProviderPayloads", false
                 ));

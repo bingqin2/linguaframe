@@ -3676,6 +3676,30 @@ Validation so far:
 
 Work:
 
+- Planned subtitle review annotations and release notes in `docs/plans/131-subtitle-review-annotations-release-notes.md`.
+- Added subtitle draft review decisions, issue categories, reviewer notes, summary counts, Flyway migration `V27__add_subtitle_review_annotations.sql`, validation, repository persistence, and export behavior that keeps subtitle artifacts text-only.
+- Added metadata-only subtitle review evidence JSON, Markdown, and ZIP endpoints with runtime route coverage.
+- Added publish release notes, publish response decision/category counts, reviewed workflow completion checks, job evidence links, handoff package links, and demo handoff portal links.
+- Added React review annotation controls, release-note publishing, review evidence panel, API helpers, download actions, and tests.
+- Added `scripts/demo/subtitle-review-evidence.sh`, shared helper functions, and deterministic/OpenAI smoke/full Tears evidence exports.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, and decisions with review annotation behavior, terminal commands, ZIP entries, and safety exclusions.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=SubtitleDraftServiceTests,SubtitleDraftSegmentRepositoryTests` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=SubtitleReviewEvidenceServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests` passed with `Tests run: 68, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=ReviewedSubtitleDeliveryServiceTests,JobHandoffPackageServiceTests,DemoHandoffPortalServiceTests,ReviewedSubtitleWorkflowServiceTests,JobEvidenceReportServiceTests` passed with `Tests run: 19, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 179 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/subtitle-review-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 690, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 186 passed`.
+
+## 2026-06-29
+
+Work:
+
 - Planned demo handoff portal package in `docs/plans/130-demo-handoff-portal-package.md`.
 - Added backend demo handoff portal aggregate with JSON, Markdown, and static ZIP output.
 - Added `GET /api/jobs/{jobId}/demo-handoff-portal`, Markdown download, ZIP download, and runtime contract routes.

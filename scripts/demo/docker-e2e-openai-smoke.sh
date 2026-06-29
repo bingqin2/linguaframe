@@ -99,6 +99,9 @@ download_demo_reviewer_workspace_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-rev
 download_demo_handoff_portal_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.json"
 download_demo_handoff_portal_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.md"
 download_demo_handoff_portal_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.zip"
+download_subtitle_review_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.json"
+download_subtitle_review_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.md"
+download_subtitle_review_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.zip"
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
@@ -122,6 +125,7 @@ print_demo_run_package_summary "$OUTPUT_DIR/demo-run-package.zip" "$job_id"
 print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
 print_demo_reviewer_workspace_summary_file "$OUTPUT_DIR/demo-reviewer-workspace.json" "$OUTPUT_DIR/demo-reviewer-workspace.md" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
 print_demo_handoff_portal_summary_file "$OUTPUT_DIR/demo-handoff-portal.json" "$OUTPUT_DIR/demo-handoff-portal.md" "$OUTPUT_DIR/demo-handoff-portal.zip"
+print_subtitle_review_evidence_summary_file "$OUTPUT_DIR/subtitle-review-evidence.json" "$OUTPUT_DIR/subtitle-review-evidence.md" "$OUTPUT_DIR/subtitle-review-evidence.zip"
 python3 - "$OUTPUT_DIR/openai-smoke-proof.json" "$OUTPUT_DIR/openai-smoke-proof.md" <<'PY'
 import json
 import sys

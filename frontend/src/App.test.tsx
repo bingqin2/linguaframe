@@ -47,6 +47,7 @@ import type {
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
   SubtitleDraftSummary,
+  SubtitleReviewEvidence,
   SubtitleReviewSummary
 } from './domain/jobTypes';
 
@@ -144,6 +145,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getSubtitleReview').mockResolvedValue(subtitleReviewFixture());
     vi.spyOn(linguaFrameApi, 'getReviewedSubtitleWorkflow').mockResolvedValue(
       reviewedSubtitleWorkflowFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getSubtitleReviewEvidence').mockResolvedValue(
+      subtitleReviewEvidenceFixture()
     );
     vi.spyOn(linguaFrameApi, 'getSubtitleDraft').mockResolvedValue(subtitleDraftFixture());
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
@@ -2727,6 +2731,9 @@ describe('App', () => {
       targetLanguage: 'zh-CN',
       burnedVideoRequested: true,
       burnedVideoCreated: false,
+      releaseNotesLength: 13,
+      reviewDecisionCounts: [{ category: 'EDITED', count: 1 }],
+      issueCategoryCounts: [{ category: 'TERM', count: 1 }],
       artifacts: reviewedArtifacts
     });
     const getDeliveryManifest = vi.spyOn(linguaFrameApi, 'getDeliveryManifest')
@@ -2791,7 +2798,15 @@ describe('App', () => {
 
     await userEvent.click(within(draftEditor).getByRole('button', { name: /save draft/i }));
     expect(updateDraft).toHaveBeenCalledWith('draft-job', 'zh-CN', {
-      segments: [{ index: 1, text: '人工修正后的字幕' }]
+      segments: [
+        {
+          index: 1,
+          text: '人工修正后的字幕',
+          decision: 'EDITED',
+          issueCategories: ['TERM'],
+          reviewerNote: 'Use the glossary term.'
+        }
+      ]
     });
     expect(await within(draftEditor).findByText('Draft saved.')).toBeInTheDocument();
 
@@ -2805,10 +2820,12 @@ describe('App', () => {
     expect(await within(draftEditor).findByText('Draft cleared.')).toBeInTheDocument();
 
     await userEvent.click(within(draftEditor).getByLabelText(/include reviewed burned video/i));
+    await userEvent.type(within(draftEditor).getByLabelText(/release notes/i), 'Ready to publish.');
     await userEvent.click(within(draftEditor).getByRole('button', { name: /publish reviewed subtitles/i }));
     expect(publishReviewed).toHaveBeenCalledWith('draft-job', {
       language: 'zh-CN',
-      includeBurnedVideo: true
+      includeBurnedVideo: true,
+      releaseNotes: 'Ready to publish.'
     });
     expect(listArtifacts).toHaveBeenCalledTimes(2);
     expect(getDeliveryManifest).toHaveBeenCalledTimes(2);
@@ -2938,7 +2955,11 @@ describe('App', () => {
             generatedText: '敏感生成字幕不能导出',
             draftText: '敏感草稿字幕不能导出',
             edited: true,
-            updatedAt: '2026-06-28T10:00:00Z'
+            updatedAt: '2026-06-28T10:00:00Z',
+            decision: 'EDITED',
+            issueCategories: ['TERM'],
+            reviewerNote: 'hidden reviewer note',
+            noteLength: 20
           }
         ]
       })
@@ -5424,6 +5445,12 @@ function subtitleDraftFixture(
     targetLanguage: 'zh-CN',
     segmentCount: 2,
     editedSegmentCount: 1,
+    reviewedSegmentCount: 1,
+    acceptedSegmentCount: 0,
+    editedDecisionCount: 1,
+    followupSegmentCount: 0,
+    annotationCount: 1,
+    reviewerNoteCount: 1,
     lastUpdatedAt: '2026-06-28T10:00:00Z',
     segments: [
       {
@@ -5434,7 +5461,11 @@ function subtitleDraftFixture(
         generatedText: '第一行字幕',
         draftText: '第一行字幕',
         edited: false,
-        updatedAt: null
+        updatedAt: null,
+        decision: 'UNREVIEWED',
+        issueCategories: [],
+        reviewerNote: null,
+        noteLength: 0
       },
       {
         index: 1,
@@ -5444,7 +5475,11 @@ function subtitleDraftFixture(
         generatedText: '第二行字幕',
         draftText: '修正后的第二行字幕',
         edited: true,
-        updatedAt: '2026-06-28T10:00:00Z'
+        updatedAt: '2026-06-28T10:00:00Z',
+        decision: 'EDITED',
+        issueCategories: ['TERM'],
+        reviewerNote: 'Use the glossary term.',
+        noteLength: 22
       }
     ],
     ...overrides
@@ -5513,6 +5548,48 @@ function reviewedSubtitleWorkflowFixture(
     safetyNotes: [
       'Metadata-only workflow: IDs, counts, statuses, timestamps, and safe routes are included.'
     ],
+    ...overrides
+  };
+}
+
+function subtitleReviewEvidenceFixture(
+  overrides: Partial<SubtitleReviewEvidence> = {}
+): SubtitleReviewEvidence {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    targetLanguage: 'zh-CN',
+    generatedAt: '2026-06-29T14:00:00Z',
+    status: 'ATTENTION',
+    summary: 'Subtitle review evidence exists but still needs reviewer attention.',
+    segmentCount: 2,
+    reviewedSegmentCount: 1,
+    acceptedSegmentCount: 0,
+    editedDecisionCount: 1,
+    followupSegmentCount: 0,
+    annotationCount: 1,
+    reviewerNoteCount: 1,
+    reviewedSubtitleArtifactCount: 0,
+    reviewedBurnedVideoAvailable: false,
+    releaseNotesLength: 0,
+    decisionCounts: [
+      { category: 'UNREVIEWED', count: 1 },
+      { category: 'EDITED', count: 1 }
+    ],
+    issueCategoryCounts: [
+      { category: 'TERM', count: 1 }
+    ],
+    checks: [
+      {
+        key: 'review-coverage',
+        label: 'All subtitle segments reviewed',
+        status: 'WARN',
+        detail: '1 of 2 subtitle segments have review decisions.'
+      }
+    ],
+    links: [],
+    packageEntries: ['manifest.json', 'subtitle-review-evidence.md'],
+    safetyNotes: ['Metadata-only evidence.'],
     ...overrides
   };
 }
