@@ -38,17 +38,17 @@
   - `export function reindexNarrationSegments(segments: NarrationWorkspace['segments']): NarrationWorkspace['segments']`
 - Consumes: `NarrationWorkspace` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests proving duplicate inserts a copied row immediately after the selected row, preserves text/voice, shifts the copy after the original window, reindexes rows, and selects the copy.
-- [ ] Write failing tests proving split requires at least `0.25` seconds on both sides of the split point, splits the row into two windows, preserves voice, splits text near the midpoint, reindexes rows, and selects the second half.
-- [ ] Write failing tests proving merge combines the selected row with the next row, joins text with a blank line, preserves the selected row voice, spans from selected start to next end, reindexes rows, and keeps selection on the merged row.
-- [ ] Write failing tests proving insert creates a new blank local row after the selected row, starts at the selected row end, defaults to a five-second duration, reindexes rows, and selects the new row.
-- [ ] Write failing tests proving blocked commands return the original rows with a `blockedReason` instead of throwing.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement command helpers with copied arrays only; do not mutate caller-owned segment objects.
-- [ ] Round generated timing values to `0.001` second precision and keep duration fields synchronized with start/end.
-- [ ] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration editing command helpers`.
+- [x] Write failing tests proving duplicate inserts a copied row immediately after the selected row, preserves text/voice, shifts the copy after the original window, reindexes rows, and selects the copy.
+- [x] Write failing tests proving split requires at least `0.25` seconds on both sides of the split point, splits the row into two windows, preserves voice, splits text near the midpoint, reindexes rows, and selects the second half.
+- [x] Write failing tests proving merge combines the selected row with the next row, joins text with a blank line, preserves the selected row voice, spans from selected start to next end, reindexes rows, and keeps selection on the merged row.
+- [x] Write failing tests proving insert creates a new blank local row after the selected row, starts at the selected row end, defaults to a five-second duration, reindexes rows, and selects the new row.
+- [x] Write failing tests proving blocked commands return the original rows with a `blockedReason` instead of throwing.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement command helpers with copied arrays only; do not mutate caller-owned segment objects.
+- [x] Round generated timing values to `0.001` second precision and keep duration fields synchronized with start/end.
+- [x] Run `npm test -- --run src/domain/narrationEditingCommands.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration editing command helpers`.
 
 ## Task 2: Editing Command Bar UI
 

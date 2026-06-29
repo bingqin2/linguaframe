@@ -6,6 +6,19 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration editing command workbench feature slice from `docs/plans/145-narration-editing-command-workbench.md`.
+- Added pure frontend narration editing command helpers for duplicate, split-at-playhead, merge-next, insert-after, and immutable reindexing.
+- Command helpers only mutate local draft arrays, reset generated rows to `updatedAt: null`, keep timing/duration rounded to `0.001` seconds, and return blocked reasons for impossible commands.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationEditingCommands.test.ts` first failed because `frontend/src/domain/narrationEditingCommands.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationEditingCommands.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration waveform overview workbench feature slice from `docs/plans/144-narration-waveform-overview-workbench.md`.
 - Added pure frontend waveform overview helpers that derive deterministic bucket bars from narration windows, text density, gaps, selected segment, and preview playhead time.
 - Added percent-to-seconds mapping for local preview scrubbing without audio decoding, provider calls, artifact creation, or object-storage mutation.
