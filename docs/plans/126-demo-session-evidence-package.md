@@ -126,5 +126,5 @@
   `npm run build`
   `bash -n scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh`
 - [x] Run `git diff --check`.
-- [ ] Commit as `Add demo session evidence package`.
+- [x] Commit as `Add demo session evidence package`.
 - [ ] Merge the feature branch back to `main` after validation passes.
