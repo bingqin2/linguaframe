@@ -41,6 +41,7 @@ import {
   getDemoUploadReadiness,
   getOwnerQuotaPreflight,
   estimateUploadCost,
+  estimateUploadExecutionPlan,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -631,6 +632,102 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
     expect(body.get('file')).toBe(file);
     expect(body.get('targetLanguage')).toBe(' zh-CN ');
+    expect(body.get('translationStyle')).toBe('FORMAL');
+    expect(body.get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
+    expect(body.get('translationGlossary')).toBe('Maya => 玛雅');
+    expect(body.get('subtitlePolishingMode')).toBe('BALANCED');
+    expect(body.get('demoProfileId')).toBe('tears-showcase');
+  });
+
+  test('estimates media upload execution plan as multipart form data', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        overallStatus: 'READY',
+        recommendedNextAction: 'Upload can proceed with the selected profile and options.',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        maxFileSizeBytes: 104857600,
+        durationSeconds: 90,
+        maxDurationSeconds: 300,
+        valid: true,
+        validationCode: 'READY',
+        validationMessage: 'File is ready for upload.',
+        targetLanguage: 'zh-CN',
+        ttsVoice: null,
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        translationGlossaryEntryCount: 1,
+        translationGlossaryHash: 'hash',
+        subtitlePolishingMode: 'BALANCED',
+        demoProfileId: 'tears-showcase',
+        estimatedCostUsdLower: 0.001,
+        estimatedCostUsd: 0.002,
+        estimatedCostUsdUpper: 0.003,
+        estimatedDurationSecondsLower: 45,
+        estimatedDurationSecondsUpper: 120,
+        stages: [
+          {
+            id: 'translation',
+            label: 'Translation',
+            status: 'ESTIMATED',
+            executionType: 'PAID',
+            provider: 'openai',
+            model: 'gpt-4.1-mini',
+            runnable: true,
+            estimatedCostUsd: 0.001,
+            estimatedDurationSecondsLower: 3,
+            estimatedDurationSecondsUpper: 9,
+            detail: 'Includes style prompt.'
+          }
+        ],
+        gates: [
+          {
+            id: 'uploadValidation',
+            label: 'Upload validation',
+            status: 'READY',
+            blocking: false,
+            detail: 'File is ready for upload.',
+            nextAction: 'No validation action required.'
+          }
+        ],
+        commands: [
+          {
+            id: 'upload',
+            label: 'Run upload demo',
+            command: 'LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase scripts/demo/docker-e2e-tears-of-steel-full.sh',
+            description: 'Run the selected demo upload.'
+          }
+        ],
+        cacheNotes: [],
+        safetyNotes: []
+      })
+    );
+    const file = new File(['demo'], 'sample.mp4', { type: 'video/mp4' });
+
+    const result = await estimateUploadExecutionPlan(
+      file,
+      'zh-CN',
+      '',
+      'formal',
+      'high_contrast',
+      'Maya => 玛雅',
+      'balanced',
+      'tears-showcase'
+    );
+
+    expect(result.overallStatus).toBe('READY');
+    expect(result.stages[0]?.executionType).toBe('PAID');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads/execution-plan',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData)
+      })
+    );
+    const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    expect(body.get('file')).toBe(file);
+    expect(body.get('targetLanguage')).toBe('zh-CN');
     expect(body.get('translationStyle')).toBe('FORMAL');
     expect(body.get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
     expect(body.get('translationGlossary')).toBe('Maya => 玛雅');

@@ -44,7 +44,8 @@ import type {
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment,
-  UploadCostEstimate
+  UploadCostEstimate,
+  UploadExecutionPlan
 } from './domain/jobTypes';
 import { loadRecentJobs, RecentJob, saveRecentJob } from './domain/recentJobs';
 
@@ -339,6 +340,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isValidatingUpload, setIsValidatingUpload] = useState(false);
   const [uploadValidation, setUploadValidation] = useState<MediaUploadValidation | null>(null);
   const [uploadValidationError, setUploadValidationError] = useState<string | null>(null);
+  const [uploadExecutionPlan, setUploadExecutionPlan] = useState<UploadExecutionPlan | null>(null);
+  const [uploadExecutionPlanError, setUploadExecutionPlanError] = useState<string | null>(null);
+  const [isEstimatingUploadExecutionPlan, setIsEstimatingUploadExecutionPlan] = useState(false);
   const [uploadCostEstimate, setUploadCostEstimate] = useState<UploadCostEstimate | null>(null);
   const [uploadCostEstimateError, setUploadCostEstimateError] = useState<string | null>(null);
   const [isEstimatingUploadCost, setIsEstimatingUploadCost] = useState(false);
@@ -1182,6 +1186,37 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleEstimateUploadExecutionPlan(form: HTMLFormElement | null) {
+    const file = form ? getSelectedUploadFile(form) : null;
+    if (!file) {
+      setUploadExecutionPlan(null);
+      setUploadExecutionPlanError('Choose a video file before planning execution.');
+      return;
+    }
+    setIsEstimatingUploadExecutionPlan(true);
+    try {
+      const plan = await linguaFrameApi.estimateUploadExecutionPlan(
+        file,
+        targetLanguage.trim(),
+        ttsVoice,
+        translationStyle,
+        subtitleStylePreset,
+        translationGlossary,
+        subtitlePolishingMode,
+        demoProfileId
+      );
+      setUploadExecutionPlan(plan);
+      setUploadExecutionPlanError(null);
+    } catch (planError) {
+      setUploadExecutionPlan(null);
+      setUploadExecutionPlanError(toErrorMessage(planError));
+    } finally {
+      setIsEstimatingUploadExecutionPlan(false);
+      void loadOwnerQuotaPreflight();
+      void loadDemoUploadReadiness();
+    }
+  }
+
   async function handleUpload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -1764,6 +1799,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 onChange={() => {
                   setUploadValidation(null);
                   setUploadValidationError(null);
+                  setUploadExecutionPlan(null);
+                  setUploadExecutionPlanError(null);
                   setUploadCostEstimate(null);
                   setUploadCostEstimateError(null);
                 }}
@@ -1836,7 +1873,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               <button
                 type="button"
                 className="secondary-button"
-                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost}
+                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost || isEstimatingUploadExecutionPlan}
                 onClick={(event) => void handleValidateUpload(event.currentTarget.form)}
               >
                 {isValidatingUpload ? 'Validating...' : 'Validate file'}
@@ -1844,7 +1881,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               <button
                 type="button"
                 className="secondary-button"
-                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost}
+                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost || isEstimatingUploadExecutionPlan}
+                onClick={(event) => void handleEstimateUploadExecutionPlan(event.currentTarget.form)}
+              >
+                {isEstimatingUploadExecutionPlan ? 'Planning...' : 'Execution plan'}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={isUploading || isValidatingUpload || isEstimatingUploadCost || isEstimatingUploadExecutionPlan}
                 onClick={(event) => void handleEstimateUploadCost(event.currentTarget.form)}
               >
                 {isEstimatingUploadCost ? 'Estimating...' : 'Estimate cost'}
@@ -1855,6 +1900,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                   isUploading ||
                   isValidatingUpload ||
                   isEstimatingUploadCost ||
+                  isEstimatingUploadExecutionPlan ||
                   ownerQuotaPreflight?.allowed === false ||
                   demoUploadReadiness?.overallStatus === 'BLOCKED'
                 }
@@ -1889,6 +1935,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             <UploadValidationPanel
               validation={uploadValidation}
               error={uploadValidationError}
+            />
+            <UploadExecutionPlanPanel
+              plan={uploadExecutionPlan}
+              error={uploadExecutionPlanError}
+              isLoading={isEstimatingUploadExecutionPlan}
+              onRefresh={(form) => void handleEstimateUploadExecutionPlan(form)}
             />
             <UploadCostEstimatePanel
               estimate={uploadCostEstimate}
@@ -2949,6 +3001,119 @@ function UploadValidationPanel({
               </dd>
             </div>
           </dl>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function UploadExecutionPlanPanel({
+  plan,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  plan: UploadExecutionPlan | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: (form: HTMLFormElement | null) => void;
+}) {
+  if (!plan && !error && !isLoading) {
+    return null;
+  }
+
+  const blockingGates = plan?.gates.filter((gate) => gate.blocking) ?? [];
+  const visibleGates = blockingGates.length > 0 ? blockingGates : plan?.gates.slice(0, 5) ?? [];
+  return (
+    <section className="upload-validation-panel" aria-label="Upload execution plan">
+      <div className="panel-heading">
+        <h3>Execution plan</h3>
+        {plan ? (
+          <span className={readinessStatusClassName(plan.overallStatus)}>
+            {plan.overallStatus}
+          </span>
+        ) : null}
+        <button
+          type="button"
+          className="secondary-button"
+          disabled={isLoading}
+          onClick={(event) => onRefresh(event.currentTarget.form)}
+        >
+          Refresh
+        </button>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {isLoading && !plan ? <p className="muted">Planning upload execution...</p> : null}
+      {plan ? (
+        <>
+          <p className={plan.overallStatus === 'BLOCKED' ? 'error-text' : 'muted validation-message'}>
+            {plan.recommendedNextAction}
+          </p>
+          <dl className="status-grid compact-status-grid upload-validation-grid">
+            <div>
+              <dt>Estimated time</dt>
+              <dd>
+                {formatDurationSeconds(plan.estimatedDurationSecondsLower)} - {formatDurationSeconds(plan.estimatedDurationSecondsUpper)}
+              </dd>
+            </div>
+            <div>
+              <dt>Estimated cost</dt>
+              <dd>{formatCost(plan.estimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Source duration</dt>
+              <dd>{plan.durationSeconds === null ? 'Unknown' : formatDurationSeconds(plan.durationSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(plan.demoProfileId)}</dd>
+            </div>
+            <div>
+              <dt>Style</dt>
+              <dd>{plan.translationStyle} / {plan.subtitleStylePreset}</dd>
+            </div>
+            <div>
+              <dt>Polishing</dt>
+              <dd>{plan.subtitlePolishingMode}</dd>
+            </div>
+          </dl>
+          {visibleGates.length > 0 ? (
+            <ul className="readiness-list upload-readiness-list" aria-label="Upload execution plan gates">
+              {visibleGates.map((gate) => (
+                <li key={gate.id}>
+                  <span>{gate.label}</span>
+                  <span className={readinessStatusClassName(gate.status)}>{gate.status}</span>
+                  <span>{gate.detail}</span>
+                  <span>{gate.nextAction}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {plan.stages.length > 0 ? (
+            <ul className="readiness-list" aria-label="Upload execution plan stages">
+              {plan.stages.map((stage) => (
+                <li key={stage.id}>
+                  <span>{stage.label}</span>
+                  <span>{stage.executionType}</span>
+                  <span>
+                    {formatDurationSeconds(stage.estimatedDurationSecondsLower)} - {formatDurationSeconds(stage.estimatedDurationSecondsUpper)}
+                  </span>
+                  <span>{stage.executionType === 'PAID' ? formatCost(stage.estimatedCostUsd) : stage.status}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {plan.commands.length > 0 ? (
+            <ul className="readiness-list" aria-label="Upload execution plan commands">
+              {plan.commands.map((command) => (
+                <li key={command.id}>
+                  <span>{command.label}</span>
+                  <code>{command.command}</code>
+                  <span>{command.description}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </>
       ) : null}
     </section>
