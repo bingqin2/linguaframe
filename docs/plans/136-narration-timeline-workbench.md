@@ -56,13 +56,13 @@
 - `NarrationEvidenceVo` adds metadata-only fields `timelineGapCount`, `timelineGapSeconds`, and `timelineHasOverlap`.
 - Demo terminal summaries print `narrationEvidenceTimelineGapCount`, `narrationEvidenceTimelineGapSeconds`, and `narrationEvidenceTimelineHasOverlap`.
 
-- [ ] Write failing controller tests for the `timeline` object in workspace JSON.
-- [ ] Write failing evidence tests for gap metadata in JSON, Markdown, ZIP manifest, and summary JSON.
-- [ ] Implement API/evidence serialization using computed segment timing only.
-- [ ] Extend demo summary shell output without printing segment text.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests,NarrationEvidenceServiceTests`.
-- [ ] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing controller tests for the `timeline` object in workspace JSON.
+- [x] Write failing evidence tests for gap metadata in JSON, Markdown, ZIP manifest, and summary JSON.
+- [x] Implement API/evidence serialization using computed segment timing only.
+- [x] Extend demo summary shell output without printing segment text.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests,NarrationEvidenceServiceTests`.
+- [x] Run `bash -n scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Expose narration timeline evidence`.
 
 ## Task 3: React Timeline Workbench

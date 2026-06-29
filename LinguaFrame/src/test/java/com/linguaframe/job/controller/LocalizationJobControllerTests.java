@@ -1969,6 +1969,15 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
                 .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.000))
                 .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(250))
+                .andExpect(jsonPath("$.timeline.startSeconds").value(15.000))
+                .andExpect(jsonPath("$.timeline.endSeconds").value(70.500))
+                .andExpect(jsonPath("$.timeline.totalSpanSeconds").value(55.500))
+                .andExpect(jsonPath("$.timeline.coveredSeconds").value(28.500))
+                .andExpect(jsonPath("$.timeline.gapSeconds").value(27.000))
+                .andExpect(jsonPath("$.timeline.gapCount").value(1))
+                .andExpect(jsonPath("$.timeline.hasOverlap").value(false))
+                .andExpect(jsonPath("$.timeline.segments[0].leftPercent").value(0.00))
+                .andExpect(jsonPath("$.timeline.segments[1].leftPercent").value(72.07))
                 .andExpect(jsonPath("$.segments[0].index").value(0))
                 .andExpect(jsonPath("$.segments[0].startSeconds").value(15.000))
                 .andExpect(jsonPath("$.segments[0].endSeconds").value(28.000))
@@ -1980,6 +1989,7 @@ class LocalizationJobControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT_READY"))
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
+                .andExpect(jsonPath("$.timeline.gapCount").value(1))
                 .andExpect(jsonPath("$.segments[1].text").value("Explain the second scene."));
 
         mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-narration")

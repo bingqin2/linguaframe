@@ -3924,6 +3924,20 @@ Validation so far:
 
 Work:
 
+- Extended narration workspace API contract tests for computed timeline metadata.
+- Added metadata-only narration evidence fields for timeline gap count, gap seconds, and overlap state.
+- Rendered timeline gap metadata in narration evidence Markdown, ZIP manifest, summary JSON, and terminal demo summaries.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests,NarrationEvidenceServiceTests` first failed at test compilation because `NarrationEvidenceVo` did not expose timeline gap fields.
+- After adding timeline gap evidence, `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests,NarrationEvidenceServiceTests` passed with `Tests run: 70, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
 - Started the narration timeline workbench feature slice.
 - Added computed `NarrationTimelineSummaryVo` and `NarrationTimelineSegmentVo` metadata to the narration workspace response.
 - Computed timeline start/end/span, covered seconds, gap seconds/count, overlap flag, generation readiness, and proportional segment positions from existing narration rows.

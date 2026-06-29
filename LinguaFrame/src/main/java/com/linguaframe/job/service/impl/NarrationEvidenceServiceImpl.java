@@ -69,6 +69,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 segments.size(),
                 totalCharacters(segments),
                 totalTimelineDurationSeconds(segments),
+                timelineGapCount(segments),
+                timelineGapSeconds(segments),
+                timelineHasOverlap(segments),
                 audioArtifacts > 0,
                 Math.toIntExact(audioArtifacts),
                 audioArtifacts > 0 ? TIMED_AUDIO_BED : MISSING,
@@ -98,6 +101,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Segment count: " + evidence.segmentCount());
         lines.add("- Total narration characters: " + evidence.totalCharacterCount());
         lines.add("- Total timeline duration seconds: " + evidence.totalTimelineDurationSeconds());
+        lines.add("- Timeline gap count: " + evidence.timelineGapCount());
+        lines.add("- Timeline gap seconds: " + evidence.timelineGapSeconds());
+        lines.add("- Timeline has overlap: " + evidence.timelineHasOverlap());
         lines.add("- Narration audio artifacts: " + evidence.audioArtifactCount());
         lines.add("- Audio layout: " + evidence.audioLayout());
         lines.add("- Time aligned: " + evidence.timeAligned());
@@ -159,11 +165,14 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
                 evidence.segmentCount(),
+                evidence.timelineGapCount(),
+                evidence.timelineGapSeconds(),
+                evidence.timelineHasOverlap(),
                 evidence.narrationAudioReady(),
                 json(evidence.audioLayout()),
                 evidence.timeAligned(),
@@ -178,13 +187,16 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
                 evidence.segmentCount(),
                 evidence.totalCharacterCount(),
                 evidence.totalTimelineDurationSeconds(),
+                evidence.timelineGapCount(),
+                evidence.timelineGapSeconds(),
+                evidence.timelineHasOverlap(),
                 evidence.audioArtifactCount(),
                 json(evidence.audioLayout()),
                 evidence.timeAligned(),
@@ -269,6 +281,42 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         return segments.stream()
                 .map(segment -> segment.endSeconds().subtract(segment.startSeconds()).setScale(3, RoundingMode.HALF_UP))
                 .reduce(ZERO, BigDecimal::add);
+    }
+
+    private int timelineGapCount(List<NarrationSegmentRecord> segments) {
+        return gapSummary(segments).gapCount();
+    }
+
+    private BigDecimal timelineGapSeconds(List<NarrationSegmentRecord> segments) {
+        return gapSummary(segments).gapSeconds().setScale(3, RoundingMode.HALF_UP);
+    }
+
+    private boolean timelineHasOverlap(List<NarrationSegmentRecord> segments) {
+        return gapSummary(segments).hasOverlap();
+    }
+
+    private GapSummary gapSummary(List<NarrationSegmentRecord> segments) {
+        BigDecimal gapSeconds = ZERO;
+        int gapCount = 0;
+        boolean hasOverlap = false;
+        List<NarrationSegmentRecord> byTime = segments.stream()
+                .sorted(Comparator.comparing(NarrationSegmentRecord::startSeconds))
+                .toList();
+        for (int index = 1; index < byTime.size(); index += 1) {
+            BigDecimal previousEnd = byTime.get(index - 1).endSeconds();
+            BigDecimal currentStart = byTime.get(index).startSeconds();
+            int comparison = currentStart.compareTo(previousEnd);
+            if (comparison > 0) {
+                gapCount += 1;
+                gapSeconds = gapSeconds.add(currentStart.subtract(previousEnd));
+            } else if (comparison < 0) {
+                hasOverlap = true;
+            }
+        }
+        return new GapSummary(gapSeconds, gapCount, hasOverlap);
+    }
+
+    private record GapSummary(BigDecimal gapSeconds, int gapCount, boolean hasOverlap) {
     }
 
     private static void writeEntry(ZipOutputStream zipOutputStream, String name, String content) throws IOException {

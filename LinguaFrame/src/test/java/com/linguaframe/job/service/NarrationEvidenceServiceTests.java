@@ -45,6 +45,9 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.segmentCount()).isEqualTo(2);
         assertThat(evidence.totalCharacterCount()).isEqualTo(49);
         assertThat(evidence.totalTimelineDurationSeconds()).isEqualByComparingTo("28.500");
+        assertThat(evidence.timelineGapCount()).isEqualTo(1);
+        assertThat(evidence.timelineGapSeconds()).isEqualByComparingTo("27.000");
+        assertThat(evidence.timelineHasOverlap()).isFalse();
         assertThat(evidence.narrationAudioReady()).isTrue();
         assertThat(evidence.audioArtifactCount()).isEqualTo(1);
         assertThat(evidence.audioLayout()).isEqualTo("TIMED_AUDIO_BED");
@@ -65,6 +68,9 @@ class NarrationEvidenceServiceTests {
                 .contains("# Narration Evidence")
                 .contains("- Status: READY")
                 .contains("- Segment count: 2")
+                .contains("- Timeline gap count: 1")
+                .contains("- Timeline gap seconds: 27.000")
+                .contains("- Timeline has overlap: false")
                 .contains("- Narration audio artifacts: 1")
                 .contains("- Audio layout: TIMED_AUDIO_BED")
                 .contains("- Time aligned: true")
@@ -89,6 +95,11 @@ class NarrationEvidenceServiceTests {
                         "narration-summary.json",
                         "README.md"
                 );
+        String packageText = zipText(service.openPackage("job-narration").inputStream());
+        assertThat(packageText)
+                .contains("\"timelineGapCount\":1")
+                .contains("\"timelineGapSeconds\":\"27.000\"")
+                .contains("\"timelineHasOverlap\":false");
     }
 
     @Test
@@ -145,6 +156,9 @@ class NarrationEvidenceServiceTests {
 
         assertThat(evidence.status()).isEqualTo("BLOCKED");
         assertThat(evidence.segmentCount()).isZero();
+        assertThat(evidence.timelineGapCount()).isZero();
+        assertThat(evidence.timelineGapSeconds()).isEqualByComparingTo("0.000");
+        assertThat(evidence.timelineHasOverlap()).isFalse();
         assertThat(evidence.checks())
                 .extracting(check -> check.key() + ":" + check.status())
                 .contains("NARRATION_SEGMENTS:BLOCKED");
@@ -222,6 +236,17 @@ class NarrationEvidenceServiceTests {
                 entries.add(entry.getName());
             }
             return entries;
+        }
+    }
+
+    private String zipText(InputStream inputStream) throws Exception {
+        try (ZipInputStream zipInputStream = new ZipInputStream(inputStream, StandardCharsets.UTF_8)) {
+            StringBuilder content = new StringBuilder();
+            java.util.zip.ZipEntry entry;
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                content.append(new String(zipInputStream.readAllBytes(), StandardCharsets.UTF_8)).append('\n');
+            }
+            return content.toString();
         }
     }
 
