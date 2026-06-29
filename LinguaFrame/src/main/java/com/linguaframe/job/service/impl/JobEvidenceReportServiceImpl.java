@@ -209,9 +209,13 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         long narrationAudioArtifacts = report.artifacts().stream()
                 .filter(artifact -> artifact.type() == JobArtifactType.NARRATION_AUDIO)
                 .count();
+        long narratedVideoArtifacts = report.artifacts().stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.NARRATED_VIDEO)
+                .count();
         lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleArtifacts);
         lines.add("- Reviewed burned video: " + (reviewedBurnedVideoAvailable ? "Available" : "Not available"));
         lines.add("- Narration audio artifacts: " + narrationAudioArtifacts);
+        lines.add("- Narrated video artifacts: " + narratedVideoArtifacts);
     }
 
     private boolean hasText(String value) {

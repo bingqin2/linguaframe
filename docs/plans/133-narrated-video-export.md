@@ -85,15 +85,15 @@
 - Add narrated-video readiness fields to `NarrationEvidenceVo`: `boolean narratedVideoReady`, `int narratedVideoArtifactCount`.
 - Add runtime required route for `POST /api/jobs/{jobId}/narration-workspace/generate-video`.
 
-- [ ] Update narration evidence status: `READY` only when segments, narration audio, and narrated video all exist; `ATTENTION` when segments exist but audio or narrated video is missing; `BLOCKED` when segments are missing.
-- [ ] Add `NARRATED_VIDEO` check, safe link metadata, package entry, and Markdown/JSON summary counts.
-- [ ] Ensure evidence package remains metadata-only and still excludes narration script bodies and media bytes.
-- [ ] Include `NARRATED_VIDEO` in job evidence and demo handoff portal safe artifact/package links.
-- [ ] Include `NARRATED_VIDEO` in demo run package media outputs where existing playable media artifacts are collected.
-- [ ] Add runtime route coverage for the generate-video endpoint and artifact type visibility.
-- [ ] Add tests for READY/ATTENTION behavior, ZIP summary content, forbidden marker absence, runtime route coverage, and handoff links.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Update narration evidence status: `READY` only when segments, narration audio, and narrated video all exist; `ATTENTION` when segments exist but audio or narrated video is missing; `BLOCKED` when segments are missing.
+- [x] Add `NARRATED_VIDEO` check, safe link metadata, package entry, and Markdown/JSON summary counts.
+- [x] Ensure evidence package remains metadata-only and still excludes narration script bodies and media bytes.
+- [x] Include `NARRATED_VIDEO` in job evidence and demo handoff portal safe artifact/package links.
+- [x] Include `NARRATED_VIDEO` in demo run package media outputs where existing playable media artifacts are collected.
+- [x] Add runtime route coverage for the generate-video endpoint and artifact type visibility.
+- [x] Add tests for READY/ATTENTION behavior, ZIP summary content, forbidden marker absence, runtime route coverage, and handoff links.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 4: React Narrated Video Controls And Media Delivery
 

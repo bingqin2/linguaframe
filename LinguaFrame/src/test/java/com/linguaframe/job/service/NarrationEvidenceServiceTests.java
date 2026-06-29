@@ -29,7 +29,10 @@ class NarrationEvidenceServiceTests {
     void returnsReadyWhenSegmentsAndNarrationAudioExist() throws Exception {
         NarrationEvidenceService service = service(
                 segments(),
-                List.of(artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3"))
+                List.of(
+                        artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3"),
+                        artifact(JobArtifactType.NARRATED_VIDEO, "narrated-video.mp4")
+                )
         );
 
         NarrationEvidenceVo evidence = service.getEvidence("job-narration");
@@ -40,6 +43,8 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.totalTimelineDurationSeconds()).isEqualByComparingTo("28.500");
         assertThat(evidence.narrationAudioReady()).isTrue();
         assertThat(evidence.audioArtifactCount()).isEqualTo(1);
+        assertThat(evidence.narratedVideoReady()).isTrue();
+        assertThat(evidence.narratedVideoArtifactCount()).isEqualTo(1);
         assertThat(evidence.safeLinks())
                 .extracting(link -> link.href())
                 .contains("/api/jobs/job-narration/narration-evidence/download");
@@ -50,6 +55,7 @@ class NarrationEvidenceServiceTests {
                 .contains("- Status: READY")
                 .contains("- Segment count: 2")
                 .contains("- Narration audio artifacts: 1")
+                .contains("- Narrated video artifacts: 1")
                 .doesNotContain("Explain the first scene")
                 .doesNotContain("Explain the second scene")
                 .doesNotContain("sk-")
@@ -75,7 +81,22 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.narrationAudioReady()).isFalse();
         assertThat(evidence.checks())
                 .extracting(check -> check.key() + ":" + check.status())
-                .contains("NARRATION_AUDIO:ATTENTION");
+                .contains("NARRATION_AUDIO:ATTENTION", "NARRATED_VIDEO:ATTENTION");
+    }
+
+    @Test
+    void returnsAttentionWhenAudioExistsWithoutNarratedVideo() {
+        NarrationEvidenceVo evidence = service(
+                segments(),
+                List.of(artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3"))
+        ).getEvidence("job-narration");
+
+        assertThat(evidence.status()).isEqualTo("ATTENTION");
+        assertThat(evidence.narrationAudioReady()).isTrue();
+        assertThat(evidence.narratedVideoReady()).isFalse();
+        assertThat(evidence.checks())
+                .extracting(check -> check.key() + ":" + check.status())
+                .contains("NARRATION_AUDIO:READY", "NARRATED_VIDEO:ATTENTION");
     }
 
     @Test

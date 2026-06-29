@@ -11,6 +11,8 @@ public record NarrationEvidenceVo(
         BigDecimal totalTimelineDurationSeconds,
         boolean narrationAudioReady,
         int audioArtifactCount,
+        boolean narratedVideoReady,
+        int narratedVideoArtifactCount,
         List<NarrationEvidenceCheckVo> checks,
         List<NarrationEvidenceLinkVo> safeLinks,
         List<String> packageEntries,

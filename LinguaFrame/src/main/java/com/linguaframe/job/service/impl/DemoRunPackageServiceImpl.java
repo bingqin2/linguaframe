@@ -42,6 +42,7 @@ public class DemoRunPackageServiceImpl implements DemoRunPackageService {
             JobArtifactType.DUBBING_AUDIO,
             JobArtifactType.BURNED_VIDEO,
             JobArtifactType.DUBBED_VIDEO,
+            JobArtifactType.NARRATED_VIDEO,
             JobArtifactType.REVIEWED_BURNED_VIDEO
     );
     private static final List<String> FORBIDDEN_MARKERS = List.of(

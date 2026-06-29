@@ -50,7 +50,10 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         long audioArtifacts = report.artifacts().stream()
                 .filter(artifact -> artifact.type() == JobArtifactType.NARRATION_AUDIO)
                 .count();
-        String status = status(segments.size(), audioArtifacts);
+        long narratedVideoArtifacts = report.artifacts().stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.NARRATED_VIDEO)
+                .count();
+        String status = status(segments.size(), audioArtifacts, narratedVideoArtifacts);
         return new NarrationEvidenceVo(
                 jobId,
                 status,
@@ -59,7 +62,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 totalTimelineDurationSeconds(segments),
                 audioArtifacts > 0,
                 Math.toIntExact(audioArtifacts),
-                checks(segments.size(), audioArtifacts),
+                narratedVideoArtifacts > 0,
+                Math.toIntExact(narratedVideoArtifacts),
+                checks(segments.size(), audioArtifacts, narratedVideoArtifacts),
                 safeLinks(jobId),
                 packageEntries(jobId),
                 safetyNotes()
@@ -78,6 +83,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Total narration characters: " + evidence.totalCharacterCount());
         lines.add("- Total timeline duration seconds: " + evidence.totalTimelineDurationSeconds());
         lines.add("- Narration audio artifacts: " + evidence.audioArtifactCount());
+        lines.add("- Narrated video artifacts: " + evidence.narratedVideoArtifactCount());
         lines.add("");
         lines.add("## Checks");
         for (NarrationEvidenceCheckVo check : evidence.checks()) {
@@ -130,20 +136,27 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"includesNarrationTextBodies":false}
-                """.formatted(json(evidence.jobId()), json(evidence.status()), evidence.segmentCount(), evidence.narrationAudioReady());
+                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"narratedVideoReady":%s,"includesNarrationTextBodies":false}
+                """.formatted(
+                json(evidence.jobId()),
+                json(evidence.status()),
+                evidence.segmentCount(),
+                evidence.narrationAudioReady(),
+                evidence.narratedVideoReady()
+        );
     }
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"narratedVideoArtifactCount":%d}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
                 evidence.segmentCount(),
                 evidence.totalCharacterCount(),
                 evidence.totalTimelineDurationSeconds(),
-                evidence.audioArtifactCount()
+                evidence.audioArtifactCount(),
+                evidence.narratedVideoArtifactCount()
         );
     }
 
@@ -158,7 +171,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 """.formatted(evidence.jobId(), evidence.status());
     }
 
-    private List<NarrationEvidenceCheckVo> checks(int segmentCount, long audioArtifactCount) {
+    private List<NarrationEvidenceCheckVo> checks(int segmentCount, long audioArtifactCount, long narratedVideoArtifactCount) {
         List<NarrationEvidenceCheckVo> checks = new ArrayList<>();
         checks.add(segmentCount > 0
                 ? new NarrationEvidenceCheckVo("NARRATION_SEGMENTS", "Narration segments", "READY", segmentCount + " segments saved.")
@@ -166,21 +179,25 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         checks.add(audioArtifactCount > 0
                 ? new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", "READY", audioArtifactCount + " narration audio artifact available.")
                 : new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", segmentCount > 0 ? "ATTENTION" : "BLOCKED", "No narration audio artifact available."));
+        checks.add(narratedVideoArtifactCount > 0
+                ? new NarrationEvidenceCheckVo("NARRATED_VIDEO", "Narrated video", "READY", narratedVideoArtifactCount + " narrated video artifact available.")
+                : new NarrationEvidenceCheckVo("NARRATED_VIDEO", "Narrated video", segmentCount > 0 ? "ATTENTION" : "BLOCKED", "No narrated video artifact available."));
         return List.copyOf(checks);
     }
 
-    private String status(int segmentCount, long audioArtifactCount) {
+    private String status(int segmentCount, long audioArtifactCount, long narratedVideoArtifactCount) {
         if (segmentCount == 0) {
             return "BLOCKED";
         }
-        return audioArtifactCount > 0 ? "READY" : "ATTENTION";
+        return audioArtifactCount > 0 && narratedVideoArtifactCount > 0 ? "READY" : "ATTENTION";
     }
 
     private List<NarrationEvidenceLinkVo> safeLinks(String jobId) {
         return List.of(
                 link("NARRATION_EVIDENCE", "Narration evidence", "/api/jobs/" + jobId + "/narration-evidence", "application/json"),
                 link("NARRATION_EVIDENCE_MARKDOWN", "Narration evidence Markdown", "/api/jobs/" + jobId + "/narration-evidence/markdown/download", "text/markdown"),
-                link("NARRATION_EVIDENCE_PACKAGE", "Narration evidence package", "/api/jobs/" + jobId + "/narration-evidence/download", "application/zip")
+                link("NARRATION_EVIDENCE_PACKAGE", "Narration evidence package", "/api/jobs/" + jobId + "/narration-evidence/download", "application/zip"),
+                link("NARRATED_VIDEO_GENERATION", "Generate narrated video", "/api/jobs/" + jobId + "/narration-workspace/generate-video", "application/json")
         );
     }
 
@@ -190,7 +207,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 "narration-evidence.md",
                 "narration-summary.json",
                 "README.md",
-                "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download"
+                "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download",
+                "Linked safe route: /api/jobs/" + jobId + "/narration-workspace/generate-video"
         );
     }
 

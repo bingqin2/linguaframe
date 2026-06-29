@@ -3665,11 +3665,13 @@ Work:
 - Added `NARRATED_VIDEO` as a separate playable artifact type.
 - Extended the FFmpeg audio replacement command with caller-selected output filenames so existing dubbed-video delivery keeps `dubbed-video.mp4` while narrated export can produce `narrated-video.mp4`.
 - Added backend narrated-video generation through `POST /api/jobs/{jobId}/narration-workspace/generate-video`, using existing `NARRATION_AUDIO`, preferred base video selection, FFmpeg audio replacement, and isolated `NARRATED_VIDEO` artifact creation.
+- Extended narration evidence, runtime required routes, job evidence Markdown, demo handoff portal links, and demo run package media counts for `NARRATED_VIDEO`.
 
 Validation so far:
 
 - `mvn -pl LinguaFrame test -Dtest=FfmpegAudioReplacementServiceTests,DubbedVideoPipelineStageTests -q` passed.
 - `mvn -pl LinguaFrame test -Dtest=NarratedVideoServiceTests,LocalizationJobControllerTests -q` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests,DemoRunPackageServiceTests -q` passed.
 
 ## 2026-06-29
 

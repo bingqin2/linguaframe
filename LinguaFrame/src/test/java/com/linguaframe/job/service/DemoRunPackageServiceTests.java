@@ -80,7 +80,7 @@ class DemoRunPackageServiceTests {
         assertThat(entries.get("demo-session-report.md"))
                 .contains("# LinguaFrame Demo Session Report")
                 .contains("- Overall: READY")
-                .contains("- Media outputs: 2")
+                .contains("- Media outputs: 3")
                 .contains("- Quality: 92 / 100, GOOD, SUCCEEDED");
 
         String combined = String.join("\n", entries.values());
@@ -177,9 +177,20 @@ class DemoRunPackageServiceTests {
                                     false,
                                     null,
                                     Instant.parse("2026-06-28T12:00:32Z")
+                            ),
+                            new JobDiagnosticsArtifactVo(
+                                    "narrated-video",
+                                    JobArtifactType.NARRATED_VIDEO,
+                                    "narrated-video.mp4",
+                                    "video/mp4",
+                                    16384L,
+                                    "hash-narrated-video",
+                                    false,
+                                    null,
+                                    Instant.parse("2026-06-28T12:00:33Z")
                             )
                     ),
-                    5
+                    6
             );
         }
 

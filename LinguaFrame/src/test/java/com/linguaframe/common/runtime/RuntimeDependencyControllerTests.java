@@ -75,6 +75,7 @@ class RuntimeDependencyControllerTests {
                         "/api/jobs/{jobId}/subtitle-review-evidence/download",
                         "/api/jobs/{jobId}/narration-workspace",
                         "/api/jobs/{jobId}/narration-workspace/generate-audio",
+                        "/api/jobs/{jobId}/narration-workspace/generate-video",
                         "/api/jobs/{jobId}/narration-evidence",
                         "/api/jobs/{jobId}/narration-evidence/markdown/download",
                         "/api/jobs/{jobId}/narration-evidence/download",
