@@ -785,3 +785,11 @@ Decision: Treat narration demo presets as explicit post-processing imports inste
 Reason: Demo profiles already define localization settings at upload time, while narration scripts are operator-authored timeline rows that may replace existing workspace content. Keeping preset application as a separate confirmed step makes replacement, duration validation, voice validation, script package export, narration evidence, and later audio/video generation easy to explain and audit.
 
 Impact: `GET /api/demo-run-profiles/narration-presets`, `GET /api/demo-run-profiles/{profileId}/narration-preset`, and `POST /api/jobs/{jobId}/narration-demo-preset/apply` provide a reusable Tears showcase script without generating media automatically. The browser panel and terminal script require explicit replacement, refresh script/evidence metadata, and keep `NARRATION_AUDIO` plus `NARRATED_VIDEO` generation as separate actions.
+
+## 2026-06-30
+
+Decision: Implement one-click narration demo render as orchestration over existing narration services.
+
+Reason: A demo operator needs one command/button for the complete Tears narration showcase, but preset import, narration audio synthesis, narrated-video muxing, script package export, evidence export, and artifact listing already have separate validation and persistence rules. Duplicating that logic would make partial failures and cost warnings harder to audit.
+
+Impact: `POST /api/jobs/{jobId}/narration-demo/render`, the browser `Render narration demo` panel, `scripts/demo/narration-demo-render.sh`, and `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh` run the existing services in order. The request keeps explicit replacement and optional video generation visible. If audio succeeds but narrated-video generation fails, the response is `PARTIAL` and preserves `NARRATION_AUDIO` so the operator can retry video generation without losing paid TTS output.

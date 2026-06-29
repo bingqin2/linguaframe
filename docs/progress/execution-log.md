@@ -15,6 +15,7 @@ Work:
 - Added shared demo helpers for `POST /api/jobs/{jobId}/narration-demo/render` and safe render-result summary printing.
 - Added `scripts/demo/narration-demo-render.sh` to inspect the recommended preset, render narration demo media for an existing job, and download refreshed narration script package plus narration evidence.
 - Extended the full Tears script so `LINGUAFRAME_RENDER_NARRATION_DEMO=true` runs the one-click render flow before narration evidence export, while preserving the apply-only preset path.
+- Updated README, Docker E2E guide, smoke checklist, roadmap, target state, decisions, and this execution log with the one-click narration render workflow, paid-provider warning, partial-result behavior, and full Tears integration.
 
 Validation:
 
@@ -27,6 +28,12 @@ Validation:
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-demo-render.sh` first failed because the render script did not exist.
 - After adding the render script and full Tears integration, `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 84, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 764, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 196 passed`; jsdom printed expected navigation warnings from download actions.
+- `git diff --check` passed.
 
 ## 2026-06-30
 

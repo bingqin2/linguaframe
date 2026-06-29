@@ -111,17 +111,17 @@
 - Modify: `docs/plans/140-narration-one-click-render-package.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document browser run order: completed job, render narration demo, inspect step rows, verify `NARRATION_AUDIO`, verify optional `NARRATED_VIDEO`, export evidence.
-- [ ] Document terminal run order for existing jobs and full Tears runs.
-- [ ] Add cost warning that OpenAI TTS render can consume credits when configured.
-- [ ] Update smoke checklist with backend, frontend, terminal, full Tears, safety-exclusion, and partial-result expectations.
-- [ ] Add a decision record explaining why render orchestration reuses existing services and preserves partial audio artifacts.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Document browser run order: completed job, render narration demo, inspect step rows, verify `NARRATION_AUDIO`, verify optional `NARRATED_VIDEO`, export evidence.
+- [x] Document terminal run order for existing jobs and full Tears runs.
+- [x] Add cost warning that OpenAI TTS render can consume credits when configured.
+- [x] Update smoke checklist with backend, frontend, terminal, full Tears, safety-exclusion, and partial-result expectations.
+- [x] Add a decision record explaining why render orchestration reuses existing services and preserves partial audio artifacts.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration demo render package`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

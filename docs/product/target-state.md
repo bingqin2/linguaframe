@@ -61,7 +61,7 @@ Stage 1 goals:
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.
-- Validate demo narration setup through the browser `Demo narration preset` panel, backend preset apply response, terminal `scripts/demo/narration-demo-preset.sh`, and optional full Tears preset application before narration evidence export.
+- Validate demo narration setup through the browser `Demo narration preset` and `Render narration demo` panels, backend preset apply/render responses, terminal `scripts/demo/narration-demo-preset.sh` and `scripts/demo/narration-demo-render.sh`, and optional full Tears narration render before narration evidence export.
 - Validate final demo readiness through the browser `Demo acceptance gate`, backend gate JSON, and terminal full-video `demo-acceptance-gate.json` output.
 - Validate offline reviewer handoff through the browser `Demo handoff portal`, backend portal JSON/Markdown/ZIP, and terminal full-video `demo-handoff-portal.zip` output.
 - Keep secrets local.
@@ -143,7 +143,7 @@ A user should be able to:
 21. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
 22. Download a demo handoff portal ZIP with `index.html` as an offline reviewer entry point to all safe job evidence.
 23. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
-24. Add time-coded narration rows, choose inherited/default or explicit provider voice presets, inspect proportional timeline bars, understand gaps as intentional silence, fix overlaps or invalid windows, tune mix settings, generate narration audio/video, and download safe narration evidence.
+24. Add time-coded narration rows, choose inherited/default or explicit provider voice presets, inspect proportional timeline bars, understand gaps as intentional silence, fix overlaps or invalid windows, tune mix settings, generate narration audio/video, run the one-click narration demo render for completed Tears jobs, and download safe narration evidence.
 25. Play the generated dubbing audio with visible file metadata and download evidence.
 26. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
 27. Inspect cost and processing time.
