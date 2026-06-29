@@ -165,6 +165,7 @@ Build:
 - OpenAI TTS client.
 - Job-level TTS voice selection. Status: implemented through upload API, React form, job/list/detail responses, dispatch payloads, provider requests, and TTS cache identity.
 - Dubbing text preparation.
+- Time-coded custom narration segments. Status: future work. The target is an operator-facing narration editor where each segment has a start/end time, text, voice, validation, TTS evidence, and optional narrated-video export.
 - TTS artifact storage.
 - Audio preview and download API.
 - TTS usage and cost record.
@@ -174,12 +175,14 @@ Do not build yet:
 - Perfect segment-level alignment.
 - Voice cloning.
 - Lip sync.
+- Full nonlinear video editing, timeline drag/drop, automatic background-music ducking, or replacing existing subtitle review artifacts.
 
 Exit criteria:
 
 - A completed transcript or translation can produce a TTS audio file.
 - The frontend can play or download the generated audio.
 - TTS failures are retryable and visible.
+- Future narration slices can add multiple time-coded explanatory voiceover segments and produce separate narration outputs without disrupting the current localization pipeline.
 
 Suggested ExecPlan:
 

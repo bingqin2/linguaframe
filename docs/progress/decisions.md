@@ -713,3 +713,11 @@ Decision: Store subtitle review annotations in the draft overlay and export revi
 Reason: The demo needs to prove what a reviewer accepted, edited, or marked for follow-up without turning the MVP into a multi-user review system or leaking free-form note text into handoff packages.
 
 Impact: Draft rows now carry review decision, issue categories, and reviewer note metadata beside corrected text. `GET /api/jobs/{jobId}/subtitle-review-evidence`, Markdown download, ZIP download, the browser review-evidence panel, and `scripts/demo/subtitle-review-evidence.sh` summarize review completion, category counts, note counts, release-note length, checks, safe links, and package entries. Evidence packages exclude raw transcript text, generated subtitle text, corrected subtitle text, reviewer note bodies, local paths, object keys, provider payloads, tokens, API keys, and media bytes.
+
+## 2026-06-29
+
+Decision: Add time-coded custom narration as a future product goal that builds on the existing TTS pipeline.
+
+Reason: The product should eventually support explanatory voiceover segments, such as adding narration at `00:15-00:28` and `00:55-01:10`, while preserving the current localization pipeline and reviewed subtitle handoff semantics.
+
+Impact: Future feature slices should treat narration as operator-authored, time-coded text segments synthesized through the existing TTS provider/cache/audit boundary and exported as separate narration audio or narrated-video artifacts. It should not mutate generated subtitles, reviewed subtitles, generated burned videos, or reviewed handoff artifacts by default, and it should avoid becoming a full nonlinear video editor.
