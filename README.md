@@ -141,6 +141,7 @@ docker compose --env-file .env up -d --build
 scripts/demo/private-demo-preflight.sh
 scripts/demo/upload-readiness.sh
 scripts/demo/upload-execution-plan.sh
+scripts/demo/upload-execution-plan-report.sh
 scripts/demo/upload-cost-estimate.sh
 scripts/demo/demo-sample-media-catalog.sh
 scripts/demo/demo-run-launcher.sh
@@ -175,6 +176,16 @@ scripts/demo/upload-execution-plan.sh
 ```
 
 It calls `POST /api/media/uploads/execution-plan`, writes `/tmp/linguaframe-demo/upload-execution-plan.json`, and prints metadata-only status, duration, cost, estimated processing time, source SHA-256, duplicate source match count, source reuse decision, safe reuse links, blocking gates, paid stages, and commands. The browser upload form exposes the same `Execution plan` panel beside validation/readiness/cost, including a `Source reuse decision` card when the selected file can be compared with prior owner-scoped uploads. To test reuse, complete one upload for a sample video, then run `scripts/demo/source-reuse-decision.sh` or `scripts/demo/upload-execution-plan.sh` again with the same sample path; `sourceReuseDecisionCandidateCount` or `uploadExecutionPlanDuplicateSourceMatchCount` should be greater than zero, and completed matches should expose safe job evidence/package links. Use it as the main pre-upload decision surface; it does not store media, create jobs, dispatch queues, execute FFmpeg, or call OpenAI.
+
+For a shareable pre-upload report, use the browser `Copy plan` or `Download Markdown` controls in the same panel, or run:
+
+```bash
+LINGUAFRAME_TEARS_SAMPLE_PATH=/Users/wangbingqin/Downloads/tos_casting-720p.mp4 \
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+scripts/demo/upload-execution-plan-report.sh
+```
+
+The report calls `POST /api/media/uploads/execution-plan/markdown/download` and writes `/tmp/linguaframe-demo/upload-execution-plan.md` by default. It is read-only and metadata-only: it includes filename, content type, size, duration, source fingerprint, validation state, cost/time estimate, source reuse decision, safe links, gates, stages, commands, and safety notes, but excludes media bytes, object keys, local paths, raw transcripts/subtitles, provider payloads, API keys, and tokens. Set `LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH=/tmp/linguaframe-demo/custom.md` when running `scripts/demo/upload-execution-plan.sh` to export JSON and Markdown in one pass.
 
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 

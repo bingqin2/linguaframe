@@ -28,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -196,6 +198,40 @@ class MediaUploadControllerTests {
                 .andExpect(jsonPath("$.stages[?(@.id == 'translation')]").isArray())
                 .andExpect(jsonPath("$.gates[?(@.id == 'uploadValidation')]").isArray())
                 .andExpect(jsonPath("$.commands[?(@.id == 'upload')]").isArray());
+    }
+
+    @Test
+    void downloadsUploadExecutionPlanMarkdown() throws Exception {
+        properties.getCost().setTranscriptionUsdPerMinute(new java.math.BigDecimal("0.006"));
+        properties.getCost().setTranslationInputUsdPerMillionTokens(new java.math.BigDecimal("5"));
+        properties.getCost().setTranslationOutputUsdPerMillionTokens(new java.math.BigDecimal("15"));
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads/execution-plan/markdown/download")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("translationStyle", "formal")
+                        .param("subtitleStylePreset", "high_contrast")
+                        .param("subtitlePolishingMode", "balanced")
+                        .param("translationGlossary", "Maya => 玛雅")
+                        .param("demoProfileId", "tears-showcase"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("text/markdown"))
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"upload-execution-plan.md\""))
+                .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                        .contains("# Upload Execution Plan")
+                        .contains("## Source Metadata")
+                        .contains("sample.mp4")
+                        .contains("039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81")
+                        .contains("## Source Reuse Decision")
+                        .contains("No previous source match found.")
+                        .contains("## Gates")
+                        .contains("## Stages")
+                        .contains("## Commands")
+                        .doesNotContain("source-videos/")
+                        .doesNotContain("/Users/")
+                        .doesNotContain("sk-"));
     }
 
     @Test

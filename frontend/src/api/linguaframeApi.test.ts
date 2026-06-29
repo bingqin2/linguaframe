@@ -42,6 +42,7 @@ import {
   getOwnerQuotaPreflight,
   estimateUploadCost,
   estimateUploadExecutionPlan,
+  downloadUploadExecutionPlanMarkdown,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -788,6 +789,47 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
     expect(body.get('file')).toBe(file);
     expect(body.get('targetLanguage')).toBe('zh-CN');
+    expect(body.get('translationStyle')).toBe('FORMAL');
+    expect(body.get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
+    expect(body.get('translationGlossary')).toBe('Maya => 玛雅');
+    expect(body.get('subtitlePolishingMode')).toBe('BALANCED');
+    expect(body.get('demoProfileId')).toBe('tears-showcase');
+  });
+
+  test('downloads upload execution plan markdown with matching multipart fields', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# Upload Execution Plan\n', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+    const file = new File(['demo'], 'sample.mp4', { type: 'video/mp4' });
+
+    const result = await downloadUploadExecutionPlanMarkdown(
+      file,
+      'zh-CN',
+      '',
+      'formal',
+      'high_contrast',
+      'Maya => 玛雅',
+      'balanced',
+      'tears-showcase'
+    );
+
+    expect(await result.text()).toBe('# Upload Execution Plan\n');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads/execution-plan/markdown/download',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData)
+      })
+    );
+    const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    expect(body.get('file')).toBe(file);
+    expect(body.get('targetLanguage')).toBe('zh-CN');
+    expect(body.has('ttsVoice')).toBe(false);
     expect(body.get('translationStyle')).toBe('FORMAL');
     expect(body.get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
     expect(body.get('translationGlossary')).toBe('Maya => 玛雅');

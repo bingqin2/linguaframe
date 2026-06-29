@@ -44,6 +44,16 @@ fi
 
 demo_curl -fsS "${form_args[@]}" "$BASE_URL/api/media/uploads/execution-plan" >"$OUTPUT_PATH"
 
+if [[ -n "${LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH:-}" ]]; then
+  mkdir -p "$(dirname "$LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH")"
+  demo_curl -fsS "${form_args[@]}" \
+    "$BASE_URL/api/media/uploads/execution-plan/markdown/download" \
+    >"$LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH"
+  echo "uploadExecutionPlanReportPath=$LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH"
+  echo "uploadExecutionPlanReportBytes=$(wc -c <"$LINGUAFRAME_UPLOAD_EXECUTION_PLAN_MARKDOWN_PATH" | tr -d ' ')"
+  echo "uploadExecutionPlanReportStatus=written"
+fi
+
 python3 - "$OUTPUT_PATH" <<'PY'
 import json
 import sys
