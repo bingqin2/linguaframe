@@ -47,7 +47,7 @@
 - [x] Verify no object keys, local paths, provider payloads, tokens, or media bytes are included.
 - [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration script package export`.
+- [x] Commit with message `Add narration script package export`.
 
 ## Task 2: Backend Script Package Import And Validation
 
@@ -66,13 +66,13 @@
 - Request accepts package metadata plus `segments`, `mixSettings`, and `replaceExisting=true`.
 - Response returns `NarrationScriptPackageImportVo(jobId, importedSegmentCount, totalCharacterCount, voiceSummary, replacedExisting, warnings, workspace)`.
 
-- [ ] Write failing tests for successful import replacing an existing workspace, preserving mix settings, and returning the refreshed workspace.
-- [ ] Write failing tests for rejected imports: missing `replaceExisting=true`, overlapping ranges, end before start, ranges beyond source duration when duration is known, empty text, text over existing limits, and unknown voice presets.
-- [ ] Implement import validation before mutation; if any row is invalid, keep the existing workspace unchanged.
-- [ ] Reuse current narration workspace save path so timeline summary, mix settings, and voice catalog remain consistent.
-- [ ] Return clear validation messages that the frontend can display without stack traces.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests,NarrationWorkspaceServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing tests for successful import replacing an existing workspace, preserving mix settings, and returning the refreshed workspace.
+- [x] Write failing tests for rejected imports: missing `replaceExisting=true`, overlapping ranges, end before start, ranges beyond source duration when duration is known, empty text, text over existing limits, and unknown voice presets.
+- [x] Implement import validation before mutation; if any row is invalid, keep the existing workspace unchanged.
+- [x] Reuse current narration workspace save path so timeline summary, mix settings, and voice catalog remain consistent.
+- [x] Return clear validation messages that the frontend can display without stack traces.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests,NarrationWorkspaceServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Import narration script packages`.
 
 ## Task 3: React Import/Export Workbench

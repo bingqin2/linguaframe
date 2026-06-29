@@ -6,6 +6,21 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added backend narration script package import DTOs, import result VO, service method, and `POST /api/jobs/{jobId}/narration-script-package/import`.
+- Reused the narration workspace save/update path for imported segments and mix settings so timeline summaries, voice catalog metadata, and mix settings remain consistent with normal workspace editing.
+- Added import validation before mutation for `replaceExisting=true`, contiguous indexes, time ranges, overlap, known source duration bounds, text emptiness/length, voice preset membership, and mix setting ranges.
+- Verified rejected imports leave existing narration segments and mix settings unchanged.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests` first failed at test compilation because `ImportNarrationScriptPackageDto`, `ImportNarrationScriptPackageSegmentDto`, `NarrationScriptPackageImportVo`, and the import-capable service constructor/method did not exist.
+- After implementation, `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests` passed with `Tests run: 71, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests,NarrationWorkspaceServiceTests` passed with `Tests run: 79, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Started the narration script package workbench feature slice.
 - Added backend narration script package export JSON, Markdown, and ZIP routes.
 - Added script package VO/BO/service types that expose timing, voice preset state, mix settings, package checks, safe links, package entries, and explicit operator-authored narration text.

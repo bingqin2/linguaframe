@@ -2265,6 +2265,93 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void importsNarrationScriptPackageForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:00Z");
+        createJobWithDuration("job-controller-video-script-import", "job-controller-job-script-import", 90, createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-script-import")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 1.000,
+                                      "endSeconds": 2.000,
+                                      "text": "Old script.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-script-package/import", "job-controller-job-script-import")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "replaceExisting": true,
+                                  "mixSettings": {
+                                    "duckingVolume": 0.125,
+                                    "narrationVolume": 1.750,
+                                    "fadeDurationMs": 400
+                                  },
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "demo-voice"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-script-import"))
+                .andExpect(jsonPath("$.importedSegmentCount").value(2))
+                .andExpect(jsonPath("$.totalCharacterCount").value(49))
+                .andExpect(jsonPath("$.voiceSummary").value("PRESET:demo-voice"))
+                .andExpect(jsonPath("$.replacedExisting").value(true))
+                .andExpect(jsonPath("$.workspace.segments[0].text").value("Explain the first scene."))
+                .andExpect(jsonPath("$.workspace.segments[1].text").value("Explain the second scene."))
+                .andExpect(jsonPath("$.workspace.mixSettings.duckingVolume").value(0.125))
+                .andExpect(jsonPath("$.workspace.mixSettings.narrationVolume").value(1.750))
+                .andExpect(jsonPath("$.workspace.mixSettings.fadeDurationMs").value(400));
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-script-package/import", "job-controller-job-script-import")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "replaceExisting": true,
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 95.000,
+                                      "text": "Invalid imported script.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-script-import"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.segments[0].text").value("Explain the first scene."))
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125));
+    }
+
+    @Test
     void returnsSubtitleReviewEvidenceJsonMarkdownAndPackage() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:18:00Z");
         createJob("job-controller-video-review-evidence", "job-controller-job-review-evidence", "review-evidence.mp4", LocalizationJobStatus.COMPLETED, createdAt);
@@ -3497,6 +3584,26 @@ class LocalizationJobControllerTests {
 
     private void createJob(String videoId, String jobId, Instant createdAt) {
         createJob(videoId, jobId, "sample.mp4", LocalizationJobStatus.QUEUED, createdAt);
+    }
+
+    private void createJobWithDuration(String videoId, String jobId, int durationSeconds, Instant createdAt) {
+        videoRepository.save(new VideoRecord(
+                videoId,
+                "sample.mp4",
+                "video/mp4",
+                123L,
+                durationSeconds,
+                "source-videos/" + videoId + "/sample.mp4",
+                MediaUploadStatus.UPLOADED,
+                createdAt
+        ));
+        jobRepository.save(new LocalizationJobRecord(
+                jobId,
+                videoId,
+                "zh-CN",
+                LocalizationJobStatus.QUEUED,
+                createdAt
+        ));
     }
 
     private void createJob(

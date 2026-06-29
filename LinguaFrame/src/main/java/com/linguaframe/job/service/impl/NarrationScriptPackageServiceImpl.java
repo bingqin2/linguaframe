@@ -3,19 +3,27 @@ package com.linguaframe.job.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
+import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
+import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageSegmentDto;
+import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationMixSettingsVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageCheckVo;
+import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageLinkVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
+import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
 import com.linguaframe.job.service.NarrationVoiceCatalogService;
+import com.linguaframe.job.service.NarrationWorkspaceService;
+import com.linguaframe.media.repository.VideoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -39,11 +47,19 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
     private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.350");
     private static final BigDecimal DEFAULT_NARRATION_VOLUME = new BigDecimal("1.000");
     private static final int DEFAULT_FADE_DURATION_MS = 250;
+    private static final int MAX_SEGMENTS = 20;
+    private static final int MAX_TEXT_LENGTH = 1000;
+    private static final int MAX_VOICE_LENGTH = 64;
+    private static final BigDecimal MAX_DUCKING_VOLUME = new BigDecimal("1.000");
+    private static final BigDecimal MAX_NARRATION_VOLUME = new BigDecimal("2.000");
+    private static final int MAX_FADE_DURATION_MS = 5000;
 
     private final NarrationSegmentRepository segmentRepository;
     private final NarrationMixSettingsRepository mixSettingsRepository;
     private final LocalizationJobQueryService queryService;
     private final NarrationVoiceCatalogService voiceCatalogService;
+    private final NarrationWorkspaceService workspaceService;
+    private final VideoRepository videoRepository;
     private final ObjectMapper objectMapper;
 
     public NarrationScriptPackageServiceImpl(
@@ -52,7 +68,34 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
             LocalizationJobQueryService queryService,
             NarrationVoiceCatalogService voiceCatalogService
     ) {
-        this(segmentRepository, mixSettingsRepository, queryService, voiceCatalogService, new ObjectMapper().findAndRegisterModules());
+        this(
+                segmentRepository,
+                mixSettingsRepository,
+                queryService,
+                voiceCatalogService,
+                null,
+                null,
+                new ObjectMapper().findAndRegisterModules()
+        );
+    }
+
+    public NarrationScriptPackageServiceImpl(
+            NarrationSegmentRepository segmentRepository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            LocalizationJobQueryService queryService,
+            NarrationVoiceCatalogService voiceCatalogService,
+            NarrationWorkspaceService workspaceService,
+            VideoRepository videoRepository
+    ) {
+        this(
+                segmentRepository,
+                mixSettingsRepository,
+                queryService,
+                voiceCatalogService,
+                workspaceService,
+                videoRepository,
+                new ObjectMapper().findAndRegisterModules()
+        );
     }
 
     @Autowired
@@ -61,12 +104,16 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
             NarrationMixSettingsRepository mixSettingsRepository,
             LocalizationJobQueryService queryService,
             NarrationVoiceCatalogService voiceCatalogService,
+            NarrationWorkspaceService workspaceService,
+            VideoRepository videoRepository,
             ObjectMapper objectMapper
     ) {
         this.segmentRepository = segmentRepository;
         this.mixSettingsRepository = mixSettingsRepository;
         this.queryService = queryService;
         this.voiceCatalogService = voiceCatalogService;
+        this.workspaceService = workspaceService;
+        this.videoRepository = videoRepository;
         this.objectMapper = objectMapper;
     }
 
@@ -81,7 +128,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         return new NarrationScriptPackageVo(
                 jobId,
                 job.targetLanguage(),
-                null,
+                sourceDurationSeconds(job),
                 segments.isEmpty() ? "BLOCKED" : "READY",
                 segments.size(),
                 totalCharacters(segments),
@@ -165,6 +212,48 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         );
     }
 
+    @Override
+    public NarrationScriptPackageImportVo importPackage(String jobId, ImportNarrationScriptPackageDto request) {
+        if (workspaceService == null) {
+            throw new IllegalStateException("Narration script package import is not configured.");
+        }
+        LocalizationJobVo job = queryService.getJob(jobId);
+        if (request == null || !Boolean.TRUE.equals(request.replaceExisting())) {
+            throw new IllegalArgumentException("Narration script package import requires replaceExisting=true.");
+        }
+        List<ImportNarrationScriptPackageSegmentDto> segments = request.segments() == null
+                ? List.of()
+                : request.segments();
+        validateImportSegments(segments, sourceDurationSeconds(job));
+        validateImportMixSettings(request.mixSettings());
+
+        NarrationWorkspaceVo workspace = workspaceService.saveWorkspace(
+                jobId,
+                new SaveNarrationSegmentsRequest(segments.stream()
+                        .sorted(Comparator.comparingInt(ImportNarrationScriptPackageSegmentDto::index))
+                        .map(segment -> new SaveNarrationSegmentsRequest.Segment(
+                                segment.index(),
+                                normalizeSeconds(segment.startSeconds(), "startSeconds"),
+                                normalizeSeconds(segment.endSeconds(), "endSeconds"),
+                                segment.text().trim(),
+                                normalizeVoice(segment.voice())
+                        ))
+                        .toList())
+        );
+        if (request.mixSettings() != null) {
+            workspace = workspaceService.updateMixSettings(jobId, request.mixSettings());
+        }
+        return new NarrationScriptPackageImportVo(
+                jobId,
+                segments.size(),
+                segments.stream().mapToInt(segment -> segment.text().trim().length()).sum(),
+                voiceSummaryFromImport(segments),
+                true,
+                List.of(),
+                workspace
+        );
+    }
+
     private byte[] zipBytes(NarrationScriptPackageVo scriptPackage, String markdown) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
@@ -224,6 +313,15 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 text.length(),
                 record.updatedAt()
         );
+    }
+
+    private BigDecimal sourceDurationSeconds(LocalizationJobVo job) {
+        if (job == null || job.videoId() == null || videoRepository == null) {
+            return null;
+        }
+        return videoRepository.findById(job.videoId())
+                .map(video -> video.durationSeconds() == null ? null : BigDecimal.valueOf(video.durationSeconds()).setScale(3, RoundingMode.HALF_UP))
+                .orElse(null);
     }
 
     private NarrationMixSettingsVo mixSettings(String jobId) {
@@ -291,6 +389,106 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         return segments.stream().mapToInt(NarrationScriptPackageSegmentVo::characterCount).sum();
     }
 
+    private void validateImportSegments(
+            List<ImportNarrationScriptPackageSegmentDto> segments,
+            BigDecimal durationSeconds
+    ) {
+        if (segments.size() > MAX_SEGMENTS) {
+            throw new IllegalArgumentException("Narration workspace supports at most 20 segments.");
+        }
+        List<ImportNarrationScriptPackageSegmentDto> byIndex = segments.stream()
+                .sorted(Comparator.comparingInt(ImportNarrationScriptPackageSegmentDto::index))
+                .toList();
+        for (int i = 0; i < byIndex.size(); i++) {
+            ImportNarrationScriptPackageSegmentDto segment = byIndex.get(i);
+            if (segment.index() != i) {
+                throw new IllegalArgumentException("Narration segment indexes must start at 0 and be contiguous.");
+            }
+            validateImportSegment(segment, durationSeconds);
+        }
+        List<ImportNarrationScriptPackageSegmentDto> byTime = segments.stream()
+                .sorted(Comparator.comparing(segment -> normalizeSeconds(segment.startSeconds(), "startSeconds")))
+                .toList();
+        for (int i = 1; i < byTime.size(); i++) {
+            BigDecimal previousEnd = normalizeSeconds(byTime.get(i - 1).endSeconds(), "endSeconds");
+            BigDecimal currentStart = normalizeSeconds(byTime.get(i).startSeconds(), "startSeconds");
+            if (currentStart.compareTo(previousEnd) < 0) {
+                throw new IllegalArgumentException("Narration script package segments must not overlap.");
+            }
+        }
+    }
+
+    private void validateImportSegment(ImportNarrationScriptPackageSegmentDto segment, BigDecimal durationSeconds) {
+        BigDecimal start = normalizeSeconds(segment.startSeconds(), "startSeconds");
+        BigDecimal end = normalizeSeconds(segment.endSeconds(), "endSeconds");
+        if (start.compareTo(ZERO) < 0) {
+            throw new IllegalArgumentException("Narration startSeconds must be greater than or equal to 0.");
+        }
+        if (end.compareTo(start) <= 0) {
+            throw new IllegalArgumentException("Narration endSeconds must be greater than startSeconds.");
+        }
+        if (durationSeconds != null && end.compareTo(durationSeconds) > 0) {
+            throw new IllegalArgumentException("Narration script package segment endSeconds must be within source duration.");
+        }
+        if (segment.text() == null || segment.text().trim().isEmpty()) {
+            throw new IllegalArgumentException("Narration text must not be blank.");
+        }
+        if (segment.text().trim().length() > MAX_TEXT_LENGTH) {
+            throw new IllegalArgumentException("Narration text must be at most 1000 characters.");
+        }
+        String voice = normalizeVoice(segment.voice());
+        if (voice != null && voice.length() > MAX_VOICE_LENGTH) {
+            throw new IllegalArgumentException("Narration voice must be at most 64 characters.");
+        }
+        if (!voiceCatalogService.containsVoice(voice)) {
+            throw new IllegalArgumentException("Narration voice must be one of the configured presets.");
+        }
+    }
+
+    private void validateImportMixSettings(UpdateNarrationMixSettingsDto request) {
+        if (request == null) {
+            return;
+        }
+        normalizeMixDecimal(request.duckingVolume(), "duckingVolume", MAX_DUCKING_VOLUME);
+        normalizeMixDecimal(request.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME);
+        normalizeFadeDuration(request.fadeDurationMs());
+    }
+
+    private BigDecimal normalizeSeconds(BigDecimal value, String label) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration " + label + " is required.");
+        }
+        return value.setScale(3, RoundingMode.HALF_UP);
+    }
+
+    private String normalizeVoice(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private BigDecimal normalizeMixDecimal(BigDecimal value, String label, BigDecimal max) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration " + label + " is required.");
+        }
+        BigDecimal normalized = value.setScale(3, RoundingMode.HALF_UP);
+        if (normalized.compareTo(ZERO) < 0 || normalized.compareTo(max) > 0) {
+            throw new IllegalArgumentException(label + " must be between 0.00 and " + max.setScale(2, RoundingMode.HALF_UP).toPlainString() + ".");
+        }
+        return normalized;
+    }
+
+    private int normalizeFadeDuration(Integer value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration fadeDurationMs is required.");
+        }
+        if (value < 0 || value > MAX_FADE_DURATION_MS) {
+            throw new IllegalArgumentException("fadeDurationMs must be between 0 and 5000.");
+        }
+        return value;
+    }
+
     private BigDecimal totalDuration(List<NarrationScriptPackageSegmentVo> segments) {
         return segments.stream()
                 .map(NarrationScriptPackageSegmentVo::durationSeconds)
@@ -303,6 +501,19 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 .map(NarrationScriptPackageSegmentVo::voice)
                 .filter(voice -> voice != null && !voice.isBlank())
                 .map(String::trim)
+                .distinct()
+                .toList();
+        if (voices.isEmpty()) {
+            return "DEFAULT:" + voiceCatalogService.defaultVoice();
+        }
+        return voices.size() == 1 ? "PRESET:" + voices.getFirst() : "MIXED";
+    }
+
+    private String voiceSummaryFromImport(List<ImportNarrationScriptPackageSegmentDto> segments) {
+        List<String> voices = segments.stream()
+                .map(ImportNarrationScriptPackageSegmentDto::voice)
+                .map(this::normalizeVoice)
+                .filter(voice -> voice != null && !voice.isBlank())
                 .distinct()
                 .toList();
         if (voices.isEmpty()) {

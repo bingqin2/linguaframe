@@ -2,6 +2,7 @@ package com.linguaframe.job.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
@@ -42,6 +43,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
@@ -1390,6 +1392,22 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return narrationScriptPackageService.getPackage(jobId);
+    }
+
+    @PostMapping("/{jobId}/narration-script-package/import")
+    @Operation(summary = "Import an explicit narration script package into the workspace")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration script package was imported."),
+            @ApiResponse(responseCode = "400", description = "The narration script package failed validation."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationScriptPackageImportVo importNarrationScriptPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody ImportNarrationScriptPackageDto request
+    ) {
+        return narrationScriptPackageService.importPackage(jobId, request);
     }
 
     @GetMapping("/{jobId}/narration-script-package/markdown/download")
