@@ -73,7 +73,7 @@
 - [x] Return clear validation messages that the frontend can display without stack traces.
 - [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests,NarrationWorkspaceServiceTests`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Import narration script packages`.
+- [x] Commit with message `Import narration script packages`.
 
 ## Task 3: React Import/Export Workbench
 
@@ -89,15 +89,15 @@
 - Add `getNarrationScriptPackage`, `downloadNarrationScriptPackageMarkdown`, `downloadNarrationScriptPackageZip`, and `importNarrationScriptPackage`.
 - Add `NarrationScriptPackage`, `NarrationScriptPackageSegment`, `NarrationScriptPackageImportResult`, and request DTO types.
 
-- [ ] Write failing API tests for encoded route URLs, JSON fetch, Markdown download, ZIP download, and import POST payload.
-- [ ] Write failing App tests for package preview, Markdown/ZIP export buttons, JSON paste/import flow, import validation errors, and refreshed workspace after successful import.
-- [ ] Add a compact `Script package` panel inside `Narration workspace` with export summary, package checks, safe download actions, and an import textarea/file-like paste area.
-- [ ] On import success, refresh workspace, narration evidence, and artifacts without reloading the page.
-- [ ] Keep controls disabled when package JSON is invalid, `replaceExisting` is not acknowledged, or validation errors are returned.
-- [ ] Keep the UI dense and workbench-like, following the existing segment table plus inspector pattern.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing API tests for encoded route URLs, JSON fetch, Markdown download, ZIP download, and import POST payload.
+- [x] Write failing App tests for package preview, Markdown/ZIP export buttons, JSON paste/import flow, import validation errors, and refreshed workspace after successful import.
+- [x] Add a compact `Script package` panel inside `Narration workspace` with export summary, package checks, safe download actions, and an import textarea/file-like paste area.
+- [x] On import success, refresh workspace, narration evidence, and artifacts without reloading the page.
+- [x] Keep controls disabled when package JSON is invalid, `replaceExisting` is not acknowledged, or validation errors are returned.
+- [x] Keep the UI dense and workbench-like, following the existing segment table plus inspector pattern.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration script package UI`.
 
 ## Task 4: Demo Script, Docs, And Final Verification

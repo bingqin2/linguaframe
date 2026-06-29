@@ -32,6 +32,7 @@ import type {
   ModelUsageLedger,
   NarrationEvidence,
   NarrationGeneration,
+  NarrationScriptPackage,
   NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
@@ -2443,6 +2444,112 @@ describe('App', () => {
     expect(within(narrationPanel).getByRole('button', { name: /refresh evidence/i })).toBeEnabled();
     expect(saveNarrationWorkspace).not.toHaveBeenCalled();
     expect(generateNarrationAudio).not.toHaveBeenCalled();
+  });
+
+  test('exports and imports narration script packages from the narration workspace', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace')
+      .mockResolvedValueOnce(narrationWorkspaceFixture({ jobId: 'narration-package-job' }))
+      .mockResolvedValueOnce(narrationWorkspaceFixture({
+        jobId: 'narration-package-job',
+        segments: [
+          {
+            ...narrationWorkspaceFixture().segments[0],
+            text: 'Imported first explanation.'
+          }
+        ]
+      }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'downloadNarrationScriptPackageMarkdown').mockResolvedValue(new Blob(['# Package']));
+    vi.spyOn(linguaFrameApi, 'downloadNarrationScriptPackageZip').mockResolvedValue(new Blob(['zip']));
+    const importNarrationScriptPackage = vi.spyOn(linguaFrameApi, 'importNarrationScriptPackage')
+      .mockResolvedValue({
+        jobId: 'narration-package-job',
+        importedSegmentCount: 1,
+        totalCharacterCount: 27,
+        voiceSummary: 'PRESET:alloy',
+        replacedExisting: true,
+        warnings: [],
+        workspace: narrationWorkspaceFixture({
+          jobId: 'narration-package-job',
+          segments: [
+            {
+              ...narrationWorkspaceFixture().segments[0],
+              text: 'Imported first explanation.'
+            }
+          ]
+        })
+      });
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-package-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const packagePanel = within(narrationPanel).getByRole('region', { name: /script package/i });
+    expect(within(packagePanel).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(packagePanel).getByText(/2 segments/)).toBeInTheDocument();
+    expect(within(packagePanel).getByText('PRESET:alloy')).toBeInTheDocument();
+    expect(within(packagePanel).getByText('SCRIPT_SEGMENTS: READY')).toBeInTheDocument();
+
+    await userEvent.click(within(packagePanel).getByRole('button', { name: /download package markdown/i }));
+    expect(linguaFrameApi.downloadNarrationScriptPackageMarkdown).toHaveBeenCalledWith('narration-package-job');
+    await userEvent.click(within(packagePanel).getByRole('button', { name: /download package zip/i }));
+    expect(linguaFrameApi.downloadNarrationScriptPackageZip).toHaveBeenCalledWith('narration-package-job');
+
+    await userEvent.click(within(packagePanel).getByLabelText(/script package json/i));
+    await userEvent.paste('{not valid json');
+    expect(within(packagePanel).getByText('Package JSON is not valid.')).toBeInTheDocument();
+    expect(within(packagePanel).getByRole('button', { name: /import package/i })).toBeDisabled();
+
+    await userEvent.clear(within(packagePanel).getByLabelText(/script package json/i));
+    await userEvent.click(within(packagePanel).getByLabelText(/script package json/i));
+    await userEvent.paste(JSON.stringify({
+      replaceExisting: true,
+      mixSettings: {
+        duckingVolume: 0.125,
+        narrationVolume: 1.75,
+        fadeDurationMs: 400
+      },
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Imported first explanation.',
+          voice: 'alloy'
+        }
+      ]
+    }));
+    await userEvent.click(within(packagePanel).getByLabelText(/replace current narration workspace/i));
+    await userEvent.click(within(packagePanel).getByRole('button', { name: /import package/i }));
+
+    expect(importNarrationScriptPackage).toHaveBeenCalledWith('narration-package-job', {
+      replaceExisting: true,
+      mixSettings: {
+        duckingVolume: 0.125,
+        narrationVolume: 1.75,
+        fadeDurationMs: 400
+      },
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Imported first explanation.',
+          voice: 'alloy'
+        }
+      ]
+    });
+    expect(await within(narrationPanel).findByText('Imported 1 segment from package.')).toBeInTheDocument();
+    expect((await within(narrationPanel).findAllByText('Imported first explanation.')).length).toBeGreaterThan(0);
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -5616,6 +5723,71 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
       }
     ],
     safetyNotes: ['Narration scripts stay in the workspace only.'],
+    ...overrides
+  };
+}
+
+function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage> = {}): NarrationScriptPackage {
+  return {
+    jobId: 'narration-package-job',
+    targetLanguage: 'zh-CN',
+    durationSeconds: 90,
+    status: 'READY',
+    segmentCount: 2,
+    totalCharacterCount: 49,
+    totalTimelineDurationSeconds: 28.5,
+    timelineGapCount: 1,
+    timelineGapSeconds: 27,
+    timelineHasOverlap: false,
+    voiceSummary: 'PRESET:alloy',
+    defaultVoice: 'verse',
+    mixSettings: {
+      duckingVolume: 0.35,
+      narrationVolume: 1,
+      fadeDurationMs: 250,
+      updatedAt: null
+    },
+    voiceCatalog: narrationWorkspaceFixture().voiceCatalog,
+    segments: [
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Explain the first scene.',
+        voice: 'alloy',
+        characterCount: 24,
+        updatedAt: '2026-06-29T10:00:00Z'
+      },
+      {
+        index: 1,
+        startSeconds: 55,
+        endSeconds: 70.5,
+        durationSeconds: 15.5,
+        text: 'Explain the second scene.',
+        voice: 'verse',
+        characterCount: 25,
+        updatedAt: '2026-06-29T10:00:00Z'
+      }
+    ],
+    checks: [
+      {
+        key: 'SCRIPT_SEGMENTS',
+        label: 'Script segments',
+        status: 'READY',
+        detail: '2 narration segments saved.'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_SCRIPT_PACKAGE',
+        label: 'Narration script package',
+        href: '/api/jobs/narration-package-job/narration-script-package',
+        contentType: 'application/json'
+      }
+    ],
+    packageEntries: ['manifest.json', 'narration-script-package.json', 'narration-script-package.md', 'README.md'],
+    safetyNotes: ['This explicit package includes operator-authored narration text.'],
     ...overrides
   };
 }

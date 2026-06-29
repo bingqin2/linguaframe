@@ -486,6 +486,46 @@ td {
   resize: vertical;
 }
 
+.script-package-panel {
+  display: grid;
+  gap: 12px;
+  min-width: 280px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.script-package-panel .compact-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+  margin: 0;
+}
+
+.script-package-panel h4 {
+  margin: 0;
+}
+
+.script-package-panel .muted {
+  margin: 3px 0 0;
+}
+
+.script-package-panel textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.script-package-checks {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 0.86rem;
+}
+
 .mix-settings-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

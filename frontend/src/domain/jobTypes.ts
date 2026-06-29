@@ -1635,6 +1635,77 @@ export interface NarrationEvidence {
   safetyNotes: string[];
 }
 
+export interface NarrationScriptPackageSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  text: string;
+  voice: string | null;
+  characterCount: number;
+  updatedAt: string | null;
+}
+
+export interface NarrationScriptPackageCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface NarrationScriptPackageLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+}
+
+export interface NarrationScriptPackage {
+  jobId: string;
+  targetLanguage: string;
+  durationSeconds: number | null;
+  status: string;
+  segmentCount: number;
+  totalCharacterCount: number;
+  totalTimelineDurationSeconds: number;
+  timelineGapCount: number;
+  timelineGapSeconds: number;
+  timelineHasOverlap: boolean;
+  voiceSummary: string;
+  defaultVoice: string;
+  mixSettings: NarrationMixSettings;
+  voiceCatalog: NarrationVoiceCatalog;
+  segments: NarrationScriptPackageSegment[];
+  checks: NarrationScriptPackageCheck[];
+  safeLinks: NarrationScriptPackageLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
+}
+
+export interface ImportNarrationScriptPackageSegmentRequest {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  voice: string | null;
+}
+
+export interface ImportNarrationScriptPackageRequest {
+  replaceExisting: boolean;
+  segments: ImportNarrationScriptPackageSegmentRequest[];
+  mixSettings?: UpdateNarrationMixSettingsRequest | null;
+}
+
+export interface NarrationScriptPackageImportResult {
+  jobId: string;
+  importedSegmentCount: number;
+  totalCharacterCount: number;
+  voiceSummary: string;
+  replacedExisting: boolean;
+  warnings: string[];
+  workspace: NarrationWorkspace;
+}
+
 export interface TranscriptSegment {
   index: number;
   startMs: number;

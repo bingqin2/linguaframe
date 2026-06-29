@@ -30,8 +30,11 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  ImportNarrationScriptPackageRequest,
   NarrationEvidence,
   NarrationGeneration,
+  NarrationScriptPackage,
+  NarrationScriptPackageImportResult,
   NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
@@ -957,6 +960,49 @@ export async function downloadNarrationEvidenceZip(jobId: string): Promise<Blob>
   );
 }
 
+export async function getNarrationScriptPackage(jobId: string): Promise<NarrationScriptPackage> {
+  return requestJson<NarrationScriptPackage>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-script-package`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationScriptPackageMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-script-package/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationScriptPackageZip(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-script-package/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function importNarrationScriptPackage(
+  jobId: string,
+  request: ImportNarrationScriptPackageRequest
+): Promise<NarrationScriptPackageImportResult> {
+  return requestJson<NarrationScriptPackageImportResult>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-script-package/import`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function downloadSubtitleReviewEvidenceMarkdown(jobId: string): Promise<Blob> {
   return requestBlob(
     `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence/markdown/download`,
@@ -1183,6 +1229,10 @@ export const linguaFrameApi = {
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
+  getNarrationScriptPackage,
+  downloadNarrationScriptPackageMarkdown,
+  downloadNarrationScriptPackageZip,
+  importNarrationScriptPackage,
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,
   updateSubtitleDraft,

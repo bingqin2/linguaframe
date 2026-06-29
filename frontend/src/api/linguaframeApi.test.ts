@@ -8,9 +8,12 @@ import {
   clearSubtitleDraft,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
+  downloadNarrationScriptPackageMarkdown,
+  downloadNarrationScriptPackageZip,
   getJob,
   getMediaUpload,
   getNarrationEvidence,
+  getNarrationScriptPackage,
   getNarrationWorkspace,
   getReviewedSubtitleWorkflow,
   getSubtitleReviewEvidence,
@@ -53,6 +56,7 @@ import {
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
   generateNarratedVideo,
+  importNarrationScriptPackage,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -443,6 +447,106 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
+  });
+
+  test('loads, downloads, and imports narration script packages', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job narration/package',
+        targetLanguage: 'zh-CN',
+        durationSeconds: 90,
+        status: 'READY',
+        segmentCount: 1,
+        totalCharacterCount: 24,
+        voiceSummary: 'PRESET:alloy',
+        defaultVoice: 'verse',
+        segments: [],
+        checks: [],
+        safeLinks: [],
+        packageEntries: [],
+        safetyNotes: []
+      })
+    );
+
+    await getNarrationScriptPackage('job narration/package');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['# Package'], { type: 'text/markdown' })));
+    await downloadNarrationScriptPackageMarkdown('job narration/package');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['zip'], { type: 'application/zip' })));
+    await downloadNarrationScriptPackageZip('job narration/package');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job narration/package',
+        importedSegmentCount: 1,
+        totalCharacterCount: 24,
+        voiceSummary: 'PRESET:alloy',
+        replacedExisting: true,
+        warnings: [],
+        workspace: {
+          jobId: 'job narration/package',
+          status: 'DRAFT_READY',
+          segmentCount: 1,
+          totalDurationSeconds: 13,
+          totalCharacterCount: 24,
+          generationReady: true,
+          mixSettings: {
+            duckingVolume: 0.125,
+            narrationVolume: 1.75,
+            fadeDurationMs: 400,
+            updatedAt: null
+          },
+          voiceCatalog: null,
+          timeline: null,
+          segments: [],
+          safetyNotes: []
+        }
+      })
+    );
+    await importNarrationScriptPackage('job narration/package', {
+      replaceExisting: true,
+      mixSettings: {
+        duckingVolume: 0.125,
+        narrationVolume: 1.75,
+        fadeDurationMs: 400
+      },
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        }
+      ]
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Fpackage/narration-script-package');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Fpackage/narration-script-package/markdown/download');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job%20narration%2Fpackage/narration-script-package/download');
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job%20narration%2Fpackage/narration-script-package/import');
+    expect(fetchMock.mock.calls[3]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1]?.body))).toEqual({
+      replaceExisting: true,
+      mixSettings: {
+        duckingVolume: 0.125,
+        narrationVolume: 1.75,
+        fadeDurationMs: 400
+      },
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        }
+      ]
+    });
   });
 
   test('uploads media with selected demo profile id when provided', async () => {

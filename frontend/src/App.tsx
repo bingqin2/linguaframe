@@ -35,6 +35,8 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   NarrationEvidence,
+  NarrationScriptPackage,
+  ImportNarrationScriptPackageRequest,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
@@ -414,6 +416,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
+  const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
   const [narrationError, setNarrationError] = useState<string | null>(null);
   const [narrationStatus, setNarrationStatus] = useState<string | null>(null);
   const [isSavingNarration, setIsSavingNarration] = useState(false);
@@ -1058,7 +1061,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       evidenceResult,
       draftResult,
       narrationWorkspaceResult,
-      narrationEvidenceResult
+      narrationEvidenceResult,
+      narrationScriptPackageResult
     ] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.getDeliveryManifest(jobId),
@@ -1069,7 +1073,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getSubtitleReviewEvidence(jobId),
       linguaFrameApi.getSubtitleDraft(jobId, language),
       linguaFrameApi.getNarrationWorkspace(jobId),
-      linguaFrameApi.getNarrationEvidence(jobId)
+      linguaFrameApi.getNarrationEvidence(jobId),
+      linguaFrameApi.getNarrationScriptPackage(jobId)
     ]);
 
     if (artifactResult.status === 'fulfilled') {
@@ -1153,6 +1158,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setNarrationEvidence(null);
       setNarrationError(toErrorMessage(narrationEvidenceResult.reason));
       errors.push(`Narration evidence: ${toErrorMessage(narrationEvidenceResult.reason)}`);
+    }
+
+    if (narrationScriptPackageResult.status === 'fulfilled') {
+      setNarrationScriptPackage(narrationScriptPackageResult.value);
+    } else {
+      setNarrationScriptPackage(null);
+      setNarrationError(toErrorMessage(narrationScriptPackageResult.reason));
+      errors.push(`Narration script package: ${toErrorMessage(narrationScriptPackageResult.reason)}`);
     }
 
     setPreviewErrors(errors);
@@ -2066,6 +2079,32 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleImportNarrationScriptPackage(request: ImportNarrationScriptPackageRequest) {
+    if (!job) {
+      return;
+    }
+    setIsSavingNarration(true);
+    try {
+      const result = await linguaFrameApi.importNarrationScriptPackage(job.jobId, request);
+      const [refreshedWorkspace, refreshedEvidence, refreshedScriptPackage, refreshedArtifacts] = await Promise.all([
+        linguaFrameApi.getNarrationWorkspace(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId),
+        linguaFrameApi.getNarrationScriptPackage(job.jobId),
+        linguaFrameApi.listArtifacts(job.jobId)
+      ]);
+      setNarrationWorkspace(refreshedWorkspace ?? result.workspace);
+      setNarrationEvidence(refreshedEvidence);
+      setNarrationScriptPackage(refreshedScriptPackage);
+      setArtifacts(refreshedArtifacts);
+      setNarrationError(null);
+      setNarrationStatus(`Imported ${result.importedSegmentCount} ${result.importedSegmentCount === 1 ? 'segment' : 'segments'} from package.`);
+    } catch (scriptPackageError) {
+      setNarrationError(toErrorMessage(scriptPackageError));
+    } finally {
+      setIsSavingNarration(false);
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -2749,11 +2788,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
+              onImportNarrationScriptPackage={handleImportNarrationScriptPackage}
               onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
               narrationEvidence={narrationEvidence}
+              narrationScriptPackage={narrationScriptPackage}
               narrationStatus={narrationStatus}
               narrationWorkspace={narrationWorkspace}
               previewErrors={previewErrors}
@@ -5642,12 +5683,14 @@ function JobDetail({
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
+  onImportNarrationScriptPackage,
   onPublishReviewedSubtitles,
   onSaveNarrationMixSettings,
   onSaveNarrationWorkspace,
   onSaveSubtitleDraft,
   narrationError,
   narrationEvidence,
+  narrationScriptPackage,
   narrationStatus,
   narrationWorkspace,
   previewErrors,
@@ -5756,6 +5799,7 @@ function JobDetail({
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
+  onImportNarrationScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
   onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onSaveNarrationWorkspace: (segments: NarrationWorkspace['segments']) => void;
@@ -5768,6 +5812,7 @@ function JobDetail({
   }>) => void;
   narrationError: string | null;
   narrationEvidence: NarrationEvidence | null;
+  narrationScriptPackage: NarrationScriptPackage | null;
   narrationStatus: string | null;
   narrationWorkspace: NarrationWorkspace | null;
   previewErrors: string[];
@@ -6068,9 +6113,11 @@ function JobDetail({
         onClear={onClearNarrationWorkspace}
         onGenerateAudio={onGenerateNarrationAudio}
         onGenerateVideo={onGenerateNarratedVideo}
+        onImportScriptPackage={onImportNarrationScriptPackage}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
+        scriptPackage={narrationScriptPackage}
         status={narrationStatus}
         workspace={narrationWorkspace}
       />
@@ -9076,9 +9123,11 @@ function NarrationWorkspacePanel({
   onClear,
   onGenerateAudio,
   onGenerateVideo,
+  onImportScriptPackage,
   onRefreshEvidence,
   onSave,
   onSaveMixSettings,
+  scriptPackage,
   status,
   workspace
 }: {
@@ -9092,9 +9141,11 @@ function NarrationWorkspacePanel({
   onClear: () => void;
   onGenerateAudio: () => void;
   onGenerateVideo: () => void;
+  onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onRefreshEvidence: () => void;
   onSave: (segments: NarrationWorkspace['segments']) => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
+  scriptPackage: NarrationScriptPackage | null;
   status: string | null;
   workspace: NarrationWorkspace | null;
 }) {
@@ -9201,6 +9252,13 @@ function NarrationWorkspacePanel({
           onSaveMixSettings={onSaveMixSettings}
           onUpdateMixSettings={setMixSettings}
           onUpdateSegment={updateSegment}
+        />
+        <NarrationScriptPackagePanel
+          isImporting={isSaving}
+          jobId={jobId}
+          scriptPackage={scriptPackage}
+          workspace={workspace}
+          onImportScriptPackage={onImportScriptPackage}
         />
       </div>
     </section>
@@ -9380,6 +9438,103 @@ function NarrationInspector({
         <p className="muted">Select a row to edit narration text.</p>
       )}
     </aside>
+  );
+}
+
+function NarrationScriptPackagePanel({
+  isImporting,
+  jobId,
+  onImportScriptPackage,
+  scriptPackage,
+  workspace
+}: {
+  isImporting: boolean;
+  jobId: string;
+  onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
+  scriptPackage: NarrationScriptPackage | null;
+  workspace: NarrationWorkspace | null;
+}) {
+  const [packageJson, setPackageJson] = useState('');
+  const [replaceCurrentWorkspace, setReplaceCurrentWorkspace] = useState(false);
+  const parsedPackage = parseNarrationScriptPackageImport(packageJson);
+  const jsonError = packageJson.trim() && !parsedPackage ? 'Package JSON is not valid.' : null;
+  const canImport = Boolean(parsedPackage && replaceCurrentWorkspace && !isImporting);
+
+  return (
+    <section className="script-package-panel" aria-label="Script package">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Script package</h4>
+          <p className="muted">
+            {scriptPackage
+              ? `${scriptPackage.segmentCount} segments · ${scriptPackage.totalCharacterCount} chars`
+              : 'No package loaded.'}
+          </p>
+        </div>
+        <span className={scriptPackage?.status === 'READY' ? 'status-pill ready' : 'status-pill attention'}>
+          {scriptPackage?.status ?? 'Missing'}
+        </span>
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Voice</dt>
+          <dd>{scriptPackage?.voiceSummary ?? 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Gaps</dt>
+          <dd>{scriptPackage ? `${scriptPackage.timelineGapCount} gaps` : 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{formatSeconds(scriptPackage?.durationSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Workspace</dt>
+          <dd>{workspace?.status ?? 'N/A'}</dd>
+        </div>
+      </dl>
+      {scriptPackage?.checks.length ? (
+        <ul className="script-package-checks">
+          {scriptPackage.checks.map((check) => (
+            <li key={check.key}>{check.key}: {check.status}</li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="panel-actions">
+        <button type="button" onClick={() => void downloadNarrationScriptPackageFile(jobId, 'markdown')}>
+          Download package Markdown
+        </button>
+        <button type="button" onClick={() => void downloadNarrationScriptPackageFile(jobId, 'zip')}>
+          Download package ZIP
+        </button>
+      </div>
+      <label>
+        Script package JSON
+        <textarea
+          aria-label="Script package JSON"
+          value={packageJson}
+          onChange={(event) => setPackageJson(event.target.value)}
+          placeholder='{"replaceExisting":true,"segments":[]}'
+        />
+      </label>
+      {jsonError ? <p className="error-text">{jsonError}</p> : null}
+      <label className="inline-checkbox">
+        <input
+          aria-label="Replace current narration workspace"
+          checked={replaceCurrentWorkspace}
+          type="checkbox"
+          onChange={(event) => setReplaceCurrentWorkspace(event.target.checked)}
+        />
+        Replace current narration workspace
+      </label>
+      <button
+        type="button"
+        disabled={!canImport}
+        onClick={() => parsedPackage ? onImportScriptPackage({ ...parsedPackage, replaceExisting: true }) : undefined}
+      >
+        {isImporting ? 'Importing...' : 'Import package'}
+      </button>
+    </section>
   );
 }
 
@@ -9650,6 +9805,44 @@ async function downloadNarrationEvidenceFile(jobId: string, format: 'markdown' |
     ? await linguaFrameApi.downloadNarrationEvidenceMarkdown(jobId)
     : await linguaFrameApi.downloadNarrationEvidenceZip(jobId);
   downloadBlob(blob, `narration-evidence-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
+async function downloadNarrationScriptPackageFile(jobId: string, format: 'markdown' | 'zip') {
+  const blob = format === 'markdown'
+    ? await linguaFrameApi.downloadNarrationScriptPackageMarkdown(jobId)
+    : await linguaFrameApi.downloadNarrationScriptPackageZip(jobId);
+  downloadBlob(blob, `narration-script-package-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
+function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {
+  if (!value.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value) as Partial<NarrationScriptPackage & ImportNarrationScriptPackageRequest>;
+    if (!Array.isArray(parsed.segments)) {
+      return null;
+    }
+    return {
+      replaceExisting: Boolean(parsed.replaceExisting),
+      mixSettings: parsed.mixSettings
+        ? {
+            duckingVolume: Number(parsed.mixSettings.duckingVolume),
+            narrationVolume: Number(parsed.mixSettings.narrationVolume),
+            fadeDurationMs: Number(parsed.mixSettings.fadeDurationMs)
+          }
+        : null,
+      segments: parsed.segments.map((segment, index) => ({
+        index: Number(segment.index ?? index),
+        startSeconds: Number(segment.startSeconds),
+        endSeconds: Number(segment.endSeconds),
+        text: String(segment.text ?? ''),
+        voice: segment.voice ? String(segment.voice) : null
+      }))
+    };
+  } catch {
+    return null;
+  }
 }
 
 function SubtitleDraftEditorPanel({

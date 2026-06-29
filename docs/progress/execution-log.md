@@ -6,6 +6,22 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added frontend narration script package types and API helpers for JSON load, Markdown download, ZIP download, and import POST.
+- Added a compact `Script package` panel inside the existing narration workspace with export summary, checks, download actions, JSON paste import, replace confirmation, and invalid JSON blocking.
+- Wired successful import to refresh the narration workspace, narration evidence, script package summary, and artifacts without reloading the page.
+- Added focused API and App tests for encoded routes, import payloads, package preview, export buttons, invalid JSON handling, replace acknowledgement, and refreshed imported segment text.
+
+Validation:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed because the frontend had no script package API helpers.
+- After adding API helpers and UI, the same command exposed missing test mocks for the extra package refresh and non-unique text matchers; preserving existing refresh behavior and tightening assertions fixed those failures.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 185 passed`.
+- `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Added backend narration script package import DTOs, import result VO, service method, and `POST /api/jobs/{jobId}/narration-script-package/import`.
 - Reused the narration workspace save/update path for imported segments and mix settings so timeline summaries, voice catalog metadata, and mix settings remain consistent with normal workspace editing.
 - Added import validation before mutation for `replaceExisting=true`, contiguous indexes, time ranges, overlap, known source duration bounds, text emptiness/length, voice preset membership, and mix setting ranges.
