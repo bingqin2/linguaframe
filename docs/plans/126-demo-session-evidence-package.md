@@ -47,15 +47,15 @@
   - `run-archive.json`
   - `run-archive.md`
 
-- [ ] Inject `ObjectMapper`, `DemoSessionCommandCenterService`, `PrivateDemoOperationsService`, `PrivateDemoLaunchRehearsalService`, `ModelUsageLedgerService`, `DemoPresentationCockpitService`, `PrivateDemoEvidenceGalleryService`, and `PrivateDemoRunArchiveService`.
-- [ ] Use `ZipOutputStream` with UTF-8 entry names and in-memory `ByteArrayOutputStream`.
-- [ ] Build `manifest.json` with `packageType`, `generatedAt`, `focusedJobId`, `overallStatus`, `phase`, `primaryCommand`, `entryCount`, `entries`, `safeLinks`, and `safetyNotes`.
-- [ ] Render `README.md` as the package table of contents, explaining what each entry is for and which per-job packages remain the detailed evidence source.
-- [ ] Generate Markdown for services that already expose Markdown (`commandCenterMarkdown`, `ledgerMarkdown`) by calling those services directly.
-- [ ] Generate Markdown locally for operations, cockpit, gallery, archive, and launch rehearsal using only fields already present in their VOs.
-- [ ] Sanitize ZIP filenames with `[A-Za-z0-9._-]`; replace all other characters with `-`.
-- [ ] Add tests proving the ZIP contains all required entries, includes focused job metadata when `jobId` is provided, and excludes unsafe markers such as `source-videos/`, `job-artifacts/`, `/Users/`, `OPENAI_API_KEY`, `private-demo-token`, `provider payload`, `raw transcript`, and `raw subtitle`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=DemoSessionEvidencePackageServiceTests`.
+- [x] Inject `ObjectMapper`, `DemoSessionCommandCenterService`, `PrivateDemoOperationsService`, `PrivateDemoLaunchRehearsalService`, `ModelUsageLedgerService`, `DemoPresentationCockpitService`, `PrivateDemoEvidenceGalleryService`, and `PrivateDemoRunArchiveService`.
+- [x] Use `ZipOutputStream` with UTF-8 entry names and in-memory `ByteArrayOutputStream`.
+- [x] Build `manifest.json` with `packageType`, `generatedAt`, `focusedJobId`, `overallStatus`, `phase`, `primaryCommand`, `entryCount`, `entries`, `safeLinks`, and `safetyNotes`.
+- [x] Render `README.md` as the package table of contents, explaining what each entry is for and which per-job packages remain the detailed evidence source.
+- [x] Generate Markdown for services that already expose Markdown (`commandCenterMarkdown`, `ledgerMarkdown`) by calling those services directly.
+- [x] Generate Markdown locally for operations, cockpit, gallery, archive, and launch rehearsal using only fields already present in their VOs.
+- [x] Sanitize ZIP filenames with `[A-Za-z0-9._-]`; replace all other characters with `-`.
+- [x] Add tests proving the ZIP contains all required entries, includes focused job metadata when `jobId` is provided, and excludes unsafe markers such as `source-videos/`, `job-artifacts/`, `/Users/`, `OPENAI_API_KEY`, `private-demo-token`, `provider payload`, `raw transcript`, and `raw subtitle`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=DemoSessionEvidencePackageServiceTests`.
 
 ## Task 2: Operator API Endpoint And Controller Tests
 
@@ -66,11 +66,11 @@
 **Interfaces:**
 - `GET /api/operator/demo-session-evidence-package/download?jobId=<optional>` returns a ZIP attachment.
 
-- [ ] Inject `DemoSessionEvidencePackageService` into `OperatorDashboardController`.
-- [ ] Add `GET /api/operator/demo-session-evidence-package/download` with `Content-Type: application/zip` and the service-provided `Content-Disposition` filename.
-- [ ] Ensure the endpoint inherits existing `/api/operator/**` demo-token and bearer-token protection.
-- [ ] Add controller tests for focused-job ZIP download, filename header, required ZIP entries, unsafe marker absence, and demo-token protection.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=OperatorDashboardControllerTests`.
+- [x] Inject `DemoSessionEvidencePackageService` into `OperatorDashboardController`.
+- [x] Add `GET /api/operator/demo-session-evidence-package/download` with `Content-Type: application/zip` and the service-provided `Content-Disposition` filename.
+- [x] Ensure the endpoint inherits existing `/api/operator/**` demo-token and bearer-token protection.
+- [x] Add controller tests for focused-job ZIP download, filename header, required ZIP entries, unsafe marker absence, and demo-token protection.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=OperatorDashboardControllerTests`.
 
 ## Task 3: Frontend API And Command Center Package Download
 
@@ -83,14 +83,14 @@
 **Interfaces:**
 - `downloadDemoSessionEvidencePackageZip(jobId?: string): Promise<Blob>`
 
-- [ ] Add API function with optional encoded `jobId` query parameter and existing demo-token/bearer header support.
-- [ ] Add API tests for default package download and focused-job download with spaces/slashes encoded.
-- [ ] Add a `Download session package` action to `DemoSessionCommandCenterPanel`.
-- [ ] Use the focused run id when available; otherwise download the unfocused session package.
-- [ ] Download filename in browser: `linguaframe-demo-session-evidence-package.zip`.
-- [ ] Add App tests proving the button is visible, calls `downloadDemoSessionEvidencePackageZip('job-session')`, and does not render raw text/secrets.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
+- [x] Add API function with optional encoded `jobId` query parameter and existing demo-token/bearer header support.
+- [x] Add API tests for default package download and focused-job download with spaces/slashes encoded.
+- [x] Add a `Download session package` action to `DemoSessionCommandCenterPanel`.
+- [x] Use the focused run id when available; otherwise download the unfocused session package.
+- [x] Download filename in browser: `linguaframe-demo-session-evidence-package.zip`.
+- [x] Add App tests proving the button is visible, calls `downloadDemoSessionEvidencePackageZip('job-session')`, and does not render raw text/secrets.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script, README, Deployment Guide, And Progress Log
 
@@ -106,25 +106,25 @@
 - Optional focused job env: `LINGUAFRAME_DEMO_JOB_ID`.
 - Script output keys: `demoSessionEvidencePackageStatus`, `demoSessionEvidencePackagePhase`, `demoSessionEvidencePackageFocusJobId`, `demoSessionEvidencePackageZipPath`, and `demoSessionEvidencePackageEntries`.
 
-- [ ] Implement the script with `demo_curl`, optional job query encoding, ZIP download, Python ZIP inspection, and summary printing.
-- [ ] Download `command-center.json` first so the script can print package status and phase before saving the ZIP summary.
-- [ ] Exit non-zero when command center status is `BLOCKED` unless `LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true`.
-- [ ] Document when to use the session evidence package versus command center Markdown, per-job demo run package, AI audit package, handoff package, and demo evidence closure.
-- [ ] Record validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Implement the script with `demo_curl`, optional job query encoding, ZIP download, Python ZIP inspection, and summary printing.
+- [x] Download `command-center.json` first so the script can print package status and phase before saving the ZIP summary.
+- [x] Exit non-zero when command center status is `BLOCKED` unless `LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true`.
+- [x] Document when to use the session evidence package versus command center Markdown, per-job demo run package, AI audit package, handoff package, and demo evidence closure.
+- [x] Record validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/126-demo-session-evidence-package.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame test -Dtest=DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`
   `npm run build`
   `bash -n scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
+- [x] Run `git diff --check`.
 - [ ] Commit as `Add demo session evidence package`.
 - [ ] Merge the feature branch back to `main` after validation passes.

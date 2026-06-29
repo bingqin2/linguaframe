@@ -241,6 +241,18 @@ LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true scripts/demo/demo-sessi
 
 The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-command-center/markdown/download`, writing `demo-session-command-center.json` and `demo-session-command-center.md` under `/tmp/linguaframe-demo/demo-session-command-center/`. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true` to export evidence without failing the shell step. Use it as the operator table of contents, not as a replacement for per-job demo run packages, AI audit packages, or reviewed handoff packages.
 
+### Demo session evidence package
+
+Use the demo session evidence package when you need one downloadable ZIP for a complete private-demo session. It packages the command center, launch readiness, operations checks, model usage ledger, presentation cockpit, evidence gallery, and run archive as safe metadata-only JSON and Markdown files.
+
+```bash
+scripts/demo/demo-session-evidence-package.sh
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-session-evidence-package.sh
+LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true scripts/demo/demo-session-evidence-package.sh
+```
+
+The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-evidence-package/download`, writing `command-center.json` and `demo-session-evidence-package.zip` under `/tmp/linguaframe-demo/demo-session-evidence-package/`. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true` to export anyway. Use this ZIP as the session-level handoff bundle. Use command center Markdown for a quick run-day checklist, per-job demo run packages for detailed job evidence, AI audit packages for model-call review, reviewed handoff packages for subtitle review, and demo evidence closure for final actual-vs-baseline acceptance.
+
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 
 ```bash
