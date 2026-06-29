@@ -6,6 +6,21 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration script package workbench feature slice.
+- Added backend narration script package export JSON, Markdown, and ZIP routes.
+- Added script package VO/BO/service types that expose timing, voice preset state, mix settings, package checks, safe links, package entries, and explicit operator-authored narration text.
+- Kept general evidence behavior separate: the new script package intentionally includes narration text for reuse, while existing narration evidence remains metadata-only.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests` first failed at test compilation because `StoredNarrationScriptPackageBo`, `NarrationScriptPackageVo`, `NarrationScriptPackageService`, and `NarrationScriptPackageServiceImpl` did not exist.
+- After implementation, the same command exposed a Spring constructor ambiguity in `NarrationScriptPackageServiceImpl` and Java time JSON serialization in the unit test mapper; adding an explicit autowired constructor and module registration fixed both.
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests` passed with `Tests run: 68, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Planned narration audio mixing and ducking in `docs/plans/134-narration-audio-mixing-ducking.md`.
 - Added an FFmpeg timed narration audio bed boundary that delays segment audio to saved start times, mixes delayed inputs with `amix`, and returns `narration-audio.mp3`.
 - Changed narration audio generation from one continuous timestamped TTS request to per-segment TTS files mixed into a timed `NARRATION_AUDIO` bed.

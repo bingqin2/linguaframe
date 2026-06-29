@@ -2157,6 +2157,114 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationScriptPackageJsonMarkdownAndZip() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:16:00Z");
+        createJob("job-controller-video-script-package", "job-controller-job-script-package", createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-script-package")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "demo-voice"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-script-package")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "duckingVolume": 0.125,
+                                  "narrationVolume": 1.750,
+                                  "fadeDurationMs": 400
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-script-package", "job-controller-job-script-package"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-script-package"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.totalCharacterCount").value(49))
+                .andExpect(jsonPath("$.timelineGapCount").value(1))
+                .andExpect(jsonPath("$.timelineGapSeconds").value(27.000))
+                .andExpect(jsonPath("$.voiceSummary").value("PRESET:demo-voice"))
+                .andExpect(jsonPath("$.defaultVoice").value("demo-voice"))
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125))
+                .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.750))
+                .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(400))
+                .andExpect(jsonPath("$.segments[0].text").value("Explain the first scene."))
+                .andExpect(jsonPath("$.segments[0].voice").value("demo-voice"))
+                .andExpect(jsonPath("$.safeLinks[0].href").value("/api/jobs/job-controller-job-script-package/narration-script-package"))
+                .andExpect(jsonPath("$.packageEntries[0]").value("manifest.json"));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-script-package/markdown/download",
+                        "job-controller-job-script-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-controller-job-script-package-narration-script-package.md\""
+                ))
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# Narration Script Package")
+                .contains("Explain the first scene.")
+                .contains("Explain the second scene.")
+                .contains("- Voice summary: PRESET:demo-voice")
+                .doesNotContain("source-videos/")
+                .doesNotContain("provider request payload")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-");
+
+        byte[] zip = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-script-package/download",
+                        "job-controller-job-script-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-controller-job-script-package-narration-script-package.zip\""
+                ))
+                .andExpect(content().contentType("application/zip"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(zip);
+        assertThat(entries)
+                .containsKeys("manifest.json", "narration-script-package.json", "narration-script-package.md", "README.md");
+        assertThat(String.join("\n", entries.values()))
+                .contains("\"includesNarrationTextBodies\":true")
+                .contains("Explain the first scene.")
+                .doesNotContain("source-videos/")
+                .doesNotContain("provider request payload")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-");
+    }
+
+    @Test
     void returnsSubtitleReviewEvidenceJsonMarkdownAndPackage() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:18:00Z");
         createJob("job-controller-video-review-evidence", "job-controller-job-review-evidence", "review-evidence.mp4", LocalizationJobStatus.COMPLETED, createdAt);

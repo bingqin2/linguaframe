@@ -39,14 +39,14 @@
 - `GET /api/jobs/{jobId}/narration-script-package/download`
 - `NarrationScriptPackageVo` includes `jobId`, `targetLanguage`, `durationSeconds`, `segmentCount`, `totalCharacterCount`, `voiceSummary`, `defaultVoice`, `mixSettings`, `segments`, `checks`, `safeLinks`, `packageEntries`, and `safetyNotes`.
 
-- [ ] Write failing service tests for package JSON generated from an empty workspace, a valid two-segment workspace, and a workspace with intentional gaps.
-- [ ] Write failing controller tests for JSON, Markdown, and ZIP routes, including safe route names and package entries.
-- [ ] Implement package export from existing repositories/services, reusing narration workspace validation and voice catalog semantics.
-- [ ] Render Markdown with segment index, time range, duration, voice state, and character count; include script text only in this explicit script package, not in general evidence.
-- [ ] Build ZIP entries `manifest.json`, `narration-script-package.json`, `narration-script-package.md`, and `README.md`.
-- [ ] Verify no object keys, local paths, provider payloads, tokens, or media bytes are included.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing service tests for package JSON generated from an empty workspace, a valid two-segment workspace, and a workspace with intentional gaps.
+- [x] Write failing controller tests for JSON, Markdown, and ZIP routes, including safe route names and package entries.
+- [x] Implement package export from existing repositories/services, reusing narration workspace validation and voice catalog semantics.
+- [x] Render Markdown with segment index, time range, duration, voice state, and character count; include script text only in this explicit script package, not in general evidence.
+- [x] Build ZIP entries `manifest.json`, `narration-script-package.json`, `narration-script-package.md`, and `README.md`.
+- [x] Verify no object keys, local paths, provider payloads, tokens, or media bytes are included.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration script package export`.
 
 ## Task 2: Backend Script Package Import And Validation

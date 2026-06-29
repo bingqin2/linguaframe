@@ -20,6 +20,7 @@ import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
 import com.linguaframe.job.domain.bo.StoredSubtitleReviewEvidencePackageBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
@@ -41,6 +42,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
@@ -77,6 +79,7 @@ import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.NarrationAudioService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationScriptPackageService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.job.service.NarratedVideoService;
 import com.linguaframe.job.service.OpenAiSmokeProofService;
@@ -152,6 +155,7 @@ public class LocalizationJobController {
     private final SubtitleReviewService subtitleReviewService;
     private final NarrationAudioService narrationAudioService;
     private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationScriptPackageService narrationScriptPackageService;
     private final NarrationWorkspaceService narrationWorkspaceService;
     private final NarratedVideoService narratedVideoService;
     private final ObjectMapper objectMapper;
@@ -192,6 +196,7 @@ public class LocalizationJobController {
             SubtitleReviewService subtitleReviewService,
             NarrationAudioService narrationAudioService,
             NarrationEvidenceService narrationEvidenceService,
+            NarrationScriptPackageService narrationScriptPackageService,
             NarrationWorkspaceService narrationWorkspaceService,
             NarratedVideoService narratedVideoService,
             ObjectMapper objectMapper
@@ -231,6 +236,7 @@ public class LocalizationJobController {
         this.subtitleReviewService = subtitleReviewService;
         this.narrationAudioService = narrationAudioService;
         this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationScriptPackageService = narrationScriptPackageService;
         this.narrationWorkspaceService = narrationWorkspaceService;
         this.narratedVideoService = narratedVideoService;
         this.objectMapper = objectMapper;
@@ -1367,6 +1373,48 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         StoredNarrationEvidencePackageBo packageBo = narrationEvidenceService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf(packageBo.contentType()))
+                .contentLength(packageBo.sizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(packageBo.filename())
+                        .build()
+                        .toString())
+                .body(new InputStreamResource(packageBo.inputStream()));
+    }
+
+    @GetMapping("/{jobId}/narration-script-package")
+    @Operation(summary = "Get an explicit narration script package for workspace reuse")
+    public NarrationScriptPackageVo narrationScriptPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationScriptPackageService.getPackage(jobId);
+    }
+
+    @GetMapping("/{jobId}/narration-script-package/markdown/download")
+    @Operation(summary = "Download an explicit narration script package Markdown")
+    public ResponseEntity<String> downloadNarrationScriptPackageMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationScriptPackageService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-script-package.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-script-package/download")
+    @Operation(summary = "Download an explicit narration script package ZIP")
+    public ResponseEntity<InputStreamResource> downloadNarrationScriptPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredNarrationScriptPackageBo packageBo = narrationScriptPackageService.openPackage(jobId);
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf(packageBo.contentType()))
                 .contentLength(packageBo.sizeBytes())
