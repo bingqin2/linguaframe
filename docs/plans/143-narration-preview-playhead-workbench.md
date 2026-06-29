@@ -42,7 +42,7 @@
 - [x] Implement `selectNarrationPreviewSource` and `calculateNarrationPlayheadPercent` with no DOM dependencies.
 - [x] Run `npm test -- --run src/domain/narrationPreview.test.ts` and verify it passes.
 - [x] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration preview source helpers`.
+- [x] Commit with message `Add narration preview source helpers`.
 
 ## Task 2: Narration Preview Panel And Timeline Playhead
 
@@ -64,26 +64,26 @@
   - `NarrationTimelineWorkbench` optional `playheadSeconds` prop
   - Timeline playhead marker positioned by local timeline span
 
-- [ ] Write failing App tests proving a completed job with `NARRATED_VIDEO` renders a `Narration preview` panel using the narrated-video URL.
-- [ ] Write failing App tests proving the panel falls back to source video when no generated video artifacts are available.
-- [ ] Write failing App tests proving clicking `Jump to narration 1` sets the media current time to the selected segment start and updates visible current time/playhead state.
-- [ ] Write failing App tests proving clicking `Play window` seeks to the selected segment start, calls `play()`, and shows the selected window end.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration preview"` and verify the new tests fail.
-- [ ] Add preview state to `NarrationWorkspacePanel`: `previewCurrentSeconds`, `previewIsPlayingWindow`, and selected media metadata.
-- [ ] Add `NarrationPreviewPanel` with:
+- [x] Write failing App tests proving a completed job with `NARRATED_VIDEO` renders a `Narration preview` panel using the narrated-video URL.
+- [x] Write failing App tests proving the panel falls back to source video when no generated video artifacts are available.
+- [x] Write failing App tests proving clicking `Jump to narration 1` sets the media current time to the selected segment start and updates visible current time/playhead state.
+- [x] Write failing App tests proving clicking `Play window` seeks to the selected segment start, calls `play()`, and shows the selected window end.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration preview"` and verify the new tests fail.
+- [x] Add preview state to `NarrationWorkspacePanel`: `previewCurrentSeconds`, `previewIsPlayingWindow`, and selected media metadata.
+- [x] Add `NarrationPreviewPanel` with:
   - media source label;
   - `<video aria-label="Narration preview player" controls ...>`;
   - `Jump to narration N` button;
   - `Play window` button;
   - selected window start/end/current time metrics;
   - unavailable message when no source video id exists.
-- [ ] Wire media events: `onTimeUpdate` updates current seconds; `onEnded` clears window playback; if playback passes selected segment `endSeconds`, pause the media and clear window playback.
-- [ ] Pass `previewCurrentSeconds` to `NarrationTimelineWorkbench` and render one stable `.narration-timeline-playhead` marker when the current time falls within the timeline span.
-- [ ] Add compact CSS for preview panel, video dimensions, control row, and playhead marker without causing timeline layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration preview"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationPreview.test.ts src/App.test.tsx`.
-- [ ] Update execution log with validation details.
-- [ ] Commit with message `Add narration preview playhead UI`.
+- [x] Wire media events: `onTimeUpdate` updates current seconds; `onEnded` clears window playback; if playback passes selected segment `endSeconds`, pause the media and clear window playback.
+- [x] Pass `previewCurrentSeconds` to `NarrationTimelineWorkbench` and render one stable `.narration-timeline-playhead` marker when the current time falls within the timeline span.
+- [x] Add compact CSS for preview panel, video dimensions, control row, and playhead marker without causing timeline layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration preview"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationPreview.test.ts src/App.test.tsx`.
+- [x] Update execution log with validation details.
+- [x] Commit with message `Add narration preview playhead UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
 

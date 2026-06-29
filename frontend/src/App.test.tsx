@@ -2594,6 +2594,136 @@ describe('App', () => {
     expect(within(narrationPanel).queryByLabelText(/Timeline segment 2:/i)).not.toBeInTheDocument();
   });
 
+  test('renders narration preview with narrated video when available', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-preview-job', videoId: 'narration-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'preview-narrated-video',
+        jobId: 'narration-preview-job',
+        type: 'NARRATED_VIDEO',
+        filename: 'narrated-video.mp4',
+        contentType: 'video/mp4'
+      }),
+      artifactFixture({
+        artifactId: 'preview-burned-video',
+        jobId: 'narration-preview-job',
+        type: 'BURNED_VIDEO',
+        filename: 'burned-video.mp4',
+        contentType: 'video/mp4'
+      })
+    ]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+
+    expect(within(previewPanel).getByText('Narrated video')).toBeInTheDocument();
+    expect(within(previewPanel).getByLabelText('Narration preview player')).toHaveAttribute(
+      'src',
+      '/api/jobs/narration-preview-job/artifacts/preview-narrated-video/download'
+    );
+  });
+
+  test('falls narration preview back to source video without generated video artifacts', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-source-preview-job', videoId: 'source-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([
+      artifactFixture({
+        artifactId: 'preview-narration-audio',
+        jobId: 'narration-source-preview-job',
+        type: 'NARRATION_AUDIO',
+        filename: 'narration-audio.mp3',
+        contentType: 'audio/mpeg'
+      })
+    ]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-source-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-source-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+
+    expect(within(previewPanel).getByText('Source video')).toBeInTheDocument();
+    expect(within(previewPanel).getByLabelText('Narration preview player')).toHaveAttribute(
+      'src',
+      '/api/media/uploads/source-preview-video/source/download'
+    );
+  });
+
+  test('jumps narration preview to the selected segment start and updates playhead time', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-jump-preview-job', videoId: 'jump-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-jump-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-jump-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+    const player = within(previewPanel).getByLabelText('Narration preview player') as HTMLVideoElement;
+
+    await userEvent.click(within(previewPanel).getByRole('button', { name: /jump to narration 1/i }));
+
+    expect(player.currentTime).toBe(15);
+    expect(within(previewPanel).getByText('15 s')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText('Narration preview playhead: 15 s')).toBeInTheDocument();
+  });
+
+  test('plays only the selected narration preview window', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-window-preview-job', videoId: 'window-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-window-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-window-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const previewPanel = within(narrationPanel).getByRole('region', { name: /narration preview/i });
+    const player = within(previewPanel).getByLabelText('Narration preview player') as HTMLVideoElement;
+    const play = vi.spyOn(player, 'play').mockResolvedValue(undefined);
+
+    await userEvent.click(within(previewPanel).getByRole('button', { name: /play window/i }));
+
+    expect(player.currentTime).toBe(15);
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(within(previewPanel).getByText((_content, element) => element?.textContent === 'Window15 s to 28 s')).toBeInTheDocument();
+  });
+
   test('exports and imports narration script packages from the narration workspace', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })

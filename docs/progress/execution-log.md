@@ -4287,6 +4287,11 @@ Validation:
 
 - `npm test -- --run src/domain/narrationPreview.test.ts` first failed because `frontend/src/domain/narrationPreview.ts` did not exist.
 - After adding the helper, `npm test -- --run src/domain/narrationPreview.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+- Added a compact browser narration preview panel that selects narrated video, burned video, or source video, provides jump/play-window controls for the selected narration row, and feeds a local playhead marker back into the timeline workbench.
+- `npm test -- --run src/App.test.tsx -t "narration preview"` first failed because the `Narration preview` region did not exist.
+- After adding preview UI, `npm test -- --run src/App.test.tsx -t "narration preview"` passed with `Test Files 1 passed` and `Tests 4 passed | 100 skipped`.
+- `npm test -- --run src/domain/narrationPreview.test.ts src/App.test.tsx` first failed because the preview window text duplicated the inspector's `15 s - 28 s` text and made existing assertions ambiguous.
+- After changing the preview window copy to `15 s to 28 s`, `npm test -- --run src/domain/narrationPreview.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 109 passed`; jsdom printed expected navigation warnings.
 
 ## 2026-06-30
 

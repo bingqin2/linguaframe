@@ -1,7 +1,9 @@
 import {
   FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type SyntheticEvent as ReactSyntheticEvent,
   useCallback,
   useEffect,
   useMemo,
@@ -14,6 +16,11 @@ import {
   editNarrationTimelineSegment,
   type NarrationTimelineEditMode
 } from './domain/narrationTimelineEditing';
+import {
+  calculateNarrationPlayheadPercent,
+  selectNarrationPreviewSource,
+  type NarrationPreviewSource
+} from './domain/narrationPreview';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -6256,6 +6263,7 @@ function JobDetail({
       />
 
       <NarrationWorkspacePanel
+        artifacts={artifacts}
         error={narrationError}
         evidence={narrationEvidence}
         isClearing={isClearingNarration}
@@ -6265,6 +6273,7 @@ function JobDetail({
         isRenderingDemo={isRenderingNarrationDemo}
         isSaving={isSavingNarration}
         jobId={job.jobId}
+        videoId={job.videoId}
         onClear={onClearNarrationWorkspace}
         onGenerateAudio={onGenerateNarrationAudio}
         onGenerateVideo={onGenerateNarratedVideo}
@@ -9274,6 +9283,7 @@ function ReviewedSubtitleWorkflowPanel({
 }
 
 function NarrationWorkspacePanel({
+  artifacts,
   error,
   evidence,
   isClearing,
@@ -9283,6 +9293,7 @@ function NarrationWorkspacePanel({
   isRenderingDemo,
   isSaving,
   jobId,
+  videoId,
   demoPresets,
   onClear,
   onApplyDemoPreset,
@@ -9300,6 +9311,7 @@ function NarrationWorkspacePanel({
   status,
   workspace
 }: {
+  artifacts: JobArtifact[];
   error: string | null;
   evidence: NarrationEvidence | null;
   isClearing: boolean;
@@ -9309,6 +9321,7 @@ function NarrationWorkspacePanel({
   isRenderingDemo: boolean;
   isSaving: boolean;
   jobId: string;
+  videoId: string;
   demoPresets: NarrationDemoPreset[];
   onClear: () => void;
   onApplyDemoPreset: (presetId: string) => void;
@@ -9329,17 +9342,31 @@ function NarrationWorkspacePanel({
   const [segments, setSegments] = useState<NarrationWorkspace['segments']>([]);
   const [mixSettings, setMixSettings] = useState<NarrationWorkspace['mixSettings'] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
+  const [previewWindowEndSeconds, setPreviewWindowEndSeconds] = useState<number | null>(null);
 
   useEffect(() => {
     setSegments(workspace?.segments ?? []);
     setMixSettings(workspace?.mixSettings ?? null);
     setSelectedIndex(0);
+    setPreviewCurrentSeconds(0);
+    setPreviewWindowEndSeconds(null);
   }, [workspace]);
 
   const selectedSegment = segments[selectedIndex] ?? null;
   const validation = validateNarrationSegments(segments, workspace?.voiceCatalog ?? null);
   const mixValidation = validateNarrationMixSettings(mixSettings);
   const localTimeline = useMemo(() => buildLocalNarrationTimeline(segments), [segments]);
+  const previewSource = useMemo(
+    () => selectNarrationPreviewSource({
+      jobId,
+      videoId,
+      artifacts,
+      artifactDownloadUrl: linguaFrameApi.artifactDownloadUrl,
+      sourceMediaDownloadUrl: linguaFrameApi.sourceMediaDownloadUrl
+    }),
+    [artifacts, jobId, videoId]
+  );
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
     setSegments((current) =>
@@ -9408,6 +9435,7 @@ function NarrationWorkspacePanel({
         <div className="narration-table-wrap">
           {workspace?.timeline ? (
             <NarrationTimelineWorkbench
+              playheadSeconds={previewCurrentSeconds}
               selectedIndex={selectedIndex}
               timeline={localTimeline}
               segments={segments}
@@ -9415,6 +9443,15 @@ function NarrationWorkspacePanel({
               onSelectSegment={setSelectedIndex}
             />
           ) : null}
+          <NarrationPreviewPanel
+            currentSeconds={previewCurrentSeconds}
+            previewSource={previewSource}
+            selectedIndex={selectedIndex}
+            selectedSegment={selectedSegment}
+            windowEndSeconds={previewWindowEndSeconds}
+            onCurrentSecondsChange={setPreviewCurrentSeconds}
+            onWindowEndSecondsChange={setPreviewWindowEndSeconds}
+          />
           <NarrationSegmentTable
             segments={segments}
             selectedIndex={selectedIndex}
@@ -10198,15 +10235,127 @@ function NarrationMixSettingsPanel({
   );
 }
 
+function NarrationPreviewPanel({
+  currentSeconds,
+  onCurrentSecondsChange,
+  onWindowEndSecondsChange,
+  previewSource,
+  selectedIndex,
+  selectedSegment,
+  windowEndSeconds
+}: {
+  currentSeconds: number;
+  onCurrentSecondsChange: (seconds: number) => void;
+  onWindowEndSecondsChange: (seconds: number | null) => void;
+  previewSource: NarrationPreviewSource;
+  selectedIndex: number;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+  windowEndSeconds: number | null;
+}) {
+  const selectedLabel = `narration ${selectedIndex + 1}`;
+
+  function seekToSelected(media: HTMLVideoElement) {
+    if (!selectedSegment) {
+      return;
+    }
+    media.currentTime = selectedSegment.startSeconds;
+    onCurrentSecondsChange(selectedSegment.startSeconds);
+  }
+
+  function handleJump(event: ReactMouseEvent<HTMLButtonElement>) {
+    const media = event.currentTarget
+      .closest('.narration-preview-panel')
+      ?.querySelector<HTMLVideoElement>('video');
+    if (media) {
+      seekToSelected(media);
+      onWindowEndSecondsChange(null);
+    }
+  }
+
+  function handlePlayWindow(event: ReactMouseEvent<HTMLButtonElement>) {
+    const media = event.currentTarget
+      .closest('.narration-preview-panel')
+      ?.querySelector<HTMLVideoElement>('video');
+    if (!media || !selectedSegment) {
+      return;
+    }
+    seekToSelected(media);
+    onWindowEndSecondsChange(selectedSegment.endSeconds);
+    void media.play();
+  }
+
+  function handleTimeUpdate(event: ReactSyntheticEvent<HTMLVideoElement>) {
+    const media = event.currentTarget;
+    onCurrentSecondsChange(media.currentTime);
+    if (windowEndSeconds != null && media.currentTime >= windowEndSeconds) {
+      media.pause();
+      onWindowEndSecondsChange(null);
+    }
+  }
+
+  return (
+    <section className="narration-preview-panel" aria-label="Narration preview">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration preview</h4>
+          <p className="muted">{previewSource.label}</p>
+        </div>
+        <span className={previewSource.available ? 'status-pill ready' : 'status-pill blocked'}>
+          {previewSource.available ? 'Ready' : 'Unavailable'}
+        </span>
+      </div>
+      {previewSource.available ? (
+        <video
+          aria-label="Narration preview player"
+          controls
+          src={previewSource.url}
+          onEnded={() => onWindowEndSecondsChange(null)}
+          onTimeUpdate={handleTimeUpdate}
+        />
+      ) : (
+        <p className="muted">No preview video is available for this job.</p>
+      )}
+      <div className="narration-preview-controls">
+        <button type="button" disabled={!previewSource.available || !selectedSegment} onClick={handleJump}>
+          Jump to {selectedLabel}
+        </button>
+        <button type="button" disabled={!previewSource.available || !selectedSegment} onClick={handlePlayWindow}>
+          Play window
+        </button>
+      </div>
+      <dl className="compact-metrics narration-preview-metrics">
+        <div>
+          <dt>Window</dt>
+          <dd>
+            {selectedSegment
+              ? `${formatSeconds(selectedSegment.startSeconds)} to ${formatSeconds(selectedSegment.endSeconds)}`
+              : 'N/A'}
+          </dd>
+        </div>
+        <div>
+          <dt>Current</dt>
+          <dd>{formatSeconds(currentSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Window end</dt>
+          <dd>{windowEndSeconds == null ? 'N/A' : formatSeconds(windowEndSeconds)}</dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
+
 function NarrationTimelineWorkbench({
   onEditSegment,
   onSelectSegment,
+  playheadSeconds,
   selectedIndex,
   segments,
   timeline
 }: {
   onEditSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
   onSelectSegment: (index: number) => void;
+  playheadSeconds?: number;
   selectedIndex: number;
   segments: NarrationWorkspace['segments'];
   timeline: NarrationWorkspace['timeline'];
@@ -10223,6 +10372,11 @@ function NarrationTimelineWorkbench({
     : `${timeline.gapCount} ${timeline.gapCount === 1 ? 'gap' : 'gaps'} · ${formatSeconds(timeline.gapSeconds)}`;
   const timelineStartSeconds = timeline.startSeconds;
   const timelineEndSeconds = timeline.endSeconds || Math.max(1, timeline.startSeconds + 1);
+  const playheadPercent = playheadSeconds == null
+    || playheadSeconds < timelineStartSeconds
+    || playheadSeconds > timelineEndSeconds
+    ? null
+    : calculateNarrationPlayheadPercent(playheadSeconds, timelineStartSeconds, timelineEndSeconds);
 
   function applyTimelineEdit(
     segmentIndex: number,
@@ -10338,46 +10492,57 @@ function NarrationTimelineWorkbench({
       <div className="narration-timeline-track" aria-label="Narration timeline track">
         {timeline.segments.length === 0 ? (
           <span className="narration-empty-track">No narration windows</span>
-        ) : timeline.segments.map((segment) => (
-          <button
-            aria-label={`Timeline segment ${segment.index + 1}: ${formatSeconds(segment.startSeconds)} to ${formatSeconds(segment.endSeconds)}, ${segment.status}`}
-            className={segment.index === selectedIndex ? 'narration-timeline-segment selected' : 'narration-timeline-segment'}
-            key={segment.index}
-            onClick={() => onSelectSegment(segment.index)}
-            onFocus={() => onSelectSegment(segment.index)}
-            onKeyDown={(event) => handleTimelineKeyDown(event, segment.index)}
-            onPointerDown={(event) => startTimelineDrag(event, segment.index, 'move')}
-            onPointerMove={updateTimelineDrag}
-            onPointerUp={finishTimelineDrag}
-            onPointerCancel={finishTimelineDrag}
-            style={{
-              left: `${segment.leftPercent}%`,
-              width: `${Math.max(segment.widthPercent, 2)}%`
-            }}
-            title={`${segment.index + 1}: ${formatSeconds(segment.startSeconds)}-${formatSeconds(segment.endSeconds)}`}
-            type="button"
-          >
-            <span
-              aria-label={`Resize start handle for narration ${segment.index + 1}`}
-              className="narration-timeline-handle start"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                startTimelineDrag(event, segment.index, 'resize-start');
-              }}
-              role="separator"
-            />
-            {segment.index + 1}
-            <span
-              aria-label={`Resize end handle for narration ${segment.index + 1}`}
-              className="narration-timeline-handle end"
-              onPointerDown={(event) => {
-                event.stopPropagation();
-                startTimelineDrag(event, segment.index, 'resize-end');
-              }}
-              role="separator"
-            />
-          </button>
-        ))}
+        ) : (
+          <>
+            {timeline.segments.map((segment) => (
+              <button
+                aria-label={`Timeline segment ${segment.index + 1}: ${formatSeconds(segment.startSeconds)} to ${formatSeconds(segment.endSeconds)}, ${segment.status}`}
+                className={segment.index === selectedIndex ? 'narration-timeline-segment selected' : 'narration-timeline-segment'}
+                key={segment.index}
+                onClick={() => onSelectSegment(segment.index)}
+                onFocus={() => onSelectSegment(segment.index)}
+                onKeyDown={(event) => handleTimelineKeyDown(event, segment.index)}
+                onPointerDown={(event) => startTimelineDrag(event, segment.index, 'move')}
+                onPointerMove={updateTimelineDrag}
+                onPointerUp={finishTimelineDrag}
+                onPointerCancel={finishTimelineDrag}
+                style={{
+                  left: `${segment.leftPercent}%`,
+                  width: `${Math.max(segment.widthPercent, 2)}%`
+                }}
+                title={`${segment.index + 1}: ${formatSeconds(segment.startSeconds)}-${formatSeconds(segment.endSeconds)}`}
+                type="button"
+              >
+                <span
+                  aria-label={`Resize start handle for narration ${segment.index + 1}`}
+                  className="narration-timeline-handle start"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    startTimelineDrag(event, segment.index, 'resize-start');
+                  }}
+                  role="separator"
+                />
+                {segment.index + 1}
+                <span
+                  aria-label={`Resize end handle for narration ${segment.index + 1}`}
+                  className="narration-timeline-handle end"
+                  onPointerDown={(event) => {
+                    event.stopPropagation();
+                    startTimelineDrag(event, segment.index, 'resize-end');
+                  }}
+                  role="separator"
+                />
+              </button>
+            ))}
+            {playheadPercent == null ? null : (
+              <span
+                aria-label={`Narration preview playhead: ${formatSeconds(playheadSeconds)}`}
+                className="narration-timeline-playhead"
+                style={{ left: `${playheadPercent}%` }}
+              />
+            )}
+          </>
+        )}
       </div>
       <dl className="compact-metrics narration-timeline-metrics">
         <div>
