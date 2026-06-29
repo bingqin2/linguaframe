@@ -28,7 +28,7 @@ class NarrationDemoPresetServiceTests {
         assertThat(preset.totalCharacterCount()).isGreaterThan(80);
         assertThat(preset.timeSpanSeconds()).isGreaterThan(BigDecimal.ZERO);
         assertThat(preset.mixSettings().duckingVolume()).isEqualByComparingTo("0.350");
-        assertThat(preset.voiceSummary()).contains("alloy");
+        assertThat(preset.voiceSummary()).isEqualTo("DEFAULT");
         assertThat(preset.safetyNotes())
                 .anySatisfy(note -> assertThat(note).contains("operator-authored"));
     }

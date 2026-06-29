@@ -8,13 +8,19 @@ Work:
 
 - Started the narration demo preset package feature slice from `docs/plans/139-narration-demo-preset-package.md`.
 - Added built-in narration preset catalog support for the `tears-showcase` demo profile.
-- Added `tears-showcase-narration` with four time-coded operator-authored explanatory segments, conservative mix defaults, sample/profile linkage, and safe catalog metadata.
+- Added `tears-showcase-narration` with four time-coded operator-authored explanatory segments, conservative mix defaults, sample/profile linkage, current-provider default voice inheritance, and safe catalog metadata.
 - Added read-only backend routes for listing narration demo presets and retrieving the preset attached to one demo run profile.
+- Added `POST /api/jobs/{jobId}/narration-demo-preset/apply` to apply a preset through the existing narration script package import path.
+- Preset apply validates explicit replace confirmation, preset id, source duration bounds, voice presets, and preserves the existing workspace on validation failure.
+- Preset apply returns refreshed workspace, script package, and narration evidence status without generating narration audio or narrated video.
 
 Validation:
 
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests` first failed at test compilation because `NarrationDemoPresetService`, preset VOs, and the in-memory implementation did not exist.
 - After adding the catalog service and controller routes, `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests` first failed at test compilation because `ApplyNarrationDemoPresetDto`, `NarrationDemoPresetApplyVo`, and the apply service did not exist.
+- After adding the apply service and route, the same command failed because the built-in preset used the OpenAI `alloy` voice while the default local demo catalog exposes `demo-voice`.
+- After changing the built-in preset to inherit the active provider default voice and keeping invalid-voice coverage in a test-only preset, `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests` passed with `Tests run: 86, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-29
 

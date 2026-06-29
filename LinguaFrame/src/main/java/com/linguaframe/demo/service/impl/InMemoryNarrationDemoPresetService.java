@@ -23,7 +23,7 @@ public class InMemoryNarrationDemoPresetService implements NarrationDemoPresetSe
                     "tears-showcase",
                     "tears-of-steel-casting",
                     "zh-CN",
-                    "PRESET:alloy",
+                    "DEFAULT",
                     4,
                     0,
                     new BigDecimal("113.000"),
@@ -77,28 +77,28 @@ public class InMemoryNarrationDemoPresetService implements NarrationDemoPresetSe
                         "15.000",
                         "28.000",
                         "这段演示先展示源视频和对白场景，LinguaFrame 会在后台完成语音识别、翻译和字幕生成。",
-                        "alloy"
+                        null
                 ),
                 segment(
                         1,
                         "55.000",
                         "70.000",
                         "这里适合强调术语表和字幕风格预设如何保持角色名、片名和关键技术词的一致性。",
-                        "alloy"
+                        null
                 ),
                 segment(
                         2,
                         "118.000",
                         "136.000",
                         "处理完成后，可以检查质量评分、模型调用、成本和缓存证据，而不需要打开后端日志。",
-                        "alloy"
+                        null
                 ),
                 segment(
                         3,
                         "162.000",
                         "180.000",
                         "最后生成单独的讲解音轨和讲解版视频，用于展示人工补充说明如何叠加在本地化结果上。",
-                        "alloy"
+                        null
                 )
         );
     }

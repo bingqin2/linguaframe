@@ -57,7 +57,7 @@ class DemoRunProfileControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value("tears-showcase-narration"))
                 .andExpect(jsonPath("$.profileId").value("tears-showcase"))
-                .andExpect(jsonPath("$.voiceSummary").value(org.hamcrest.Matchers.containsString("alloy")));
+                .andExpect(jsonPath("$.voiceSummary").value("DEFAULT"));
     }
 
     @Test

@@ -2352,6 +2352,64 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void appliesNarrationDemoPresetToLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:30Z");
+        createJobWithDuration("job-controller-video-demo-preset", "job-controller-job-demo-preset", 300, createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-demo-preset")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 1.000,
+                                      "endSeconds": 2.000,
+                                      "text": "Old script.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-demo-preset/apply", "job-controller-job-demo-preset")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "presetId": "tears-showcase-narration",
+                                  "replaceExisting": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-demo-preset"))
+                .andExpect(jsonPath("$.presetId").value("tears-showcase-narration"))
+                .andExpect(jsonPath("$.profileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.importedSegmentCount").value(4))
+                .andExpect(jsonPath("$.voiceSummary").value("DEFAULT:demo-voice"))
+                .andExpect(jsonPath("$.generatedMedia").value(false))
+                .andExpect(jsonPath("$.workspace.segmentCount").value(4))
+                .andExpect(jsonPath("$.workspace.segments[0].voice").doesNotExist())
+                .andExpect(jsonPath("$.scriptPackage.status").value("READY"))
+                .andExpect(jsonPath("$.narrationEvidenceStatus").value("ATTENTION"));
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-demo-preset/apply", "job-controller-job-demo-preset")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "presetId": "tears-showcase-narration",
+                                  "replaceExisting": false
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-demo-preset"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segmentCount").value(4))
+                .andExpect(jsonPath("$.segments[0].voice").doesNotExist());
+    }
+
+    @Test
     void returnsSubtitleReviewEvidenceJsonMarkdownAndPackage() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:18:00Z");
         createJob("job-controller-video-review-evidence", "job-controller-job-review-evidence", "review-evidence.mp4", LocalizationJobStatus.COMPLETED, createdAt);

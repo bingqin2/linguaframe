@@ -60,13 +60,13 @@
 - Request: `ApplyNarrationDemoPresetDto(String presetId, boolean replaceExisting)`
 - Response: `NarrationDemoPresetApplyVo` with preset id, imported segment count, voice summary, refreshed workspace, refreshed script package checks, and narration evidence status.
 
-- [ ] Write failing tests for successful apply, rejected missing `replaceExisting=true`, unknown preset, too-short source duration, invalid voice, and preservation of existing workspace on failure.
-- [ ] Build an `ImportNarrationScriptPackageDto` from the selected preset and reuse `NarrationScriptPackageService.importPackage` for validation and replacement.
-- [ ] Refresh and return workspace, script package, and narration evidence metadata after successful apply.
-- [ ] Keep preset application separate from `generate-audio` and `generate-video`; no provider calls happen in this endpoint.
-- [ ] Add controller tests for route encoding and validation error bodies.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing tests for successful apply, rejected missing `replaceExisting=true`, unknown preset, too-short source duration, invalid voice, and preservation of existing workspace on failure.
+- [x] Build an `ImportNarrationScriptPackageDto` from the selected preset and reuse `NarrationScriptPackageService.importPackage` for validation and replacement.
+- [x] Refresh and return workspace, script package, and narration evidence metadata after successful apply.
+- [x] Keep preset application separate from `generate-audio` and `generate-video`; no provider calls happen in this endpoint.
+- [x] Add controller tests for route encoding and validation error bodies.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Apply narration demo presets to jobs`.
 
 ## Task 3: React Preset Workbench Integration
