@@ -692,6 +692,14 @@ Impact: The narration workspace now exposes backend-computed span, covered time,
 
 ## 2026-06-29
 
+Decision: Add explicit narration script packages before waveform or drag/drop editing.
+
+Reason: Operators need to reuse and restore full time-coded narration scripts during demos, but a waveform editor or drag/drop timeline would broaden the product into unfinished nonlinear editing.
+
+Impact: `GET /api/jobs/{jobId}/narration-script-package`, Markdown/ZIP downloads, `POST /api/jobs/{jobId}/narration-script-package/import`, the browser `Script package` panel, and `scripts/demo/narration-script-package.sh` export and restore operator-authored narration text, timing, voice presets, and mix settings. General narration evidence remains metadata-only and excludes script bodies; script packages may include narration text but still exclude media bytes, transcript text, subtitle text, object keys, local paths, provider payloads, credentials, and tokens.
+
+## 2026-06-29
+
 Decision: Generate demo completion certificates on demand from existing safe evidence surfaces.
 
 Reason: A completed public demo needs one final proof surface, but persisting another artifact would duplicate state already represented by delivery manifests, presenter packs, replay cards, share sheets, snapshots, run matrices, and package routes.

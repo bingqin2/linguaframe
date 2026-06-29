@@ -631,6 +631,39 @@ download_narration_evidence_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-evidence/download" -o "$output_path"
 }
 
+download_narration_script_package_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-script-package" -o "$output_path"
+}
+
+download_narration_script_package_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-script-package/markdown/download" -o "$output_path"
+}
+
+download_narration_script_package_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-script-package/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -3215,6 +3248,79 @@ print("narrationEvidencePackageEntryCount=" + str(len(required_entries)))
 print("narrationEvidenceJsonPath=" + str(json_path))
 print("narrationEvidenceMarkdownPath=" + str(markdown_path))
 print("narrationEvidenceZipPath=" + str(zip_path))
+PY
+}
+
+print_narration_script_package_summary_file() {
+  local package_json_path="$1"
+  local package_markdown_path="$2"
+  local package_zip_path="$3"
+
+  python3 - "$package_json_path" "$package_markdown_path" "$package_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+package = json.loads(json_path.read_text(encoding="utf-8"))
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(package, ensure_ascii=False) + "\n" + markdown
+required_entries = {
+    "manifest.json",
+    "narration-script-package.json",
+    "narration-script-package.md",
+    "README.md",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Narration script package ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration script package contains forbidden sensitive string: " + marker)
+
+checks = package.get("checks", [])
+check_summary = ",".join(str(check.get("key", "")) + ":" + str(check.get("status", "")) for check in checks)
+segments = package.get("segments", [])
+print("narrationScriptPackageJobId=" + str(package.get("jobId", "")))
+print("narrationScriptPackageStatus=" + str(package.get("status", "")))
+print("narrationScriptPackageSegmentCount=" + str(package.get("segmentCount", 0)))
+print("narrationScriptPackageCharacterCount=" + str(package.get("totalCharacterCount", 0)))
+print("narrationScriptPackageTimelineGapCount=" + str(package.get("timelineGapCount", 0)))
+print("narrationScriptPackageTimelineGapSeconds=" + str(package.get("timelineGapSeconds", "")))
+print("narrationScriptPackageTimelineHasOverlap=" + str(package.get("timelineHasOverlap", False)).lower())
+print("narrationScriptPackageVoiceSummary=" + str(package.get("voiceSummary", "")))
+print("narrationScriptPackageDefaultVoice=" + str(package.get("defaultVoice", "")))
+print("narrationScriptPackageIncludesText=" + str(any(bool(str(segment.get("text", "")).strip()) for segment in segments)).lower())
+print("narrationScriptPackageCheckSummary=" + check_summary)
+print("narrationScriptPackageZipEntryCount=" + str(len(required_entries)))
+print("narrationScriptPackageJsonPath=" + str(json_path))
+print("narrationScriptPackageMarkdownPath=" + str(markdown_path))
+print("narrationScriptPackageZipPath=" + str(zip_path))
 PY
 }
 

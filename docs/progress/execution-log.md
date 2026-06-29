@@ -6,6 +6,22 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `scripts/demo/narration-script-package.sh` plus shared demo helpers to export narration script package JSON, Markdown, and ZIP.
+- Added script package summary validation that checks required ZIP entries, prints status/count/voice/check metadata, and allows operator-authored narration text only in this explicit package surface.
+- Documented browser and terminal script package workflows in README, Docker E2E guide, smoke checklist, roadmap, target-state, and decisions.
+
+Validation:
+
+- `mvn -pl LinguaFrame test` passed with `Tests run: 743, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 192 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Added frontend narration script package types and API helpers for JSON load, Markdown download, ZIP download, and import POST.
 - Added a compact `Script package` panel inside the existing narration workspace with export summary, checks, download actions, JSON paste import, replace confirmation, and invalid JSON blocking.
 - Wired successful import to refresh the narration workspace, narration evidence, script package summary, and artifacts without reloading the page.

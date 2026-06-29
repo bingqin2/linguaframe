@@ -98,7 +98,7 @@
 - [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
 - [x] Run `npm run build`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration script package UI`.
+- [x] Commit with message `Add narration script package UI`.
 
 ## Task 4: Demo Script, Docs, And Final Verification
 
@@ -114,17 +114,17 @@
 - Modify: `docs/plans/138-narration-script-package-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Add terminal export command `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-script-package.sh`.
-- [ ] Script downloads package JSON, Markdown, and ZIP into `/tmp/linguaframe-demo/`, prints metadata-only counts, voice summary, importability checks, and ZIP entries.
-- [ ] Document that script packages are explicit operator-authored script artifacts and may include narration text, unlike general evidence packages.
-- [ ] Update browser smoke checklist with export/import, validation, and refreshed workspace checks.
-- [ ] Record decision to add script package reuse before waveform editing or drag/drop timeline controls.
-- [ ] Run focused backend validations from Tasks 1-2.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Add terminal export command `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-script-package.sh`.
+- [x] Script downloads package JSON, Markdown, and ZIP into `/tmp/linguaframe-demo/`, prints metadata-only counts, voice summary, importability checks, and ZIP entries.
+- [x] Document that script packages are explicit operator-authored script artifacts and may include narration text, unlike general evidence packages.
+- [x] Update browser smoke checklist with export/import, validation, and refreshed workspace checks.
+- [x] Record decision to add script package reuse before waveform editing or drag/drop timeline controls.
+- [x] Run focused backend validations from Tasks 1-2.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration script package workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

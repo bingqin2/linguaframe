@@ -165,7 +165,7 @@ Build:
 - OpenAI TTS client.
 - Job-level TTS voice selection. Status: implemented through upload API, React form, job/list/detail responses, dispatch payloads, provider requests, and TTS cache identity.
 - Dubbing text preparation.
-- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, provider-aware voice preset selection, React narration timeline workbench, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, and terminal evidence exports. The workbench shows span, covered time, gaps, readiness, proportional segment bars, selected-segment diagnostics, and default/explicit voice preset state.
+- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, provider-aware voice preset selection, React narration timeline workbench, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, explicit narration script package export/import for workspace reuse, and terminal evidence/package exports. The workbench shows span, covered time, gaps, readiness, proportional segment bars, selected-segment diagnostics, default/explicit voice preset state, and script package checks.
 - TTS artifact storage.
 - Audio preview and download API.
 - TTS usage and cost record.
