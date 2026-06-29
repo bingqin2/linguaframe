@@ -38,4 +38,31 @@ class DemoRunProfileControllerTests {
                 .andExpect(jsonPath("$[2].subtitleStylePreset").value("LARGE"))
                 .andExpect(jsonPath("$[2].subtitlePolishingMode").value("STRICT"));
     }
+
+    @Test
+    void listsNarrationDemoPresets() throws Exception {
+        mockMvc.perform(get("/api/demo-run-profiles/narration-presets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("tears-showcase-narration"))
+                .andExpect(jsonPath("$[0].profileId").value("tears-showcase"))
+                .andExpect(jsonPath("$[0].sampleIdHint").value("tears-of-steel-casting"))
+                .andExpect(jsonPath("$[0].segmentCount").value(org.hamcrest.Matchers.greaterThanOrEqualTo(3)))
+                .andExpect(jsonPath("$[0].mixSettings.duckingVolume").value(0.35))
+                .andExpect(jsonPath("$[0].segments[0].text").isNotEmpty());
+    }
+
+    @Test
+    void getsNarrationPresetByDemoProfile() throws Exception {
+        mockMvc.perform(get("/api/demo-run-profiles/tears-showcase/narration-preset"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value("tears-showcase-narration"))
+                .andExpect(jsonPath("$.profileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.voiceSummary").value(org.hamcrest.Matchers.containsString("alloy")));
+    }
+
+    @Test
+    void returnsNoContentWhenProfileHasNoNarrationPreset() throws Exception {
+        mockMvc.perform(get("/api/demo-run-profiles/quick-baseline/narration-preset"))
+                .andExpect(status().isNoContent());
+    }
 }

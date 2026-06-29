@@ -2,6 +2,20 @@
 
 This file records implementation progress, validation commands, failures, and follow-up notes.
 
+## 2026-06-30
+
+Work:
+
+- Started the narration demo preset package feature slice from `docs/plans/139-narration-demo-preset-package.md`.
+- Added built-in narration preset catalog support for the `tears-showcase` demo profile.
+- Added `tears-showcase-narration` with four time-coded operator-authored explanatory segments, conservative mix defaults, sample/profile linkage, and safe catalog metadata.
+- Added read-only backend routes for listing narration demo presets and retrieving the preset attached to one demo run profile.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests` first failed at test compilation because `NarrationDemoPresetService`, preset VOs, and the in-memory implementation did not exist.
+- After adding the catalog service and controller routes, `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+
 ## 2026-06-29
 
 Work:

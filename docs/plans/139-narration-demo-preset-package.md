@@ -29,19 +29,19 @@
 - Create: `LinguaFrame/src/main/java/com/linguaframe/demo/service/impl/InMemoryNarrationDemoPresetService.java`
 - Modify: `LinguaFrame/src/main/java/com/linguaframe/demo/controller/DemoRunProfileController.java`
 - Test: `LinguaFrame/src/test/java/com/linguaframe/demo/service/NarrationDemoPresetServiceTests.java`
-- Test: `LinguaFrame/src/test/java/com/linguaframe/demo/controller/DemoRunProfileControllerTests.java`
+- Test: `LinguaFrame/src/test/java/com/linguaframe/demo/DemoRunProfileControllerTests.java`
 
 **Interfaces:**
 - `GET /api/demo-run-profiles/narration-presets`
 - `GET /api/demo-run-profiles/{profileId}/narration-preset`
 
-- [ ] Add a built-in `tears-showcase-narration` preset linked to `tears-showcase`, with 3-5 time-coded explanatory segments within the 5-minute upload limit and conservative mix settings.
-- [ ] Include labels, profile id, sample id hint, target language, voice summary, segment count, total characters, time span, mix settings, safety notes, and segment rows.
-- [ ] Return empty optional behavior for profiles without narration presets instead of failing.
-- [ ] Add service tests for listing presets, profile lookup, unknown profile handling, duration ordering, and no unsafe local paths or keys in catalog metadata.
-- [ ] Add controller tests for both routes.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add a built-in `tears-showcase-narration` preset linked to `tears-showcase`, with 3-5 time-coded explanatory segments within the 5-minute upload limit and conservative mix settings.
+- [x] Include labels, profile id, sample id hint, target language, voice summary, segment count, total characters, time span, mix settings, safety notes, and segment rows.
+- [x] Return empty optional behavior for profiles without narration presets instead of failing.
+- [x] Add service tests for listing presets, profile lookup, unknown profile handling, duration ordering, and no unsafe local paths or keys in catalog metadata.
+- [x] Add controller tests for both routes.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration demo preset catalog`.
 
 ## Task 2: Apply Preset To Job Through Script Package Import
