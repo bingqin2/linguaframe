@@ -2450,6 +2450,78 @@ describe('App', () => {
     expect(generateNarrationAudio).not.toHaveBeenCalled();
   });
 
+  test('edits narration timeline windows from the workbench and saves updated timing', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-timeline-job', videoId: 'narration-timeline-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace')
+      .mockResolvedValueOnce(narrationWorkspaceFixture({ jobId: 'narration-timeline-job' }))
+      .mockResolvedValueOnce(narrationWorkspaceFixture({
+        jobId: 'narration-timeline-job',
+        segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+          index === 0
+            ? { ...segment, startSeconds: 15.25, endSeconds: 28.5, durationSeconds: 13.25 }
+            : segment
+        )
+      }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-timeline-job',
+        segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+          index === 0
+            ? { ...segment, startSeconds: 15.25, endSeconds: 28.5, durationSeconds: 13.25 }
+            : segment
+        )
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-timeline-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const firstTimelineSegment = within(narrationPanel).getByLabelText('Timeline segment 1: 15 s to 28 s, READY');
+
+    await userEvent.click(firstTimelineSegment);
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '15 s - 28 s')).toBeInTheDocument();
+
+    firstTimelineSegment.focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(15.25);
+    expect(within(narrationPanel).getByLabelText(/narration 1 end/i)).toHaveValue(28.25);
+
+    await userEvent.keyboard('{Shift>}{ArrowRight}{/Shift}');
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(15.25);
+    expect(within(narrationPanel).getByLabelText(/narration 1 end/i)).toHaveValue(28.5);
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
+
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-timeline-job', {
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15.25,
+          endSeconds: 28.5,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        },
+        {
+          index: 1,
+          startSeconds: 55,
+          endSeconds: 70.5,
+          text: 'Explain the second scene.',
+          voice: 'verse'
+        }
+      ]
+    });
+    expect(await within(narrationPanel).findByText('Narration saved.')).toBeInTheDocument();
+  });
+
   test('exports and imports narration script packages from the narration workspace', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-package-job', videoId: 'narration-package-video', targetLanguage: 'zh-CN' })

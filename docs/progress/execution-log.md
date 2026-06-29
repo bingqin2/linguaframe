@@ -4275,6 +4275,25 @@ Validation:
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
 
+## 2026-06-30
+
+Work:
+
+- Added the narration timeline drag-editing helper module for snapping, clamping, moving, resizing, duration recalculation, and local timeline metadata recomputation.
+- Wired the narration timeline workbench to shared unsaved segment state so selected bars, table inputs, inspector details, validation, and save payloads stay synchronized.
+- Added keyboard editing for selected timeline bars: ArrowLeft/ArrowRight moves by 0.25 seconds, Shift+ArrowLeft/Right resizes the end, and Alt+ArrowLeft/Right resizes the start.
+- Added visible selected-bar styling and timeline resize handles without changing the persistence contract or calling OpenAI during editing.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationTimelineEditing.test.ts` first failed because `frontend/src/domain/narrationTimelineEditing.ts` did not exist.
+- After adding the helper, `npm test -- --run src/domain/narrationTimelineEditing.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration timeline"` first failed because the selected timeline segment did not update `Narration 1 start` after ArrowRight.
+- After wiring local timeline editing, the same App test failed once because jsdom lacks `setPointerCapture` and once because the test expected the old save status text.
+- After guarding pointer capture and matching the current `Narration saved.` status text, `npm test -- --run src/App.test.tsx -t "narration timeline"` passed with `Test Files 1 passed` and `Tests 1 passed | 97 skipped`.
+- `npm test -- --run src/domain/narrationTimelineEditing.test.ts` passed with `Test Files 1 passed` and `Tests 7 passed`.
+- `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 105 passed`; jsdom printed expected navigation warnings.
+
 ## 2026-06-29
 
 Work:

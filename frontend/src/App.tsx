@@ -1,6 +1,19 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react';
 
 import { linguaFrameApi, readAuthToken, readDemoToken, writeAuthToken, writeDemoToken } from './api/linguaframeApi';
+import {
+  buildLocalNarrationTimeline,
+  editNarrationTimelineSegment,
+  type NarrationTimelineEditMode
+} from './domain/narrationTimelineEditing';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9326,6 +9339,7 @@ function NarrationWorkspacePanel({
   const selectedSegment = segments[selectedIndex] ?? null;
   const validation = validateNarrationSegments(segments, workspace?.voiceCatalog ?? null);
   const mixValidation = validateNarrationMixSettings(mixSettings);
+  const localTimeline = useMemo(() => buildLocalNarrationTimeline(segments), [segments]);
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
     setSegments((current) =>
@@ -9393,7 +9407,13 @@ function NarrationWorkspacePanel({
       <div className="narration-workbench">
         <div className="narration-table-wrap">
           {workspace?.timeline ? (
-            <NarrationTimelineWorkbench timeline={workspace.timeline} />
+            <NarrationTimelineWorkbench
+              selectedIndex={selectedIndex}
+              timeline={localTimeline}
+              segments={segments}
+              onEditSegment={updateSegment}
+              onSelectSegment={setSelectedIndex}
+            />
           ) : null}
           <NarrationSegmentTable
             segments={segments}
@@ -10178,10 +10198,130 @@ function NarrationMixSettingsPanel({
   );
 }
 
-function NarrationTimelineWorkbench({ timeline }: { timeline: NarrationWorkspace['timeline'] }) {
+function NarrationTimelineWorkbench({
+  onEditSegment,
+  onSelectSegment,
+  selectedIndex,
+  segments,
+  timeline
+}: {
+  onEditSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
+  onSelectSegment: (index: number) => void;
+  selectedIndex: number;
+  segments: NarrationWorkspace['segments'];
+  timeline: NarrationWorkspace['timeline'];
+}) {
+  const [dragState, setDragState] = useState<{
+    index: number;
+    mode: NarrationTimelineEditMode;
+    startClientX: number;
+    original: NarrationWorkspace['segments'][number];
+    trackWidthPx: number;
+  } | null>(null);
   const gapSummary = timeline.gapCount === 0
     ? 'No gaps'
     : `${timeline.gapCount} ${timeline.gapCount === 1 ? 'gap' : 'gaps'} · ${formatSeconds(timeline.gapSeconds)}`;
+  const timelineStartSeconds = timeline.startSeconds;
+  const timelineEndSeconds = timeline.endSeconds || Math.max(1, timeline.startSeconds + 1);
+
+  function applyTimelineEdit(
+    segmentIndex: number,
+    mode: NarrationTimelineEditMode,
+    pointerDeltaPx: number,
+    trackWidthPx = 100
+  ) {
+    const segment = segments.find((candidate) => candidate.index === segmentIndex);
+    if (!segment) {
+      return;
+    }
+    const edited = editNarrationTimelineSegment({
+      segment,
+      mode,
+      pointerDeltaPx,
+      trackWidthPx,
+      timelineStartSeconds,
+      timelineEndSeconds
+    });
+    onEditSegment(segmentIndex, {
+      startSeconds: edited.startSeconds,
+      endSeconds: edited.endSeconds,
+      durationSeconds: edited.durationSeconds
+    });
+  }
+
+  function handleTimelineKeyDown(
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    segmentIndex: number
+  ) {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return;
+    }
+    event.preventDefault();
+    const direction = event.key === 'ArrowRight' ? 1 : -1;
+    const mode: NarrationTimelineEditMode = event.altKey
+      ? 'resize-start'
+      : event.shiftKey
+        ? 'resize-end'
+        : 'move';
+    applyTimelineEdit(segmentIndex, mode, direction * 0.25, Math.max(timelineEndSeconds - timelineStartSeconds, 0.25));
+  }
+
+  function startTimelineDrag(
+    event: ReactPointerEvent<HTMLElement>,
+    segmentIndex: number,
+    mode: NarrationTimelineEditMode
+  ) {
+    const track = event.currentTarget.closest('.narration-timeline-track');
+    if (!(track instanceof HTMLElement)) {
+      return;
+    }
+    const segment = segments.find((candidate) => candidate.index === segmentIndex);
+    if (!segment) {
+      return;
+    }
+    event.preventDefault();
+    if (event.currentTarget.setPointerCapture) {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    setDragState({
+      index: segmentIndex,
+      mode,
+      startClientX: event.clientX,
+      original: segment,
+      trackWidthPx: track.getBoundingClientRect().width
+    });
+    onSelectSegment(segmentIndex);
+  }
+
+  function updateTimelineDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (!dragState) {
+      return;
+    }
+    const edited = editNarrationTimelineSegment({
+      segment: dragState.original,
+      mode: dragState.mode,
+      pointerDeltaPx: event.clientX - dragState.startClientX,
+      trackWidthPx: dragState.trackWidthPx,
+      timelineStartSeconds,
+      timelineEndSeconds
+    });
+    onEditSegment(dragState.index, {
+      startSeconds: edited.startSeconds,
+      endSeconds: edited.endSeconds,
+      durationSeconds: edited.durationSeconds
+    });
+  }
+
+  function finishTimelineDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (!dragState) {
+      return;
+    }
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    setDragState(null);
+  }
+
   return (
     <div className="narration-timeline-workbench" aria-label="Narration timeline workbench">
       <div className="compact-panel-heading">
@@ -10201,8 +10341,15 @@ function NarrationTimelineWorkbench({ timeline }: { timeline: NarrationWorkspace
         ) : timeline.segments.map((segment) => (
           <button
             aria-label={`Timeline segment ${segment.index + 1}: ${formatSeconds(segment.startSeconds)} to ${formatSeconds(segment.endSeconds)}, ${segment.status}`}
-            className="narration-timeline-segment"
+            className={segment.index === selectedIndex ? 'narration-timeline-segment selected' : 'narration-timeline-segment'}
             key={segment.index}
+            onClick={() => onSelectSegment(segment.index)}
+            onFocus={() => onSelectSegment(segment.index)}
+            onKeyDown={(event) => handleTimelineKeyDown(event, segment.index)}
+            onPointerDown={(event) => startTimelineDrag(event, segment.index, 'move')}
+            onPointerMove={updateTimelineDrag}
+            onPointerUp={finishTimelineDrag}
+            onPointerCancel={finishTimelineDrag}
             style={{
               left: `${segment.leftPercent}%`,
               width: `${Math.max(segment.widthPercent, 2)}%`
@@ -10210,7 +10357,25 @@ function NarrationTimelineWorkbench({ timeline }: { timeline: NarrationWorkspace
             title={`${segment.index + 1}: ${formatSeconds(segment.startSeconds)}-${formatSeconds(segment.endSeconds)}`}
             type="button"
           >
+            <span
+              aria-label={`Resize start handle for narration ${segment.index + 1}`}
+              className="narration-timeline-handle start"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                startTimelineDrag(event, segment.index, 'resize-start');
+              }}
+              role="separator"
+            />
             {segment.index + 1}
+            <span
+              aria-label={`Resize end handle for narration ${segment.index + 1}`}
+              className="narration-timeline-handle end"
+              onPointerDown={(event) => {
+                event.stopPropagation();
+                startTimelineDrag(event, segment.index, 'resize-end');
+              }}
+              role="separator"
+            />
           </button>
         ))}
       </div>

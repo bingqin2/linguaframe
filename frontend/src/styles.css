@@ -411,14 +411,58 @@ td {
 .narration-timeline-segment {
   position: absolute;
   top: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 26px;
   min-width: 24px;
   border: 1px solid #1f6f8b;
   border-radius: 6px;
   background: #d9edf4;
   color: #174e62;
+  cursor: grab;
   font-size: 0.78rem;
   font-weight: 800;
+  overflow: hidden;
+  padding: 0 9px;
+  user-select: none;
+}
+
+.narration-timeline-segment.selected,
+.narration-timeline-segment:focus-visible {
+  border-color: #143948;
+  box-shadow: 0 0 0 2px rgba(31, 111, 139, 0.22);
+  outline: none;
+  z-index: 2;
+}
+
+.narration-timeline-segment:active {
+  cursor: grabbing;
+}
+
+.narration-timeline-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  border: 0;
+  background: rgba(23, 78, 98, 0.34);
+  cursor: ew-resize;
+  opacity: 0.72;
+}
+
+.narration-timeline-handle.start {
+  left: 0;
+}
+
+.narration-timeline-handle.end {
+  right: 0;
+}
+
+.narration-timeline-segment:hover .narration-timeline-handle,
+.narration-timeline-segment.selected .narration-timeline-handle,
+.narration-timeline-segment:focus-visible .narration-timeline-handle {
+  opacity: 1;
 }
 
 .narration-empty-track {

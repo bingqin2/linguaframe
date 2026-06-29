@@ -51,7 +51,7 @@
 - [x] Implement `buildLocalNarrationTimeline` by sorting a copy of segments by `startSeconds`, computing start/end/span/covered/gaps/overlap, and assigning `leftPercent`/`widthPercent` for each segment.
 - [x] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts` and verify it passes.
 - [x] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration timeline editing helpers`.
+- [x] Commit with message `Add narration timeline editing helpers`.
 
 ## Task 2: Interactive Timeline Workbench UI
 
@@ -75,29 +75,29 @@
     - Shift+ArrowLeft/Shift+ArrowRight resize the end by `0.25` seconds.
     - Alt+ArrowLeft/Alt+ArrowRight resize the start by `0.25` seconds.
 
-- [ ] Write failing App tests proving:
+- [x] Write failing App tests proving:
   - clicking a timeline segment selects the same row and updates inspector selection;
   - pressing ArrowRight on a selected timeline segment updates `Narration 1 start` and `Narration 1 end` values by `0.25`;
   - pressing Shift+ArrowRight updates only the selected segment end;
   - the Save narration button sends the edited start/end through `saveNarrationWorkspace`.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration timeline"` and verify the new tests fail against the static timeline.
-- [ ] In `NarrationWorkspacePanel`, compute `localTimeline = useMemo(() => buildLocalNarrationTimeline(segments), [segments])` and pass it to `NarrationTimelineWorkbench` instead of `workspace.timeline` so unsaved edits are visible immediately.
-- [ ] Update `NarrationTimelineWorkbench` to:
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration timeline"` and verify the new tests fail against the static timeline.
+- [x] In `NarrationWorkspacePanel`, compute `localTimeline = useMemo(() => buildLocalNarrationTimeline(segments), [segments])` and pass it to `NarrationTimelineWorkbench` instead of `workspace.timeline` so unsaved edits are visible immediately.
+- [x] Update `NarrationTimelineWorkbench` to:
   - render bars as buttons with selected state;
   - call `onSelectSegment(segment.index)` on click/focus;
   - support `onKeyDown` for move/resize keyboard controls;
   - support pointer drag for move and pointer drag on start/end handles for resize;
   - call `onEditSegment(index, patch)` with updated `startSeconds`, `endSeconds`, and `durationSeconds`.
-- [ ] Add pointer event state with `useState<{ index: number; mode: NarrationTimelineEditMode; startClientX: number; original: NarrationWorkspace['segments'][number]; trackWidthPx: number; } | null>(null)` and use `setPointerCapture`/`releasePointerCapture` on the track.
-- [ ] Keep the table inputs authoritative: direct number edits still update the timeline immediately through shared `segments` state.
-- [ ] Add CSS for selected bars and handles:
+- [x] Add pointer event state with `useState<{ index: number; mode: NarrationTimelineEditMode; startClientX: number; original: NarrationWorkspace['segments'][number]; trackWidthPx: number; } | null>(null)` and use `setPointerCapture`/`releasePointerCapture` on the track.
+- [x] Keep the table inputs authoritative: direct number edits still update the timeline immediately through shared `segments` state.
+- [x] Add CSS for selected bars and handles:
   - stable track height;
   - visible left/right handles;
   - focused selected segment outline;
   - no layout shift on hover/focus.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration timeline"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration timeline"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationTimelineEditing.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration timeline drag editing UI`.
 
 ## Task 3: Validation, Save Contract, And Evidence Consistency
