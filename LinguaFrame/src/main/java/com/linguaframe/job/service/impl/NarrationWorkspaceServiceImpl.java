@@ -1,9 +1,13 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
+import com.linguaframe.job.domain.vo.NarrationMixSettingsVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.NarrationWorkspaceService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,17 +27,32 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
     private static final int MAX_TEXT_LENGTH = 1000;
     private static final int MAX_VOICE_LENGTH = 64;
     private static final BigDecimal ZERO = new BigDecimal("0.000");
+    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.350");
+    private static final BigDecimal DEFAULT_NARRATION_VOLUME = new BigDecimal("1.000");
+    private static final int DEFAULT_FADE_DURATION_MS = 250;
+    private static final BigDecimal MAX_DUCKING_VOLUME = new BigDecimal("1.000");
+    private static final BigDecimal MAX_NARRATION_VOLUME = new BigDecimal("2.000");
+    private static final int MAX_FADE_DURATION_MS = 5000;
 
     private final NarrationSegmentRepository repository;
+    private final NarrationMixSettingsRepository mixSettingsRepository;
     private final Clock clock;
 
-    public NarrationWorkspaceServiceImpl(NarrationSegmentRepository repository) {
-        this(repository, Clock.systemUTC());
+    public NarrationWorkspaceServiceImpl(
+            NarrationSegmentRepository repository,
+            NarrationMixSettingsRepository mixSettingsRepository
+    ) {
+        this(repository, mixSettingsRepository, Clock.systemUTC());
     }
 
     @Autowired
-    public NarrationWorkspaceServiceImpl(NarrationSegmentRepository repository, Clock clock) {
+    public NarrationWorkspaceServiceImpl(
+            NarrationSegmentRepository repository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            Clock clock
+    ) {
         this.repository = repository;
+        this.mixSettingsRepository = mixSettingsRepository;
         this.clock = clock;
     }
 
@@ -66,6 +85,29 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                 .toList();
         repository.replaceSegments(jobId, records);
         return toWorkspace(jobId, records);
+    }
+
+    @Override
+    public NarrationWorkspaceVo updateMixSettings(String jobId, UpdateNarrationMixSettingsDto request) {
+        BigDecimal duckingVolume = normalizeMixDecimal(
+                request == null ? null : request.duckingVolume(),
+                "duckingVolume",
+                MAX_DUCKING_VOLUME
+        );
+        BigDecimal narrationVolume = normalizeMixDecimal(
+                request == null ? null : request.narrationVolume(),
+                "narrationVolume",
+                MAX_NARRATION_VOLUME
+        );
+        int fadeDurationMs = normalizeFadeDuration(request == null ? null : request.fadeDurationMs());
+        mixSettingsRepository.upsert(new NarrationMixSettingsRecord(
+                jobId,
+                duckingVolume,
+                narrationVolume,
+                fadeDurationMs,
+                Instant.now(clock)
+        ));
+        return toWorkspace(jobId, repository.findByJobId(jobId));
     }
 
     @Override
@@ -141,6 +183,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                 totalDuration,
                 totalCharacters,
                 generationReady,
+                toMixSettings(jobId),
                 segments,
                 List.of(
                         "Narration text is available only in the editing workspace.",
@@ -148,6 +191,22 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                         "Narration outputs do not replace generated subtitles, reviewed subtitles, or dubbed video artifacts."
                 )
         );
+    }
+
+    private NarrationMixSettingsVo toMixSettings(String jobId) {
+        return mixSettingsRepository.findByJobId(jobId)
+                .map(record -> new NarrationMixSettingsVo(
+                        record.duckingVolume().setScale(3, java.math.RoundingMode.HALF_UP),
+                        record.narrationVolume().setScale(3, java.math.RoundingMode.HALF_UP),
+                        record.fadeDurationMs(),
+                        record.updatedAt()
+                ))
+                .orElse(new NarrationMixSettingsVo(
+                        DEFAULT_DUCKING_VOLUME,
+                        DEFAULT_NARRATION_VOLUME,
+                        DEFAULT_FADE_DURATION_MS,
+                        null
+                ));
     }
 
     private NarrationSegmentVo toSegment(NarrationSegmentRecord record) {
@@ -178,5 +237,26 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
             return null;
         }
         return value.trim();
+    }
+
+    private BigDecimal normalizeMixDecimal(BigDecimal value, String label, BigDecimal max) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration " + label + " is required.");
+        }
+        BigDecimal normalized = value.setScale(3, java.math.RoundingMode.HALF_UP);
+        if (normalized.compareTo(ZERO) < 0 || normalized.compareTo(max) > 0) {
+            throw new IllegalArgumentException(label + " must be between 0.00 and " + max.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString() + ".");
+        }
+        return normalized;
+    }
+
+    private int normalizeFadeDuration(Integer value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration fadeDurationMs is required.");
+        }
+        if (value < 0 || value > MAX_FADE_DURATION_MS) {
+            throw new IllegalArgumentException("fadeDurationMs must be between 0 and 5000.");
+        }
+        return value;
     }
 }

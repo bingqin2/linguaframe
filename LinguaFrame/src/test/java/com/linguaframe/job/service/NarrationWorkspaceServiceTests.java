@@ -1,8 +1,11 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
+import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.impl.NarrationWorkspaceServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -13,6 +16,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,7 +28,7 @@ class NarrationWorkspaceServiceTests {
     @Test
     void savesValidTimeCodedNarrationSegments() {
         FakeNarrationSegmentRepository repository = new FakeNarrationSegmentRepository();
-        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, CLOCK);
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, new FakeNarrationMixSettingsRepository(), CLOCK);
 
         NarrationWorkspaceVo workspace = service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
                 new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "alloy"),
@@ -36,6 +40,10 @@ class NarrationWorkspaceServiceTests {
         assertThat(workspace.totalDurationSeconds()).isEqualByComparingTo("28.500");
         assertThat(workspace.totalCharacterCount()).isEqualTo(49);
         assertThat(workspace.generationReady()).isTrue();
+        assertThat(workspace.mixSettings().duckingVolume()).isEqualByComparingTo("0.350");
+        assertThat(workspace.mixSettings().narrationVolume()).isEqualByComparingTo("1.000");
+        assertThat(workspace.mixSettings().fadeDurationMs()).isEqualTo(250);
+        assertThat(workspace.mixSettings().updatedAt()).isNull();
         assertThat(workspace.segments())
                 .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice())
                 .containsExactly(
@@ -49,7 +57,7 @@ class NarrationWorkspaceServiceTests {
 
     @Test
     void rejectsOverlappingSegmentsAndInvalidRanges() {
-        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), CLOCK);
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
 
         assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
                 new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("10.000"), new BigDecimal("20.000"), "First", null),
@@ -67,7 +75,7 @@ class NarrationWorkspaceServiceTests {
 
     @Test
     void rejectsTooLongTextAndNonContiguousIndexes() {
-        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), CLOCK);
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
 
         assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
                 new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("1.000"), new BigDecimal("2.000"), "Skipped index", null)
@@ -96,14 +104,72 @@ class NarrationWorkspaceServiceTests {
                 Instant.parse("2026-06-29T09:00:00Z"),
                 Instant.parse("2026-06-29T09:00:00Z")
         ));
-        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, CLOCK);
+        FakeNarrationMixSettingsRepository mixRepository = new FakeNarrationMixSettingsRepository();
+        mixRepository.upsert(new NarrationMixSettingsRecord(
+                "job-narration",
+                new BigDecimal("0.200"),
+                new BigDecimal("1.500"),
+                100,
+                Instant.parse("2026-06-29T09:30:00Z")
+        ));
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, mixRepository, CLOCK);
 
         NarrationWorkspaceVo workspace = service.clearWorkspace("job-narration");
 
         assertThat(workspace.status()).isEqualTo("EMPTY");
         assertThat(workspace.segmentCount()).isZero();
         assertThat(workspace.generationReady()).isFalse();
+        assertThat(workspace.mixSettings().duckingVolume()).isEqualByComparingTo("0.200");
+        assertThat(mixRepository.findByJobId("job-narration")).isPresent();
         assertThat(repository.records).isEmpty();
+    }
+
+    @Test
+    void updatesMixSettingsIndependentlyFromNarrationSegments() {
+        FakeNarrationSegmentRepository segmentRepository = new FakeNarrationSegmentRepository();
+        FakeNarrationMixSettingsRepository mixRepository = new FakeNarrationMixSettingsRepository();
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(segmentRepository, mixRepository, CLOCK);
+
+        NarrationWorkspaceVo workspace = service.updateMixSettings("job-narration", new UpdateNarrationMixSettingsDto(
+                new BigDecimal("0.125"),
+                new BigDecimal("1.750"),
+                400
+        ));
+
+        assertThat(workspace.mixSettings().duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(workspace.mixSettings().narrationVolume()).isEqualByComparingTo("1.750");
+        assertThat(workspace.mixSettings().fadeDurationMs()).isEqualTo(400);
+        assertThat(workspace.mixSettings().updatedAt()).isEqualTo(Instant.parse("2026-06-29T10:00:00Z"));
+        assertThat(segmentRepository.records).isEmpty();
+    }
+
+    @Test
+    void rejectsMixSettingsOutsideAllowedRanges() {
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
+
+        assertThatThrownBy(() -> service.updateMixSettings("job-narration", new UpdateNarrationMixSettingsDto(
+                new BigDecimal("1.001"),
+                new BigDecimal("1.000"),
+                250
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("duckingVolume must be between 0.00 and 1.00");
+
+        assertThatThrownBy(() -> service.updateMixSettings("job-narration", new UpdateNarrationMixSettingsDto(
+                new BigDecimal("0.350"),
+                new BigDecimal("2.001"),
+                250
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("narrationVolume must be between 0.00 and 2.00");
+
+        assertThatThrownBy(() -> service.updateMixSettings("job-narration", new UpdateNarrationMixSettingsDto(
+                new BigDecimal("0.350"),
+                new BigDecimal("1.000"),
+                5001
+        )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("fadeDurationMs must be between 0 and 5000");
     }
 
     private static final class FakeNarrationSegmentRepository implements NarrationSegmentRepository {
@@ -121,6 +187,30 @@ class NarrationWorkspaceServiceTests {
             return records.stream()
                     .filter(record -> record.jobId().equals(jobId))
                     .toList();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+            records.removeIf(record -> record.jobId().equals(jobId));
+        }
+    }
+
+    private static final class FakeNarrationMixSettingsRepository implements NarrationMixSettingsRepository {
+
+        private final List<NarrationMixSettingsRecord> records = new ArrayList<>();
+
+        @Override
+        public Optional<NarrationMixSettingsRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .findFirst();
+        }
+
+        @Override
+        public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
+            deleteByJobId(settings.jobId());
+            records.add(settings);
+            return settings;
         }
 
         @Override

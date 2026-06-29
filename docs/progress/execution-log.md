@@ -3762,6 +3762,19 @@ Validation so far:
 
 Work:
 
+- Extended narration workspace responses with default or saved mix settings.
+- Added `PUT /api/jobs/{jobId}/narration-workspace/mix-settings`.
+- Added validation for ducking volume, narration volume, and fade duration while preserving saved settings when clearing narration rows.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` first failed because mix settings DTO/VO, service method, workspace response field, and route did not exist.
+- After implementing DTO/VO/service/controller wiring, `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests` passed with `Tests run: 71, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Planned demo evidence closure package in `docs/plans/123-demo-evidence-closure-package.md`.
 - Added backend closure aggregation that combines demo run variance, acceptance gate, completion certificate, safe package links, Markdown, and ZIP export.
 - Added `POST /api/jobs/{jobId}/demo-evidence-closure`, Markdown download, and ZIP download endpoints.

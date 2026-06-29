@@ -1965,6 +1965,9 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.totalDurationSeconds").value(28.500))
                 .andExpect(jsonPath("$.totalCharacterCount").value(49))
                 .andExpect(jsonPath("$.generationReady").value(true))
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
+                .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.000))
+                .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(250))
                 .andExpect(jsonPath("$.segments[0].index").value(0))
                 .andExpect(jsonPath("$.segments[0].startSeconds").value(15.000))
                 .andExpect(jsonPath("$.segments[0].endSeconds").value(28.000))
@@ -1975,13 +1978,41 @@ class LocalizationJobControllerTests {
         mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT_READY"))
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
                 .andExpect(jsonPath("$.segments[1].text").value("Explain the second scene."));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-narration")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "duckingVolume": 0.125,
+                                  "narrationVolume": 1.750,
+                                  "fadeDurationMs": 400
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125))
+                .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.750))
+                .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(400))
+                .andExpect(jsonPath("$.segments[1].text").value("Explain the second scene."));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-narration")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "duckingVolume": 1.001,
+                                  "narrationVolume": 1.000,
+                                  "fadeDurationMs": 250
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
 
         mockMvc.perform(delete("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("EMPTY"))
                 .andExpect(jsonPath("$.segmentCount").value(0))
-                .andExpect(jsonPath("$.generationReady").value(false));
+                .andExpect(jsonPath("$.generationReady").value(false))
+                .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125));
     }
 
     @Test

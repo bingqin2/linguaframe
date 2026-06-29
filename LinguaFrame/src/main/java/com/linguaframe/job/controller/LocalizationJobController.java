@@ -3,6 +3,7 @@ package com.linguaframe.job.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
@@ -1272,6 +1273,22 @@ public class LocalizationJobController {
             @RequestBody SaveNarrationSegmentsRequest request
     ) {
         return narrationWorkspaceService.saveWorkspace(jobId, request);
+    }
+
+    @PutMapping("/{jobId}/narration-workspace/mix-settings")
+    @Operation(summary = "Save narration mix settings for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration mix settings were saved."),
+            @ApiResponse(responseCode = "400", description = "The narration mix settings contain invalid volume or fade values."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationWorkspaceVo updateNarrationMixSettings(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody UpdateNarrationMixSettingsDto request
+    ) {
+        return narrationWorkspaceService.updateMixSettings(jobId, request);
     }
 
     @DeleteMapping("/{jobId}/narration-workspace")

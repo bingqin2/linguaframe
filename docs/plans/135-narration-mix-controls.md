@@ -58,13 +58,13 @@
 - `NarrationMixSettingsVo(BigDecimal duckingVolume, BigDecimal narrationVolume, int fadeDurationMs, Instant updatedAt)`
 - `PUT /api/jobs/{jobId}/narration-workspace/mix-settings`
 
-- [ ] Extend workspace reads to include saved mix settings or defaults.
-- [ ] Add validation for numeric ranges and reject invalid settings with 400 responses.
-- [ ] Save mix settings independently from narration segment text.
-- [ ] Keep clear-workspace behavior focused on rows; do not delete mix settings unless explicitly required by the API.
-- [ ] Add service and controller tests for defaults, valid update, invalid ranges, and workspace response shape.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Extend workspace reads to include saved mix settings or defaults.
+- [x] Add validation for numeric ranges and reject invalid settings with 400 responses.
+- [x] Save mix settings independently from narration segment text.
+- [x] Keep clear-workspace behavior focused on rows; do not delete mix settings unless explicitly required by the API.
+- [x] Add service and controller tests for defaults, valid update, invalid ranges, and workspace response shape.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 3: Apply Settings In FFmpeg Mixing
 

@@ -10,6 +10,7 @@ public record NarrationWorkspaceVo(
         BigDecimal totalDurationSeconds,
         int totalCharacterCount,
         boolean generationReady,
+        NarrationMixSettingsVo mixSettings,
         List<NarrationSegmentVo> segments,
         List<String> safetyNotes
 ) {
