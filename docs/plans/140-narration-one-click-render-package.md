@@ -122,8 +122,8 @@
 - [x] Run `npm run build`.
 - [x] Run `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit with message `Document narration demo render package`.
-- [ ] Merge feature branch back to `main`.
+- [x] Commit with message `Document narration demo render package`.
+- [x] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
