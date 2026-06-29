@@ -44,6 +44,20 @@ class NarrationWorkspaceServiceTests {
         assertThat(workspace.mixSettings().narrationVolume()).isEqualByComparingTo("1.000");
         assertThat(workspace.mixSettings().fadeDurationMs()).isEqualTo(250);
         assertThat(workspace.mixSettings().updatedAt()).isNull();
+        assertThat(workspace.timeline().startSeconds()).isEqualByComparingTo("15.000");
+        assertThat(workspace.timeline().endSeconds()).isEqualByComparingTo("70.500");
+        assertThat(workspace.timeline().totalSpanSeconds()).isEqualByComparingTo("55.500");
+        assertThat(workspace.timeline().coveredSeconds()).isEqualByComparingTo("28.500");
+        assertThat(workspace.timeline().gapSeconds()).isEqualByComparingTo("27.000");
+        assertThat(workspace.timeline().gapCount()).isEqualTo(1);
+        assertThat(workspace.timeline().hasOverlap()).isFalse();
+        assertThat(workspace.timeline().generationReady()).isTrue();
+        assertThat(workspace.timeline().segments())
+                .extracting(segment -> segment.index() + ":" + segment.leftPercent() + ":" + segment.widthPercent() + ":" + segment.status())
+                .containsExactly(
+                        "0:0.00:23.42:READY",
+                        "1:72.07:27.93:READY"
+                );
         assertThat(workspace.segments())
                 .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice())
                 .containsExactly(
@@ -53,6 +67,43 @@ class NarrationWorkspaceServiceTests {
         assertThat(repository.records)
                 .extracting(record -> record.segmentIndex() + ":" + record.text() + ":" + record.voice())
                 .containsExactly("0:Explain the first scene.:alloy", "1:Explain the second scene.:alloy");
+    }
+
+    @Test
+    void timelineSummaryHandlesEmptyAndContiguousNarrationSegments() {
+        NarrationWorkspaceService emptyService = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
+
+        NarrationWorkspaceVo emptyWorkspace = emptyService.getWorkspace("job-empty");
+
+        assertThat(emptyWorkspace.timeline().startSeconds()).isEqualByComparingTo("0.000");
+        assertThat(emptyWorkspace.timeline().endSeconds()).isEqualByComparingTo("0.000");
+        assertThat(emptyWorkspace.timeline().totalSpanSeconds()).isEqualByComparingTo("0.000");
+        assertThat(emptyWorkspace.timeline().coveredSeconds()).isEqualByComparingTo("0.000");
+        assertThat(emptyWorkspace.timeline().gapSeconds()).isEqualByComparingTo("0.000");
+        assertThat(emptyWorkspace.timeline().gapCount()).isZero();
+        assertThat(emptyWorkspace.timeline().hasOverlap()).isFalse();
+        assertThat(emptyWorkspace.timeline().generationReady()).isFalse();
+        assertThat(emptyWorkspace.timeline().segments()).isEmpty();
+
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
+
+        NarrationWorkspaceVo workspace = service.saveWorkspace("job-contiguous", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("0.000"), new BigDecimal("5.000"), "First beat.", null),
+                new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("5.000"), new BigDecimal("10.000"), "Second beat.", "verse")
+        )));
+
+        assertThat(workspace.timeline().startSeconds()).isEqualByComparingTo("0.000");
+        assertThat(workspace.timeline().endSeconds()).isEqualByComparingTo("10.000");
+        assertThat(workspace.timeline().totalSpanSeconds()).isEqualByComparingTo("10.000");
+        assertThat(workspace.timeline().coveredSeconds()).isEqualByComparingTo("10.000");
+        assertThat(workspace.timeline().gapSeconds()).isEqualByComparingTo("0.000");
+        assertThat(workspace.timeline().gapCount()).isZero();
+        assertThat(workspace.timeline().segments())
+                .extracting(segment -> segment.index() + ":" + segment.leftPercent() + ":" + segment.widthPercent() + ":" + segment.voice())
+                .containsExactly(
+                        "0:0.00:50.00:",
+                        "1:50.00:50.00:verse"
+                );
     }
 
     @Test

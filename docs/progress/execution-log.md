@@ -3924,6 +3924,20 @@ Validation so far:
 
 Work:
 
+- Started the narration timeline workbench feature slice.
+- Added computed `NarrationTimelineSummaryVo` and `NarrationTimelineSegmentVo` metadata to the narration workspace response.
+- Computed timeline start/end/span, covered seconds, gap seconds/count, overlap flag, generation readiness, and proportional segment positions from existing narration rows.
+- Preserved existing save-time validation and persistence shape; no schema change was needed.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests` first failed at test compilation because `NarrationWorkspaceVo.timeline()` did not exist.
+- After adding timeline summary metadata, `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-29
+
+Work:
+
 - Added persisted narration mix settings with job-level ducking volume, narration volume, fade duration, and saved/default source reporting.
 - Added `PUT /api/jobs/{jobId}/narration-workspace/mix-settings`, workspace response fields, validation ranges, and runtime dependency route coverage.
 - Applied saved/default mix settings to narrated video generation and FFmpeg command construction.

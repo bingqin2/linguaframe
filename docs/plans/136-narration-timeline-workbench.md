@@ -34,12 +34,12 @@
 - `NarrationTimelineSummaryVo(BigDecimal startSeconds, BigDecimal endSeconds, BigDecimal totalSpanSeconds, BigDecimal coveredSeconds, BigDecimal gapSeconds, int gapCount, boolean hasOverlap, boolean generationReady, List<NarrationTimelineSegmentVo> segments)`
 - Extend `NarrationWorkspaceVo` with `NarrationTimelineSummaryVo timeline`.
 
-- [ ] Write failing service tests asserting timeline summary for empty, gapped, and contiguous narration segments.
-- [ ] Verify the tests fail because `NarrationWorkspaceVo.timeline()` does not exist.
-- [ ] Implement timeline summary calculation from existing segment records.
-- [ ] Mark segment statuses as `READY`, `EMPTY_TEXT`, or `INVALID_RANGE` from computed data; keep service validation behavior unchanged for saves.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Write failing service tests asserting timeline summary for empty, gapped, and contiguous narration segments.
+- [x] Verify the tests fail because `NarrationWorkspaceVo.timeline()` does not exist.
+- [x] Implement timeline summary calculation from existing segment records.
+- [x] Mark segment statuses as `READY`, `EMPTY_TEXT`, or `INVALID_RANGE` from computed data; keep service validation behavior unchanged for saves.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration timeline summary`.
 
 ## Task 2: API Contract And Runtime Evidence
