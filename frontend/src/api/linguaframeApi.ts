@@ -8,6 +8,7 @@ import type {
   DemoRunLauncher,
   JobArtifact,
   JobComparison,
+  DemoEvidenceClosurePackage,
   DemoRunMonitor,
   DemoReplayCard,
   DemoRunSnapshot,
@@ -497,6 +498,45 @@ export async function downloadDemoRunVarianceMarkdown(
   });
 }
 
+export async function getDemoEvidenceClosure(
+  jobId: string,
+  preUploadJson?: string
+): Promise<DemoEvidenceClosurePackage> {
+  return requestJson<DemoEvidenceClosurePackage>(`/api/jobs/${encodeURIComponent(jobId)}/demo-evidence-closure`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ preUploadJson: preUploadJson?.trim() || null })
+  });
+}
+
+export async function downloadDemoEvidenceClosureMarkdown(
+  jobId: string,
+  preUploadJson?: string
+): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-evidence-closure/markdown/download`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ preUploadJson: preUploadJson?.trim() || null })
+  });
+}
+
+export async function downloadDemoEvidenceClosureZip(
+  jobId: string,
+  preUploadJson?: string
+): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/demo-evidence-closure/download`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ preUploadJson: preUploadJson?.trim() || null })
+  });
+}
+
 export async function getDemoRunSnapshot(jobId: string): Promise<DemoRunSnapshot> {
   return requestJson<DemoRunSnapshot>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-snapshot`, {
     method: 'GET'
@@ -837,6 +877,9 @@ export const linguaFrameApi = {
   getDemoAcceptanceGate,
   getDemoRunVariance,
   downloadDemoRunVarianceMarkdown,
+  getDemoEvidenceClosure,
+  downloadDemoEvidenceClosureMarkdown,
+  downloadDemoEvidenceClosureZip,
   getDemoRunSnapshot,
   getDemoPresenterPack,
   getDemoShareSheet,

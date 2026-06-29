@@ -5,6 +5,7 @@ import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
   DemoCompletionCertificate,
+  DemoEvidenceClosurePackage,
   DemoPresentationCockpit,
   DemoRunLauncher,
   DemoReplayCard,
@@ -453,6 +454,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunVariance, setDemoRunVariance] = useState<DemoRunVarianceReport | null>(null);
   const [demoRunVarianceError, setDemoRunVarianceError] = useState<string | null>(null);
   const [isLoadingDemoRunVariance, setIsLoadingDemoRunVariance] = useState(false);
+  const [demoEvidenceClosure, setDemoEvidenceClosure] = useState<DemoEvidenceClosurePackage | null>(null);
+  const [demoEvidenceClosureError, setDemoEvidenceClosureError] = useState<string | null>(null);
+  const [isLoadingDemoEvidenceClosure, setIsLoadingDemoEvidenceClosure] = useState(false);
   const [demoRunSnapshot, setDemoRunSnapshot] = useState<DemoRunSnapshot | null>(null);
   const [demoRunSnapshotError, setDemoRunSnapshotError] = useState<string | null>(null);
   const [isLoadingDemoRunSnapshot, setIsLoadingDemoRunSnapshot] = useState(false);
@@ -528,6 +532,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
           setDemoAcceptanceGateError(null);
           setDemoRunVariance(null);
           setDemoRunVarianceError(null);
+          setDemoEvidenceClosure(null);
+          setDemoEvidenceClosureError(null);
           setDemoShareSheet(null);
           setDemoShareSheetError(null);
         }
@@ -652,6 +658,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunVarianceError(toErrorMessage(varianceLoadError));
     } finally {
       setIsLoadingDemoRunVariance(false);
+    }
+  }, []);
+
+  const loadDemoEvidenceClosure = useCallback(async (jobId: string, preUploadJson?: string) => {
+    setIsLoadingDemoEvidenceClosure(true);
+    try {
+      const closure = await linguaFrameApi.getDemoEvidenceClosure(jobId, preUploadJson);
+      setDemoEvidenceClosure(closure);
+      setDemoEvidenceClosureError(null);
+    } catch (closureLoadError) {
+      setDemoEvidenceClosure(null);
+      setDemoEvidenceClosureError(toErrorMessage(closureLoadError));
+    } finally {
+      setIsLoadingDemoEvidenceClosure(false);
     }
   }, []);
 
@@ -2284,6 +2304,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoAcceptanceGateError={demoAcceptanceGateError}
               demoRunVariance={demoRunVariance}
               demoRunVarianceError={demoRunVarianceError}
+              demoEvidenceClosure={demoEvidenceClosure}
+              demoEvidenceClosureError={demoEvidenceClosureError}
               demoRunSnapshot={demoRunSnapshot}
               demoRunSnapshotError={demoRunSnapshotError}
               demoPresenterPack={demoPresenterPack}
@@ -2298,6 +2320,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoCompletionCertificate={isLoadingDemoCompletionCertificate}
               isLoadingDemoAcceptanceGate={isLoadingDemoAcceptanceGate}
               isLoadingDemoRunVariance={isLoadingDemoRunVariance}
+              isLoadingDemoEvidenceClosure={isLoadingDemoEvidenceClosure}
               isLoadingDemoRunSnapshot={isLoadingDemoRunSnapshot}
               isLoadingDemoPresenterPack={isLoadingDemoPresenterPack}
               isLoadingDemoShareSheet={isLoadingDemoShareSheet}
@@ -2310,6 +2333,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshDemoCompletionCertificate={() => void loadDemoCompletionCertificate(job.jobId)}
               onRefreshDemoAcceptanceGate={() => void loadDemoAcceptanceGate(job.jobId)}
               onRefreshDemoRunVariance={(preUploadJson) => void loadDemoRunVariance(job.jobId, preUploadJson)}
+              onRefreshDemoEvidenceClosure={(preUploadJson) => void loadDemoEvidenceClosure(job.jobId, preUploadJson)}
               onRefreshDemoRunSnapshot={() => void loadDemoRunSnapshot(job.jobId)}
               onRefreshDemoPresenterPack={() => void loadDemoPresenterPack(job.jobId)}
               onRefreshDemoShareSheet={() => void loadDemoShareSheet(job.jobId)}
@@ -4564,6 +4588,8 @@ function JobDetail({
   demoAcceptanceGateError,
   demoRunVariance,
   demoRunVarianceError,
+  demoEvidenceClosure,
+  demoEvidenceClosureError,
   demoRunSnapshot,
   demoRunSnapshotError,
   demoPresenterPack,
@@ -4578,6 +4604,7 @@ function JobDetail({
   isLoadingDemoCompletionCertificate,
   isLoadingDemoAcceptanceGate,
   isLoadingDemoRunVariance,
+  isLoadingDemoEvidenceClosure,
   isLoadingDemoRunSnapshot,
   isLoadingDemoPresenterPack,
   isLoadingDemoShareSheet,
@@ -4590,6 +4617,7 @@ function JobDetail({
   onRefreshDemoCompletionCertificate,
   onRefreshDemoAcceptanceGate,
   onRefreshDemoRunVariance,
+  onRefreshDemoEvidenceClosure,
   onRefreshDemoRunSnapshot,
   onRefreshDemoPresenterPack,
   onRefreshDemoShareSheet,
@@ -4644,6 +4672,8 @@ function JobDetail({
   demoAcceptanceGateError: string | null;
   demoRunVariance: DemoRunVarianceReport | null;
   demoRunVarianceError: string | null;
+  demoEvidenceClosure: DemoEvidenceClosurePackage | null;
+  demoEvidenceClosureError: string | null;
   demoRunSnapshot: DemoRunSnapshot | null;
   demoRunSnapshotError: string | null;
   demoPresenterPack: DemoPresenterPack | null;
@@ -4658,6 +4688,7 @@ function JobDetail({
   isLoadingDemoCompletionCertificate: boolean;
   isLoadingDemoAcceptanceGate: boolean;
   isLoadingDemoRunVariance: boolean;
+  isLoadingDemoEvidenceClosure: boolean;
   isLoadingDemoRunSnapshot: boolean;
   isLoadingDemoPresenterPack: boolean;
   isLoadingDemoShareSheet: boolean;
@@ -4670,6 +4701,7 @@ function JobDetail({
   onRefreshDemoCompletionCertificate: () => void;
   onRefreshDemoAcceptanceGate: () => void;
   onRefreshDemoRunVariance: (preUploadJson: string) => void;
+  onRefreshDemoEvidenceClosure: (preUploadJson: string) => void;
   onRefreshDemoRunSnapshot: () => void;
   onRefreshDemoPresenterPack: () => void;
   onRefreshDemoShareSheet: () => void;
@@ -4877,6 +4909,13 @@ function JobDetail({
         isLoading={isLoadingDemoRunVariance}
         onRefresh={onRefreshDemoRunVariance}
         report={demoRunVariance}
+      />
+
+      <DemoEvidenceClosurePanel
+        closure={demoEvidenceClosure}
+        error={demoEvidenceClosureError}
+        isLoading={isLoadingDemoEvidenceClosure}
+        onRefresh={onRefreshDemoEvidenceClosure}
       />
 
       <DemoReplayCardPanel
@@ -6868,6 +6907,151 @@ function DemoRunVariancePanel({
   );
 }
 
+function DemoEvidenceClosurePanel({
+  closure,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  closure: DemoEvidenceClosurePackage | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: (preUploadJson: string) => void;
+}) {
+  const [preUploadJson, setPreUploadJson] = useState('');
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [isDownloadingMarkdown, setIsDownloadingMarkdown] = useState(false);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+
+  async function downloadClosureMarkdown() {
+    if (!closure?.jobId) {
+      return;
+    }
+    setIsDownloadingMarkdown(true);
+    setDownloadError(null);
+    try {
+      const blob = await linguaFrameApi.downloadDemoEvidenceClosureMarkdown(closure.jobId, preUploadJson);
+      downloadBlob(blob, 'demo-evidence-closure.md');
+    } catch (markdownError) {
+      setDownloadError(toErrorMessage(markdownError));
+    } finally {
+      setIsDownloadingMarkdown(false);
+    }
+  }
+
+  async function downloadClosureZip() {
+    if (!closure?.jobId) {
+      return;
+    }
+    setIsDownloadingZip(true);
+    setDownloadError(null);
+    try {
+      const blob = await linguaFrameApi.downloadDemoEvidenceClosureZip(closure.jobId, preUploadJson);
+      downloadBlob(blob, `linguaframe-job-${closure.jobId}-demo-evidence-closure.zip`);
+    } catch (zipError) {
+      setDownloadError(toErrorMessage(zipError));
+    } finally {
+      setIsDownloadingZip(false);
+    }
+  }
+
+  return (
+    <section className="panel demo-evidence-closure-panel" aria-label="Demo evidence closure package">
+      <div className="panel-heading">
+        <div>
+          <h3>Demo evidence closure</h3>
+          <p className="muted">Build the final reviewer package that closes pre-upload decision, variance, acceptance, and completion evidence.</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={() => onRefresh(preUploadJson)} disabled={isLoading}>
+            {isLoading ? 'Building...' : 'Build closure'}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void downloadClosureMarkdown()}
+            disabled={isDownloadingMarkdown || !closure}
+          >
+            {isDownloadingMarkdown ? 'Downloading...' : 'Download Markdown'}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void downloadClosureZip()}
+            disabled={isDownloadingZip || !closure}
+          >
+            {isDownloadingZip ? 'Downloading...' : 'Download ZIP'}
+          </button>
+        </div>
+      </div>
+      <label className="field-label" htmlFor="demo-evidence-closure-baseline">
+        Pre-upload JSON baseline
+      </label>
+      <textarea
+        id="demo-evidence-closure-baseline"
+        className="json-textarea"
+        value={preUploadJson}
+        onChange={(event) => setPreUploadJson(event.target.value)}
+        placeholder='Paste upload decision package JSON or execution-plan JSON. Leave blank for actual-only closure.'
+        rows={6}
+      />
+      {error ? <p className="error-text">{error}</p> : null}
+      {downloadError ? <p className="error-text">{downloadError}</p> : null}
+      {closure ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Closure</dt>
+              <dd>{closure.closureStatus}</dd>
+            </div>
+            <div>
+              <dt>Baseline</dt>
+              <dd>{closure.baselineMode}</dd>
+            </div>
+            <div>
+              <dt>Variance</dt>
+              <dd>{closure.varianceReport.overallStatus}</dd>
+            </div>
+            <div>
+              <dt>Profile</dt>
+              <dd>{formatDemoProfileId(closure.demoProfileId)}</dd>
+            </div>
+          </dl>
+          <p className={closure.closureStatus === 'READY' ? 'success-text' : closure.closureStatus === 'BLOCKED' ? 'error-text' : 'warning-text'}>
+            {closure.recommendedNextAction}
+          </p>
+          <div className="snapshot-section-grid">
+            {closure.sections.map((section) => (
+              <div key={section.key}>
+                <h4>{section.title}</h4>
+                <p className="muted">{section.status}</p>
+                <p>{section.summary}</p>
+                <ul className="compact-list">
+                  {section.facts.slice(0, 6).map((fact) => (
+                    <li key={fact}>{fact}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <div className="link-list">
+            {closure.safeLinks.slice(0, 12).map((link) => (
+              <a key={link} href={link}>
+                {link}
+              </a>
+            ))}
+          </div>
+          <ul className="compact-list">
+            {closure.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function DemoShareSheetPanel({
   error,
   isLoading,
@@ -7591,6 +7775,15 @@ function toRecentJob(upload: MediaUpload): RecentJob {
 
 function toErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Unexpected frontend error.';
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = objectUrl;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function safeMarkdownLine(value: unknown): string {

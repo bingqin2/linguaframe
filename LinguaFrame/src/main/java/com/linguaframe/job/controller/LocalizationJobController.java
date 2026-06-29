@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredAiAuditPackageBo;
 import com.linguaframe.job.domain.bo.StoredArtifactArchiveBo;
+import com.linguaframe.job.domain.bo.StoredDemoEvidenceClosurePackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunPackageBo;
 import com.linguaframe.job.domain.bo.StoredDemoRunSnapshotPackageBo;
 import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
@@ -18,6 +19,7 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
+import com.linguaframe.job.domain.vo.DemoEvidenceClosurePackageVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackVo;
 import com.linguaframe.job.domain.vo.DemoRunVarianceReportVo;
 import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
@@ -40,6 +42,7 @@ import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
+import com.linguaframe.job.service.DemoEvidenceClosurePackageService;
 import com.linguaframe.job.service.DemoPresenterPackService;
 import com.linguaframe.job.service.DemoRunVarianceReportService;
 import com.linguaframe.job.service.DemoRunMatrixService;
@@ -106,6 +109,7 @@ public class LocalizationJobController {
     private final DemoRunMatrixService demoRunMatrixService;
     private final DemoAcceptanceGateService demoAcceptanceGateService;
     private final DemoCompletionCertificateService demoCompletionCertificateService;
+    private final DemoEvidenceClosurePackageService demoEvidenceClosurePackageService;
     private final DemoPresenterPackService demoPresenterPackService;
     private final DemoRunVarianceReportService demoRunVarianceReportService;
     private final DemoRunMonitorService demoRunMonitorService;
@@ -137,6 +141,7 @@ public class LocalizationJobController {
             DemoRunMatrixService demoRunMatrixService,
             DemoAcceptanceGateService demoAcceptanceGateService,
             DemoCompletionCertificateService demoCompletionCertificateService,
+            DemoEvidenceClosurePackageService demoEvidenceClosurePackageService,
             DemoPresenterPackService demoPresenterPackService,
             DemoRunVarianceReportService demoRunVarianceReportService,
             DemoRunMonitorService demoRunMonitorService,
@@ -167,6 +172,7 @@ public class LocalizationJobController {
         this.demoRunMatrixService = demoRunMatrixService;
         this.demoAcceptanceGateService = demoAcceptanceGateService;
         this.demoCompletionCertificateService = demoCompletionCertificateService;
+        this.demoEvidenceClosurePackageService = demoEvidenceClosurePackageService;
         this.demoPresenterPackService = demoPresenterPackService;
         this.demoRunVarianceReportService = demoRunVarianceReportService;
         this.demoRunMonitorService = demoRunMonitorService;
@@ -320,6 +326,84 @@ public class LocalizationJobController {
                                 .toString()
                 )
                 .body(body);
+    }
+
+    @PostMapping("/{jobId}/demo-evidence-closure")
+    @Operation(summary = "Build a safe final demo evidence closure package manifest")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo evidence closure package manifest was built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public DemoEvidenceClosurePackageVo getDemoEvidenceClosure(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) DemoRunVarianceRequest request
+    ) {
+        return demoEvidenceClosurePackageService.buildClosure(
+                jobId,
+                request == null ? null : request.preUploadJson()
+        );
+    }
+
+    @PostMapping("/{jobId}/demo-evidence-closure/markdown/download")
+    @Operation(summary = "Download a safe Markdown final demo evidence closure report")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo evidence closure Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> downloadDemoEvidenceClosureMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) DemoRunVarianceRequest request
+    ) {
+        DemoEvidenceClosurePackageVo closure = demoEvidenceClosurePackageService.buildClosure(
+                jobId,
+                request == null ? null : request.preUploadJson()
+        );
+        byte[] body = demoEvidenceClosurePackageService.renderMarkdown(closure)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .contentLength(body.length)
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("demo-evidence-closure.md")
+                                .build()
+                                .toString()
+                )
+                .body(body);
+    }
+
+    @PostMapping("/{jobId}/demo-evidence-closure/download")
+    @Operation(summary = "Download a safe final demo evidence closure ZIP")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo evidence closure ZIP bytes were generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<InputStreamResource> downloadDemoEvidenceClosurePackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) DemoRunVarianceRequest request
+    ) {
+        StoredDemoEvidenceClosurePackageBo closurePackage = demoEvidenceClosurePackageService.openClosurePackage(
+                jobId,
+                request == null ? null : request.preUploadJson()
+        );
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(closurePackage.contentType()))
+                .contentLength(closurePackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(closurePackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(closurePackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/demo-run-monitor")

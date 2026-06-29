@@ -55,6 +55,31 @@ export interface DemoRunVarianceReport {
   safetyNotes: string[];
 }
 
+export interface DemoEvidenceClosureSection {
+  key: string;
+  title: string;
+  status: string;
+  summary: string;
+  facts: string[];
+  links: string[];
+}
+
+export interface DemoEvidenceClosurePackage {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  closureStatus: string;
+  baselineMode: string;
+  jobStatus: string;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  recommendedNextAction: string;
+  varianceReport: DemoRunVarianceReport;
+  sections: DemoEvidenceClosureSection[];
+  safeLinks: string[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'
