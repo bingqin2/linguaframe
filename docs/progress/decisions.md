@@ -676,6 +676,14 @@ Impact: `/api/jobs/{jobId}/demo-replay-card`, the browser `Demo replay card` pan
 
 ## 2026-06-29
 
+Decision: Add provider voice preset selection before voice cloning or voice preview features.
+
+Reason: Narration needs a reliable, repeatable way to choose TTS voices per segment without accepting arbitrary provider strings or expanding into custom voice cloning. Provider preset identifiers are easy to validate, cache, audit, and expose in safe evidence.
+
+Impact: The narration workspace now returns a provider-aware voice catalog, segment saves reject unknown voice identifiers, blank voices inherit the default, React uses compact voice selects, and narration evidence reports voice preset count, voice summary, and default voice. Uploaded reference audio, voice cloning, voice preview playback, waveform editing, and drag/drop timeline controls remain future slices.
+
+## 2026-06-29
+
 Decision: Add narration timeline inspection before waveform or drag editing.
 
 Reason: Operators need to see where explanatory voiceover segments land, how much time is covered, and whether gaps or overlaps exist before spending TTS/video-generation cost. A computed timeline workbench gives demo-ready feedback without introducing a nonlinear editor surface.

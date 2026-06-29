@@ -106,15 +106,15 @@
 - Modify: `docs/plans/137-narration-voice-preset-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser workflow: open narration workspace, choose inherited/default or explicit voice preset per segment, save narration, generate audio/video, verify voice metadata in evidence.
-- [ ] Document that voice presets are provider-aware identifiers, not voice cloning or uploaded reference audio.
-- [ ] Record the decision that this slice adds preset selection before voice preview/clone features.
-- [ ] Run focused backend validations from Tasks 1-2.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Document the browser workflow: open narration workspace, choose inherited/default or explicit voice preset per segment, save narration, generate audio/video, verify voice metadata in evidence.
+- [x] Document that voice presets are provider-aware identifiers, not voice cloning or uploaded reference audio.
+- [x] Record the decision that this slice adds preset selection before voice preview/clone features.
+- [x] Run focused backend validations from Tasks 1-2.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration voice preset workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

@@ -13,6 +13,7 @@ import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationEvidenceService;
 import com.linguaframe.job.service.NarrationVoiceCatalogService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -58,6 +59,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         );
     }
 
+    @Autowired
     public NarrationEvidenceServiceImpl(
             NarrationSegmentRepository narrationSegmentRepository,
             LocalizationJobQueryService queryService,

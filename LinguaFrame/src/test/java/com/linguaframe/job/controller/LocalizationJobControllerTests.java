@@ -1947,14 +1947,14 @@ class LocalizationJobControllerTests {
                                       "startSeconds": 15.000,
                                       "endSeconds": 28.000,
                                       "text": "Explain the first scene.",
-                                      "voice": "alloy"
+                                      "voice": "demo-voice"
                                     },
                                     {
                                       "index": 1,
                                       "startSeconds": 55.000,
                                       "endSeconds": 70.500,
                                       "text": "Explain the second scene.",
-                                      "voice": "alloy"
+                                      "voice": "demo-voice"
                                     }
                                   ]
                                 }
@@ -1982,7 +1982,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segments[0].startSeconds").value(15.000))
                 .andExpect(jsonPath("$.segments[0].endSeconds").value(28.000))
                 .andExpect(jsonPath("$.segments[0].text").value("Explain the first scene."))
-                .andExpect(jsonPath("$.segments[0].voice").value("alloy"))
+                .andExpect(jsonPath("$.segments[0].voice").value("demo-voice"))
                 .andExpect(jsonPath("$.segments[1].durationSeconds").value(15.500));
 
         mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
@@ -2041,14 +2041,14 @@ class LocalizationJobControllerTests {
                                       "startSeconds": 15.000,
                                       "endSeconds": 28.000,
                                       "text": "Explain the first scene.",
-                                      "voice": "alloy"
+                                      "voice": "demo-voice"
                                     },
                                     {
                                       "index": 1,
                                       "startSeconds": 55.000,
                                       "endSeconds": 70.500,
                                       "text": "Explain the second scene.",
-                                      "voice": "alloy"
+                                      "voice": "demo-voice"
                                     }
                                   ]
                                 }
@@ -2063,7 +2063,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segmentCount").value(2))
                 .andExpect(jsonPath("$.totalCharacterCount").value(49))
                 .andExpect(jsonPath("$.totalTimelineDurationSeconds").value(28.500))
-                .andExpect(jsonPath("$.voiceSummary").value("alloy"))
+                .andExpect(jsonPath("$.voiceSummary").value("PRESET:demo-voice"))
                 .andExpect(jsonPath("$.audioLayout").value("TIMED_AUDIO_BED"))
                 .andExpect(jsonPath("$.timeAligned").value(true))
                 .andExpect(jsonPath("$.ttsCallCount").value(2))

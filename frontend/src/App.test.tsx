@@ -2406,6 +2406,45 @@ describe('App', () => {
     expect(getNarrationEvidence).toHaveBeenCalledTimes(4);
   });
 
+  test('blocks narration save and generation when a saved voice is not in the preset catalog', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-unknown-voice-job', videoId: 'narration-unknown-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({
+      timeline: {
+        ...narrationWorkspaceFixture().timeline,
+        segments: narrationWorkspaceFixture().timeline.segments.map((segment, index) =>
+          index === 0 ? { ...segment, voice: 'custom-clone' } : segment
+        )
+      },
+      segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+        index === 0 ? { ...segment, voice: 'custom-clone' } : segment
+      )
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-unknown-voice-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i })).toHaveValue('custom-clone');
+    expect(within(narrationPanel).getByText('Unknown: custom-clone')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Unknown voice: custom-clone')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText('Row 1: voice must be one of the configured presets.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('button', { name: /save narration/i })).toBeDisabled();
+    expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeDisabled();
+    expect(within(narrationPanel).getByRole('button', { name: /refresh evidence/i })).toBeEnabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+  });
+
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {

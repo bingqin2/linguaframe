@@ -20,6 +20,7 @@ import com.linguaframe.media.domain.bo.CreateTimedAudioBedCommand;
 import com.linguaframe.media.domain.bo.TimedAudioSegmentBo;
 import com.linguaframe.media.service.FfmpegTimedAudioBedService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -47,6 +48,7 @@ public class NarrationAudioServiceImpl implements NarrationAudioService {
     private final MediaWorkDirectoryService workDirectoryService;
     private final NarrationVoiceCatalogService voiceCatalogService;
 
+    @Autowired
     public NarrationAudioServiceImpl(
             NarrationSegmentRepository narrationSegmentRepository,
             LocalizationJobQueryService queryService,

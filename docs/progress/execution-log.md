@@ -3982,6 +3982,27 @@ Validation:
 
 Work:
 
+- Completed the narration voice preset workbench feature slice.
+- Added provider-aware narration voice catalogs to the workspace response and evidence flow.
+- Enforced configured preset validation for saved narration rows while keeping blank voices as default inheritance.
+- Added compact frontend voice selects, default/provider summary, selected-segment voice state, and unknown saved voice diagnostics that block save/generate.
+- Documented the browser workflow, evidence metadata, and the boundary between provider presets and future voice cloning or voice preview work.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests` first failed before implementation because catalog/evidence fields were missing, then passed with `Tests run: 22, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests#managesNarrationWorkspaceForLocalizationJob,LocalizationJobControllerTests#generatesNarrationAudioForLocalizationJobWithoutReplacingDeliveryArtifacts` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0` after updating controller fixtures to the test profile's configured `demo-voice`.
+- `mvn -pl LinguaFrame test` passed with command exit 0.
+- `npm test -- --run src/App.test.tsx` first failed because the voice preset UI was not rendered, then passed with `Test Files 1 passed` and `Tests 93 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 190 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Added the React narration timeline workbench with proportional segment bars, gap/readiness metrics, selected-segment inspector details, and typed frontend timeline/evidence fields.
 - Split the narration workspace UI into timeline, segment table, inspector, evidence metrics, and mix-settings subcomponents while keeping keyboard-friendly row editing.
 - Disabled narration audio/video generation when local segment validation fails; evidence refresh and downloads remain available for diagnosis.
