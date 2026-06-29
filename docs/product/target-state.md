@@ -187,7 +187,7 @@ The backend should provide:
 - FFmpeg integration for audio extraction and subtitle burn-in.
 - Preset-based subtitle burn-in styling that is persisted per job and applied to generated preview videos.
 - TTS dubbed-video delivery that combines generated `DUBBING_AUDIO` with generated `BURNED_VIDEO` into a separate `DUBBED_VIDEO` artifact when both inputs are available.
-- Time-coded narration authoring that lets an operator attach multiple text segments to video time ranges, synthesize them through the existing TTS provider boundary, and generate separate narration audio and narrated-video artifacts without replacing generated or reviewed subtitle artifacts.
+- Time-coded narration authoring that lets an operator attach multiple text segments to video time ranges, synthesize them through the existing TTS provider boundary, and generate separate `NARRATION_AUDIO` without replacing generated or reviewed subtitle artifacts. Narrated-video muxing is still a later target.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.
 - Translation style metadata that is persisted per job and included in provider prompts, safe summaries, and translation cache keys.

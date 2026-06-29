@@ -2,6 +2,7 @@ package com.linguaframe.job.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
 import com.linguaframe.job.domain.enums.SubtitleDraftExportFormat;
@@ -17,6 +18,7 @@ import com.linguaframe.job.domain.bo.StoredEvidenceBundleBo;
 import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
+import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
 import com.linguaframe.job.domain.bo.StoredSubtitleReviewEvidencePackageBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
@@ -36,6 +38,9 @@ import com.linguaframe.job.domain.vo.JobComparisonVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
+import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
@@ -68,6 +73,9 @@ import com.linguaframe.job.service.LocalizationJobCancellationService;
 import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
+import com.linguaframe.job.service.NarrationAudioService;
+import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.job.service.OpenAiSmokeProofService;
 import com.linguaframe.job.service.QualityEvaluationEvidenceService;
 import com.linguaframe.job.service.ReviewedSubtitleDeliveryService;
@@ -139,6 +147,9 @@ public class LocalizationJobController {
     private final ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService;
     private final SubtitleReviewEvidenceService subtitleReviewEvidenceService;
     private final SubtitleReviewService subtitleReviewService;
+    private final NarrationAudioService narrationAudioService;
+    private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationWorkspaceService narrationWorkspaceService;
     private final ObjectMapper objectMapper;
 
     public LocalizationJobController(
@@ -175,6 +186,9 @@ public class LocalizationJobController {
             ReviewedSubtitleWorkflowService reviewedSubtitleWorkflowService,
             SubtitleReviewEvidenceService subtitleReviewEvidenceService,
             SubtitleReviewService subtitleReviewService,
+            NarrationAudioService narrationAudioService,
+            NarrationEvidenceService narrationEvidenceService,
+            NarrationWorkspaceService narrationWorkspaceService,
             ObjectMapper objectMapper
     ) {
         this.queryService = queryService;
@@ -210,6 +224,9 @@ public class LocalizationJobController {
         this.reviewedSubtitleWorkflowService = reviewedSubtitleWorkflowService;
         this.subtitleReviewEvidenceService = subtitleReviewEvidenceService;
         this.subtitleReviewService = subtitleReviewService;
+        this.narrationAudioService = narrationAudioService;
+        this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationWorkspaceService = narrationWorkspaceService;
         this.objectMapper = objectMapper;
     }
 
@@ -1220,6 +1237,107 @@ public class LocalizationJobController {
             @RequestParam(defaultValue = "zh-CN") String language
     ) {
         return subtitleDraftService.clearDraft(jobId, language);
+    }
+
+    @GetMapping("/{jobId}/narration-workspace")
+    @Operation(summary = "Get editable time-coded narration workspace for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration workspace was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationWorkspaceVo narrationWorkspace(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationWorkspaceService.getWorkspace(jobId);
+    }
+
+    @PutMapping("/{jobId}/narration-workspace")
+    @Operation(summary = "Save editable time-coded narration segments for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration workspace was saved."),
+            @ApiResponse(responseCode = "400", description = "The narration request contains invalid timing, text, voice, or overlap."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationWorkspaceVo updateNarrationWorkspace(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody SaveNarrationSegmentsRequest request
+    ) {
+        return narrationWorkspaceService.saveWorkspace(jobId, request);
+    }
+
+    @DeleteMapping("/{jobId}/narration-workspace")
+    @Operation(summary = "Clear editable time-coded narration segments for a localization job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration workspace was cleared."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationWorkspaceVo clearNarrationWorkspace(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationWorkspaceService.clearWorkspace(jobId);
+    }
+
+    @PostMapping("/{jobId}/narration-workspace/generate-audio")
+    @Operation(summary = "Generate narration audio from saved time-coded narration segments")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Narration audio artifact was generated."),
+            @ApiResponse(responseCode = "400", description = "No narration segments are available or the request exceeds budget."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public NarrationGenerationVo generateNarrationAudio(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationAudioService.generateAudio(jobId);
+    }
+
+    @GetMapping("/{jobId}/narration-evidence")
+    @Operation(summary = "Get metadata-only narration evidence for a localization job")
+    public NarrationEvidenceVo narrationEvidence(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationEvidenceService.getEvidence(jobId);
+    }
+
+    @GetMapping("/{jobId}/narration-evidence/markdown/download")
+    @Operation(summary = "Download metadata-only narration evidence Markdown")
+    public ResponseEntity<String> downloadNarrationEvidenceMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationEvidenceService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-evidence.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-evidence/download")
+    @Operation(summary = "Download metadata-only narration evidence package")
+    public ResponseEntity<InputStreamResource> downloadNarrationEvidencePackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredNarrationEvidencePackageBo packageBo = narrationEvidenceService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf(packageBo.contentType()))
+                .contentLength(packageBo.sizeBytes())
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(packageBo.filename())
+                        .build()
+                        .toString())
+                .body(new InputStreamResource(packageBo.inputStream()));
     }
 
     @PostMapping("/{jobId}/subtitle-draft/publish")

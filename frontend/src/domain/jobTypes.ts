@@ -1456,6 +1456,7 @@ export interface JobArtifact {
     | 'REVIEWED_SUBTITLE_SRT'
     | 'REVIEWED_SUBTITLE_VTT'
     | 'DUBBING_AUDIO'
+    | 'NARRATION_AUDIO'
     | 'BURNED_VIDEO'
     | 'DUBBED_VIDEO'
     | 'REVIEWED_BURNED_VIDEO'
@@ -1467,6 +1468,81 @@ export interface JobArtifact {
   cacheHit: boolean;
   sourceArtifactId: string | null;
   createdAt: string;
+}
+
+export interface NarrationSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  text: string;
+  voice: string | null;
+  characterCount: number;
+  updatedAt: string | null;
+}
+
+export interface NarrationWorkspace {
+  jobId: string;
+  status: string;
+  segmentCount: number;
+  totalDurationSeconds: number;
+  totalCharacterCount: number;
+  generationReady: boolean;
+  segments: NarrationSegment[];
+  safetyNotes: string[];
+}
+
+export interface SaveNarrationSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  text: string;
+  voice: string | null;
+}
+
+export interface SaveNarrationWorkspaceRequest {
+  segments: SaveNarrationSegment[];
+}
+
+export interface NarrationGeneration {
+  jobId: string;
+  artifactId: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  segmentCount: number;
+  totalCharacterCount: number;
+  totalTimelineDurationSeconds: number;
+  voiceSummary: string;
+  status: string;
+}
+
+export interface NarrationEvidenceCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface NarrationEvidenceLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+}
+
+export interface NarrationEvidence {
+  jobId: string;
+  status: string;
+  segmentCount: number;
+  totalCharacterCount: number;
+  totalTimelineDurationSeconds: number;
+  narrationAudioReady: boolean;
+  audioArtifactCount: number;
+  checks: NarrationEvidenceCheck[];
+  safeLinks: NarrationEvidenceLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
 }
 
 export interface TranscriptSegment {

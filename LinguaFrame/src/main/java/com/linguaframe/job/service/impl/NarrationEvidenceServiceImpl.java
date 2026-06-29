@@ -1,0 +1,232 @@
+package com.linguaframe.job.service.impl;
+
+import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
+import com.linguaframe.job.domain.enums.JobArtifactType;
+import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
+import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
+import com.linguaframe.job.domain.vo.NarrationEvidenceCheckVo;
+import com.linguaframe.job.domain.vo.NarrationEvidenceLinkVo;
+import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
+import com.linguaframe.job.repository.NarrationSegmentRepository;
+import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.NarrationEvidenceService;
+import org.springframework.stereotype.Service;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+@Service
+public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
+
+    private static final BigDecimal ZERO = new BigDecimal("0.000");
+
+    private final NarrationSegmentRepository narrationSegmentRepository;
+    private final LocalizationJobQueryService queryService;
+
+    public NarrationEvidenceServiceImpl(
+            NarrationSegmentRepository narrationSegmentRepository,
+            LocalizationJobQueryService queryService
+    ) {
+        this.narrationSegmentRepository = narrationSegmentRepository;
+        this.queryService = queryService;
+    }
+
+    @Override
+    public NarrationEvidenceVo getEvidence(String jobId) {
+        List<NarrationSegmentRecord> segments = narrationSegmentRepository.findByJobId(jobId).stream()
+                .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
+                .toList();
+        JobDiagnosticsReportVo report = queryService.getDiagnosticsReport(jobId);
+        long audioArtifacts = report.artifacts().stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.NARRATION_AUDIO)
+                .count();
+        String status = status(segments.size(), audioArtifacts);
+        return new NarrationEvidenceVo(
+                jobId,
+                status,
+                segments.size(),
+                totalCharacters(segments),
+                totalTimelineDurationSeconds(segments),
+                audioArtifacts > 0,
+                Math.toIntExact(audioArtifacts),
+                checks(segments.size(), audioArtifacts),
+                safeLinks(jobId),
+                packageEntries(jobId),
+                safetyNotes()
+        );
+    }
+
+    @Override
+    public String renderMarkdown(String jobId) {
+        NarrationEvidenceVo evidence = getEvidence(jobId);
+        List<String> lines = new ArrayList<>();
+        lines.add("# Narration Evidence");
+        lines.add("");
+        lines.add("- Job: " + evidence.jobId());
+        lines.add("- Status: " + evidence.status());
+        lines.add("- Segment count: " + evidence.segmentCount());
+        lines.add("- Total narration characters: " + evidence.totalCharacterCount());
+        lines.add("- Total timeline duration seconds: " + evidence.totalTimelineDurationSeconds());
+        lines.add("- Narration audio artifacts: " + evidence.audioArtifactCount());
+        lines.add("");
+        lines.add("## Checks");
+        for (NarrationEvidenceCheckVo check : evidence.checks()) {
+            lines.add("- " + check.label() + ": " + check.status() + " - " + check.detail());
+        }
+        lines.add("");
+        lines.add("## Safe Links");
+        for (NarrationEvidenceLinkVo link : evidence.safeLinks()) {
+            lines.add("- " + link.label() + ": " + link.href());
+        }
+        lines.add("");
+        lines.add("## Package Entries");
+        for (String entry : evidence.packageEntries()) {
+            lines.add("- " + entry);
+        }
+        lines.add("");
+        lines.add("## Safety Notes");
+        for (String note : evidence.safetyNotes()) {
+            lines.add("- " + note);
+        }
+        lines.add("");
+        return String.join("\n", lines);
+    }
+
+    @Override
+    public StoredNarrationEvidencePackageBo openPackage(String jobId) {
+        NarrationEvidenceVo evidence = getEvidence(jobId);
+        String markdown = renderMarkdown(jobId);
+        byte[] content = zipBytes(evidence, markdown);
+        return new StoredNarrationEvidencePackageBo(
+                "linguaframe-job-" + jobId + "-narration-evidence.zip",
+                "application/zip",
+                content.length,
+                new ByteArrayInputStream(content)
+        );
+    }
+
+    private byte[] zipBytes(NarrationEvidenceVo evidence, String markdown) {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
+            writeEntry(zipOutputStream, "manifest.json", manifest(evidence));
+            writeEntry(zipOutputStream, "narration-evidence.md", markdown);
+            writeEntry(zipOutputStream, "narration-summary.json", summary(evidence));
+            writeEntry(zipOutputStream, "README.md", readme(evidence));
+        } catch (IOException ex) {
+            throw new IllegalStateException("Failed to build narration evidence package", ex);
+        }
+        return outputStream.toByteArray();
+    }
+
+    private String manifest(NarrationEvidenceVo evidence) {
+        return """
+                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"includesNarrationTextBodies":false}
+                """.formatted(json(evidence.jobId()), json(evidence.status()), evidence.segmentCount(), evidence.narrationAudioReady());
+    }
+
+    private String summary(NarrationEvidenceVo evidence) {
+        return """
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d}
+                """.formatted(
+                json(evidence.jobId()),
+                json(evidence.status()),
+                evidence.segmentCount(),
+                evidence.totalCharacterCount(),
+                evidence.totalTimelineDurationSeconds(),
+                evidence.audioArtifactCount()
+        );
+    }
+
+    private String readme(NarrationEvidenceVo evidence) {
+        return """
+                # Narration Evidence
+
+                Job: %s
+                Status: %s
+
+                This package contains narration metadata only. It excludes narration script bodies, transcript text, subtitle text, media bytes, provider payloads, object storage keys, local filesystem paths, tokens, API keys, and authentication secrets.
+                """.formatted(evidence.jobId(), evidence.status());
+    }
+
+    private List<NarrationEvidenceCheckVo> checks(int segmentCount, long audioArtifactCount) {
+        List<NarrationEvidenceCheckVo> checks = new ArrayList<>();
+        checks.add(segmentCount > 0
+                ? new NarrationEvidenceCheckVo("NARRATION_SEGMENTS", "Narration segments", "READY", segmentCount + " segments saved.")
+                : new NarrationEvidenceCheckVo("NARRATION_SEGMENTS", "Narration segments", "BLOCKED", "No narration segments saved."));
+        checks.add(audioArtifactCount > 0
+                ? new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", "READY", audioArtifactCount + " narration audio artifact available.")
+                : new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", segmentCount > 0 ? "ATTENTION" : "BLOCKED", "No narration audio artifact available."));
+        return List.copyOf(checks);
+    }
+
+    private String status(int segmentCount, long audioArtifactCount) {
+        if (segmentCount == 0) {
+            return "BLOCKED";
+        }
+        return audioArtifactCount > 0 ? "READY" : "ATTENTION";
+    }
+
+    private List<NarrationEvidenceLinkVo> safeLinks(String jobId) {
+        return List.of(
+                link("NARRATION_EVIDENCE", "Narration evidence", "/api/jobs/" + jobId + "/narration-evidence", "application/json"),
+                link("NARRATION_EVIDENCE_MARKDOWN", "Narration evidence Markdown", "/api/jobs/" + jobId + "/narration-evidence/markdown/download", "text/markdown"),
+                link("NARRATION_EVIDENCE_PACKAGE", "Narration evidence package", "/api/jobs/" + jobId + "/narration-evidence/download", "application/zip")
+        );
+    }
+
+    private List<String> packageEntries(String jobId) {
+        return List.of(
+                "manifest.json",
+                "narration-evidence.md",
+                "narration-summary.json",
+                "README.md",
+                "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download"
+        );
+    }
+
+    private List<String> safetyNotes() {
+        return List.of(
+                "Narration evidence is metadata-only and excludes narration script bodies.",
+                "Narration audio is tracked separately from dubbing audio, dubbed video, burned video, and reviewed burned video.",
+                "Provider request and response payloads, object keys, local paths, credentials, and media bytes are not included."
+        );
+    }
+
+    private int totalCharacters(List<NarrationSegmentRecord> segments) {
+        return segments.stream()
+                .map(NarrationSegmentRecord::text)
+                .map(String::trim)
+                .mapToInt(String::length)
+                .sum();
+    }
+
+    private BigDecimal totalTimelineDurationSeconds(List<NarrationSegmentRecord> segments) {
+        return segments.stream()
+                .map(segment -> segment.endSeconds().subtract(segment.startSeconds()).setScale(3, RoundingMode.HALF_UP))
+                .reduce(ZERO, BigDecimal::add);
+    }
+
+    private static void writeEntry(ZipOutputStream zipOutputStream, String name, String content) throws IOException {
+        zipOutputStream.putNextEntry(new ZipEntry(name));
+        zipOutputStream.write(content.getBytes(StandardCharsets.UTF_8));
+        zipOutputStream.closeEntry();
+    }
+
+    private static NarrationEvidenceLinkVo link(String kind, String label, String href, String contentType) {
+        return new NarrationEvidenceLinkVo(kind, label, href, contentType);
+    }
+
+    private static String json(Object value) {
+        return String.valueOf(value).replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+}

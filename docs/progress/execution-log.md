@@ -27,6 +27,26 @@ Validation so far:
 
 Work:
 
+- Planned the time-coded narration workspace MVP in `docs/plans/132-time-coded-narration-workspace-mvp.md`.
+- Added `narration_segments` persistence, workspace DTO/VO/service/repository APIs, validation, and `GET`/`PUT`/`DELETE /api/jobs/{jobId}/narration-workspace`.
+- Added `NARRATION_AUDIO`, narration audio generation through the existing `TtsProvider`, budget guard, and artifact service at `POST /api/jobs/{jobId}/narration-workspace/generate-audio`.
+- Added metadata-only narration evidence JSON, Markdown, ZIP, runtime routes, job evidence links, and demo handoff portal links.
+- Added a React `Narration workspace` panel with compact table editing, inspector text editing, validation, save/clear/generate/refresh/download actions, plus `NARRATION_AUDIO` media playback.
+- Added `scripts/demo/narration-evidence.sh`, shared narration evidence helpers, deterministic/OpenAI/full Tears optional evidence exports, README guidance, agent demo docs, smoke checklist updates, roadmap updates, and target-state updates.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationSegmentRepositoryTests,LocalizationJobControllerTests` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed.
+- `npm test -- --run src/api/linguaframeApi.test.ts` passed with `Tests 90 passed`.
+- `npm test -- --run src/App.test.tsx` passed with `Tests 91 passed`.
+- `npm run build` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned OpenAI smoke proof workspace in `docs/plans/128-openai-smoke-proof-workspace.md`.
 - Added backend `GET /api/jobs/{jobId}/openai-smoke-proof` and Markdown download for post-run OpenAI smoke evidence.
 - Added browser selected-job `OpenAI smoke proof` panel with required checks, OpenAI call rows, artifacts, safe links, refresh, and Markdown download.
@@ -3635,6 +3655,26 @@ Validation so far:
 - `npm --prefix frontend run build` passed.
 - `bash -n scripts/demo/upload-decision-package.sh scripts/demo/upload-execution-plan-report.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `mvn -pl LinguaFrame -Dtest=UploadDecisionPackageServiceTests,MediaUploadControllerTests#downloadsUploadDecisionPackageMarkdown+downloadsUploadDecisionPackageZip+downloadsUploadExecutionPlanMarkdown test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned time-coded narration workspace MVP in `docs/plans/132-time-coded-narration-workspace-mvp.md`.
+- Added persisted job-level narration segments with validation, workspace APIs, replacement/clear behavior, and repository coverage.
+- Added narration audio generation through the existing TTS provider boundary, storing output as `NARRATION_AUDIO` without replacing subtitle dubbing or video delivery artifacts.
+- Added metadata-only narration evidence JSON, Markdown, and ZIP exports, runtime route coverage, evidence report links, and demo handoff portal links.
+- Added React narration workspace UI with compact segment table, inspector-style editing, validation hints, audio generation, evidence refresh/download actions, and `NARRATION_AUDIO` media delivery display.
+- Added `scripts/demo/narration-evidence.sh`, shared Bash download/summary helpers, optional narration evidence export in deterministic/OpenAI/full Tears demo scripts, and README/agent/product documentation.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationSegmentRepositoryTests,LocalizationJobControllerTests,NarrationAudioServiceTests,NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests -q` passed.
+- `mvn -pl LinguaFrame test` passed.
+- `npm test -- --run` passed with jsdom navigation warnings and exit code 0.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
 
 ## 2026-06-29

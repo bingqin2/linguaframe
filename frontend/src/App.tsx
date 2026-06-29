@@ -34,6 +34,8 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationEvidence,
+  NarrationWorkspace,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
   OperatorDashboard,
@@ -410,6 +412,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isSavingSubtitleDraft, setIsSavingSubtitleDraft] = useState(false);
   const [isClearingSubtitleDraft, setIsClearingSubtitleDraft] = useState(false);
   const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
+  const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
+  const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
+  const [narrationError, setNarrationError] = useState<string | null>(null);
+  const [narrationStatus, setNarrationStatus] = useState<string | null>(null);
+  const [isSavingNarration, setIsSavingNarration] = useState(false);
+  const [isClearingNarration, setIsClearingNarration] = useState(false);
+  const [isGeneratingNarration, setIsGeneratingNarration] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -1038,7 +1047,18 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
   const loadPreviewData = useCallback(async (jobId: string, language: string) => {
     const errors: string[] = [];
-    const [artifactResult, manifestResult, transcriptResult, subtitleResult, reviewResult, workflowResult, evidenceResult, draftResult] = await Promise.allSettled([
+    const [
+      artifactResult,
+      manifestResult,
+      transcriptResult,
+      subtitleResult,
+      reviewResult,
+      workflowResult,
+      evidenceResult,
+      draftResult,
+      narrationWorkspaceResult,
+      narrationEvidenceResult
+    ] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.getDeliveryManifest(jobId),
       linguaFrameApi.listTranscript(jobId),
@@ -1046,7 +1066,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getSubtitleReview(jobId, language),
       linguaFrameApi.getReviewedSubtitleWorkflow(jobId),
       linguaFrameApi.getSubtitleReviewEvidence(jobId),
-      linguaFrameApi.getSubtitleDraft(jobId, language)
+      linguaFrameApi.getSubtitleDraft(jobId, language),
+      linguaFrameApi.getNarrationWorkspace(jobId),
+      linguaFrameApi.getNarrationEvidence(jobId)
     ]);
 
     if (artifactResult.status === 'fulfilled') {
@@ -1112,6 +1134,24 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setSubtitleDraft(null);
       setSubtitleDraftError(toErrorMessage(draftResult.reason));
       errors.push(`Subtitle draft: ${toErrorMessage(draftResult.reason)}`);
+    }
+
+    if (narrationWorkspaceResult.status === 'fulfilled') {
+      setNarrationWorkspace(narrationWorkspaceResult.value);
+      setNarrationError(null);
+      setNarrationStatus(null);
+    } else {
+      setNarrationWorkspace(null);
+      setNarrationError(toErrorMessage(narrationWorkspaceResult.reason));
+      errors.push(`Narration workspace: ${toErrorMessage(narrationWorkspaceResult.reason)}`);
+    }
+
+    if (narrationEvidenceResult.status === 'fulfilled') {
+      setNarrationEvidence(narrationEvidenceResult.value);
+    } else {
+      setNarrationEvidence(null);
+      setNarrationError(toErrorMessage(narrationEvidenceResult.reason));
+      errors.push(`Narration evidence: ${toErrorMessage(narrationEvidenceResult.reason)}`);
     }
 
     setPreviewErrors(errors);
@@ -1896,6 +1936,88 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleSaveNarrationWorkspace(segments: NarrationWorkspace['segments']) {
+    if (!job) {
+      return;
+    }
+    setIsSavingNarration(true);
+    try {
+      const updated = await linguaFrameApi.saveNarrationWorkspace(job.jobId, {
+        segments: segments.map((segment, index) => ({
+          index,
+          startSeconds: Number(segment.startSeconds),
+          endSeconds: Number(segment.endSeconds),
+          text: segment.text,
+          voice: segment.voice?.trim() || null
+        }))
+      });
+      const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
+      setNarrationWorkspace(updated);
+      setNarrationEvidence(evidence);
+      setNarrationError(null);
+      setNarrationStatus('Narration saved.');
+    } catch (narrationSaveError) {
+      setNarrationError(toErrorMessage(narrationSaveError));
+    } finally {
+      setIsSavingNarration(false);
+    }
+  }
+
+  async function handleClearNarrationWorkspace() {
+    if (!job) {
+      return;
+    }
+    setIsClearingNarration(true);
+    try {
+      const cleared = await linguaFrameApi.clearNarrationWorkspace(job.jobId);
+      const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
+      setNarrationWorkspace(cleared);
+      setNarrationEvidence(evidence);
+      setNarrationError(null);
+      setNarrationStatus('Narration cleared.');
+    } catch (narrationClearError) {
+      setNarrationError(toErrorMessage(narrationClearError));
+    } finally {
+      setIsClearingNarration(false);
+    }
+  }
+
+  async function handleGenerateNarrationAudio() {
+    if (!job) {
+      return;
+    }
+    setIsGeneratingNarration(true);
+    try {
+      const generation = await linguaFrameApi.generateNarrationAudio(job.jobId);
+      const [refreshedArtifacts, refreshedEvidence] = await Promise.all([
+        linguaFrameApi.listArtifacts(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId)
+      ]);
+      setArtifacts(refreshedArtifacts);
+      setNarrationEvidence(refreshedEvidence);
+      setNarrationError(null);
+      setNarrationStatus(`Generated ${generation.filename}.`);
+    } catch (narrationGenerateError) {
+      setNarrationError(toErrorMessage(narrationGenerateError));
+    } finally {
+      setIsGeneratingNarration(false);
+    }
+  }
+
+  async function handleRefreshNarrationEvidence() {
+    if (!job) {
+      return;
+    }
+    try {
+      const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
+      setNarrationEvidence(evidence);
+      setNarrationError(null);
+      setNarrationStatus('Narration evidence refreshed.');
+    } catch (narrationEvidenceError) {
+      setNarrationError(toErrorMessage(narrationEvidenceError));
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -2492,10 +2614,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               canCancel={canCancel}
               canRetry={canRetry}
               isCancelling={isCancelling}
+              isClearingNarration={isClearingNarration}
               isClearingSubtitleDraft={isClearingSubtitleDraft}
+              isGeneratingNarration={isGeneratingNarration}
               isLoadingJob={isLoadingJob}
               isPublishingReviewedSubtitles={isPublishingReviewedSubtitles}
               isRetrying={isRetrying}
+              isSavingNarration={isSavingNarration}
               isSavingSubtitleDraft={isSavingSubtitleDraft}
               artifacts={artifacts}
               deliveryManifest={deliveryManifest}
@@ -2552,7 +2677,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoReviewerWorkspace={isLoadingDemoReviewerWorkspace}
               isLoadingDemoHandoffPortal={isLoadingDemoHandoffPortal}
               onCancel={handleCancel}
+              onClearNarrationWorkspace={handleClearNarrationWorkspace}
               onClearSubtitleDraft={handleClearSubtitleDraft}
+              onGenerateNarrationAudio={handleGenerateNarrationAudio}
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
@@ -2567,11 +2694,17 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRefreshOpenAiSmokeProof={() => void loadOpenAiSmokeProof(job.jobId)}
               onRefreshDemoReviewerWorkspace={() => void loadDemoReviewerWorkspace(job.jobId)}
               onRefreshDemoHandoffPortal={() => void loadDemoHandoffPortal(job.jobId)}
+              onRefreshNarrationEvidence={handleRefreshNarrationEvidence}
               onSelectCacheReplayComparison={handleSelectCacheReplayComparison}
               onSelectDemoComparison={handleSelectDemoComparison}
               onRetry={handleRetry}
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
+              onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
+              narrationError={narrationError}
+              narrationEvidence={narrationEvidence}
+              narrationStatus={narrationStatus}
+              narrationWorkspace={narrationWorkspace}
               previewErrors={previewErrors}
               selectedLanguage={selectedLanguage}
               sourceMedia={sourceMedia}
@@ -5374,10 +5507,13 @@ function JobDetail({
   canCancel,
   canRetry,
   isCancelling,
+  isClearingNarration,
   isClearingSubtitleDraft,
+  isGeneratingNarration,
   isLoadingJob,
   isPublishingReviewedSubtitles,
   isRetrying,
+  isSavingNarration,
   isSavingSubtitleDraft,
   artifacts,
   deliveryManifest,
@@ -5432,7 +5568,9 @@ function JobDetail({
   isLoadingDemoReviewerWorkspace,
   isLoadingDemoHandoffPortal,
   onCancel,
+  onClearNarrationWorkspace,
   onClearSubtitleDraft,
+  onGenerateNarrationAudio,
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
@@ -5447,11 +5585,17 @@ function JobDetail({
   onRefreshOpenAiSmokeProof,
   onRefreshDemoReviewerWorkspace,
   onRefreshDemoHandoffPortal,
+  onRefreshNarrationEvidence,
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
   onPublishReviewedSubtitles,
+  onSaveNarrationWorkspace,
   onSaveSubtitleDraft,
+  narrationError,
+  narrationEvidence,
+  narrationStatus,
+  narrationWorkspace,
   previewErrors,
   selectedLanguage,
   sourceMedia,
@@ -5472,10 +5616,13 @@ function JobDetail({
   canCancel: boolean;
   canRetry: boolean;
   isCancelling: boolean;
+  isClearingNarration: boolean;
   isClearingSubtitleDraft: boolean;
+  isGeneratingNarration: boolean;
   isLoadingJob: boolean;
   isPublishingReviewedSubtitles: boolean;
   isRetrying: boolean;
+  isSavingNarration: boolean;
   isSavingSubtitleDraft: boolean;
   artifacts: JobArtifact[];
   deliveryManifest: DeliveryManifest | null;
@@ -5532,7 +5679,9 @@ function JobDetail({
   isLoadingDemoReviewerWorkspace: boolean;
   isLoadingDemoHandoffPortal: boolean;
   onCancel: () => void;
+  onClearNarrationWorkspace: () => void;
   onClearSubtitleDraft: () => void;
+  onGenerateNarrationAudio: () => void;
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
@@ -5547,10 +5696,12 @@ function JobDetail({
   onRefreshOpenAiSmokeProof: () => void;
   onRefreshDemoReviewerWorkspace: () => void;
   onRefreshDemoHandoffPortal: () => void;
+  onRefreshNarrationEvidence: () => void;
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
+  onSaveNarrationWorkspace: (segments: NarrationWorkspace['segments']) => void;
   onSaveSubtitleDraft: (segments: Array<{
     index: number;
     text: string;
@@ -5558,6 +5709,10 @@ function JobDetail({
     issueCategories: SubtitleReviewIssueCategory[];
     reviewerNote: string | null;
   }>) => void;
+  narrationError: string | null;
+  narrationEvidence: NarrationEvidence | null;
+  narrationStatus: string | null;
+  narrationWorkspace: NarrationWorkspace | null;
   previewErrors: string[];
   selectedLanguage: string;
   sourceMedia: MediaUploadDetail | null;
@@ -5843,6 +5998,21 @@ function JobDetail({
         evidence={subtitleReviewEvidence}
         error={subtitleReviewEvidenceError}
         jobId={job.jobId}
+      />
+
+      <NarrationWorkspacePanel
+        error={narrationError}
+        evidence={narrationEvidence}
+        isClearing={isClearingNarration}
+        isGenerating={isGeneratingNarration}
+        isSaving={isSavingNarration}
+        jobId={job.jobId}
+        onClear={onClearNarrationWorkspace}
+        onGenerateAudio={onGenerateNarrationAudio}
+        onRefreshEvidence={onRefreshNarrationEvidence}
+        onSave={onSaveNarrationWorkspace}
+        status={narrationStatus}
+        workspace={narrationWorkspace}
       />
 
       <SubtitleDraftEditorPanel
@@ -8835,6 +9005,226 @@ function ReviewedSubtitleWorkflowPanel({
   );
 }
 
+function NarrationWorkspacePanel({
+  error,
+  evidence,
+  isClearing,
+  isGenerating,
+  isSaving,
+  jobId,
+  onClear,
+  onGenerateAudio,
+  onRefreshEvidence,
+  onSave,
+  status,
+  workspace
+}: {
+  error: string | null;
+  evidence: NarrationEvidence | null;
+  isClearing: boolean;
+  isGenerating: boolean;
+  isSaving: boolean;
+  jobId: string;
+  onClear: () => void;
+  onGenerateAudio: () => void;
+  onRefreshEvidence: () => void;
+  onSave: (segments: NarrationWorkspace['segments']) => void;
+  status: string | null;
+  workspace: NarrationWorkspace | null;
+}) {
+  const [segments, setSegments] = useState<NarrationWorkspace['segments']>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  useEffect(() => {
+    setSegments(workspace?.segments ?? []);
+    setSelectedIndex(0);
+  }, [workspace]);
+
+  const selectedSegment = segments[selectedIndex] ?? null;
+  const validation = validateNarrationSegments(segments);
+
+  function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
+    setSegments((current) =>
+      current.map((segment, currentIndex) => (currentIndex === index ? { ...segment, ...patch } : segment))
+    );
+  }
+
+  function addSegment() {
+    setSegments((current) => [
+      ...current,
+      {
+        index: current.length,
+        startSeconds: current.length === 0 ? 0 : current[current.length - 1].endSeconds,
+        endSeconds: current.length === 0 ? 10 : current[current.length - 1].endSeconds + 10,
+        durationSeconds: 10,
+        text: '',
+        voice: '',
+        characterCount: 0,
+        updatedAt: null
+      }
+    ]);
+    setSelectedIndex(segments.length);
+  }
+
+  function deleteSelectedSegment() {
+    setSegments((current) => current.filter((_, index) => index !== selectedIndex).map((segment, index) => ({ ...segment, index })));
+    setSelectedIndex(Math.max(0, selectedIndex - 1));
+  }
+
+  return (
+    <section id="narration-workspace" className="panel narration-workspace-panel" aria-label="Narration workspace">
+      <div className="panel-heading">
+        <div>
+          <h3>Narration workspace</h3>
+          <p className="muted">
+            {workspace ? `${workspace.segmentCount} segments · ${workspace.totalCharacterCount} chars` : 'No workspace loaded.'}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" onClick={addSegment}>Add row</button>
+          <button type="button" onClick={deleteSelectedSegment} disabled={!selectedSegment}>Delete row</button>
+          <button type="button" onClick={() => onSave(segments)} disabled={isSaving || validation.length > 0}>
+            {isSaving ? 'Saving...' : 'Save narration'}
+          </button>
+          <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady}>
+            {isGenerating ? 'Generating...' : 'Generate narration audio'}
+          </button>
+          <button type="button" onClick={onClear} disabled={isClearing}>Clear</button>
+        </div>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      {status ? <p className="success-text">{status}</p> : null}
+      {validation.length > 0 ? (
+        <ul className="error-list">
+          {validation.map((message) => <li key={message}>{message}</li>)}
+        </ul>
+      ) : null}
+      <div className="narration-workbench">
+        <div className="narration-table-wrap">
+          <table className="narration-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Voice</th>
+                <th>Text</th>
+              </tr>
+            </thead>
+            <tbody>
+              {segments.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>No narration rows.</td>
+                </tr>
+              ) : segments.map((segment, index) => (
+                <tr key={index} className={index === selectedIndex ? 'selected-row' : undefined}>
+                  <td>
+                    <button type="button" onClick={() => setSelectedIndex(index)}>{index + 1}</button>
+                  </td>
+                  <td>
+                    <input
+                      aria-label={`Narration ${index + 1} start`}
+                      min="0"
+                      step="0.001"
+                      type="number"
+                      value={segment.startSeconds}
+                      onChange={(event) => updateSegment(index, { startSeconds: Number(event.target.value) })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      aria-label={`Narration ${index + 1} end`}
+                      min="0"
+                      step="0.001"
+                      type="number"
+                      value={segment.endSeconds}
+                      onChange={(event) => updateSegment(index, { endSeconds: Number(event.target.value) })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      aria-label={`Narration ${index + 1} voice`}
+                      value={segment.voice ?? ''}
+                      onChange={(event) => updateSegment(index, { voice: event.target.value })}
+                    />
+                  </td>
+                  <td>{segment.text || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <aside className="narration-inspector" aria-label="Narration inspector">
+          {selectedSegment ? (
+            <>
+              <label>
+                Segment text
+                <textarea
+                  maxLength={1000}
+                  value={selectedSegment.text}
+                  onChange={(event) => updateSegment(selectedIndex, { text: event.target.value })}
+                />
+              </label>
+              <dl className="compact-metrics">
+                <div>
+                  <dt>Evidence</dt>
+                  <dd>{evidence?.status ?? 'Not loaded'}</dd>
+                </div>
+                <div>
+                  <dt>Audio</dt>
+                  <dd>{evidence?.narrationAudioReady ? 'Ready' : 'Missing'}</dd>
+                </div>
+              </dl>
+              <div className="panel-actions">
+                <button type="button" onClick={onRefreshEvidence}>Refresh evidence</button>
+                <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'markdown')}>
+                  Download Markdown
+                </button>
+                <button type="button" onClick={() => void downloadNarrationEvidenceFile(jobId, 'zip')}>
+                  Download ZIP
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="muted">Select a row to edit narration text.</p>
+          )}
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function validateNarrationSegments(segments: NarrationWorkspace['segments']): string[] {
+  const messages: string[] = [];
+  segments.forEach((segment, index) => {
+    if (!segment.text.trim()) {
+      messages.push(`Row ${index + 1}: text is required.`);
+    }
+    if (segment.endSeconds <= segment.startSeconds) {
+      messages.push(`Row ${index + 1}: end must be after start.`);
+    }
+    if (segment.text.length > 1000) {
+      messages.push(`Row ${index + 1}: text must be 1000 characters or fewer.`);
+    }
+    if ((segment.voice ?? '').length > 64) {
+      messages.push(`Row ${index + 1}: voice must be 64 characters or fewer.`);
+    }
+  });
+  for (let index = 1; index < segments.length; index += 1) {
+    if (segments[index].startSeconds < segments[index - 1].endSeconds) {
+      messages.push(`Row ${index + 1}: time range overlaps the previous row.`);
+    }
+  }
+  return messages;
+}
+
+async function downloadNarrationEvidenceFile(jobId: string, format: 'markdown' | 'zip') {
+  const blob = format === 'markdown'
+    ? await linguaFrameApi.downloadNarrationEvidenceMarkdown(jobId)
+    : await linguaFrameApi.downloadNarrationEvidenceZip(jobId);
+  downloadBlob(blob, `narration-evidence-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
 function SubtitleDraftEditorPanel({
   draft,
   error,
@@ -9312,6 +9702,13 @@ function buildMediaDeliveryItems(artifacts: JobArtifact[]): MediaDeliveryItem[] 
       playerLabel: 'Dubbing audio player',
       kind: 'audio',
       artifact: findFirstArtifact(artifacts, 'DUBBING_AUDIO')
+    },
+    {
+      key: 'narration-audio',
+      label: 'Narration audio',
+      playerLabel: 'Narration audio player',
+      kind: 'audio',
+      artifact: findFirstArtifact(artifacts, 'NARRATION_AUDIO')
     },
     {
       key: 'generated-burned-video',

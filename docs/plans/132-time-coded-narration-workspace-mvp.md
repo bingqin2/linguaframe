@@ -1,6 +1,6 @@
 # Time-Coded Narration Workspace MVP Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a first complete custom narration workspace so a completed job can store time-coded explanatory text segments, synthesize them with the existing TTS provider boundary, and expose narration audio/evidence in browser and terminal demos.
 
@@ -43,14 +43,14 @@
 - `Segment(int index, BigDecimal startSeconds, BigDecimal endSeconds, String text, String voice)`
 - `NarrationWorkspaceVo(String jobId, String status, int segmentCount, BigDecimal totalDurationSeconds, int totalCharacterCount, boolean generationReady, List<NarrationSegmentVo> segments, List<String> safetyNotes)`
 
-- [ ] Add Flyway table `narration_segments` with columns `job_id`, `segment_index`, `start_seconds DECIMAL(10,3)`, `end_seconds DECIMAL(10,3)`, `text TEXT`, `voice VARCHAR(64) NULL`, `created_at`, `updated_at`, and unique key `(job_id, segment_index)`.
-- [ ] Add repository methods `replaceSegments(String jobId, List<NarrationSegmentRecord> segments)`, `findByJobId(String jobId)`, and `deleteByJobId(String jobId)`.
-- [ ] Validate save requests: max 20 segments, contiguous indexes starting at 0, `startSeconds >= 0`, `endSeconds > startSeconds`, max segment length 1000 chars, text nonblank, optional voice max 64 chars, no overlapping segments after sorting by start time.
-- [ ] Return workspace status `EMPTY`, `DRAFT_READY`, or `INVALID` from saved state and validation outcome.
-- [ ] Keep raw narration text only in the workspace API and editing UI; evidence APIs in later tasks must use counts and durations only.
-- [ ] Add tests for valid multi-segment save, overlap rejection, invalid time rejection, too-long text rejection, clear behavior, and repository replacement.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationSegmentRepositoryTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add Flyway table `narration_segments` with columns `job_id`, `segment_index`, `start_seconds DECIMAL(10,3)`, `end_seconds DECIMAL(10,3)`, `text TEXT`, `voice VARCHAR(64) NULL`, `created_at`, `updated_at`, and unique key `(job_id, segment_index)`.
+- [x] Add repository methods `replaceSegments(String jobId, List<NarrationSegmentRecord> segments)`, `findByJobId(String jobId)`, and `deleteByJobId(String jobId)`.
+- [x] Validate save requests: max 20 segments, contiguous indexes starting at 0, `startSeconds >= 0`, `endSeconds > startSeconds`, max segment length 1000 chars, text nonblank, optional voice max 64 chars, no overlapping segments after sorting by start time.
+- [x] Return workspace status `EMPTY`, `DRAFT_READY`, or `INVALID` from saved state and validation outcome.
+- [x] Keep raw narration text only in the workspace API and editing UI; evidence APIs in later tasks must use counts and durations only.
+- [x] Add tests for valid multi-segment save, overlap rejection, invalid time rejection, too-long text rejection, clear behavior, and repository replacement.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,NarrationSegmentRepositoryTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 2: Generate Narration Audio Through Existing TTS
 
@@ -68,15 +68,15 @@
 - Add `JobArtifactType.NARRATION_AUDIO`
 - `NarrationGenerationVo(String jobId, String artifactId, String filename, String contentType, long sizeBytes, int segmentCount, int totalCharacterCount, BigDecimal totalTimelineDurationSeconds, String voiceSummary, String status)`
 
-- [ ] Add `NARRATION_AUDIO` artifact type and include it in artifact list/archive behavior through existing generic artifact APIs.
-- [ ] Compose TTS input from saved segments in timeline order using safe delimiters such as `[00:15.000-00:28.000]` only inside provider input; do not store this composed text in evidence surfaces.
-- [ ] Use segment voice when all segments share one nonblank voice; otherwise use job/default voice and expose `voiceSummary=MIXED_OR_DEFAULT`.
-- [ ] Reuse existing `TtsProvider`, `CostBudgetGuardService`, `ModelCallOperation.TTS`, and TTS model-call audit behavior; do not create a new provider abstraction.
-- [ ] Store result as `narration-audio.mp3` with artifact type `NARRATION_AUDIO`.
-- [ ] Do not create or replace `DUBBING_AUDIO`, `DUBBED_VIDEO`, `BURNED_VIDEO`, or `REVIEWED_BURNED_VIDEO`.
-- [ ] Add tests for successful generation, empty workspace rejection, artifact type isolation, selected voice behavior, and provider failure propagation as a safe API error.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add `NARRATION_AUDIO` artifact type and include it in artifact list/archive behavior through existing generic artifact APIs.
+- [x] Compose TTS input from saved segments in timeline order using safe delimiters such as `[00:15.000-00:28.000]` only inside provider input; do not store this composed text in evidence surfaces.
+- [x] Use segment voice when all segments share one nonblank voice; otherwise use job/default voice and expose `voiceSummary=MIXED_OR_DEFAULT`.
+- [x] Reuse existing `TtsProvider`, `CostBudgetGuardService`, `ModelCallOperation.TTS`, and TTS model-call audit behavior; do not create a new provider abstraction.
+- [x] Store result as `narration-audio.mp3` with artifact type `NARRATION_AUDIO`.
+- [x] Do not create or replace `DUBBING_AUDIO`, `DUBBED_VIDEO`, `BURNED_VIDEO`, or `REVIEWED_BURNED_VIDEO`.
+- [x] Add tests for successful generation, empty workspace rejection, artifact type isolation, selected voice behavior, and provider failure propagation as a safe API error.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationAudioServiceTests,LocalizationJobControllerTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 3: Narration Evidence, Runtime Routes, And Handoff Links
 
@@ -100,14 +100,14 @@
 - `GET /api/jobs/{jobId}/narration-evidence/download`
 - `NarrationEvidenceVo` includes status, segment count, character count, total timeline duration, narration audio artifact readiness, safe links, package entries, checks, and safety notes.
 
-- [ ] Return evidence status `READY` when at least one segment exists and `NARRATION_AUDIO` exists; `ATTENTION` when draft segments exist but no audio exists; `BLOCKED` when no narration segments exist.
-- [ ] Render Markdown without raw narration text bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
-- [ ] Build ZIP with `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`.
-- [ ] Add safe narration links to job evidence Markdown and demo handoff portal package inventory.
-- [ ] Add runtime required routes for the three narration evidence endpoints and workspace/generate endpoints.
-- [ ] Add tests for READY/ATTENTION/BLOCKED, ZIP entries, forbidden marker absence, and runtime route coverage.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Return evidence status `READY` when at least one segment exists and `NARRATION_AUDIO` exists; `ATTENTION` when draft segments exist but no audio exists; `BLOCKED` when no narration segments exist.
+- [x] Render Markdown without raw narration text bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
+- [x] Build ZIP with `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`.
+- [x] Add safe narration links to job evidence Markdown and demo handoff portal package inventory.
+- [x] Add runtime required routes for the three narration evidence endpoints and workspace/generate endpoints.
+- [x] Add tests for READY/ATTENTION/BLOCKED, ZIP entries, forbidden marker absence, and runtime route coverage.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 4: React Narration Workspace UI
 
@@ -127,18 +127,18 @@
 - `downloadNarrationEvidenceMarkdown(jobId: string): Promise<Blob>`
 - `downloadNarrationEvidenceZip(jobId: string): Promise<Blob>`
 
-- [ ] Add TypeScript types for narration segments, workspace, generation result, and evidence.
-- [ ] Add API helper tests for workspace get/save/clear, audio generation, evidence JSON, Markdown download, and ZIP download.
-- [ ] In selected job detail, add a `Narration workspace` panel near media delivery/review workflow.
-- [ ] Follow the `fish-tts-desktop`-inspired pattern: compact segment table with start/end/text/voice/status columns, add/delete row controls, and an inspector-style edit area for selected row details.
-- [ ] Provide validation hints for overlap, invalid time range, empty text, and character limits before save.
-- [ ] Add actions: `Save narration`, `Clear narration`, `Generate narration audio`, `Refresh evidence`, `Download evidence Markdown`, and `Download evidence ZIP`.
-- [ ] Keep raw narration text only in the editing workspace; evidence panel must show counts, durations, status, links, and safety notes only.
-- [ ] Extend media delivery to show `NARRATION_AUDIO` as a playable audio card.
-- [ ] Add Vitest coverage for segment editing payload, validation messaging, audio generation action, evidence rendering, downloads, and `NARRATION_AUDIO` media card.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add TypeScript types for narration segments, workspace, generation result, and evidence.
+- [x] Add API helper tests for workspace get/save/clear, audio generation, evidence JSON, Markdown download, and ZIP download.
+- [x] In selected job detail, add a `Narration workspace` panel near media delivery/review workflow.
+- [x] Follow the `fish-tts-desktop`-inspired pattern: compact segment table with start/end/text/voice/status columns, add/delete row controls, and an inspector-style edit area for selected row details.
+- [x] Provide validation hints for overlap, invalid time range, empty text, and character limits before save.
+- [x] Add actions: `Save narration`, `Clear narration`, `Generate narration audio`, `Refresh evidence`, `Download evidence Markdown`, and `Download evidence ZIP`.
+- [x] Keep raw narration text only in the editing workspace; evidence panel must show counts, durations, status, links, and safety notes only.
+- [x] Extend media delivery to show `NARRATION_AUDIO` as a playable audio card.
+- [x] Add Vitest coverage for segment editing payload, validation messaging, audio generation action, evidence rendering, downloads, and `NARRATION_AUDIO` media card.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 5: Terminal Script, Demo Docs, And Product Docs
 
@@ -160,14 +160,14 @@
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-evidence.sh`
 - Default output directory: `/tmp/linguaframe-demo/narration-evidence/`
 
-- [ ] Add Bash helpers for narration workspace JSON, narration evidence JSON/Markdown/ZIP, and `print_narration_evidence_summary_file`.
-- [ ] Add standalone script that exits non-zero on `BLOCKED` unless `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true`.
-- [ ] Extend deterministic, OpenAI smoke, and full Tears scripts to export narration evidence when a job has narration segments; skip cleanly when evidence is `BLOCKED`.
-- [ ] Document narration as separate from subtitle dubbing, reviewed subtitle publishing, and dubbed-video delivery.
-- [ ] Document first-slice limitation: narration audio is generated, narrated-video muxing comes later.
-- [ ] Update smoke checklist with browser workspace expectations, terminal output, ZIP entries, `NARRATION_AUDIO` media card, and safety exclusions.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add Bash helpers for narration workspace JSON, narration evidence JSON/Markdown/ZIP, and `print_narration_evidence_summary_file`.
+- [x] Add standalone script that exits non-zero on `BLOCKED` unless `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true`.
+- [x] Extend deterministic, OpenAI smoke, and full Tears scripts to export narration evidence when a job has narration segments; skip cleanly when evidence is `BLOCKED`.
+- [x] Document narration as separate from subtitle dubbing, reviewed subtitle publishing, and dubbed-video delivery.
+- [x] Document first-slice limitation: narration audio is generated, narrated-video muxing comes later.
+- [x] Update smoke checklist with browser workspace expectations, terminal output, ZIP entries, `NARRATION_AUDIO` media card, and safety exclusions.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 6: Final Verification, Commit, And Merge
 
@@ -175,16 +175,16 @@
 - Modify: `docs/plans/132-time-coded-narration-workspace-mvp.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Mark completed plan tasks.
-- [ ] Run focused backend validation from Tasks 1-3.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run script syntax validation from Task 5.
-- [ ] Run `git diff --check`.
-- [ ] Commit with message `Add time-coded narration workspace`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Mark completed plan tasks.
+- [x] Run focused backend validation from Tasks 1-3.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run script syntax validation from Task 5.
+- [x] Run `git diff --check`.
+- [x] Commit with message `Add time-coded narration workspace`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 

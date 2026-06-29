@@ -38,6 +38,9 @@ DEMO_HANDOFF_PORTAL_ZIP_PATH="${LINGUAFRAME_DEMO_HANDOFF_PORTAL_ZIP_PATH:-/tmp/l
 SUBTITLE_REVIEW_EVIDENCE_JSON_PATH="${LINGUAFRAME_DEMO_SUBTITLE_REVIEW_EVIDENCE_JSON_PATH:-/tmp/linguaframe-demo/subtitle-review-evidence.json}"
 SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/subtitle-review-evidence.md}"
 SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH:-/tmp/linguaframe-demo/subtitle-review-evidence.zip}"
+NARRATION_EVIDENCE_JSON_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_JSON_PATH:-/tmp/linguaframe-demo/narration-evidence.json}"
+NARRATION_EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/narration-evidence.md}"
+NARRATION_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_ZIP_PATH:-/tmp/linguaframe-demo/narration-evidence.zip}"
 SOURCE_MEDIA_METADATA_PATH="${LINGUAFRAME_DEMO_SOURCE_MEDIA_METADATA_PATH:-/tmp/linguaframe-demo/source-media.json}"
 SOURCE_MEDIA_PATH="${LINGUAFRAME_DEMO_SOURCE_MEDIA_PATH:-/tmp/linguaframe-demo/source-video.mp4}"
 DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_PATH:-/tmp/linguaframe-demo/delivery-manifest.md}"
@@ -135,6 +138,15 @@ download_subtitle_review_evidence_json "$BASE_URL" "$job_id" "$SUBTITLE_REVIEW_E
 download_subtitle_review_evidence_markdown "$BASE_URL" "$job_id" "$SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH"
 download_subtitle_review_evidence_zip "$BASE_URL" "$job_id" "$SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH"
 print_subtitle_review_evidence_summary_file "$SUBTITLE_REVIEW_EVIDENCE_JSON_PATH" "$SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH" "$SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH"
+download_narration_evidence_json "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_JSON_PATH"
+narration_status="$(printf '%s' "$(cat "$NARRATION_EVIDENCE_JSON_PATH")" | extract_json_field status)"
+if [[ "$narration_status" == "BLOCKED" ]]; then
+  echo "Narration evidence is BLOCKED; no narration segments have been saved for this run."
+else
+  download_narration_evidence_markdown "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_MARKDOWN_PATH"
+  download_narration_evidence_zip "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_ZIP_PATH"
+  print_narration_evidence_summary_file "$NARRATION_EVIDENCE_JSON_PATH" "$NARRATION_EVIDENCE_MARKDOWN_PATH" "$NARRATION_EVIDENCE_ZIP_PATH"
+fi
 if download_optional_artifact_by_type "$BASE_URL" "$job_id" DUBBING_AUDIO "$DUBBING_AUDIO_PATH"; then
   echo "Downloaded dubbing audio to $DUBBING_AUDIO_PATH"
 else
@@ -172,5 +184,6 @@ echo "Downloaded demo handoff portal ZIP to $DEMO_HANDOFF_PORTAL_ZIP_PATH"
 echo "Downloaded subtitle review evidence JSON to $SUBTITLE_REVIEW_EVIDENCE_JSON_PATH"
 echo "Downloaded subtitle review evidence Markdown to $SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH"
 echo "Downloaded subtitle review evidence ZIP to $SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH"
+echo "Checked narration evidence JSON at $NARRATION_EVIDENCE_JSON_PATH"
 echo "Downloaded source video to $SOURCE_MEDIA_PATH"
 echo "Downloaded worker summary to $ARTIFACT_PATH"

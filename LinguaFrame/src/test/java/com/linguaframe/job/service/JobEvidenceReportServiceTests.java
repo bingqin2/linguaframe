@@ -74,6 +74,9 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Subtitle draft last updated: 2026-06-28T09:30:00Z");
         assertThat(markdown).contains("- Reviewed subtitle artifacts: 3");
         assertThat(markdown).contains("- Reviewed burned video: Available");
+        assertThat(markdown).contains("- Narration evidence: /api/jobs/job-evidence-triage/narration-evidence");
+        assertThat(markdown).contains("- Narration evidence package: /api/jobs/job-evidence-triage/narration-evidence/download");
+        assertThat(markdown).contains("- Narration audio artifacts: 1");
         assertThat(markdown).doesNotContain("raw source text");
         assertThat(markdown).doesNotContain("raw target text");
         assertThat(markdown).doesNotContain("raw draft text");
@@ -172,7 +175,8 @@ class JobEvidenceReportServiceTests {
                 artifact(JobArtifactType.REVIEWED_SUBTITLE_JSON, "reviewed-subtitles.zh-CN.json"),
                 artifact(JobArtifactType.REVIEWED_SUBTITLE_SRT, "reviewed-subtitles.zh-CN.srt"),
                 artifact(JobArtifactType.REVIEWED_SUBTITLE_VTT, "reviewed-subtitles.zh-CN.vtt"),
-                artifact(JobArtifactType.REVIEWED_BURNED_VIDEO, "reviewed-burned-video.mp4")
+                artifact(JobArtifactType.REVIEWED_BURNED_VIDEO, "reviewed-burned-video.mp4"),
+                artifact(JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3")
         );
         return new JobDiagnosticsReportVo(Instant.parse("2026-06-28T08:06:00Z"), job, artifacts, artifacts.size());
     }

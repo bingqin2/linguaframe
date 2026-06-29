@@ -30,6 +30,8 @@ import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.media.domain.entity.VideoRecord;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.repository.VideoRepository;
+import com.linguaframe.storage.domain.bo.StoreObjectCommand;
+import com.linguaframe.storage.domain.bo.StoredObjectBo;
 import com.linguaframe.storage.service.ObjectStorageService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,6 +55,7 @@ import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -112,6 +115,7 @@ class LocalizationJobControllerTests {
     void cleanDatabase() {
         jdbcClient.sql("DELETE FROM quality_evaluations").update();
         jdbcClient.sql("DELETE FROM model_call_records").update();
+        jdbcClient.sql("DELETE FROM narration_segments").update();
         jdbcClient.sql("DELETE FROM subtitle_draft_segments").update();
         jdbcClient.sql("DELETE FROM subtitle_segments").update();
         jdbcClient.sql("DELETE FROM transcript_segments").update();
@@ -120,6 +124,10 @@ class LocalizationJobControllerTests {
         jdbcClient.sql("DELETE FROM job_dispatch_events").update();
         jdbcClient.sql("DELETE FROM localization_jobs").update();
         jdbcClient.sql("DELETE FROM videos").update();
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
     }
 
     @Test
@@ -1898,6 +1906,111 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segments[1].draftText").value("第二行"))
                 .andExpect(jsonPath("$.segments[1].edited").value(false))
                 .andExpect(jsonPath("$.segments[1].decision").value("UNREVIEWED"));
+    }
+
+    @Test
+    void managesNarrationWorkspaceForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:10:00Z");
+        createJob("job-controller-video-narration", "job-controller-job-narration", createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "alloy"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "alloy"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-narration"))
+                .andExpect(jsonPath("$.status").value("DRAFT_READY"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.totalDurationSeconds").value(28.500))
+                .andExpect(jsonPath("$.totalCharacterCount").value(49))
+                .andExpect(jsonPath("$.generationReady").value(true))
+                .andExpect(jsonPath("$.segments[0].index").value(0))
+                .andExpect(jsonPath("$.segments[0].startSeconds").value(15.000))
+                .andExpect(jsonPath("$.segments[0].endSeconds").value(28.000))
+                .andExpect(jsonPath("$.segments[0].text").value("Explain the first scene."))
+                .andExpect(jsonPath("$.segments[0].voice").value("alloy"))
+                .andExpect(jsonPath("$.segments[1].durationSeconds").value(15.500));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DRAFT_READY"))
+                .andExpect(jsonPath("$.segments[1].text").value("Explain the second scene."));
+
+        mockMvc.perform(delete("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("EMPTY"))
+                .andExpect(jsonPath("$.segmentCount").value(0))
+                .andExpect(jsonPath("$.generationReady").value(false));
+    }
+
+    @Test
+    void generatesNarrationAudioForLocalizationJobWithoutReplacingDeliveryArtifacts() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:12:00Z");
+        createJob("job-controller-video-narration-audio", "job-controller-job-narration-audio", createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration-audio")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "alloy"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "alloy"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/{jobId}/narration-workspace/generate-audio", "job-controller-job-narration-audio"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-narration-audio"))
+                .andExpect(jsonPath("$.filename").value("narration-audio.mp3"))
+                .andExpect(jsonPath("$.contentType").value("audio/mpeg"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.totalCharacterCount").value(49))
+                .andExpect(jsonPath("$.totalTimelineDurationSeconds").value(28.500))
+                .andExpect(jsonPath("$.voiceSummary").value("alloy"))
+                .andExpect(jsonPath("$.status").value("READY"));
+
+        List<JobArtifactRecord> artifacts = artifactRepository.findByJobId("job-controller-job-narration-audio");
+        assertThat(artifacts)
+                .extracting(JobArtifactRecord::type)
+                .containsExactly(JobArtifactType.NARRATION_AUDIO)
+                .doesNotContain(
+                        JobArtifactType.DUBBING_AUDIO,
+                        JobArtifactType.DUBBED_VIDEO,
+                        JobArtifactType.BURNED_VIDEO,
+                        JobArtifactType.REVIEWED_BURNED_VIDEO
+                );
     }
 
     @Test

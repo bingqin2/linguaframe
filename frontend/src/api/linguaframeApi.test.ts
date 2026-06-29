@@ -4,9 +4,14 @@ import type { RetentionCleanupResult } from '../domain/jobTypes';
 import {
   artifactArchiveDownloadUrl,
   artifactDownloadUrl,
+  clearNarrationWorkspace,
   clearSubtitleDraft,
+  downloadNarrationEvidenceMarkdown,
+  downloadNarrationEvidenceZip,
   getJob,
   getMediaUpload,
+  getNarrationEvidence,
+  getNarrationWorkspace,
   getReviewedSubtitleWorkflow,
   getSubtitleReviewEvidence,
   getSubtitleDraft,
@@ -46,6 +51,7 @@ import {
   downloadDemoHandoffPortalZip,
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,
+  generateNarrationAudio,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -81,6 +87,7 @@ import {
   cancelJob,
   retryJob,
   runRetentionCleanup,
+  saveNarrationWorkspace,
   subtitleDraftExportUrl,
   sourceMediaDownloadUrl,
   updateSubtitleDraft,
@@ -291,6 +298,99 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('subtitlePolishingMode')).toBe('BALANCED');
+  });
+
+  test('manages narration workspace endpoints', async () => {
+    const workspaceResponse = {
+        jobId: 'job-narration',
+        status: 'DRAFT_READY',
+        segmentCount: 1,
+        totalDurationSeconds: 13,
+        totalCharacterCount: 24,
+        generationReady: true,
+        segments: [],
+        safetyNotes: []
+      };
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+      Promise.resolve(jsonResponse(workspaceResponse))
+    );
+
+    await getNarrationWorkspace('job-narration');
+    await saveNarrationWorkspace('job-narration', {
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        }
+      ]
+    });
+    await clearNarrationWorkspace('job-narration');
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job-narration/narration-workspace');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job-narration/narration-workspace');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'PUT' });
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body))).toEqual({
+      segments: [
+        {
+          index: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          text: 'Explain the first scene.',
+          voice: 'alloy'
+        }
+      ]
+    });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-workspace');
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'DELETE' });
+  });
+
+  test('generates narration audio and downloads narration evidence', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-narration',
+        artifactId: 'artifact-narration',
+        filename: 'narration-audio.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 3,
+        segmentCount: 1,
+        totalCharacterCount: 24,
+        totalTimelineDurationSeconds: 13,
+        voiceSummary: 'alloy',
+        status: 'READY'
+      })
+    );
+
+    await generateNarrationAudio('job-narration');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
+        status: 'READY',
+        segmentCount: 1,
+        totalCharacterCount: 24,
+        totalTimelineDurationSeconds: 13,
+        narrationAudioReady: true,
+        audioArtifactCount: 1,
+        checks: [],
+        safeLinks: [],
+        packageEntries: [],
+        safetyNotes: []
+      })
+    );
+    await getNarrationEvidence('job-narration');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['markdown'])));
+    await downloadNarrationEvidenceMarkdown('job-narration');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['zip'])));
+    await downloadNarrationEvidenceZip('job-narration');
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job-narration/narration-workspace/generate-audio');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
+    expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
   });
 
   test('uploads media with selected demo profile id when provided', async () => {

@@ -721,3 +721,11 @@ Decision: Add time-coded custom narration as a future product goal that builds o
 Reason: The product should eventually support explanatory voiceover segments, such as adding narration at `00:15-00:28` and `00:55-01:10`, while preserving the current localization pipeline and reviewed subtitle handoff semantics.
 
 Impact: Future feature slices should treat narration as operator-authored, time-coded text segments synthesized through the existing TTS provider/cache/audit boundary and exported as separate narration audio or narrated-video artifacts. It should not mutate generated subtitles, reviewed subtitles, generated burned videos, or reviewed handoff artifacts by default, and it should avoid becoming a full nonlinear video editor.
+
+## 2026-06-29
+
+Decision: Implement the first narration slice as separate audio plus metadata-only evidence, not narrated-video muxing.
+
+Reason: The project needs a complete, demoable narration feature that fits the existing localization architecture without turning the app into a full video editor. Generating separate narration audio proves the TTS workflow and browser editor while keeping reviewed subtitle and media delivery semantics intact.
+
+Impact: Narration segments are stored as job-level time-coded rows, synthesized through the existing TTS provider and budget guard, and saved as `NARRATION_AUDIO`. Narration evidence JSON/Markdown/ZIP exposes counts, timing, audio readiness, and safe links only. Generated subtitles, reviewed subtitles, `DUBBING_AUDIO`, `DUBBED_VIDEO`, burned videos, and handoff artifacts are not replaced by narration.

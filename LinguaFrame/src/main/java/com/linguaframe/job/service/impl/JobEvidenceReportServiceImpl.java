@@ -66,6 +66,8 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Artifacts: " + report.artifactCount());
         lines.add("- Result bundle: /api/jobs/" + job.jobId() + "/artifacts/archive/download");
         lines.add("- Diagnostics: /api/jobs/" + job.jobId() + "/diagnostics/download");
+        lines.add("- Narration evidence: /api/jobs/" + job.jobId() + "/narration-evidence");
+        lines.add("- Narration evidence package: /api/jobs/" + job.jobId() + "/narration-evidence/download");
 
         if (job.failureStage() != null || hasText(job.failureReason())) {
             lines.add("- Failure: " + valueOrDefault(job.failureStage(), "Unknown")
@@ -204,8 +206,12 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
                 .count();
         boolean reviewedBurnedVideoAvailable = report.artifacts().stream()
                 .anyMatch(artifact -> artifact.type() == JobArtifactType.REVIEWED_BURNED_VIDEO);
+        long narrationAudioArtifacts = report.artifacts().stream()
+                .filter(artifact -> artifact.type() == JobArtifactType.NARRATION_AUDIO)
+                .count();
         lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleArtifacts);
         lines.add("- Reviewed burned video: " + (reviewedBurnedVideoAvailable ? "Available" : "Not available"));
+        lines.add("- Narration audio artifacts: " + narrationAudioArtifacts);
     }
 
     private boolean hasText(String value) {

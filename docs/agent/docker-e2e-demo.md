@@ -551,6 +551,18 @@ The script writes `subtitle-review-evidence.json`, `subtitle-review-evidence.md`
 
 In the browser, edit subtitle text in the subtitle draft editor and separately set review decision, issue categories, reviewer note, and publish release notes. The review metadata explains acceptance, edits, follow-up, terminology, timing, tone, readability, missing text, or other issues. Evidence exports and handoff packages include counts and safe links only; they must not include raw transcript text, generated subtitle text, corrected subtitle text, reviewer note bodies, local paths, object keys, provider payloads, tokens, API keys, or media bytes. The deterministic, OpenAI smoke, and full Tears scripts all export the same subtitle review evidence after job completion.
 
+## Narration Workspace And Evidence Export
+
+Use the browser `Narration workspace` panel when you need explanatory voiceover that is separate from subtitle dubbing. Add time-coded rows, save the workspace, generate narration audio, and verify `NARRATION_AUDIO` appears in media delivery as a playable audio card. This first slice generates separate narration audio and metadata-only evidence; it does not mux narration into a new video.
+
+Terminal evidence export:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-evidence.sh
+```
+
+The script writes `narration-evidence.json`, `narration-evidence.md`, and `narration-evidence.zip` under `/tmp/linguaframe-demo/narration-evidence/`. It exits non-zero when evidence is `BLOCKED`; set `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true` to export a blocked report. The ZIP must contain `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`, and must not include narration script bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
+
 ## Optional OpenAI TTS Demo
 
 Use this path only with a local `.env` file that contains real OpenAI credentials:

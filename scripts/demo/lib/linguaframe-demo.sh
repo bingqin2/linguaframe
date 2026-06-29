@@ -576,6 +576,50 @@ download_subtitle_review_evidence_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/subtitle-review-evidence/download" -o "$output_path"
 }
 
+download_narration_workspace_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-workspace" -o "$output_path"
+}
+
+download_narration_evidence_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-evidence" -o "$output_path"
+}
+
+download_narration_evidence_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-evidence/markdown/download" -o "$output_path"
+}
+
+download_narration_evidence_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-evidence/download" -o "$output_path"
+}
+
 download_owner_quota_preflight_json() {
   local base_url="$1"
   local output_path="$2"
@@ -3079,6 +3123,72 @@ print("subtitleReviewEvidencePackageEntryCount=" + str(len(required_entries)))
 print("subtitleReviewEvidenceJsonPath=" + str(json_path))
 print("subtitleReviewEvidenceMarkdownPath=" + str(markdown_path))
 print("subtitleReviewEvidenceZipPath=" + str(zip_path))
+PY
+}
+
+print_narration_evidence_summary_file() {
+  local evidence_json_path="$1"
+  local evidence_markdown_path="$2"
+  local evidence_zip_path="$3"
+
+  python3 - "$evidence_json_path" "$evidence_markdown_path" "$evidence_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+evidence = json.loads(json_path.read_text(encoding="utf-8"))
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "Explain the first scene",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(evidence, ensure_ascii=False) + "\n" + markdown
+required_entries = {
+    "manifest.json",
+    "narration-evidence.md",
+    "narration-summary.json",
+    "README.md",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Narration evidence ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration evidence contains forbidden sensitive string: " + marker)
+
+print("narrationEvidenceJobId=" + str(evidence.get("jobId", "")))
+print("narrationEvidenceStatus=" + str(evidence.get("status", "")))
+print("narrationEvidenceSegmentCount=" + str(evidence.get("segmentCount", 0)))
+print("narrationEvidenceAudioArtifactCount=" + str(evidence.get("audioArtifactCount", 0)))
+print("narrationEvidenceCharacterCount=" + str(evidence.get("totalCharacterCount", 0)))
+print("narrationEvidencePackageEntryCount=" + str(len(required_entries)))
+print("narrationEvidenceJsonPath=" + str(json_path))
+print("narrationEvidenceMarkdownPath=" + str(markdown_path))
+print("narrationEvidenceZipPath=" + str(zip_path))
 PY
 }
 

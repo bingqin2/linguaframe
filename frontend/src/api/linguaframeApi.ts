@@ -30,6 +30,9 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationEvidence,
+  NarrationGeneration,
+  NarrationWorkspace,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
   OperatorDashboard,
@@ -45,6 +48,7 @@ import type {
   ReviewedSubtitlePublish,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
+  SaveNarrationWorkspaceRequest,
   SubtitleDraftSummary,
   SubtitleReviewEvidence,
   SubtitleReviewSummary,
@@ -856,6 +860,76 @@ export async function getSubtitleReviewEvidence(jobId: string): Promise<Subtitle
   );
 }
 
+export async function getNarrationWorkspace(jobId: string): Promise<NarrationWorkspace> {
+  return requestJson<NarrationWorkspace>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function saveNarrationWorkspace(
+  jobId: string,
+  request: SaveNarrationWorkspaceRequest
+): Promise<NarrationWorkspace> {
+  return requestJson<NarrationWorkspace>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
+export async function clearNarrationWorkspace(jobId: string): Promise<NarrationWorkspace> {
+  return requestJson<NarrationWorkspace>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace`,
+    {
+      method: 'DELETE'
+    }
+  );
+}
+
+export async function generateNarrationAudio(jobId: string): Promise<NarrationGeneration> {
+  return requestJson<NarrationGeneration>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/generate-audio`,
+    {
+      method: 'POST'
+    }
+  );
+}
+
+export async function getNarrationEvidence(jobId: string): Promise<NarrationEvidence> {
+  return requestJson<NarrationEvidence>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationEvidenceMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationEvidenceZip(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function downloadSubtitleReviewEvidenceMarkdown(jobId: string): Promise<Blob> {
   return requestBlob(
     `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence/markdown/download`,
@@ -1073,6 +1147,13 @@ export const linguaFrameApi = {
   getSubtitleDraft,
   getReviewedSubtitleWorkflow,
   getSubtitleReviewEvidence,
+  getNarrationWorkspace,
+  saveNarrationWorkspace,
+  clearNarrationWorkspace,
+  generateNarrationAudio,
+  getNarrationEvidence,
+  downloadNarrationEvidenceMarkdown,
+  downloadNarrationEvidenceZip,
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,
   updateSubtitleDraft,

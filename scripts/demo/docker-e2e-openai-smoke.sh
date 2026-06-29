@@ -102,6 +102,19 @@ download_demo_handoff_portal_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff
 download_subtitle_review_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.json"
 download_subtitle_review_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.md"
 download_subtitle_review_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitle-review-evidence.zip"
+download_narration_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.json"
+narration_status="$(python3 - "$OUTPUT_DIR/narration-evidence.json" <<'PY'
+import json
+import sys
+print(json.load(open(sys.argv[1], encoding="utf-8")).get("status", ""))
+PY
+)"
+if [[ "$narration_status" == "BLOCKED" ]]; then
+  echo "Narration evidence is BLOCKED; no narration segments have been saved for this run."
+else
+  download_narration_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.md"
+  download_narration_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.zip"
+fi
 download_artifact_by_type "$BASE_URL" "$job_id" WORKER_SUMMARY "$OUTPUT_DIR/worker-summary.json"
 
 if [[ "$(env_value LINGUAFRAME_TTS_ENABLED false)" == "true" ]]; then
@@ -126,6 +139,9 @@ print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
 print_demo_reviewer_workspace_summary_file "$OUTPUT_DIR/demo-reviewer-workspace.json" "$OUTPUT_DIR/demo-reviewer-workspace.md" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
 print_demo_handoff_portal_summary_file "$OUTPUT_DIR/demo-handoff-portal.json" "$OUTPUT_DIR/demo-handoff-portal.md" "$OUTPUT_DIR/demo-handoff-portal.zip"
 print_subtitle_review_evidence_summary_file "$OUTPUT_DIR/subtitle-review-evidence.json" "$OUTPUT_DIR/subtitle-review-evidence.md" "$OUTPUT_DIR/subtitle-review-evidence.zip"
+if [[ "$narration_status" != "BLOCKED" ]]; then
+  print_narration_evidence_summary_file "$OUTPUT_DIR/narration-evidence.json" "$OUTPUT_DIR/narration-evidence.md" "$OUTPUT_DIR/narration-evidence.zip"
+fi
 python3 - "$OUTPUT_DIR/openai-smoke-proof.json" "$OUTPUT_DIR/openai-smoke-proof.md" <<'PY'
 import json
 import sys

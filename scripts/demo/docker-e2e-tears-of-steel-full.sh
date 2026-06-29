@@ -139,6 +139,23 @@ download_subtitle_review_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/subtitl
 print_subtitle_review_evidence_summary_file "$OUTPUT_DIR/subtitle-review-evidence.json" "$OUTPUT_DIR/subtitle-review-evidence.md" "$OUTPUT_DIR/subtitle-review-evidence.zip"
 echo "Downloaded subtitle review evidence to $OUTPUT_DIR/subtitle-review-evidence.json, $OUTPUT_DIR/subtitle-review-evidence.md, and $OUTPUT_DIR/subtitle-review-evidence.zip"
 
+echo "Narration evidence:"
+download_narration_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.json"
+narration_status="$(python3 - "$OUTPUT_DIR/narration-evidence.json" <<'PY'
+import json
+import sys
+print(json.load(open(sys.argv[1], encoding="utf-8")).get("status", ""))
+PY
+)"
+if [[ "$narration_status" == "BLOCKED" ]]; then
+  echo "Narration evidence is BLOCKED; no narration segments have been saved for this run."
+else
+  download_narration_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.md"
+  download_narration_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.zip"
+  print_narration_evidence_summary_file "$OUTPUT_DIR/narration-evidence.json" "$OUTPUT_DIR/narration-evidence.md" "$OUTPUT_DIR/narration-evidence.zip"
+  echo "Downloaded narration evidence to $OUTPUT_DIR/narration-evidence.json, $OUTPUT_DIR/narration-evidence.md, and $OUTPUT_DIR/narration-evidence.zip"
+fi
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

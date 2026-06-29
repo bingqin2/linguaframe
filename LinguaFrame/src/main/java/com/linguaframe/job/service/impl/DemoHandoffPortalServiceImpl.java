@@ -267,6 +267,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Demo run package link is available.",
                         "AI audit package link is available.",
                         "Subtitle review evidence package link is available.",
+                        "Narration evidence package link is available.",
                         "Handoff package link is available."
                 ))
         );
@@ -430,6 +431,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 link("AI_AUDIT_PACKAGE", "AI audit package", "/api/jobs/" + jobId + "/ai-audit-package/download", "application/zip", "Model-call audit package."),
                 link("SUBTITLE_REVIEW_EVIDENCE", "Subtitle review evidence", "/api/jobs/" + jobId + "/subtitle-review-evidence", "application/json", "Metadata-only subtitle review evidence."),
                 link("SUBTITLE_REVIEW_EVIDENCE_PACKAGE", "Subtitle review evidence package", "/api/jobs/" + jobId + "/subtitle-review-evidence/download", "application/zip", "Review coverage and release-note evidence package."),
+                link("NARRATION_EVIDENCE", "Narration evidence", "/api/jobs/" + jobId + "/narration-evidence", "application/json", "Metadata-only narration evidence."),
+                link("NARRATION_EVIDENCE_PACKAGE", "Narration evidence package", "/api/jobs/" + jobId + "/narration-evidence/download", "application/zip", "Narration timing and audio readiness evidence package."),
                 link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download", "application/zip", "Reviewed delivery package."),
                 link("DIAGNOSTICS", "Diagnostics", "/api/jobs/" + jobId + "/diagnostics/download", "application/json", "Safe diagnostics report."),
                 link("EVIDENCE_MARKDOWN", "Evidence Markdown", "/api/jobs/" + jobId + "/evidence/markdown/download", "text/markdown", "Backend evidence report."),
@@ -449,6 +452,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 "share-sheet.json",
                 "run-monitor.json",
                 "Linked safe route: /api/jobs/" + jobId + "/subtitle-review-evidence/download",
+                "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-reviewer-workspace/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download"
         );

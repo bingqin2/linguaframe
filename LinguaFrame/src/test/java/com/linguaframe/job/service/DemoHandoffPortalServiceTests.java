@@ -87,6 +87,7 @@ class DemoHandoffPortalServiceTests {
                         "/api/jobs/job-portal/demo-handoff-portal/download",
                         "/api/jobs/job-portal/demo-reviewer-workspace/download",
                         "/api/jobs/job-portal/subtitle-review-evidence/download",
+                        "/api/jobs/job-portal/narration-evidence/download",
                         "/api/jobs/job-portal/demo-run-snapshot/download",
                         "/api/jobs/job-portal/demo-run-package/download"
                 );
@@ -189,9 +190,15 @@ class DemoHandoffPortalServiceTests {
                 .contains("Demo reviewer workspace")
                 .contains("Static handoff portal ZIP");
         assertThat(portal.safeLinks()).extracting("href")
-                .contains("/api/jobs/job-portal/subtitle-review-evidence/download");
+                .contains(
+                        "/api/jobs/job-portal/subtitle-review-evidence/download",
+                        "/api/jobs/job-portal/narration-evidence/download"
+                );
         assertThat(portal.packageEntries())
-                .contains("Linked safe route: /api/jobs/job-portal/subtitle-review-evidence/download");
+                .contains(
+                        "Linked safe route: /api/jobs/job-portal/subtitle-review-evidence/download",
+                        "Linked safe route: /api/jobs/job-portal/narration-evidence/download"
+                );
         assertThat(combined)
                 .doesNotContain("sk-test")
                 .doesNotContain("OPENAI_API_KEY")

@@ -322,6 +322,53 @@ td {
   justify-content: flex-start;
 }
 
+.narration-workspace-panel {
+  border-color: #d8dee6;
+}
+
+.narration-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.8fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.narration-table-wrap {
+  overflow-x: auto;
+}
+
+.narration-table th,
+.narration-table td {
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.narration-table input {
+  width: 96px;
+}
+
+.narration-table td:last-child {
+  min-width: 240px;
+  white-space: normal;
+  color: #334155;
+}
+
+.selected-row {
+  background: #f3f7fb;
+}
+
+.narration-inspector {
+  display: grid;
+  gap: 12px;
+  border-left: 1px solid #d8dee6;
+  padding-left: 14px;
+}
+
+.narration-inspector textarea {
+  min-height: 160px;
+  resize: vertical;
+}
+
 .result-deliverable-list {
   display: grid;
   gap: 8px;
