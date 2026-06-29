@@ -84,16 +84,16 @@
 - `getNarrationDemoPreset(profileId: string): Promise<NarrationDemoPreset | null>`
 - `applyNarrationDemoPreset(jobId: string, request: ApplyNarrationDemoPresetRequest): Promise<NarrationDemoPresetApplyResult>`
 
-- [ ] Add TypeScript types and API helper tests for listing, profile lookup, and apply.
-- [ ] Add a compact `Demo narration preset` panel inside the selected job narration workspace.
-- [ ] Show linked profile, sample hint, segment count, total duration, voice summary, mix settings, and safe apply checks without exposing unrelated evidence text.
-- [ ] Require explicit replace acknowledgement before applying a preset over an existing workspace.
-- [ ] On success, refresh narration workspace, script package, narration evidence, and artifacts without page reload.
-- [ ] Keep generate audio/video as separate user actions after the preset is applied.
-- [ ] Add Vitest coverage for preset rendering, disabled apply states, successful apply refresh, validation error display, and preserved manual script package import behavior.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add TypeScript types and API helper tests for listing, profile lookup, and apply.
+- [x] Add a compact `Demo narration preset` panel inside the selected job narration workspace.
+- [x] Show linked profile, sample hint, segment count, total duration, voice summary, mix settings, and safe apply checks without exposing unrelated evidence text.
+- [x] Require explicit replace acknowledgement before applying a preset over an existing workspace.
+- [x] On success, refresh narration workspace, script package, narration evidence, and artifacts without page reload.
+- [x] Keep generate audio/video as separate user actions after the preset is applied.
+- [x] Add Vitest coverage for preset rendering, disabled apply states, successful apply refresh, validation error display, and preserved manual script package import behavior.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration demo preset UI`.
 
 ## Task 4: Terminal Demo Script, Docs, And Final Verification

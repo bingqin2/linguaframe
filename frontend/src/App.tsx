@@ -34,6 +34,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationDemoPreset,
   NarrationEvidence,
   NarrationScriptPackage,
   ImportNarrationScriptPackageRequest,
@@ -334,6 +335,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoProfileId, setDemoProfileId] = useState(MANUAL_DEMO_PROFILE_VALUE);
   const [demoRunProfiles, setDemoRunProfiles] = useState<DemoRunProfile[]>([]);
   const [demoRunProfileError, setDemoRunProfileError] = useState<string | null>(null);
+  const [narrationDemoPresets, setNarrationDemoPresets] = useState<NarrationDemoPreset[]>([]);
   const [targetLanguage, setTargetLanguage] = useState('zh-CN');
   const [ttsVoice, setTtsVoice] = useState('');
   const [translationStyle, setTranslationStyle] = useState('NATURAL');
@@ -1259,6 +1261,21 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         setDemoRunProfileError(toErrorMessage(profileLoadError));
       });
 
+    linguaFrameApi
+      .listNarrationDemoPresets()
+      .then((presets) => {
+        if (ignore) {
+          return;
+        }
+        setNarrationDemoPresets(presets);
+      })
+      .catch(() => {
+        if (ignore) {
+          return;
+        }
+        setNarrationDemoPresets([]);
+      });
+
     return () => {
       ignore = true;
     };
@@ -2105,6 +2122,35 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleApplyNarrationDemoPreset(presetId: string) {
+    if (!job) {
+      return;
+    }
+    setIsSavingNarration(true);
+    try {
+      const result = await linguaFrameApi.applyNarrationDemoPreset(job.jobId, {
+        presetId,
+        replaceExisting: true
+      });
+      const [refreshedWorkspace, refreshedEvidence, refreshedScriptPackage, refreshedArtifacts] = await Promise.all([
+        linguaFrameApi.getNarrationWorkspace(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId),
+        linguaFrameApi.getNarrationScriptPackage(job.jobId),
+        linguaFrameApi.listArtifacts(job.jobId)
+      ]);
+      setNarrationWorkspace(refreshedWorkspace ?? result.workspace);
+      setNarrationEvidence(refreshedEvidence);
+      setNarrationScriptPackage(refreshedScriptPackage ?? result.scriptPackage);
+      setArtifacts(refreshedArtifacts);
+      setNarrationError(null);
+      setNarrationStatus(`Applied ${result.presetId} with ${result.importedSegmentCount} ${result.importedSegmentCount === 1 ? 'segment' : 'segments'}.`);
+    } catch (presetApplyError) {
+      setNarrationError(toErrorMessage(presetApplyError));
+    } finally {
+      setIsSavingNarration(false);
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -2789,12 +2835,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onRetry={handleRetry}
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
               onImportNarrationScriptPackage={handleImportNarrationScriptPackage}
+              onApplyNarrationDemoPreset={handleApplyNarrationDemoPreset}
               onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
               narrationEvidence={narrationEvidence}
               narrationScriptPackage={narrationScriptPackage}
+              narrationDemoPresets={narrationDemoPresets}
               narrationStatus={narrationStatus}
               narrationWorkspace={narrationWorkspace}
               previewErrors={previewErrors}
@@ -5683,6 +5731,7 @@ function JobDetail({
   onSelectCacheReplayComparison,
   onSelectDemoComparison,
   onRetry,
+  onApplyNarrationDemoPreset,
   onImportNarrationScriptPackage,
   onPublishReviewedSubtitles,
   onSaveNarrationMixSettings,
@@ -5690,6 +5739,7 @@ function JobDetail({
   onSaveSubtitleDraft,
   narrationError,
   narrationEvidence,
+  narrationDemoPresets,
   narrationScriptPackage,
   narrationStatus,
   narrationWorkspace,
@@ -5799,6 +5849,7 @@ function JobDetail({
   onSelectCacheReplayComparison: (jobId: string) => void;
   onSelectDemoComparison: (jobId: string) => void;
   onRetry: () => void;
+  onApplyNarrationDemoPreset: (presetId: string) => void;
   onImportNarrationScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
   onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
@@ -5812,6 +5863,7 @@ function JobDetail({
   }>) => void;
   narrationError: string | null;
   narrationEvidence: NarrationEvidence | null;
+  narrationDemoPresets: NarrationDemoPreset[];
   narrationScriptPackage: NarrationScriptPackage | null;
   narrationStatus: string | null;
   narrationWorkspace: NarrationWorkspace | null;
@@ -6113,11 +6165,13 @@ function JobDetail({
         onClear={onClearNarrationWorkspace}
         onGenerateAudio={onGenerateNarrationAudio}
         onGenerateVideo={onGenerateNarratedVideo}
+        onApplyDemoPreset={onApplyNarrationDemoPreset}
         onImportScriptPackage={onImportNarrationScriptPackage}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
         scriptPackage={narrationScriptPackage}
+        demoPresets={narrationDemoPresets}
         status={narrationStatus}
         workspace={narrationWorkspace}
       />
@@ -9120,7 +9174,9 @@ function NarrationWorkspacePanel({
   isGeneratingVideo,
   isSaving,
   jobId,
+  demoPresets,
   onClear,
+  onApplyDemoPreset,
   onGenerateAudio,
   onGenerateVideo,
   onImportScriptPackage,
@@ -9138,7 +9194,9 @@ function NarrationWorkspacePanel({
   isGeneratingVideo: boolean;
   isSaving: boolean;
   jobId: string;
+  demoPresets: NarrationDemoPreset[];
   onClear: () => void;
+  onApplyDemoPreset: (presetId: string) => void;
   onGenerateAudio: () => void;
   onGenerateVideo: () => void;
   onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
@@ -9259,6 +9317,12 @@ function NarrationWorkspacePanel({
           scriptPackage={scriptPackage}
           workspace={workspace}
           onImportScriptPackage={onImportScriptPackage}
+        />
+        <NarrationDemoPresetPanel
+          isApplying={isSaving}
+          presets={demoPresets}
+          workspace={workspace}
+          onApplyPreset={onApplyDemoPreset}
         />
       </div>
     </section>
@@ -9534,6 +9598,107 @@ function NarrationScriptPackagePanel({
       >
         {isImporting ? 'Importing...' : 'Import package'}
       </button>
+    </section>
+  );
+}
+
+function NarrationDemoPresetPanel({
+  isApplying,
+  onApplyPreset,
+  presets,
+  workspace
+}: {
+  isApplying: boolean;
+  onApplyPreset: (presetId: string) => void;
+  presets: NarrationDemoPreset[];
+  workspace: NarrationWorkspace | null;
+}) {
+  const [selectedPresetId, setSelectedPresetId] = useState(presets[0]?.id ?? '');
+  const [replaceCurrentWorkspace, setReplaceCurrentWorkspace] = useState(false);
+  const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0] ?? null;
+  const canApply = Boolean(selectedPreset && replaceCurrentWorkspace && !isApplying);
+
+  useEffect(() => {
+    if (!selectedPresetId && presets[0]) {
+      setSelectedPresetId(presets[0].id);
+    }
+  }, [presets, selectedPresetId]);
+
+  return (
+    <section className="script-package-panel" aria-label="Demo narration preset">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Demo narration preset</h4>
+          <p className="muted">
+            {selectedPreset ? selectedPreset.description : 'No narration preset available.'}
+          </p>
+        </div>
+        <span className={selectedPreset ? 'status-pill ready' : 'status-pill attention'}>
+          {selectedPreset ? 'Available' : 'Missing'}
+        </span>
+      </div>
+      {selectedPreset ? (
+        <>
+          <label>
+            Preset
+            <select
+              aria-label="Narration demo preset"
+              value={selectedPreset.id}
+              onChange={(event) => {
+                setSelectedPresetId(event.target.value);
+                setReplaceCurrentWorkspace(false);
+              }}
+            >
+              {presets.map((preset) => (
+                <option key={preset.id} value={preset.id}>{preset.label}</option>
+              ))}
+            </select>
+          </label>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Profile</dt>
+              <dd>{selectedPreset.profileId}</dd>
+            </div>
+            <div>
+              <dt>Sample</dt>
+              <dd>{selectedPreset.sampleIdHint}</dd>
+            </div>
+            <div>
+              <dt>Segments</dt>
+              <dd>{selectedPreset.segmentCount} segments</dd>
+            </div>
+            <div>
+              <dt>Voice</dt>
+              <dd>{selectedPreset.voiceSummary}</dd>
+            </div>
+            <div>
+              <dt>Span</dt>
+              <dd>{formatSeconds(selectedPreset.timeSpanSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Workspace</dt>
+              <dd>{workspace?.status ?? 'N/A'}</dd>
+            </div>
+          </dl>
+          <p className="muted">Generate narration audio separately after applying.</p>
+          <label className="inline-checkbox">
+            <input
+              aria-label="Replace current narration workspace with preset"
+              checked={replaceCurrentWorkspace}
+              type="checkbox"
+              onChange={(event) => setReplaceCurrentWorkspace(event.target.checked)}
+            />
+            Replace current narration workspace with preset
+          </label>
+          <button
+            type="button"
+            disabled={!canApply}
+            onClick={() => onApplyPreset(selectedPreset.id)}
+          >
+            {isApplying ? 'Applying...' : 'Apply preset'}
+          </button>
+        </>
+      ) : null}
     </section>
   );
 }

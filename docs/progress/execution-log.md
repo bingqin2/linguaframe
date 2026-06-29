@@ -13,6 +13,8 @@ Work:
 - Added `POST /api/jobs/{jobId}/narration-demo-preset/apply` to apply a preset through the existing narration script package import path.
 - Preset apply validates explicit replace confirmation, preset id, source duration bounds, voice presets, and preserves the existing workspace on validation failure.
 - Preset apply returns refreshed workspace, script package, and narration evidence status without generating narration audio or narrated video.
+- Added frontend narration demo preset types and API helpers for list, profile lookup, and apply.
+- Added a compact `Demo narration preset` panel to the selected-job narration workspace with profile/sample metadata, replace confirmation, separate generation guidance, and apply refresh behavior.
 
 Validation:
 
@@ -21,6 +23,10 @@ Validation:
 - `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests` first failed at test compilation because `ApplyNarrationDemoPresetDto`, `NarrationDemoPresetApplyVo`, and the apply service did not exist.
 - After adding the apply service and route, the same command failed because the built-in preset used the OpenAI `alloy` voice while the default local demo catalog exposes `demo-voice`.
 - After changing the built-in preset to inherit the active provider default voice and keeping invalid-voice coverage in a test-only preset, `mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests` passed with `Tests run: 86, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts` first failed because `listNarrationDemoPresets` was not implemented.
+- `npm test -- --run src/App.test.tsx -t "applies narration demo preset"` first failed because the narration workspace did not render a `Demo narration preset` region.
+- After adding frontend API helpers and UI, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 187 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
 
 ## 2026-06-29
 

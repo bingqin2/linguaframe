@@ -30,7 +30,10 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  ApplyNarrationDemoPresetRequest,
   ImportNarrationScriptPackageRequest,
+  NarrationDemoPreset,
+  NarrationDemoPresetApplyResult,
   NarrationEvidence,
   NarrationGeneration,
   NarrationScriptPackage,
@@ -1003,6 +1006,44 @@ export async function importNarrationScriptPackage(
   );
 }
 
+export async function listNarrationDemoPresets(): Promise<NarrationDemoPreset[]> {
+  return requestJson<NarrationDemoPreset[]>('/api/demo-run-profiles/narration-presets', {
+    method: 'GET'
+  });
+}
+
+export async function getNarrationDemoPreset(profileId: string): Promise<NarrationDemoPreset | null> {
+  const response = await fetch(
+    `/api/demo-run-profiles/${encodeURIComponent(profileId)}/narration-preset`,
+    withAccessHeaders({
+      method: 'GET'
+    })
+  );
+  if (response.status === 204) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(await readErrorMessage(response));
+  }
+  return response.json() as Promise<NarrationDemoPreset>;
+}
+
+export async function applyNarrationDemoPreset(
+  jobId: string,
+  request: ApplyNarrationDemoPresetRequest
+): Promise<NarrationDemoPresetApplyResult> {
+  return requestJson<NarrationDemoPresetApplyResult>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-demo-preset/apply`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function downloadSubtitleReviewEvidenceMarkdown(jobId: string): Promise<Blob> {
   return requestBlob(
     `/api/jobs/${encodeURIComponent(jobId)}/subtitle-review-evidence/markdown/download`,
@@ -1151,6 +1192,9 @@ export const linguaFrameApi = {
   getDemoSession,
   getAuthSession,
   listDemoRunProfiles,
+  listNarrationDemoPresets,
+  getNarrationDemoPreset,
+  applyNarrationDemoPreset,
   loginDemoSession,
   logoutDemoSession,
   loginAuthSession,

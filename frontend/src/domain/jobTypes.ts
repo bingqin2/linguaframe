@@ -1706,6 +1706,57 @@ export interface NarrationScriptPackageImportResult {
   workspace: NarrationWorkspace;
 }
 
+export interface NarrationDemoPresetMixSettings {
+  duckingVolume: number;
+  narrationVolume: number;
+  fadeDurationMs: number;
+}
+
+export interface NarrationDemoPresetSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  text: string;
+  characterCount: number;
+  voice: string | null;
+}
+
+export interface NarrationDemoPreset {
+  id: string;
+  label: string;
+  description: string;
+  profileId: string;
+  sampleIdHint: string;
+  targetLanguage: string;
+  voiceSummary: string;
+  segmentCount: number;
+  totalCharacterCount: number;
+  timeSpanSeconds: number;
+  mixSettings: NarrationDemoPresetMixSettings;
+  segments: NarrationDemoPresetSegment[];
+  safetyNotes: string[];
+}
+
+export interface ApplyNarrationDemoPresetRequest {
+  presetId: string;
+  replaceExisting: boolean;
+}
+
+export interface NarrationDemoPresetApplyResult {
+  jobId: string;
+  presetId: string;
+  profileId: string;
+  importedSegmentCount: number;
+  totalCharacterCount: number;
+  voiceSummary: string;
+  replacedExisting: boolean;
+  generatedMedia: boolean;
+  workspace: NarrationWorkspace;
+  scriptPackage: NarrationScriptPackage;
+  narrationEvidenceStatus: string;
+}
+
 export interface TranscriptSegment {
   index: number;
   startMs: number;

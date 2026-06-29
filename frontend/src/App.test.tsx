@@ -30,6 +30,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationDemoPreset,
   NarrationEvidence,
   NarrationGeneration,
   NarrationScriptPackage,
@@ -165,6 +166,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoPresenterPack').mockResolvedValue(demoPresenterPackFixture());
     vi.spyOn(linguaFrameApi, 'getDemoShareSheet').mockResolvedValue(demoShareSheetFixture());
     vi.spyOn(linguaFrameApi, 'listDemoRunProfiles').mockResolvedValue(demoRunProfileFixtures());
+    vi.spyOn(linguaFrameApi, 'listNarrationDemoPresets').mockResolvedValue([narrationDemoPresetFixture()]);
   });
 
   test('shows demo readiness configuration in the sidebar', async () => {
@@ -2550,6 +2552,90 @@ describe('App', () => {
     });
     expect(await within(narrationPanel).findByText('Imported 1 segment from package.')).toBeInTheDocument();
     expect((await within(narrationPanel).findAllByText('Imported first explanation.')).length).toBeGreaterThan(0);
+  });
+
+  test('applies narration demo preset from the narration workspace', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-preset-job', videoId: 'narration-preset-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace')
+      .mockResolvedValueOnce(narrationWorkspaceFixture({ jobId: 'narration-preset-job' }))
+      .mockResolvedValueOnce(narrationWorkspaceFixture({
+        jobId: 'narration-preset-job',
+        segmentCount: 4,
+        segments: [
+          {
+            ...narrationWorkspaceFixture().segments[0],
+            text: 'Preset first explanation.',
+            voice: null
+          }
+        ]
+      }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture({
+      status: 'ATTENTION',
+      narrationAudioReady: false
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture({
+      jobId: 'narration-preset-job',
+      segmentCount: 4,
+      voiceSummary: 'DEFAULT:verse'
+    }));
+    vi.spyOn(linguaFrameApi, 'listNarrationDemoPresets').mockResolvedValue([narrationDemoPresetFixture()]);
+    const applyNarrationDemoPreset = vi.spyOn(linguaFrameApi, 'applyNarrationDemoPreset')
+      .mockResolvedValue({
+        jobId: 'narration-preset-job',
+        presetId: 'tears-showcase-narration',
+        profileId: 'tears-showcase',
+        importedSegmentCount: 4,
+        totalCharacterCount: 128,
+        voiceSummary: 'DEFAULT:verse',
+        replacedExisting: true,
+        generatedMedia: false,
+        workspace: narrationWorkspaceFixture({
+          jobId: 'narration-preset-job',
+          segmentCount: 4,
+          segments: [
+            {
+              ...narrationWorkspaceFixture().segments[0],
+              text: 'Preset first explanation.',
+              voice: null
+            }
+          ]
+        }),
+        scriptPackage: narrationScriptPackageFixture({
+          jobId: 'narration-preset-job',
+          segmentCount: 4,
+          voiceSummary: 'DEFAULT:verse'
+        }),
+        narrationEvidenceStatus: 'ATTENTION'
+      });
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-preset-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const presetPanel = within(narrationPanel).getByRole('region', { name: /demo narration preset/i });
+    expect(within(presetPanel).getByText('Tears showcase narration')).toBeInTheDocument();
+    expect(within(presetPanel).getByText('tears-showcase')).toBeInTheDocument();
+    expect(within(presetPanel).getByText('tears-of-steel-casting')).toBeInTheDocument();
+    expect(within(presetPanel).getByText('4 segments')).toBeInTheDocument();
+    expect(within(presetPanel).getByRole('button', { name: /apply preset/i })).toBeDisabled();
+
+    await userEvent.click(within(presetPanel).getByLabelText(/replace current narration workspace with preset/i));
+    await userEvent.click(within(presetPanel).getByRole('button', { name: /apply preset/i }));
+
+    expect(applyNarrationDemoPreset).toHaveBeenCalledWith('narration-preset-job', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true
+    });
+    expect(await within(narrationPanel).findByText('Applied tears-showcase-narration with 4 segments.')).toBeInTheDocument();
+    expect((await within(narrationPanel).findAllByText('Preset first explanation.')).length).toBeGreaterThan(0);
+    expect(within(presetPanel).getByText('Generate narration audio separately after applying.')).toBeInTheDocument();
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -5788,6 +5874,39 @@ function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage
     ],
     packageEntries: ['manifest.json', 'narration-script-package.json', 'narration-script-package.md', 'README.md'],
     safetyNotes: ['This explicit package includes operator-authored narration text.'],
+    ...overrides
+  };
+}
+
+function narrationDemoPresetFixture(overrides: Partial<NarrationDemoPreset> = {}): NarrationDemoPreset {
+  return {
+    id: 'tears-showcase-narration',
+    label: 'Tears showcase narration',
+    description: 'Reusable explanatory narration for the Tears of Steel demo run.',
+    profileId: 'tears-showcase',
+    sampleIdHint: 'tears-of-steel-casting',
+    targetLanguage: 'zh-CN',
+    voiceSummary: 'DEFAULT',
+    segmentCount: 4,
+    totalCharacterCount: 128,
+    timeSpanSeconds: 165,
+    mixSettings: {
+      duckingVolume: 0.35,
+      narrationVolume: 1,
+      fadeDurationMs: 250
+    },
+    segments: [
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Preset first explanation.',
+        characterCount: 25,
+        voice: null
+      }
+    ],
+    safetyNotes: ['Preset text is operator-authored narration intended for workspace restoration.'],
     ...overrides
   };
 }

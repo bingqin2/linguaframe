@@ -10,11 +10,13 @@ import {
   downloadNarrationEvidenceZip,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
+  applyNarrationDemoPreset,
   getJob,
   getMediaUpload,
   getNarrationEvidence,
   getNarrationScriptPackage,
   getNarrationWorkspace,
+  getNarrationDemoPreset,
   getReviewedSubtitleWorkflow,
   getSubtitleReviewEvidence,
   getSubtitleDraft,
@@ -80,6 +82,7 @@ import {
   downloadUploadDecisionPackageMarkdown,
   downloadUploadDecisionPackageZip,
   listDemoRunProfiles,
+  listNarrationDemoPresets,
   loginDemoSession,
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
@@ -546,6 +549,131 @@ describe('linguaframeApi', () => {
           voice: 'alloy'
         }
       ]
+    });
+  });
+
+  test('lists, loads, and applies narration demo presets', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse([
+        {
+          id: 'tears-showcase-narration',
+          label: 'Tears showcase narration',
+          description: 'Reusable explanatory narration.',
+          profileId: 'tears-showcase',
+          sampleIdHint: 'tears-of-steel-casting',
+          targetLanguage: 'zh-CN',
+          voiceSummary: 'DEFAULT',
+          segmentCount: 4,
+          totalCharacterCount: 128,
+          timeSpanSeconds: 165,
+          mixSettings: {
+            duckingVolume: 0.35,
+            narrationVolume: 1,
+            fadeDurationMs: 250
+          },
+          segments: [],
+          safetyNotes: []
+        }
+      ])
+    );
+
+    await listNarrationDemoPresets();
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        id: 'tears-showcase-narration',
+        label: 'Tears showcase narration',
+        description: 'Reusable explanatory narration.',
+        profileId: 'tears-showcase',
+        sampleIdHint: 'tears-of-steel-casting',
+        targetLanguage: 'zh-CN',
+        voiceSummary: 'DEFAULT',
+        segmentCount: 4,
+        totalCharacterCount: 128,
+        timeSpanSeconds: 165,
+        mixSettings: {
+          duckingVolume: 0.35,
+          narrationVolume: 1,
+          fadeDurationMs: 250
+        },
+        segments: [],
+        safetyNotes: []
+      })
+    );
+    await getNarrationDemoPreset('tears showcase/profile');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job narration/preset',
+        presetId: 'tears-showcase-narration',
+        profileId: 'tears-showcase',
+        importedSegmentCount: 4,
+        totalCharacterCount: 128,
+        voiceSummary: 'DEFAULT:demo-voice',
+        replacedExisting: true,
+        generatedMedia: false,
+        narrationEvidenceStatus: 'ATTENTION',
+        workspace: {
+          jobId: 'job narration/preset',
+          status: 'DRAFT_READY',
+          segmentCount: 4,
+          totalDurationSeconds: 64,
+          totalCharacterCount: 128,
+          generationReady: true,
+          mixSettings: {
+            duckingVolume: 0.35,
+            narrationVolume: 1,
+            fadeDurationMs: 250,
+            updatedAt: null
+          },
+          voiceCatalog: null,
+          timeline: null,
+          segments: [],
+          safetyNotes: []
+        },
+        scriptPackage: {
+          jobId: 'job narration/preset',
+          targetLanguage: 'zh-CN',
+          durationSeconds: 300,
+          status: 'READY',
+          segmentCount: 4,
+          totalCharacterCount: 128,
+          totalTimelineDurationSeconds: 64,
+          timelineGapCount: 3,
+          timelineGapSeconds: 80,
+          timelineHasOverlap: false,
+          voiceSummary: 'DEFAULT:demo-voice',
+          defaultVoice: 'demo-voice',
+          mixSettings: {
+            duckingVolume: 0.35,
+            narrationVolume: 1,
+            fadeDurationMs: 250,
+            updatedAt: null
+          },
+          voiceCatalog: null,
+          segments: [],
+          checks: [],
+          safeLinks: [],
+          packageEntries: [],
+          safetyNotes: []
+        }
+      })
+    );
+    await applyNarrationDemoPreset('job narration/preset', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/demo-run-profiles/narration-presets');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/demo-run-profiles/tears%20showcase%2Fprofile/narration-preset');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job%20narration%2Fpreset/narration-demo-preset/apply');
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body))).toEqual({
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true
     });
   });
 
