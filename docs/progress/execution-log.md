@@ -6,6 +6,19 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration waveform overview workbench feature slice from `docs/plans/144-narration-waveform-overview-workbench.md`.
+- Added pure frontend waveform overview helpers that derive deterministic bucket bars from narration windows, text density, gaps, selected segment, and preview playhead time.
+- Added percent-to-seconds mapping for local preview scrubbing without audio decoding, provider calls, artifact creation, or object-storage mutation.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationWaveformOverview.test.ts` first failed because `frontend/src/domain/narrationWaveformOverview.ts` did not exist.
+- After adding the helper module, `npm test -- --run src/domain/narrationWaveformOverview.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration render preflight package feature slice from `docs/plans/141-narration-render-preflight-package.md`.
 - Added backend narration demo render preflight DTOs, checks, service, and `POST /api/jobs/{jobId}/narration-demo/render/preflight`.
 - Preflight composes preset metadata, current narration workspace, script package, evidence, artifacts, and TTS provider configuration without mutating jobs or calling providers.

@@ -36,17 +36,17 @@
   - `export function secondsFromWaveformPercent(input: { percent: number; startSeconds: number; endSeconds: number; }): number`
 - Consumes: `NarrationWorkspace` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests proving an empty segment list returns `bucketCount` silent gap buckets, zero duration, and null selected/playhead percentages.
-- [ ] Write failing tests proving two separated narration windows produce active buckets for covered time and gap buckets for silence.
-- [ ] Write failing tests proving selected-window start/end percentages and playhead percentage are clamped between `0` and `100`.
-- [ ] Write failing tests proving bucket heights are deterministic from overlap coverage plus text density and stay between `8` and `100`.
-- [ ] Write failing tests proving `secondsFromWaveformPercent` maps `0`, `50`, and `100` percent onto the timeline span.
-- [ ] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement `buildNarrationWaveformOverview` with default `bucketCount = 48`, sorted copied segments, timeline start/end from segment bounds, and per-bucket overlap math.
-- [ ] Implement `secondsFromWaveformPercent` with percent clamping and rounded `0.001` second precision.
-- [ ] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration waveform overview helpers`.
+- [x] Write failing tests proving an empty segment list returns `bucketCount` silent gap buckets, zero duration, and null selected/playhead percentages.
+- [x] Write failing tests proving two separated narration windows produce active buckets for covered time and gap buckets for silence.
+- [x] Write failing tests proving selected-window start/end percentages and playhead percentage are clamped between `0` and `100`.
+- [x] Write failing tests proving bucket heights are deterministic from overlap coverage plus text density and stay between `8` and `100`.
+- [x] Write failing tests proving `secondsFromWaveformPercent` maps `0`, `50`, and `100` percent onto the timeline span.
+- [x] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement `buildNarrationWaveformOverview` with default `bucketCount = 48`, sorted copied segments, timeline start/end from segment bounds, and per-bucket overlap math.
+- [x] Implement `secondsFromWaveformPercent` with percent clamping and rounded `0.001` second precision.
+- [x] Run `npm test -- --run src/domain/narrationWaveformOverview.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration waveform overview helpers`.
 
 ## Task 2: Waveform Overview UI And Preview Scrubber
 
