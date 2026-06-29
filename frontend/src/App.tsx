@@ -34,6 +34,16 @@ import {
   splitNarrationSegmentAtTime,
   type NarrationEditCommandResult
 } from './domain/narrationEditingCommands';
+import {
+  applyNarrationDraftChange,
+  createNarrationDraftHistory,
+  redoNarrationDraftChange,
+  resetNarrationDraftToSaved,
+  summarizeNarrationDraftChanges,
+  undoNarrationDraftChange,
+  type NarrationDraftChangeSummary,
+  type NarrationDraftHistoryState
+} from './domain/narrationDraftHistory';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9352,7 +9362,7 @@ function NarrationWorkspacePanel({
   status: string | null;
   workspace: NarrationWorkspace | null;
 }) {
-  const [segments, setSegments] = useState<NarrationWorkspace['segments']>([]);
+  const [draftHistory, setDraftHistory] = useState<NarrationDraftHistoryState>(() => createNarrationDraftHistory([]));
   const [mixSettings, setMixSettings] = useState<NarrationWorkspace['mixSettings'] | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
@@ -9361,7 +9371,7 @@ function NarrationWorkspacePanel({
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
-    setSegments(workspace?.segments ?? []);
+    setDraftHistory(createNarrationDraftHistory(workspace?.segments ?? []));
     setMixSettings(workspace?.mixSettings ?? null);
     setSelectedIndex(0);
     setPreviewCurrentSeconds(0);
@@ -9369,9 +9379,14 @@ function NarrationWorkspacePanel({
     setEditCommandStatus(null);
   }, [workspace]);
 
+  const segments = draftHistory.present;
   const selectedSegment = segments[selectedIndex] ?? null;
   const validation = validateNarrationSegments(segments, workspace?.voiceCatalog ?? null);
   const mixValidation = validateNarrationMixSettings(mixSettings);
+  const draftSummary = useMemo(
+    () => summarizeNarrationDraftChanges(draftHistory.saved, draftHistory.present),
+    [draftHistory.present, draftHistory.saved]
+  );
   const localTimeline = useMemo(() => buildLocalNarrationTimeline(segments), [segments]);
   const previewSource = useMemo(
     () => selectNarrationPreviewSource({
@@ -9392,32 +9407,60 @@ function NarrationWorkspacePanel({
     [previewCurrentSeconds, segments, selectedIndex]
   );
 
+  function clampSelectedIndex(nextIndex: number, nextSegments: NarrationWorkspace['segments']) {
+    if (nextSegments.length === 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(nextIndex, nextSegments.length - 1));
+  }
+
+  function commitDraftChange(
+    nextSegments: NarrationWorkspace['segments'],
+    actionLabel: string,
+    nextSelectedIndex = selectedIndex
+  ) {
+    setDraftHistory((current) => applyNarrationDraftChange(current, nextSegments, actionLabel));
+    setSelectedIndex(clampSelectedIndex(nextSelectedIndex, nextSegments));
+    setEditCommandStatus(actionLabel);
+  }
+
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
-    setSegments((current) =>
-      current.map((segment, currentIndex) => (currentIndex === index ? { ...segment, ...patch } : segment))
-    );
+    const nextSegments = segments.map((segment, currentIndex) => (
+      currentIndex === index ? { ...segment, ...patch } : segment
+    ));
+    commitDraftChange(nextSegments, `Edited narration ${index + 1}.`, index);
   }
 
   function addSegment() {
-    setSegments((current) => [
-      ...current,
-      {
-        index: current.length,
-        startSeconds: current.length === 0 ? 0 : current[current.length - 1].endSeconds,
-        endSeconds: current.length === 0 ? 10 : current[current.length - 1].endSeconds + 10,
-        durationSeconds: 10,
-        text: '',
-        voice: '',
-        characterCount: 0,
-        updatedAt: null
-      }
-    ]);
-    setSelectedIndex(segments.length);
+    const nextSegmentIndex = segments.length;
+    commitDraftChange(
+      [
+        ...segments,
+        {
+          index: nextSegmentIndex,
+          startSeconds: segments.length === 0 ? 0 : segments[segments.length - 1].endSeconds,
+          endSeconds: segments.length === 0 ? 10 : segments[segments.length - 1].endSeconds + 10,
+          durationSeconds: 10,
+          text: '',
+          voice: '',
+          characterCount: 0,
+          updatedAt: null
+        }
+      ],
+      `Added narration ${nextSegmentIndex + 1}.`,
+      nextSegmentIndex
+    );
   }
 
   function deleteSelectedSegment() {
-    setSegments((current) => current.filter((_, index) => index !== selectedIndex).map((segment, index) => ({ ...segment, index })));
-    setSelectedIndex(Math.max(0, selectedIndex - 1));
+    const nextSegments = segments
+      .filter((_, index) => index !== selectedIndex)
+      .map((segment, index) => ({ ...segment, index }));
+    commitDraftChange(
+      nextSegments,
+      `Deleted narration ${selectedIndex + 1}.`,
+      Math.max(0, selectedIndex - 1)
+    );
   }
 
   function applyEditCommand(result: NarrationEditCommandResult, successMessage: string) {
@@ -9425,9 +9468,32 @@ function NarrationWorkspacePanel({
       setEditCommandStatus(result.blockedReason);
       return;
     }
-    setSegments(result.segments);
-    setSelectedIndex(result.selectedIndex);
-    setEditCommandStatus(successMessage);
+    commitDraftChange(result.segments, successMessage, result.selectedIndex);
+  }
+
+  function undoDraftChange() {
+    const nextHistory = undoNarrationDraftChange(draftHistory);
+    setDraftHistory(nextHistory);
+    setSelectedIndex(clampSelectedIndex(selectedIndex, nextHistory.present));
+    setEditCommandStatus(nextHistory.lastActionLabel);
+  }
+
+  function redoDraftChange() {
+    const nextHistory = redoNarrationDraftChange(draftHistory);
+    setDraftHistory(nextHistory);
+    setSelectedIndex(clampSelectedIndex(selectedIndex, nextHistory.present));
+    setEditCommandStatus(nextHistory.lastActionLabel);
+  }
+
+  function revertDraftChanges() {
+    const nextHistory = resetNarrationDraftToSaved(draftHistory);
+    setDraftHistory(nextHistory);
+    setSelectedIndex(clampSelectedIndex(selectedIndex, nextHistory.present));
+    setEditCommandStatus(nextHistory.lastActionLabel);
+  }
+
+  function saveDraftChanges() {
+    onSave(segments);
   }
 
   function duplicateSelectedSegment() {
@@ -9476,7 +9542,7 @@ function NarrationWorkspacePanel({
         <div className="panel-actions">
           <button type="button" onClick={addSegment}>Add row</button>
           <button type="button" onClick={deleteSelectedSegment} disabled={!selectedSegment}>Delete row</button>
-          <button type="button" onClick={() => onSave(segments)} disabled={isSaving || validation.length > 0}>
+          <button type="button" onClick={saveDraftChanges} disabled={isSaving || validation.length > 0}>
             {isSaving ? 'Saving...' : 'Save narration'}
           </button>
           <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady || validation.length > 0}>
@@ -9527,6 +9593,16 @@ function NarrationWorkspacePanel({
             onInsertAfter={insertSegmentAfterSelected}
             onMergeNext={mergeSelectedSegmentWithNext}
             onSplitAtPlayhead={splitSelectedSegmentAtPlayhead}
+          />
+          <NarrationDraftHistoryPanel
+            canRedo={draftHistory.future.length > 0}
+            canRevert={draftSummary.dirty}
+            canUndo={draftHistory.past.length > 0}
+            lastActionLabel={draftHistory.lastActionLabel}
+            summary={draftSummary}
+            onRedo={redoDraftChange}
+            onRevert={revertDraftChanges}
+            onUndo={undoDraftChange}
           />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
@@ -9584,6 +9660,75 @@ function NarrationWorkspacePanel({
           onRender={onRenderDemo}
         />
       </div>
+    </section>
+  );
+}
+
+function NarrationDraftHistoryPanel({
+  canRedo,
+  canRevert,
+  canUndo,
+  lastActionLabel,
+  onRedo,
+  onRevert,
+  onUndo,
+  summary
+}: {
+  canRedo: boolean;
+  canRevert: boolean;
+  canUndo: boolean;
+  lastActionLabel: string | null;
+  onRedo: () => void;
+  onRevert: () => void;
+  onUndo: () => void;
+  summary: NarrationDraftChangeSummary;
+}) {
+  const changedRows = summary.changedRowLabels.length > 0
+    ? summary.changedRowLabels
+    : ['No changed rows.'];
+
+  return (
+    <section className="narration-draft-history" aria-label="Narration draft history">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration draft history</h4>
+          <p className="muted">{summary.dirty ? 'Unsaved local narration draft.' : 'No unsaved changes.'}</p>
+        </div>
+        <span className={summary.dirty ? 'status-pill blocked' : 'status-pill ready'}>
+          {summary.dirty ? 'Unsaved changes' : 'Clean draft'}
+        </span>
+      </div>
+      <div className="narration-command-buttons">
+        <button type="button" onClick={onUndo} disabled={!canUndo}>Undo</button>
+        <button type="button" onClick={onRedo} disabled={!canRedo}>Redo</button>
+        <button type="button" onClick={onRevert} disabled={!canRevert}>Revert to saved</button>
+      </div>
+      <dl className="compact-metrics narration-draft-history-metrics">
+        <div>
+          <dt>Added</dt>
+          <dd>{summary.addedCount}</dd>
+        </div>
+        <div>
+          <dt>Removed</dt>
+          <dd>{summary.removedCount}</dd>
+        </div>
+        <div>
+          <dt>Timing</dt>
+          <dd>{summary.timingChangedCount}</dd>
+        </div>
+        <div>
+          <dt>Text</dt>
+          <dd>{summary.textChangedCount}</dd>
+        </div>
+        <div>
+          <dt>Voice</dt>
+          <dd>{summary.voiceChangedCount}</dd>
+        </div>
+      </dl>
+      <p className="narration-command-status">{lastActionLabel}</p>
+      <ul className="narration-draft-history-rows">
+        {changedRows.map((rowLabel) => <li key={rowLabel}>{rowLabel}</li>)}
+      </ul>
     </section>
   );
 }

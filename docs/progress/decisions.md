@@ -812,6 +812,14 @@ Impact: The React `Narration workspace` now recomputes local timeline metadata f
 
 ## 2026-06-30
 
+Decision: Add in-memory narration draft history before persisted editor sessions or decoded waveform editing.
+
+Reason: Operators need a safe way to experiment with time-coded explanatory voiceover before saving rows or spending TTS/video-generation cost. Undo, redo, revert-to-saved, and unsaved-change metrics solve the immediate browser editing risk while keeping the backend narration contract, evidence routes, provider calls, and artifact generation unchanged.
+
+Impact: The React `Narration workspace` now keeps local history snapshots around the current narration draft, shows added/removed/timing/text/voice change counts, and lets operators undo, redo, or revert to the last saved workspace. History is in-memory only and resets on workspace reload or successful save response. These controls do not call OpenAI, save rows, generate audio/video, create artifacts, mutate object storage, or add persistence schema. Decoded waveform rendering, persisted editor sessions, and multitrack automation remain future slices.
+
+## 2026-06-30
+
 Decision: Treat narration demo presets as explicit post-processing imports instead of upload-time automation.
 
 Reason: Demo profiles already define localization settings at upload time, while narration scripts are operator-authored timeline rows that may replace existing workspace content. Keeping preset application as a separate confirmed step makes replacement, duration validation, voice validation, script package export, narration evidence, and later audio/video generation easy to explain and audit.

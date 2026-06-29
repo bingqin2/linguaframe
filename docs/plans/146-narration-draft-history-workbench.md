@@ -41,19 +41,19 @@
   - `export function summarizeNarrationDraftChanges(saved: NarrationWorkspace['segments'], present: NarrationWorkspace['segments']): NarrationDraftChangeSummary`
 - Consumes: `NarrationWorkspace` from `frontend/src/domain/jobTypes.ts`.
 
-- [ ] Write failing tests proving `createNarrationDraftHistory` copies saved/present arrays and starts with empty past/future stacks.
-- [ ] Write failing tests proving `applyNarrationDraftChange` pushes the previous present snapshot to `past`, replaces `present`, clears `future`, stores the action label, and never mutates caller-owned segment objects.
-- [ ] Write failing tests proving `undoNarrationDraftChange` moves one snapshot from `past` to `present`, pushes the previous present into `future`, and leaves state unchanged when no undo is available.
-- [ ] Write failing tests proving `redoNarrationDraftChange` restores the next future snapshot, pushes the previous present into `past`, and leaves state unchanged when no redo is available.
-- [ ] Write failing tests proving `resetNarrationDraftToSaved` returns to the saved baseline, clears undo/redo stacks, and marks the last action as `Reverted to saved narration.`
-- [ ] Write failing tests proving `markNarrationDraftSaved` replaces the saved baseline with backend-returned segments and clears history stacks.
-- [ ] Write failing tests proving `summarizeNarrationDraftChanges` reports added, removed, timing, text, and voice changes with stable row labels.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it fails because the helper module does not exist.
-- [ ] Implement immutable snapshot helpers with copied arrays only.
-- [ ] Keep comparisons deterministic by matching rows by `index` first and falling back to array position for added/removed rows.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
-- [ ] Commit with message `Add narration draft history helpers`.
+- [x] Write failing tests proving `createNarrationDraftHistory` copies saved/present arrays and starts with empty past/future stacks.
+- [x] Write failing tests proving `applyNarrationDraftChange` pushes the previous present snapshot to `past`, replaces `present`, clears `future`, stores the action label, and never mutates caller-owned segment objects.
+- [x] Write failing tests proving `undoNarrationDraftChange` moves one snapshot from `past` to `present`, pushes the previous present into `future`, and leaves state unchanged when no undo is available.
+- [x] Write failing tests proving `redoNarrationDraftChange` restores the next future snapshot, pushes the previous present into `past`, and leaves state unchanged when no redo is available.
+- [x] Write failing tests proving `resetNarrationDraftToSaved` returns to the saved baseline, clears undo/redo stacks, and marks the last action as `Reverted to saved narration.`
+- [x] Write failing tests proving `markNarrationDraftSaved` replaces the saved baseline with backend-returned segments and clears history stacks.
+- [x] Write failing tests proving `summarizeNarrationDraftChanges` reports added, removed, timing, text, and voice changes with stable row labels.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it fails because the helper module does not exist.
+- [x] Implement immutable snapshot helpers with copied arrays only.
+- [x] Keep comparisons deterministic by matching rows by `index` first and falling back to array position for added/removed rows.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
+- [x] Commit with message `Add narration draft history helpers`.
 
 ## Task 2: Draft History UI Integration
 
@@ -71,7 +71,6 @@
   - `undoNarrationDraftChange(...)`
   - `redoNarrationDraftChange(...)`
   - `resetNarrationDraftToSaved(...)`
-  - `markNarrationDraftSaved(...)`
   - `summarizeNarrationDraftChanges(...)`
   - Existing narration row update, add, delete, timeline edit, editing command, validation, save, timeline, waveform, preview, and inspector state in `NarrationWorkspacePanel`.
 - Produces:
@@ -80,23 +79,23 @@
   - Unsaved-change metrics for added, removed, timing, text, and voice changes.
   - Local status text showing the last draft action.
 
-- [ ] Write failing App tests proving `Narration draft history` renders for a completed job and starts with clean draft status and disabled undo/redo/revert.
-- [ ] Write failing App tests proving duplicate/editing-command changes make the draft dirty, enable undo/revert, update added-row metrics, and keep save payload aligned with the current draft.
-- [ ] Write failing App tests proving `Undo` restores the previous row list, enables `Redo`, and updates timeline/table labels.
-- [ ] Write failing App tests proving `Redo` reapplies the undone change and keeps the selected row in a valid visible range.
-- [ ] Write failing App tests proving table text edits and timeline timing edits are tracked as text/timing changes in the history summary.
-- [ ] Write failing App tests proving `Revert to saved` restores the backend-loaded rows, clears validation caused by inserted blank rows, and does not call save or provider APIs.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify the new tests fail.
-- [ ] Replace direct `segments` state in `NarrationWorkspacePanel` with `draftHistory.present` while keeping existing props and derived values stable.
-- [ ] Initialize history from `workspace?.segments ?? []` whenever the workspace prop changes.
-- [ ] Route `addSegment`, `deleteSelectedSegment`, `updateSegment`, timeline edits, and narration editing command results through `applyNarrationDraftChange`.
-- [ ] Ensure selected row index is clamped after undo, redo, revert, delete, merge, and workspace reload.
-- [ ] Add `NarrationDraftHistoryPanel` with compact metrics and undo/redo/revert controls.
-- [ ] Keep undo/redo/revert local-only; do not call save, evidence, preflight, generation, mix, render, artifact, or provider APIs.
-- [ ] Add compact CSS for the history panel, metric grid, and status text with stable height and no layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Write failing App tests proving `Narration draft history` renders for a completed job and starts with clean draft status and disabled undo/redo/revert.
+- [x] Write failing App tests proving duplicate/editing-command changes make the draft dirty, enable undo/revert, update added-row metrics, and keep save payload aligned with the current draft.
+- [x] Write failing App tests proving `Undo` restores the previous row list, enables `Redo`, and updates timeline/table labels.
+- [x] Write failing App tests proving `Redo` reapplies the undone change and keeps the selected row in a valid visible range.
+- [x] Write failing App tests proving table text edits and timeline timing edits are tracked as text/timing changes in the history summary.
+- [x] Write failing App tests proving `Revert to saved` restores the backend-loaded rows, clears validation caused by inserted blank rows, and does not call save or provider APIs.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify the new tests fail.
+- [x] Replace direct `segments` state in `NarrationWorkspacePanel` with `draftHistory.present` while keeping existing props and derived values stable.
+- [x] Initialize history from `workspace?.segments ?? []` whenever the workspace prop changes.
+- [x] Route `addSegment`, `deleteSelectedSegment`, `updateSegment`, timeline edits, and narration editing command results through `applyNarrationDraftChange`.
+- [x] Ensure selected row index is clamped after undo, redo, revert, delete, merge, and workspace reload.
+- [x] Add `NarrationDraftHistoryPanel` with compact metrics and undo/redo/revert controls.
+- [x] Keep undo/redo/revert local-only; do not call save, evidence, preflight, generation, mix, render, artifact, or provider APIs.
+- [x] Add compact CSS for the history panel, metric grid, and status text with stable height and no layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration draft history UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
@@ -111,18 +110,18 @@
 - Modify: `docs/plans/146-narration-draft-history-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser order: open completed job, edit narration locally, use undo/redo/revert while previewing, save only when the draft is ready, then generate audio/video only through explicit actions.
-- [ ] State that draft history is in-memory only and resets on workspace reload or successful save response.
-- [ ] State that undo, redo, and revert are local draft controls and never call providers or create artifacts.
-- [ ] Add a decision record explaining why this slice adds local draft history before decoded waveform rendering, persisted editor sessions, or multitrack automation.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
+- [x] Document the browser order: open completed job, edit narration locally, use undo/redo/revert while previewing, save only when the draft is ready, then generate audio/video only through explicit actions.
+- [x] State that draft history is in-memory only and resets on workspace reload or successful save response.
+- [x] State that undo, redo, and revert are local draft controls and never call providers or create artifacts.
+- [x] Add a decision record explaining why this slice adds local draft history before decoded waveform rendering, persisted editor sessions, or multitrack automation.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
 - [ ] Commit with message `Document narration draft history workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

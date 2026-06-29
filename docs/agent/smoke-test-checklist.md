@@ -202,6 +202,10 @@ Expected:
 - `Scrub to start`, `Scrub to midpoint`, and `Scrub to selected` seek the browser preview player only; they do not save rows, generate artifacts, or call providers.
 - Browser selected-job narration workspace shows a `Narration editing commands` panel after the waveform overview.
 - `Duplicate`, `Split at playhead`, `Merge next`, and `Insert after` update only local draft rows until `Save narration`.
+- Browser selected-job narration workspace shows a `Narration draft history` panel after editing commands.
+- `Narration draft history` starts as `Clean draft`, then tracks added, removed, timing, text, and voice change counts after local edits.
+- `Undo`, `Redo`, and `Revert to saved` update the browser draft only; they must not save rows, call providers, create artifacts, or mutate object storage.
+- Draft history is in-memory only and resets after a successful `Save narration` response or workspace reload.
 - `Split at playhead` requires the preview playhead to be inside the selected row with at least 0.25 seconds on each side.
 - `Merge next` is disabled on the final row, and inserted blank rows block save until required text, voice, and timing validation passes.
 - Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.

@@ -568,6 +568,49 @@ td {
   margin: 0;
 }
 
+.narration-draft-history {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 560px;
+  margin-bottom: 12px;
+  border: 1px solid #d7e0e6;
+  border-radius: 6px;
+  padding: 0.85rem;
+  background: #fbfcfd;
+}
+
+.narration-draft-history h4 {
+  margin: 0;
+}
+
+.narration-draft-history .compact-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.narration-draft-history .muted {
+  margin: 3px 0 0;
+}
+
+.narration-draft-history-metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+}
+
+.narration-draft-history-rows {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
 .narration-command-buttons {
   display: flex;
   flex-wrap: wrap;
