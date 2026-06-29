@@ -4367,6 +4367,23 @@ Validation:
 
 Work:
 
+- Added the narration draft history UI integration over the existing narration workspace editor.
+- Replaced direct narration segment state in the workspace panel with `draftHistory.present`, initialized from backend-loaded workspaces.
+- Routed table edits, inspector edits, timeline keyboard edits, add/delete row controls, and narration editing commands through local draft history snapshots.
+- Added compact `Narration draft history` controls for Undo, Redo, Revert to saved, dirty status, changed-row labels, and added/removed/timing/text/voice metrics.
+- Kept undo, redo, and revert local-only; regression coverage verifies revert does not call save or narration generation providers.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx -t "narration draft history"` first failed because the `Narration draft history` region did not exist.
+- After wiring the panel, the same targeted test failed once because changed-row labels were only embedded in combined status text.
+- After rendering changed rows as discrete list items, `npm test -- --run src/App.test.tsx -t "narration draft history"` passed with `Test Files 1 passed` and `Tests 5 passed | 113 skipped`.
+- `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 5 passed` and `Tests 145 passed`; jsdom printed expected navigation warnings.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration preview playhead workbench feature slice.
 - Added frontend narration preview helper tests and a pure `narrationPreview` helper for source selection and playhead percentage calculation.
 - Preview source selection prefers `NARRATED_VIDEO`, then `BURNED_VIDEO`, then source video through existing safe download URL builders.

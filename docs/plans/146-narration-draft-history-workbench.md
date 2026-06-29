@@ -71,7 +71,6 @@
   - `undoNarrationDraftChange(...)`
   - `redoNarrationDraftChange(...)`
   - `resetNarrationDraftToSaved(...)`
-  - `markNarrationDraftSaved(...)`
   - `summarizeNarrationDraftChanges(...)`
   - Existing narration row update, add, delete, timeline edit, editing command, validation, save, timeline, waveform, preview, and inspector state in `NarrationWorkspacePanel`.
 - Produces:
@@ -80,23 +79,23 @@
   - Unsaved-change metrics for added, removed, timing, text, and voice changes.
   - Local status text showing the last draft action.
 
-- [ ] Write failing App tests proving `Narration draft history` renders for a completed job and starts with clean draft status and disabled undo/redo/revert.
-- [ ] Write failing App tests proving duplicate/editing-command changes make the draft dirty, enable undo/revert, update added-row metrics, and keep save payload aligned with the current draft.
-- [ ] Write failing App tests proving `Undo` restores the previous row list, enables `Redo`, and updates timeline/table labels.
-- [ ] Write failing App tests proving `Redo` reapplies the undone change and keeps the selected row in a valid visible range.
-- [ ] Write failing App tests proving table text edits and timeline timing edits are tracked as text/timing changes in the history summary.
-- [ ] Write failing App tests proving `Revert to saved` restores the backend-loaded rows, clears validation caused by inserted blank rows, and does not call save or provider APIs.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify the new tests fail.
-- [ ] Replace direct `segments` state in `NarrationWorkspacePanel` with `draftHistory.present` while keeping existing props and derived values stable.
-- [ ] Initialize history from `workspace?.segments ?? []` whenever the workspace prop changes.
-- [ ] Route `addSegment`, `deleteSelectedSegment`, `updateSegment`, timeline edits, and narration editing command results through `applyNarrationDraftChange`.
-- [ ] Ensure selected row index is clamped after undo, redo, revert, delete, merge, and workspace reload.
-- [ ] Add `NarrationDraftHistoryPanel` with compact metrics and undo/redo/revert controls.
-- [ ] Keep undo/redo/revert local-only; do not call save, evidence, preflight, generation, mix, render, artifact, or provider APIs.
-- [ ] Add compact CSS for the history panel, metric grid, and status text with stable height and no layout shift.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Write failing App tests proving `Narration draft history` renders for a completed job and starts with clean draft status and disabled undo/redo/revert.
+- [x] Write failing App tests proving duplicate/editing-command changes make the draft dirty, enable undo/revert, update added-row metrics, and keep save payload aligned with the current draft.
+- [x] Write failing App tests proving `Undo` restores the previous row list, enables `Redo`, and updates timeline/table labels.
+- [x] Write failing App tests proving `Redo` reapplies the undone change and keeps the selected row in a valid visible range.
+- [x] Write failing App tests proving table text edits and timeline timing edits are tracked as text/timing changes in the history summary.
+- [x] Write failing App tests proving `Revert to saved` restores the backend-loaded rows, clears validation caused by inserted blank rows, and does not call save or provider APIs.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify the new tests fail.
+- [x] Replace direct `segments` state in `NarrationWorkspacePanel` with `draftHistory.present` while keeping existing props and derived values stable.
+- [x] Initialize history from `workspace?.segments ?? []` whenever the workspace prop changes.
+- [x] Route `addSegment`, `deleteSelectedSegment`, `updateSegment`, timeline edits, and narration editing command results through `applyNarrationDraftChange`.
+- [x] Ensure selected row index is clamped after undo, redo, revert, delete, merge, and workspace reload.
+- [x] Add `NarrationDraftHistoryPanel` with compact metrics and undo/redo/revert controls.
+- [x] Keep undo/redo/revert local-only; do not call save, evidence, preflight, generation, mix, render, artifact, or provider APIs.
+- [x] Add compact CSS for the history panel, metric grid, and status text with stable height and no layout shift.
+- [x] Run `npm test -- --run src/App.test.tsx -t "narration draft history"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration draft history UI`.
 
 ## Task 3: Documentation, Final Verification, And Merge
