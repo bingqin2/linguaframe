@@ -6,6 +6,7 @@ import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
+import com.linguaframe.operator.domain.vo.OpenAiReadinessEvidenceVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
@@ -17,6 +18,7 @@ import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.DemoSessionEvidencePackageService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
+import com.linguaframe.operator.service.OpenAiReadinessEvidenceService;
 import com.linguaframe.operator.service.OperatorDashboardService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
@@ -51,6 +53,7 @@ public class OperatorDashboardController {
     private final ModelUsageLedgerService modelUsageLedgerService;
     private final DemoSessionCommandCenterService demoSessionCommandCenterService;
     private final DemoSessionEvidencePackageService demoSessionEvidencePackageService;
+    private final OpenAiReadinessEvidenceService openAiReadinessEvidenceService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -63,7 +66,8 @@ public class OperatorDashboardController {
             DemoPresentationCockpitService demoPresentationCockpitService,
             ModelUsageLedgerService modelUsageLedgerService,
             DemoSessionCommandCenterService demoSessionCommandCenterService,
-            DemoSessionEvidencePackageService demoSessionEvidencePackageService
+            DemoSessionEvidencePackageService demoSessionEvidencePackageService,
+            OpenAiReadinessEvidenceService openAiReadinessEvidenceService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -76,6 +80,7 @@ public class OperatorDashboardController {
         this.modelUsageLedgerService = modelUsageLedgerService;
         this.demoSessionCommandCenterService = demoSessionCommandCenterService;
         this.demoSessionEvidencePackageService = demoSessionEvidencePackageService;
+        this.openAiReadinessEvidenceService = openAiReadinessEvidenceService;
     }
 
     @GetMapping("/dashboard")
@@ -227,5 +232,28 @@ public class OperatorDashboardController {
                 .contentLength(evidencePackage.sizeBytes())
                 .contentType(MediaType.parseMediaType(evidencePackage.contentType()))
                 .body(new InputStreamResource(evidencePackage.inputStream()));
+    }
+
+    @GetMapping("/openai-readiness-evidence")
+    @Operation(summary = "Get OpenAI readiness evidence")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OpenAI readiness evidence was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public OpenAiReadinessEvidenceVo openAiReadinessEvidence() {
+        return openAiReadinessEvidenceService.getEvidence();
+    }
+
+    @GetMapping(value = "/openai-readiness-evidence/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download OpenAI readiness evidence markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "OpenAI readiness evidence markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> openAiReadinessEvidenceMarkdown() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"openai-readiness-evidence.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(openAiReadinessEvidenceService.evidenceMarkdown());
     }
 }

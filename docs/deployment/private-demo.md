@@ -137,6 +137,16 @@ LINGUAFRAME_ENV_FILE=.env.private-demo LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/
 
 The script writes `demo-presentation-cockpit.json` under `/tmp/linguaframe-demo/demo-presentation-cockpit/` by default. It is read-only and metadata-only: it does not upload media, start Docker, call OpenAI, retry or cancel jobs, create artifacts, run cleanup, copy media bytes, or print secrets, local paths, provider payloads, transcript text, or subtitle text.
 
+## OpenAI Readiness Evidence
+
+Use the browser `OpenAI readiness evidence` panel or terminal script before a provider-backed smoke/full demo:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/openai-readiness-evidence.sh
+```
+
+The script writes `openai-readiness-evidence.json` and `openai-readiness-evidence.md` under `/tmp/linguaframe-demo/openai-readiness-evidence/`. It aggregates provider mode, OpenAI live-check status, upload readiness, budget posture, and recent model-call failure evidence without uploading media, creating jobs, running provider stages, printing API keys, exposing tokens, or including provider payloads. Use it as a shareable readiness report; use `openai-demo-preflight.sh` for strict env/live-check validation and `docker-e2e-openai-smoke.sh` only when you are ready for a paid proof run.
+
 ## Demo Session Evidence Package
 
 Use the browser `Demo session command center` panel or the terminal script to download one ZIP for the whole private demo session:

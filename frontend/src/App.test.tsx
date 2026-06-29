@@ -28,6 +28,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  OpenAiReadinessEvidence,
   DemoRunProfile,
   DemoSessionStatus,
   DemoUploadReadiness,
@@ -123,6 +124,10 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getRuntimeDependencies').mockResolvedValue(runtimeDependenciesFixture());
     vi.spyOn(linguaFrameApi, 'getRuntimeLiveChecks').mockResolvedValue(runtimeLiveChecksFixture());
+    vi.spyOn(linguaFrameApi, 'getOpenAiReadinessEvidence').mockResolvedValue(openAiReadinessEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'downloadOpenAiReadinessEvidenceMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame OpenAI Readiness Evidence'], { type: 'text/markdown' })
+    );
     vi.spyOn(linguaFrameApi, 'getDemoSession').mockResolvedValue(demoSessionStatusFixture());
     vi.spyOn(linguaFrameApi, 'getAuthSession').mockResolvedValue(authSessionStatusFixture());
     vi.spyOn(linguaFrameApi, 'getOwnerQuotaPreflight').mockResolvedValue(ownerQuotaPreflightFixture());
@@ -312,6 +317,48 @@ describe('App', () => {
 
     const liveChecks = await screen.findByRole('region', { name: /live checks/i });
     expect(within(liveChecks).getByText('Live checks unavailable: Probe unavailable'))
+      .toBeInTheDocument();
+    expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
+  });
+
+  test('shows OpenAI readiness evidence and safe commands in the sidebar', async () => {
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /openai readiness evidence/i });
+    expect(within(readiness).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(readiness).getByText('READY_FOR_OPENAI_SMOKE')).toBeInTheDocument();
+    expect(within(readiness).getByText('Translation')).toBeInTheDocument();
+    expect(within(readiness).getByText('OpenAI live check')).toBeInTheDocument();
+    expect(within(readiness).getByText('scripts/demo/openai-demo-preflight.sh')).toBeInTheDocument();
+    expect(within(readiness).getByRole('button', { name: /download readiness evidence/i })).toBeInTheDocument();
+    expect(readiness).not.toHaveTextContent('sk-test-secret');
+    expect(readiness).not.toHaveTextContent('Bearer');
+    expect(readiness).not.toHaveTextContent('raw transcript text');
+  });
+
+  test('downloads OpenAI readiness evidence markdown from the sidebar', async () => {
+    const downloadSpy = vi.spyOn(linguaFrameApi, 'downloadOpenAiReadinessEvidenceMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame OpenAI Readiness Evidence'], { type: 'text/markdown' })
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /openai readiness evidence/i });
+    await userEvent.click(within(readiness).getByRole('button', { name: /download readiness evidence/i }));
+
+    expect(downloadSpy).toHaveBeenCalled();
+    expect(within(readiness).getByText('OpenAI readiness evidence downloaded.')).toBeInTheDocument();
+  });
+
+  test('keeps upload controls usable when OpenAI readiness evidence fails', async () => {
+    vi.spyOn(linguaFrameApi, 'getOpenAiReadinessEvidence').mockRejectedValue(
+      new Error('OpenAI readiness unavailable')
+    );
+
+    render(<App />);
+
+    const readiness = await screen.findByRole('region', { name: /openai readiness evidence/i });
+    expect(within(readiness).getByText('OpenAI readiness unavailable: OpenAI readiness unavailable'))
       .toBeInTheDocument();
     expect(screen.getByLabelText(/video file/i)).toBeInTheDocument();
   });
@@ -4444,6 +4491,67 @@ function runtimeLiveChecksFixture(
       ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' },
       openai: { status: 'SKIPPED', latencyMs: 1, message: 'OpenAI connectivity check is disabled' }
     },
+    ...overrides
+  };
+}
+
+function openAiReadinessEvidenceFixture(
+  overrides: Partial<OpenAiReadinessEvidence> = {}
+): OpenAiReadinessEvidence {
+  return {
+    generatedAt: '2026-06-29T08:30:00Z',
+    overallStatus: 'READY',
+    phase: 'READY_FOR_OPENAI_SMOKE',
+    recommendedNextAction: 'Run scripts/demo/openai-demo-preflight.sh, then scripts/demo/docker-e2e-openai-smoke.sh.',
+    providers: [
+      {
+        stage: 'translation',
+        enabled: true,
+        provider: 'openai',
+        model: 'gpt-4.1-mini',
+        credentialsConfigured: true,
+        status: 'READY',
+        detail: 'OpenAI provider is configured for this stage.',
+        paidProvider: true
+      }
+    ],
+    liveCheck: {
+      status: 'UP',
+      latencyMs: 33,
+      message: 'OpenAI model metadata endpoint is reachable'
+    },
+    readinessSignals: [
+      {
+        id: 'OPENAI_LIVE_CHECK',
+        label: 'OpenAI live check',
+        status: 'READY',
+        detail: 'OpenAI model metadata endpoint is reachable',
+        nextAction: 'Use this evidence before running the OpenAI smoke upload.',
+        blocking: false
+      }
+    ],
+    modelUsage: {
+      ledgerStatus: 'READY',
+      modelCallCount: 2,
+      failedModelCallCount: 0,
+      failureRatePercent: '0.00',
+      estimatedCostUsd: '0.00020000',
+      recommendedNextAction: 'Use the ledger links as cost and latency evidence.'
+    },
+    commands: [
+      {
+        label: 'OpenAI preflight',
+        command: 'scripts/demo/openai-demo-preflight.sh',
+        description: 'Validate local ignored OpenAI demo env.'
+      },
+      {
+        label: 'OpenAI smoke runner',
+        command: 'LINGUAFRAME_ENV_FILE=.env.openai-demo LINGUAFRAME_DEMO_SAMPLE_PATH=<short-speech.mp4> scripts/demo/docker-e2e-openai-smoke.sh',
+        description: 'Run the paid provider-backed smoke path.'
+      }
+    ],
+    safeLinks: ['/api/operator/openai-readiness-evidence/markdown/download'],
+    safetyNotes: ['API keys, bearer tokens, demo tokens, provider payloads, and media bytes are intentionally excluded.'],
     ...overrides
   };
 }

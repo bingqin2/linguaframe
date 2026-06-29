@@ -33,6 +33,8 @@ import {
   getRetentionCleanupPreview,
   getRuntimeDependencies,
   getRuntimeLiveChecks,
+  getOpenAiReadinessEvidence,
+  downloadOpenAiReadinessEvidenceMarkdown,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -1615,6 +1617,46 @@ describe('linguaframeApi', () => {
     });
   });
 
+  test('fetches OpenAI readiness evidence with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(openAiReadinessEvidenceFixture())
+    );
+
+    const evidence = await getOpenAiReadinessEvidence();
+
+    expect(evidence.overallStatus).toBe('READY');
+    expect(evidence.liveCheck.status).toBe('UP');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/openai-readiness-evidence', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads OpenAI readiness evidence markdown with demo access token header when stored', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame OpenAI Readiness Evidence', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadOpenAiReadinessEvidenceMarkdown();
+
+    expect(await result.text()).toContain('OpenAI Readiness Evidence');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/openai-readiness-evidence/markdown/download', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
   test('fetches retention cleanup preview', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
@@ -2700,6 +2742,59 @@ function demoSessionCommandCenterFixture() {
     averageLatencyMs: 120,
     providerCacheHitCount: 1,
     safetyNotes: ['Demo session command center is metadata-only and read-only.']
+  };
+}
+
+function openAiReadinessEvidenceFixture() {
+  return {
+    generatedAt: '2026-06-29T08:30:00Z',
+    overallStatus: 'READY',
+    phase: 'READY_FOR_OPENAI_SMOKE',
+    recommendedNextAction: 'Run scripts/demo/openai-demo-preflight.sh, then scripts/demo/docker-e2e-openai-smoke.sh.',
+    providers: [
+      {
+        stage: 'translation',
+        enabled: true,
+        provider: 'openai',
+        model: 'gpt-4.1-mini',
+        credentialsConfigured: true,
+        status: 'READY',
+        detail: 'OpenAI provider is configured for this stage.',
+        paidProvider: true
+      }
+    ],
+    liveCheck: {
+      status: 'UP',
+      latencyMs: 33,
+      message: 'OpenAI model metadata endpoint is reachable'
+    },
+    readinessSignals: [
+      {
+        id: 'OPENAI_LIVE_CHECK',
+        label: 'OpenAI live check',
+        status: 'READY',
+        detail: 'OpenAI model metadata endpoint is reachable',
+        nextAction: 'Use this evidence before running the OpenAI smoke upload.',
+        blocking: false
+      }
+    ],
+    modelUsage: {
+      ledgerStatus: 'READY',
+      modelCallCount: 2,
+      failedModelCallCount: 0,
+      failureRatePercent: '0.00',
+      estimatedCostUsd: '0.00020000',
+      recommendedNextAction: 'Use the ledger links as cost and latency evidence.'
+    },
+    commands: [
+      {
+        label: 'OpenAI preflight',
+        command: 'scripts/demo/openai-demo-preflight.sh',
+        description: 'Validate local ignored OpenAI demo env.'
+      }
+    ],
+    safeLinks: ['/api/operator/openai-readiness-evidence/markdown/download'],
+    safetyNotes: ['API keys, bearer tokens, demo tokens, provider payloads, and media bytes are intentionally excluded.']
   };
 }
 

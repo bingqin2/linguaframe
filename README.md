@@ -785,6 +785,15 @@ When the guard blocks, the job fails at the guarded stage, no later provider cal
 
 The OpenAI connectivity check is disabled by default and does not run during normal local startup. To prove OpenAI credentials and model access before uploading media, set `LINGUAFRAME_OPENAI_CONNECTIVITY_CHECK_ENABLED=true`, configure `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and either `LINGUAFRAME_OPENAI_CONNECTIVITY_MODEL` or one provider model, then restart the backend. The `Live checks` panel and `scripts/demo/private-demo-preflight.sh` report the probe as `UP`, `DOWN`, or `SKIPPED` without exposing the API key, bearer header, raw provider response, or request payload. The probe calls only the model metadata endpoint; it does not upload media or run transcription, translation, TTS, or evaluation.
 
+Use the browser `OpenAI readiness evidence` panel or terminal evidence script when you need a single pre-upload proof that OpenAI provider mode, live connectivity, upload readiness, budget posture, and recent model-call failures are acceptable:
+
+```bash
+scripts/demo/openai-readiness-evidence.sh
+LINGUAFRAME_OPENAI_READINESS_REPORT_ONLY=true scripts/demo/openai-readiness-evidence.sh
+```
+
+The script calls `GET /api/operator/openai-readiness-evidence` and `GET /api/operator/openai-readiness-evidence/markdown/download`, writing JSON and Markdown under `/tmp/linguaframe-demo/openai-readiness-evidence/`. It does not upload media or call transcription, translation, TTS, or evaluation. Use it before `openai-demo-preflight.sh` when you want a shareable readiness report; use `openai-demo-preflight.sh` for strict local env/live-check validation, `docker-e2e-openai-smoke.sh` for the paid proof run, upload readiness for upload gates, live checks for raw dependency probes, and model usage ledger for post-run cost/failure evidence.
+
 The React `Demo readiness` panel shows whether budget guard is enabled plus the configured per-job and daily demo budget limits. To produce terminal evidence with Docker, start the backend with budget guard enabled and a non-zero local cost rate, then run:
 
 ```bash
@@ -969,6 +978,7 @@ Then recreate the backend and prove connectivity before uploading media:
 ```bash
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -am package -DskipTests
 docker compose --env-file .env.openai-demo up -d --build
+LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-readiness-evidence.sh
 LINGUAFRAME_ENV_FILE=.env.openai-demo scripts/demo/openai-demo-preflight.sh
 ```
 

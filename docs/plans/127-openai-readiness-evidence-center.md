@@ -29,12 +29,12 @@
   - `BLOCKED` when OpenAI providers are configured but the live check is `DOWN`, required model/credentials are missing, upload readiness is blocked for provider/budget reasons, or runtime summary is missing required routes.
   - `SKIPPED` when all providers are deterministic/demo and OpenAI is not part of the current run path.
 
-- [ ] Compose evidence from `RuntimeDependencySummaryService`, `RuntimeLiveCheckService`, `DemoUploadReadinessService`, and `ModelUsageLedgerService`.
-- [ ] Identify transcription, translation, evaluation, and TTS provider modes without exposing credentials.
-- [ ] Add safe commands: `scripts/demo/openai-demo-preflight.sh`, `scripts/demo/docker-e2e-openai-smoke.sh`, `scripts/demo/upload-readiness.sh`, and `scripts/demo/model-usage-ledger.sh`.
-- [ ] Render Markdown with provider rows, live-check result, budget/readiness notes, model usage summary, and next action.
-- [ ] Add tests for `READY`, `ATTENTION`, `BLOCKED`, and `SKIPPED` outcomes plus unsafe marker exclusion.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=OpenAiReadinessEvidenceServiceTests`.
+- [x] Compose evidence from `RuntimeDependencySummaryService`, `RuntimeLiveCheckService`, `DemoUploadReadinessService`, and `ModelUsageLedgerService`.
+- [x] Identify transcription, translation, evaluation, and TTS provider modes without exposing credentials.
+- [x] Add safe commands: `scripts/demo/openai-demo-preflight.sh`, `scripts/demo/docker-e2e-openai-smoke.sh`, `scripts/demo/upload-readiness.sh`, and `scripts/demo/model-usage-ledger.sh`.
+- [x] Render Markdown with provider rows, live-check result, budget/readiness notes, model usage summary, and next action.
+- [x] Add tests for `READY`, `ATTENTION`, `BLOCKED`, and `SKIPPED` outcomes plus unsafe marker exclusion.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=OpenAiReadinessEvidenceServiceTests`.
 
 ## Task 2: Operator API Endpoint And Security Tests
 
@@ -46,11 +46,11 @@
 - `GET /api/operator/openai-readiness-evidence` returns JSON.
 - `GET /api/operator/openai-readiness-evidence/markdown/download` returns `openai-readiness-evidence.md`.
 
-- [ ] Inject `OpenAiReadinessEvidenceService` into `OperatorDashboardController`.
-- [ ] Add JSON and Markdown download endpoints under `/api/operator/**`.
-- [ ] Ensure endpoints inherit existing demo-token and bearer-token protection.
-- [ ] Add controller tests for JSON, Markdown attachment headers, safe content, and token protection.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=OperatorDashboardControllerTests`.
+- [x] Inject `OpenAiReadinessEvidenceService` into `OperatorDashboardController`.
+- [x] Add JSON and Markdown download endpoints under `/api/operator/**`.
+- [x] Ensure endpoints inherit existing demo-token and bearer-token protection.
+- [x] Add controller tests for JSON, Markdown attachment headers, safe content, and token protection.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=OperatorDashboardControllerTests`.
 
 ## Task 3: Frontend OpenAI Readiness Panel
 
@@ -65,15 +65,15 @@
 - `getOpenAiReadinessEvidence(): Promise<OpenAiReadinessEvidence>`
 - `downloadOpenAiReadinessEvidenceMarkdown(): Promise<Blob>`
 
-- [ ] Add TypeScript domain types matching the backend VO.
-- [ ] Add API helpers with existing demo-token/bearer header support.
-- [ ] Add an `OpenAI readiness evidence` panel near live checks and demo run launcher.
-- [ ] Show overall status, phase, provider rows, live-check status, model-call risk, recommended next action, and safe commands.
-- [ ] Add `Download readiness evidence` action using the backend Markdown endpoint.
-- [ ] Keep upload controls usable if the panel fails to load.
-- [ ] Add Vitest coverage for API calls, panel rendering, download action, and secret/raw-text absence.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
+- [x] Add TypeScript domain types matching the backend VO.
+- [x] Add API helpers with existing demo-token/bearer header support.
+- [x] Add an `OpenAI readiness evidence` panel near live checks and demo run launcher.
+- [x] Show overall status, phase, provider rows, live-check status, model-call risk, recommended next action, and safe commands.
+- [x] Add `Download readiness evidence` action using the backend Markdown endpoint.
+- [x] Keep upload controls usable if the panel fails to load.
+- [x] Add Vitest coverage for API calls, panel rendering, download action, and secret/raw-text absence.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Script And Documentation
 
@@ -90,24 +90,24 @@
 - Default output directory: `/tmp/linguaframe-demo/openai-readiness-evidence/`.
 - Script output keys: `openAiReadinessStatus`, `openAiReadinessPhase`, `openAiReadinessLiveCheckStatus`, `openAiReadinessRecommendedNextAction`, `openAiReadinessJsonPath`, and `openAiReadinessMarkdownPath`.
 
-- [ ] Implement script with `demo_curl`, JSON download, Markdown download, Python summary printing, and report-only mode.
-- [ ] Exit non-zero on `BLOCKED` unless `LINGUAFRAME_OPENAI_READINESS_REPORT_ONLY=true`.
-- [ ] Document when to use this evidence center versus `openai-demo-preflight.sh`, `docker-e2e-openai-smoke.sh`, upload readiness, live checks, and model usage ledger.
-- [ ] Record validation commands and outcomes in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/openai-readiness-evidence.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Implement script with `demo_curl`, JSON download, Markdown download, Python summary printing, and report-only mode.
+- [x] Exit non-zero on `BLOCKED` unless `LINGUAFRAME_OPENAI_READINESS_REPORT_ONLY=true`.
+- [x] Document when to use this evidence center versus `openai-demo-preflight.sh`, `docker-e2e-openai-smoke.sh`, upload readiness, live checks, and model usage ledger.
+- [x] Record validation commands and outcomes in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/openai-readiness-evidence.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification, Commit, And Merge
 
 **Files:**
 - Modify: `docs/plans/127-openai-readiness-evidence-center.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame test -Dtest=OpenAiReadinessEvidenceServiceTests,OperatorDashboardControllerTests`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`
   `npm run build`
   `bash -n scripts/demo/openai-readiness-evidence.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
+- [x] Run `git diff --check`.
 - [ ] Commit as `Add OpenAI readiness evidence center`.
 - [ ] Merge the feature branch back to `main` after validation passes.
