@@ -165,6 +165,11 @@ export interface UploadSourceReuseCandidate {
   subtitleStylePreset: string;
   subtitlePolishingMode: string;
   createdAt: string;
+  jobDetailHref: string | null;
+  shareSheetHref: string | null;
+  evidenceHref: string | null;
+  demoRunPackageHref: string | null;
+  acceptanceGateHref: string | null;
 }
 
 export interface UploadSourceReuse {
@@ -173,6 +178,34 @@ export interface UploadSourceReuse {
   recommendedAction: 'UPLOAD_NEW_SOURCE' | 'REVIEW_EXISTING_COMPLETED_RUN' | 'WAIT_FOR_ACTIVE_RUN' | string;
   recommendedExistingJobId: string | null;
   candidates: UploadSourceReuseCandidate[];
+}
+
+export interface UploadSourceReuseDecisionAction {
+  id: string;
+  label: string;
+  kind: string;
+  enabled: boolean;
+  detail: string;
+  href: string | null;
+}
+
+export interface UploadSourceReuseDecisionLink {
+  kind: string;
+  label: string;
+  href: string;
+}
+
+export interface UploadSourceReuseDecision {
+  status: 'UPLOAD_NEW_SOURCE' | 'REUSE_COMPLETED_RUN' | 'WAIT_FOR_ACTIVE_RUN' | 'REVIEW_DUPLICATES' | string;
+  headline: string;
+  summary: string;
+  recommendedAction: string;
+  recommendedExistingJobId: string | null;
+  candidateCount: number;
+  actions: UploadSourceReuseDecisionAction[];
+  links: UploadSourceReuseDecisionLink[];
+  safetyNotes: string[];
+  sourceReuse: UploadSourceReuse;
 }
 
 export interface UploadExecutionPlan {
@@ -204,6 +237,7 @@ export interface UploadExecutionPlan {
   gates: UploadExecutionPlanGate[];
   commands: UploadExecutionPlanCommand[];
   sourceReuse: UploadSourceReuse;
+  sourceReuseDecision: UploadSourceReuseDecision;
   cacheNotes: string[];
   safetyNotes: string[];
 }

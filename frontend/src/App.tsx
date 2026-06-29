@@ -3089,41 +3089,66 @@ function UploadExecutionPlanPanel({
               ))}
             </ul>
           ) : null}
-          {plan.sourceReuse?.sourceContentSha256 ? (
-            <div className="upload-validation-subsection" aria-label="Source reuse">
+          {plan.sourceReuseDecision ? (
+            <div className="upload-validation-subsection source-reuse-decision-card" aria-label="Source reuse decision">
               <div className="panel-heading compact-panel-heading">
-                <h4>Source reuse</h4>
-                <span className={readinessStatusClassName(plan.sourceReuse.candidateCount > 0 ? 'ATTENTION' : 'READY')}>
-                  {plan.sourceReuse.recommendedAction}
+                <h4>Source reuse decision</h4>
+                <span className={readinessStatusClassName(sourceReuseDecisionReadiness(plan.sourceReuseDecision.status))}>
+                  {plan.sourceReuseDecision.status}
                 </span>
               </div>
+              <p className="muted validation-message">{plan.sourceReuseDecision.headline}</p>
+              <p>{plan.sourceReuseDecision.summary}</p>
               <dl className="status-grid compact-status-grid upload-validation-grid">
                 <div>
                   <dt>Source SHA-256</dt>
-                  <dd><code>{formatShortHash(plan.sourceReuse.sourceContentSha256)}</code></dd>
+                  <dd><code>{formatShortHash(plan.sourceReuseDecision.sourceReuse.sourceContentSha256)}</code></dd>
                 </div>
                 <div>
                   <dt>Matches</dt>
-                  <dd>{plan.sourceReuse.candidateCount}</dd>
+                  <dd>{plan.sourceReuseDecision.candidateCount}</dd>
                 </div>
                 <div>
                   <dt>Recommended job</dt>
-                  <dd>{plan.sourceReuse.recommendedExistingJobId ?? 'None'}</dd>
+                  <dd>{plan.sourceReuseDecision.recommendedExistingJobId ?? 'None'}</dd>
                 </div>
               </dl>
-              {plan.sourceReuse.candidates.length > 0 ? (
+              {plan.sourceReuseDecision.links.length > 0 ? (
+                <ul className="readiness-list source-reuse-link-list" aria-label="Source reuse decision links">
+                  {plan.sourceReuseDecision.links.slice(0, 4).map((link) => (
+                    <li key={`${link.kind}-${link.href}`}>
+                      <span>{link.label}</span>
+                      <a className="secondary-link" href={link.href}>
+                        Open
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {plan.sourceReuseDecision.actions.length > 0 ? (
+                <ul className="readiness-list source-reuse-action-list" aria-label="Source reuse decision actions">
+                  {plan.sourceReuseDecision.actions.slice(0, 3).map((action) => (
+                    <li key={action.id}>
+                      <span>{action.label}</span>
+                      <span className={action.enabled ? 'status-pill success' : 'status-pill warning'}>{action.kind}</span>
+                      <span>{action.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {plan.sourceReuseDecision.sourceReuse.candidates.length > 0 ? (
                 <ul className="readiness-list" aria-label="Source reuse candidates">
-                  {plan.sourceReuse.candidates.slice(0, 3).map((candidate) => (
+                  {plan.sourceReuseDecision.sourceReuse.candidates.slice(0, 3).map((candidate) => (
                     <li key={candidate.jobId}>
                       <span>{candidate.originalFilename}</span>
                       <span className={readinessStatusClassName(sourceReuseJobReadiness(candidate.jobStatus))}>{candidate.jobStatus}</span>
                       <span>{formatDemoProfileId(candidate.demoProfileId)} / {candidate.translationStyle}</span>
                       <span>
-                        <a className="secondary-link" href={`#job-${candidate.jobId}`}>
+                        <a className="secondary-link" href={candidate.jobDetailHref ?? `#job-${candidate.jobId}`}>
                           Open job
                         </a>
                         {' '}
-                        <a className="secondary-link" href={linguaFrameApi.demoShareSheetMarkdownDownloadUrl(candidate.jobId)}>
+                        <a className="secondary-link" href={candidate.shareSheetHref ?? linguaFrameApi.demoShareSheetMarkdownDownloadUrl(candidate.jobId)}>
                           Share sheet
                         </a>
                       </span>
@@ -8244,6 +8269,16 @@ function sourceReuseJobReadiness(status: LocalizationJobStatus): DemoUploadReadi
     return 'BLOCKED';
   }
   return 'ATTENTION';
+}
+
+function sourceReuseDecisionReadiness(status: string): DemoUploadReadiness['overallStatus'] {
+  if (status === 'UPLOAD_NEW_SOURCE' || status === 'REUSE_COMPLETED_RUN') {
+    return 'READY';
+  }
+  if (status === 'WAIT_FOR_ACTIVE_RUN' || status === 'REVIEW_DUPLICATES') {
+    return 'ATTENTION';
+  }
+  return 'BLOCKED';
 }
 
 function formatEnabled(value: boolean): string {

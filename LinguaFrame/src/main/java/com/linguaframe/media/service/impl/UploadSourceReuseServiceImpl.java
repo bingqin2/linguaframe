@@ -79,7 +79,12 @@ public class UploadSourceReuseServiceImpl implements UploadSourceReuseService {
                 job.translationStyle(),
                 job.subtitleStylePreset(),
                 job.subtitlePolishingMode(),
-                job.createdAt()
+                job.createdAt(),
+                "/api/jobs/" + job.jobId(),
+                "/api/jobs/" + job.jobId() + "/demo-share-sheet",
+                "/api/jobs/" + job.jobId() + "/evidence/markdown/download",
+                "/api/jobs/" + job.jobId() + "/demo-run-package/download",
+                "/api/jobs/" + job.jobId() + "/demo-acceptance-gate"
         );
     }
 

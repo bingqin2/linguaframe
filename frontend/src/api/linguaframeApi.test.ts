@@ -715,9 +715,47 @@ describe('linguaframeApi', () => {
               translationStyle: 'FORMAL',
               subtitleStylePreset: 'HIGH_CONTRAST',
               subtitlePolishingMode: 'BALANCED',
-              createdAt: '2026-06-28T12:00:00Z'
+              createdAt: '2026-06-28T12:00:00Z',
+              jobDetailHref: '/api/jobs/job-existing',
+              shareSheetHref: '/api/jobs/job-existing/demo-share-sheet',
+              evidenceHref: '/api/jobs/job-existing/evidence/markdown/download',
+              demoRunPackageHref: '/api/jobs/job-existing/demo-run-package/download',
+              acceptanceGateHref: '/api/jobs/job-existing/demo-acceptance-gate'
             }
           ]
+        },
+        sourceReuseDecision: {
+          status: 'REUSE_COMPLETED_RUN',
+          headline: 'Existing completed run found for this source.',
+          summary: 'Review the completed job evidence before uploading this same source again.',
+          recommendedAction: 'REVIEW_EXISTING_COMPLETED_RUN',
+          recommendedExistingJobId: 'job-existing',
+          candidateCount: 1,
+          actions: [
+            {
+              id: 'openJob',
+              label: 'Open existing job',
+              kind: 'LINK',
+              enabled: true,
+              detail: 'Inspect the completed same-source job.',
+              href: '/api/jobs/job-existing'
+            }
+          ],
+          links: [
+            {
+              kind: 'DEMO_RUN_PACKAGE',
+              label: 'Demo run package',
+              href: '/api/jobs/job-existing/demo-run-package/download'
+            }
+          ],
+          safetyNotes: ['Source reuse decision is read-only and does not store media or call providers.'],
+          sourceReuse: {
+            sourceContentSha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+            candidateCount: 1,
+            recommendedAction: 'REVIEW_EXISTING_COMPLETED_RUN',
+            recommendedExistingJobId: 'job-existing',
+            candidates: []
+          }
         },
         cacheNotes: [],
         safetyNotes: []
@@ -739,6 +777,7 @@ describe('linguaframeApi', () => {
     expect(result.overallStatus).toBe('READY');
     expect(result.stages[0]?.executionType).toBe('PAID');
     expect(result.sourceReuse.recommendedExistingJobId).toBe('job-existing');
+    expect(result.sourceReuseDecision.status).toBe('REUSE_COMPLETED_RUN');
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/media/uploads/execution-plan',
       expect.objectContaining({
