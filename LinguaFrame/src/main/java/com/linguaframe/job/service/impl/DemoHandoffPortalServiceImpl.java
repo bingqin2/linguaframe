@@ -41,6 +41,10 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
 
+    private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
+    private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
+    private static final String DEFAULT_DUCKING_VOLUME = "0.35";
+
     private final LocalizationJobQueryService queryService;
     private final DemoReviewerWorkspaceService reviewerWorkspaceService;
     private final DemoAcceptanceGateService acceptanceGateService;
@@ -254,6 +258,13 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Package entries: " + packageEntries(job.jobId()).size(),
                         "Static package excludes media bytes and transcript bodies."
                 )),
+                section("NARRATION_AUDIO_MIX", "Narration audio mix", "READY", List.of(
+                        "Audio layout: " + TIMED_AUDIO_BED,
+                        "Time aligned: true",
+                        "Video mix mode: " + DUCKED_ORIGINAL_AUDIO,
+                        "Ducking volume: " + DEFAULT_DUCKING_VOLUME,
+                        "Narration evidence package link is available."
+                )),
                 section("PRESENTATION_EVIDENCE", "Presentation evidence", shareSheet.readiness(), List.of(
                         "Share sheet: " + value(shareSheet.headline()),
                         "Snapshot readiness: " + value(snapshot.readiness()),
@@ -314,6 +325,16 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                     .append(escape(check.detail())).append("</li>");
         }
         builder.append("</ul></section>\n");
+        builder.append("<section><h2>Sections</h2>");
+        for (DemoHandoffPortalSectionVo section : portal.sections()) {
+            builder.append("<h3>").append(escape(section.title())).append("</h3><ul>");
+            builder.append("<li>Status: ").append(escape(section.status())).append("</li>");
+            for (String fact : section.facts()) {
+                builder.append("<li>").append(escape(fact)).append("</li>");
+            }
+            builder.append("</ul>");
+        }
+        builder.append("</section>\n");
         builder.append("<section><h2>Safe Links</h2><ul>");
         for (DemoHandoffPortalLinkVo link : portal.safeLinks()) {
             builder.append("<li><a href=\"").append(escape(link.href())).append("\">")

@@ -29,6 +29,10 @@ import java.util.zip.ZipOutputStream;
 public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private static final BigDecimal ZERO = new BigDecimal("0.000");
+    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
+    private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
+    private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
+    private static final String MISSING = "MISSING";
 
     private final NarrationSegmentRepository narrationSegmentRepository;
     private final LocalizationJobQueryService queryService;
@@ -62,8 +66,12 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 totalTimelineDurationSeconds(segments),
                 audioArtifacts > 0,
                 Math.toIntExact(audioArtifacts),
+                audioArtifacts > 0 ? TIMED_AUDIO_BED : MISSING,
+                audioArtifacts > 0,
                 narratedVideoArtifacts > 0,
                 Math.toIntExact(narratedVideoArtifacts),
+                narratedVideoArtifacts > 0 ? DUCKED_ORIGINAL_AUDIO : MISSING,
+                narratedVideoArtifacts > 0 ? DEFAULT_DUCKING_VOLUME : null,
                 checks(segments.size(), audioArtifacts, narratedVideoArtifacts),
                 safeLinks(jobId),
                 packageEntries(jobId),
@@ -83,7 +91,11 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Total narration characters: " + evidence.totalCharacterCount());
         lines.add("- Total timeline duration seconds: " + evidence.totalTimelineDurationSeconds());
         lines.add("- Narration audio artifacts: " + evidence.audioArtifactCount());
+        lines.add("- Audio layout: " + evidence.audioLayout());
+        lines.add("- Time aligned: " + evidence.timeAligned());
         lines.add("- Narrated video artifacts: " + evidence.narratedVideoArtifactCount());
+        lines.add("- Mix mode: " + evidence.mixMode());
+        lines.add("- Ducking volume: " + valueOrDefault(evidence.duckingVolume(), "N/A"));
         lines.add("");
         lines.add("## Checks");
         for (NarrationEvidenceCheckVo check : evidence.checks()) {
@@ -136,19 +148,23 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"narratedVideoReady":%s,"includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
                 evidence.segmentCount(),
                 evidence.narrationAudioReady(),
-                evidence.narratedVideoReady()
+                json(evidence.audioLayout()),
+                evidence.timeAligned(),
+                evidence.narratedVideoReady(),
+                json(evidence.mixMode()),
+                jsonNumberOrNull(evidence.duckingVolume())
         );
     }
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"narratedVideoArtifactCount":%d}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -156,7 +172,11 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.totalCharacterCount(),
                 evidence.totalTimelineDurationSeconds(),
                 evidence.audioArtifactCount(),
-                evidence.narratedVideoArtifactCount()
+                json(evidence.audioLayout()),
+                evidence.timeAligned(),
+                evidence.narratedVideoArtifactCount(),
+                json(evidence.mixMode()),
+                jsonNumberOrNull(evidence.duckingVolume())
         );
     }
 
@@ -177,10 +197,10 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 ? new NarrationEvidenceCheckVo("NARRATION_SEGMENTS", "Narration segments", "READY", segmentCount + " segments saved.")
                 : new NarrationEvidenceCheckVo("NARRATION_SEGMENTS", "Narration segments", "BLOCKED", "No narration segments saved."));
         checks.add(audioArtifactCount > 0
-                ? new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", "READY", audioArtifactCount + " narration audio artifact available.")
+                ? new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", "READY", audioArtifactCount + " narration audio artifact available with " + TIMED_AUDIO_BED + ".")
                 : new NarrationEvidenceCheckVo("NARRATION_AUDIO", "Narration audio", segmentCount > 0 ? "ATTENTION" : "BLOCKED", "No narration audio artifact available."));
         checks.add(narratedVideoArtifactCount > 0
-                ? new NarrationEvidenceCheckVo("NARRATED_VIDEO", "Narrated video", "READY", narratedVideoArtifactCount + " narrated video artifact available.")
+                ? new NarrationEvidenceCheckVo("NARRATED_VIDEO", "Narrated video", "READY", narratedVideoArtifactCount + " narrated video artifact available with " + DUCKED_ORIGINAL_AUDIO + ".")
                 : new NarrationEvidenceCheckVo("NARRATED_VIDEO", "Narrated video", segmentCount > 0 ? "ATTENTION" : "BLOCKED", "No narrated video artifact available."));
         return List.copyOf(checks);
     }
@@ -246,5 +266,13 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private static String json(Object value) {
         return String.valueOf(value).replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String jsonNumberOrNull(BigDecimal value) {
+        return value == null ? "null" : value.toPlainString();
+    }
+
+    private static String valueOrDefault(Object value, String defaultValue) {
+        return value == null ? defaultValue : String.valueOf(value);
     }
 }

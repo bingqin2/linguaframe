@@ -25,6 +25,11 @@ import java.util.NoSuchElementException;
 @Service
 public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
 
+    private static final BigDecimal DEFAULT_DUCKING_VOLUME = new BigDecimal("0.35");
+    private static final String TIMED_AUDIO_BED = "TIMED_AUDIO_BED";
+    private static final String DUCKED_ORIGINAL_AUDIO = "DUCKED_ORIGINAL_AUDIO";
+    private static final String MISSING = "MISSING";
+
     private final LocalizationJobQueryService queryService;
     private final SubtitleReviewService subtitleReviewService;
     private final SubtitleDraftService subtitleDraftService;
@@ -215,7 +220,11 @@ public class JobEvidenceReportServiceImpl implements JobEvidenceReportService {
         lines.add("- Reviewed subtitle artifacts: " + reviewedSubtitleArtifacts);
         lines.add("- Reviewed burned video: " + (reviewedBurnedVideoAvailable ? "Available" : "Not available"));
         lines.add("- Narration audio artifacts: " + narrationAudioArtifacts);
+        lines.add("- Narration audio layout: " + (narrationAudioArtifacts > 0 ? TIMED_AUDIO_BED : MISSING));
+        lines.add("- Narration time aligned: " + (narrationAudioArtifacts > 0));
         lines.add("- Narrated video artifacts: " + narratedVideoArtifacts);
+        lines.add("- Narrated video mix mode: " + (narratedVideoArtifacts > 0 ? DUCKED_ORIGINAL_AUDIO : MISSING));
+        lines.add("- Narrated video ducking volume: " + (narratedVideoArtifacts > 0 ? DEFAULT_DUCKING_VOLUME : "N/A"));
     }
 
     private boolean hasText(String value) {

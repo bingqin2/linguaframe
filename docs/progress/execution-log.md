@@ -3808,3 +3808,17 @@ Validation so far:
 - `mvn -pl LinguaFrame test` passed with `Tests run: 682, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm test -- --run` passed with `Test Files 3 passed` and `Tests 185 passed`.
 - `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
+- Extended narration evidence with `audioLayout`, `timeAligned`, `mixMode`, and `duckingVolume` fields.
+- Updated narration evidence Markdown, ZIP manifest, and summary JSON to prove `TIMED_AUDIO_BED` narration audio and `DUCKED_ORIGINAL_AUDIO` narrated video output without including narration text or media bytes.
+- Updated backend evidence report and demo handoff portal sections/HTML so downloaded demo evidence shows fixed `0.35` ducking.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` first failed at test compilation because `NarrationEvidenceVo` did not expose the new metadata fields.
+- After adding the fields and evidence output, the same command failed once because the handoff portal ZIP `index.html` did not render section facts.
+- After rendering sections in `index.html`, `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.

@@ -77,7 +77,11 @@ class JobEvidenceReportServiceTests {
         assertThat(markdown).contains("- Narration evidence: /api/jobs/job-evidence-triage/narration-evidence");
         assertThat(markdown).contains("- Narration evidence package: /api/jobs/job-evidence-triage/narration-evidence/download");
         assertThat(markdown).contains("- Narration audio artifacts: 1");
+        assertThat(markdown).contains("- Narration audio layout: TIMED_AUDIO_BED");
+        assertThat(markdown).contains("- Narration time aligned: true");
         assertThat(markdown).contains("- Narrated video artifacts: 1");
+        assertThat(markdown).contains("- Narrated video mix mode: DUCKED_ORIGINAL_AUDIO");
+        assertThat(markdown).contains("- Narrated video ducking volume: 0.35");
         assertThat(markdown).doesNotContain("raw source text");
         assertThat(markdown).doesNotContain("raw target text");
         assertThat(markdown).doesNotContain("raw draft text");

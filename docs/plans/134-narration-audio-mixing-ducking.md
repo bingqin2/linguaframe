@@ -105,13 +105,13 @@
 **Interfaces:**
 - Add metadata-only fields to narration evidence: `String audioLayout`, `boolean timeAligned`, `String mixMode`, `BigDecimal duckingVolume`.
 
-- [ ] Add evidence fields showing timed audio bed readiness and ducked mix mode.
-- [ ] Keep `READY` criteria as: segments exist, `NARRATION_AUDIO` exists, and `NARRATED_VIDEO` exists.
-- [ ] Add checks for `TIMED_AUDIO_BED` and `DUCKED_ORIGINAL_AUDIO` without exposing narration script text.
-- [ ] Update job evidence and handoff portal copy to say the final video preserves base/original audio with ducking.
-- [ ] Add tests for READY/ATTENTION behavior, Markdown fields, ZIP summaries, and forbidden marker absence.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add evidence fields showing timed audio bed readiness and ducked mix mode.
+- [x] Keep `READY` criteria as: segments exist, `NARRATION_AUDIO` exists, and `NARRATED_VIDEO` exists.
+- [x] Add checks for `TIMED_AUDIO_BED` and `DUCKED_ORIGINAL_AUDIO` without exposing narration script text.
+- [x] Update job evidence and handoff portal copy to say the final video preserves base/original audio with ducking.
+- [x] Add tests for READY/ATTENTION behavior, Markdown fields, ZIP summaries, and forbidden marker absence.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 5: React Narration Mixing Controls And Status
 

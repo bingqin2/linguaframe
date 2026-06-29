@@ -81,7 +81,17 @@ class DemoHandoffPortalServiceTests {
         assertThat(portal.headline()).contains("ready");
         assertThat(portal.checks()).extracting("status").containsOnly("READY");
         assertThat(portal.sections()).extracting("title")
-                .contains("Reviewer workspace", "Offline portal", "Presentation evidence", "Safe packages");
+                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Presentation evidence", "Safe packages");
+        assertThat(portal.sections())
+                .filteredOn(section -> section.key().equals("NARRATION_AUDIO_MIX"))
+                .singleElement()
+                .satisfies(section -> assertThat(section.facts())
+                        .contains(
+                                "Audio layout: TIMED_AUDIO_BED",
+                                "Time aligned: true",
+                                "Video mix mode: DUCKED_ORIGINAL_AUDIO",
+                                "Ducking volume: 0.35"
+                        ));
         assertThat(portal.safeLinks()).extracting("href")
                 .contains(
                         "/api/jobs/job-portal/demo-handoff-portal/download",
@@ -109,7 +119,8 @@ class DemoHandoffPortalServiceTests {
         assertThat(entries.get("index.html"))
                 .contains("<!doctype html>")
                 .contains("LinguaFrame Demo Handoff Portal")
-                .contains("HANDOFF_PORTAL_READY");
+                .contains("HANDOFF_PORTAL_READY")
+                .contains("DUCKED_ORIGINAL_AUDIO");
     }
 
     @Test

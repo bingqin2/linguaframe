@@ -43,8 +43,12 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.totalTimelineDurationSeconds()).isEqualByComparingTo("28.500");
         assertThat(evidence.narrationAudioReady()).isTrue();
         assertThat(evidence.audioArtifactCount()).isEqualTo(1);
+        assertThat(evidence.audioLayout()).isEqualTo("TIMED_AUDIO_BED");
+        assertThat(evidence.timeAligned()).isTrue();
         assertThat(evidence.narratedVideoReady()).isTrue();
         assertThat(evidence.narratedVideoArtifactCount()).isEqualTo(1);
+        assertThat(evidence.mixMode()).isEqualTo("DUCKED_ORIGINAL_AUDIO");
+        assertThat(evidence.duckingVolume()).isEqualByComparingTo("0.35");
         assertThat(evidence.safeLinks())
                 .extracting(link -> link.href())
                 .contains("/api/jobs/job-narration/narration-evidence/download");
@@ -55,7 +59,11 @@ class NarrationEvidenceServiceTests {
                 .contains("- Status: READY")
                 .contains("- Segment count: 2")
                 .contains("- Narration audio artifacts: 1")
+                .contains("- Audio layout: TIMED_AUDIO_BED")
+                .contains("- Time aligned: true")
                 .contains("- Narrated video artifacts: 1")
+                .contains("- Mix mode: DUCKED_ORIGINAL_AUDIO")
+                .contains("- Ducking volume: 0.35")
                 .doesNotContain("Explain the first scene")
                 .doesNotContain("Explain the second scene")
                 .doesNotContain("sk-")
@@ -79,6 +87,10 @@ class NarrationEvidenceServiceTests {
 
         assertThat(evidence.status()).isEqualTo("ATTENTION");
         assertThat(evidence.narrationAudioReady()).isFalse();
+        assertThat(evidence.audioLayout()).isEqualTo("MISSING");
+        assertThat(evidence.timeAligned()).isFalse();
+        assertThat(evidence.mixMode()).isEqualTo("MISSING");
+        assertThat(evidence.duckingVolume()).isNull();
         assertThat(evidence.checks())
                 .extracting(check -> check.key() + ":" + check.status())
                 .contains("NARRATION_AUDIO:ATTENTION", "NARRATED_VIDEO:ATTENTION");
