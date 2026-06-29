@@ -1766,6 +1766,38 @@ export interface RenderNarrationDemoRequest {
   generateNarratedVideo: boolean;
 }
 
+export type NarrationDemoRenderPreflightStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+export type NarrationDemoRenderPreflightCheckStatus = 'PASS' | 'WARN' | 'BLOCK';
+
+export interface NarrationDemoRenderPreflightRequest {
+  presetId: string;
+  replaceExisting: boolean;
+  generateNarratedVideo: boolean;
+}
+
+export interface NarrationDemoRenderPreflightCheck {
+  key: string;
+  label: string;
+  status: NarrationDemoRenderPreflightCheckStatus;
+  message: string;
+}
+
+export interface NarrationDemoRenderPreflight {
+  jobId: string;
+  presetId: string;
+  status: NarrationDemoRenderPreflightStatus;
+  checks: NarrationDemoRenderPreflightCheck[];
+  estimatedSegmentCount: number;
+  estimatedCharacterCount: number;
+  providerMode: string;
+  paidProvider: boolean;
+  existingWorkspaceSegmentCount: number;
+  generateNarratedVideo: boolean;
+  requiredConfirmations: string[];
+  safeNextCommand: string;
+  evidenceRoutes: string[];
+}
+
 export interface NarrationDemoRenderStep {
   key: string;
   label: string;

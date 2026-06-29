@@ -104,6 +104,25 @@ Validation:
 - `bash -n scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
 
+## 2026-06-30
+
+Work:
+
+- Added the browser-side narration render preflight decision panel.
+- Added typed frontend API support for `POST /api/jobs/{jobId}/narration-demo/render/preflight`.
+- Wired the existing preset selector, replacement confirmation, provider-cost acknowledgement, and generated-video toggle into both preflight and render.
+- Kept one-click render disabled until the latest matching preflight is `READY` or `ATTENTION` and required confirmations are still checked.
+- Displayed preflight status, provider mode, paid-provider flag, estimated segment/character counts, existing workspace size, output plan, safe next command, evidence routes, and check rows.
+- Refreshed preflight after successful one-click render so the browser panel reflects newly available artifacts.
+
+Validation:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration demo render"` first failed on an ambiguous `Audio only` assertion after the preflight panel and controls both displayed the output plan.
+- After tightening the assertion, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration demo render"` passed with `Test Files 2 passed` and `Tests 2 passed | 189 skipped`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` first failed on an ambiguous `/Provider/i` assertion after the preflight panel showed provider metadata.
+- After checking the concrete provider value, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 191 passed`.
+- `npm run build` passed.
+
 ## 2026-06-29
 
 Work:

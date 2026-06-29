@@ -389,6 +389,11 @@ td {
   color: #8d351f;
 }
 
+.status-pill.failed {
+  border-color: #e0b7a6;
+  color: #8d351f;
+}
+
 .narration-timeline-track {
   position: relative;
   height: 42px;
@@ -567,6 +572,31 @@ td {
   gap: 6px;
   margin: 0;
   padding-left: 18px;
+}
+
+.render-preflight-panel {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfd;
+}
+
+.render-preflight-panel h5 {
+  margin: 0;
+}
+
+.safe-command {
+  display: block;
+  overflow-wrap: anywhere;
+  border: 1px solid #d8dee6;
+  border-radius: 6px;
+  padding: 7px 8px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.78rem;
 }
 
 .script-package-panel textarea {

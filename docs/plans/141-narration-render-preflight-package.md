@@ -48,7 +48,7 @@
 - [x] Add controller route with OpenAPI summary, 400/401/404 responses, and route-encoding MockMvc coverage.
 - [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderPreflightServiceTests,LocalizationJobControllerTests,NarrationDemoPresetServiceTests,NarrationScriptPackageServiceTests`.
 - [x] Update `docs/progress/execution-log.md`.
-- [ ] Commit with message `Add narration render preflight endpoint`.
+- [x] Commit with message `Add narration render preflight endpoint`.
 
 ## Task 2: Frontend Preflight Decision Panel
 
@@ -63,18 +63,18 @@
 **Interfaces:**
 - `preflightNarrationDemoRender(jobId: string, request: NarrationDemoRenderPreflightRequest): Promise<NarrationDemoRenderPreflight>`
 
-- [ ] Add TypeScript types for preflight request, check rows, and result status unions.
-- [ ] Add API helper and route-encoding test for `/api/jobs/{jobId}/narration-demo/render/preflight`.
-- [ ] Add a `Render preflight` subsection inside the existing `Render narration demo` panel.
-- [ ] Let the same preset selection, replace confirmation, provider-cost acknowledgement, and `Generate narrated video` checkbox drive both preflight and render.
-- [ ] Keep render disabled until the latest preflight is `READY` or `ATTENTION` and both required confirmations are checked.
-- [ ] Display overall status, provider mode, paid-provider warning, estimated segments/characters, existing workspace segment count, generated-video plan, safe next command, and check rows.
-- [ ] Make `BLOCKED` checks visually distinct without hiding the existing separate narration controls.
-- [ ] Refresh preflight after successful one-click render so the panel reflects newly ready artifacts.
-- [ ] Add Vitest coverage for blocked replacement, paid-provider attention, audio-only preflight, successful render after preflight, and route refresh calls.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
-- [ ] Run `npm run build`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add TypeScript types for preflight request, check rows, and result status unions.
+- [x] Add API helper and route-encoding test for `/api/jobs/{jobId}/narration-demo/render/preflight`.
+- [x] Add a `Render preflight` subsection inside the existing `Render narration demo` panel.
+- [x] Let the same preset selection, replace confirmation, provider-cost acknowledgement, and `Generate narrated video` checkbox drive both preflight and render.
+- [x] Keep render disabled until the latest preflight is `READY` or `ATTENTION` and both required confirmations are checked.
+- [x] Display overall status, provider mode, paid-provider warning, estimated segments/characters, existing workspace segment count, generated-video plan, safe next command, and check rows.
+- [x] Make `BLOCKED` checks visually distinct without hiding the existing separate narration controls.
+- [x] Refresh preflight after successful one-click render so the panel reflects newly ready artifacts.
+- [x] Add Vitest coverage for blocked replacement, paid-provider attention, audio-only preflight, successful render after preflight, and route refresh calls.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx`.
+- [x] Run `npm run build`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration render preflight UI`.
 
 ## Task 3: Terminal Preflight Script And Full Tears Guidance

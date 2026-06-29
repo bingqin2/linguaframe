@@ -52,6 +52,8 @@ import type {
   PromptTemplate,
   RetentionCleanupResult,
   RenderNarrationDemoRequest,
+  NarrationDemoRenderPreflight,
+  NarrationDemoRenderPreflightRequest,
   ReviewedSubtitleWorkflow,
   ReviewedSubtitlePublish,
   RuntimeDependencySummary,
@@ -954,6 +956,22 @@ export async function renderNarrationDemo(
   );
 }
 
+export async function preflightNarrationDemoRender(
+  jobId: string,
+  request: NarrationDemoRenderPreflightRequest
+): Promise<NarrationDemoRenderPreflight> {
+  return requestJson<NarrationDemoRenderPreflight>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-demo/render/preflight`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function getNarrationEvidence(jobId: string): Promise<NarrationEvidence> {
   return requestJson<NarrationEvidence>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence`,
@@ -1288,6 +1306,7 @@ export const linguaFrameApi = {
   updateNarrationMixSettings,
   generateNarrationAudio,
   generateNarratedVideo,
+  preflightNarrationDemoRender,
   renderNarrationDemo,
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,

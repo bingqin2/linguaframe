@@ -35,6 +35,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   NarrationDemoPreset,
+  NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationScriptPackage,
@@ -420,6 +421,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
   const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
+  const [narrationDemoRenderPreflight, setNarrationDemoRenderPreflight] = useState<NarrationDemoRenderPreflight | null>(null);
   const [narrationDemoRenderResult, setNarrationDemoRenderResult] = useState<NarrationDemoRenderResult | null>(null);
   const [narrationError, setNarrationError] = useState<string | null>(null);
   const [narrationStatus, setNarrationStatus] = useState<string | null>(null);
@@ -427,6 +429,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isClearingNarration, setIsClearingNarration] = useState(false);
   const [isGeneratingNarration, setIsGeneratingNarration] = useState(false);
   const [isGeneratingNarratedVideo, setIsGeneratingNarratedVideo] = useState(false);
+  const [isPreflightingNarrationDemo, setIsPreflightingNarrationDemo] = useState(false);
   const [isRenderingNarrationDemo, setIsRenderingNarrationDemo] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
@@ -1149,6 +1152,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
 
     if (narrationWorkspaceResult.status === 'fulfilled') {
       setNarrationWorkspace(narrationWorkspaceResult.value);
+      setNarrationDemoRenderPreflight(null);
       setNarrationDemoRenderResult(null);
       setNarrationError(null);
       setNarrationStatus(null);
@@ -2166,13 +2170,19 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         replaceExisting: true,
         generateNarratedVideo
       });
-      const [refreshedWorkspace, refreshedEvidence, refreshedScriptPackage, refreshedArtifacts] = await Promise.all([
+      const [refreshedWorkspace, refreshedEvidence, refreshedScriptPackage, refreshedArtifacts, refreshedPreflight] = await Promise.all([
         linguaFrameApi.getNarrationWorkspace(job.jobId),
         linguaFrameApi.getNarrationEvidence(job.jobId),
         linguaFrameApi.getNarrationScriptPackage(job.jobId),
-        linguaFrameApi.listArtifacts(job.jobId)
+        linguaFrameApi.listArtifacts(job.jobId),
+        linguaFrameApi.preflightNarrationDemoRender(job.jobId, {
+          presetId,
+          replaceExisting: true,
+          generateNarratedVideo
+        })
       ]);
       setNarrationDemoRenderResult(result);
+      setNarrationDemoRenderPreflight(refreshedPreflight);
       setNarrationWorkspace(refreshedWorkspace ?? result.presetApply?.workspace ?? narrationWorkspace);
       setNarrationEvidence(refreshedEvidence ?? result.narrationEvidence);
       setNarrationScriptPackage(refreshedScriptPackage ?? result.scriptPackage);
@@ -2183,6 +2193,31 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setNarrationError(toErrorMessage(renderError));
     } finally {
       setIsRenderingNarrationDemo(false);
+    }
+  }
+
+  async function handlePreflightNarrationDemoRender(
+    presetId: string,
+    replaceExisting: boolean,
+    generateNarratedVideo: boolean
+  ) {
+    if (!job) {
+      return;
+    }
+    setIsPreflightingNarrationDemo(true);
+    try {
+      const result = await linguaFrameApi.preflightNarrationDemoRender(job.jobId, {
+        presetId,
+        replaceExisting,
+        generateNarratedVideo
+      });
+      setNarrationDemoRenderPreflight(result);
+      setNarrationError(null);
+      setNarrationStatus(`Preflighted narration demo ${result.presetId}: ${result.status}.`);
+    } catch (preflightError) {
+      setNarrationError(toErrorMessage(preflightError));
+    } finally {
+      setIsPreflightingNarrationDemo(false);
     }
   }
 
@@ -2845,6 +2880,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingOpenAiSmokeProof={isLoadingOpenAiSmokeProof}
               isLoadingDemoReviewerWorkspace={isLoadingDemoReviewerWorkspace}
               isLoadingDemoHandoffPortal={isLoadingDemoHandoffPortal}
+              isPreflightingNarrationDemo={isPreflightingNarrationDemo}
               isRenderingNarrationDemo={isRenderingNarrationDemo}
               onCancel={handleCancel}
               onClearNarrationWorkspace={handleClearNarrationWorkspace}
@@ -2872,11 +2908,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPublishReviewedSubtitles={handlePublishReviewedSubtitles}
               onImportNarrationScriptPackage={handleImportNarrationScriptPackage}
               onApplyNarrationDemoPreset={handleApplyNarrationDemoPreset}
+              onPreflightNarrationDemoRender={handlePreflightNarrationDemoRender}
               onRenderNarrationDemo={handleRenderNarrationDemo}
               onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
+              narrationDemoRenderPreflight={narrationDemoRenderPreflight}
               narrationDemoRenderResult={narrationDemoRenderResult}
               narrationEvidence={narrationEvidence}
               narrationScriptPackage={narrationScriptPackage}
@@ -5745,6 +5783,7 @@ function JobDetail({
   isLoadingOpenAiSmokeProof,
   isLoadingDemoReviewerWorkspace,
   isLoadingDemoHandoffPortal,
+  isPreflightingNarrationDemo,
   isRenderingNarrationDemo,
   isGeneratingNarratedVideo,
   onCancel,
@@ -5772,12 +5811,14 @@ function JobDetail({
   onRetry,
   onApplyNarrationDemoPreset,
   onImportNarrationScriptPackage,
+  onPreflightNarrationDemoRender,
   onRenderNarrationDemo,
   onPublishReviewedSubtitles,
   onSaveNarrationMixSettings,
   onSaveNarrationWorkspace,
   onSaveSubtitleDraft,
   narrationError,
+  narrationDemoRenderPreflight,
   narrationDemoRenderResult,
   narrationEvidence,
   narrationDemoPresets,
@@ -5867,6 +5908,7 @@ function JobDetail({
   isLoadingOpenAiSmokeProof: boolean;
   isLoadingDemoReviewerWorkspace: boolean;
   isLoadingDemoHandoffPortal: boolean;
+  isPreflightingNarrationDemo: boolean;
   isRenderingNarrationDemo: boolean;
   onCancel: () => void;
   onClearNarrationWorkspace: () => void;
@@ -5893,6 +5935,7 @@ function JobDetail({
   onRetry: () => void;
   onApplyNarrationDemoPreset: (presetId: string) => void;
   onImportNarrationScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
+  onPreflightNarrationDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
   onRenderNarrationDemo: (presetId: string, generateNarratedVideo: boolean) => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
   onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
@@ -5905,6 +5948,7 @@ function JobDetail({
     reviewerNote: string | null;
   }>) => void;
   narrationError: string | null;
+  narrationDemoRenderPreflight: NarrationDemoRenderPreflight | null;
   narrationDemoRenderResult: NarrationDemoRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
   narrationDemoPresets: NarrationDemoPreset[];
@@ -6204,6 +6248,7 @@ function JobDetail({
         isClearing={isClearingNarration}
         isGenerating={isGeneratingNarration}
         isGeneratingVideo={isGeneratingNarratedVideo}
+        isPreflightingDemo={isPreflightingNarrationDemo}
         isRenderingDemo={isRenderingNarrationDemo}
         isSaving={isSavingNarration}
         jobId={job.jobId}
@@ -6212,12 +6257,14 @@ function JobDetail({
         onGenerateVideo={onGenerateNarratedVideo}
         onApplyDemoPreset={onApplyNarrationDemoPreset}
         onImportScriptPackage={onImportNarrationScriptPackage}
+        onPreflightDemoRender={onPreflightNarrationDemoRender}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onRenderDemo={onRenderNarrationDemo}
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
         scriptPackage={narrationScriptPackage}
         demoPresets={narrationDemoPresets}
+        renderPreflight={narrationDemoRenderPreflight}
         renderResult={narrationDemoRenderResult}
         status={narrationStatus}
         workspace={narrationWorkspace}
@@ -9219,6 +9266,7 @@ function NarrationWorkspacePanel({
   isClearing,
   isGenerating,
   isGeneratingVideo,
+  isPreflightingDemo,
   isRenderingDemo,
   isSaving,
   jobId,
@@ -9228,11 +9276,13 @@ function NarrationWorkspacePanel({
   onGenerateAudio,
   onGenerateVideo,
   onImportScriptPackage,
+  onPreflightDemoRender,
   onRefreshEvidence,
   onRenderDemo,
   onSave,
   onSaveMixSettings,
   renderResult,
+  renderPreflight,
   scriptPackage,
   status,
   workspace
@@ -9242,6 +9292,7 @@ function NarrationWorkspacePanel({
   isClearing: boolean;
   isGenerating: boolean;
   isGeneratingVideo: boolean;
+  isPreflightingDemo: boolean;
   isRenderingDemo: boolean;
   isSaving: boolean;
   jobId: string;
@@ -9251,11 +9302,13 @@ function NarrationWorkspacePanel({
   onGenerateAudio: () => void;
   onGenerateVideo: () => void;
   onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
+  onPreflightDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
   onRefreshEvidence: () => void;
   onRenderDemo: (presetId: string, generateNarratedVideo: boolean) => void;
   onSave: (segments: NarrationWorkspace['segments']) => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   renderResult: NarrationDemoRenderResult | null;
+  renderPreflight: NarrationDemoRenderPreflight | null;
   scriptPackage: NarrationScriptPackage | null;
   status: string | null;
   workspace: NarrationWorkspace | null;
@@ -9378,10 +9431,13 @@ function NarrationWorkspacePanel({
           onApplyPreset={onApplyDemoPreset}
         />
         <NarrationDemoRenderPanel
+          isPreflighting={isPreflightingDemo}
           isRendering={isRenderingDemo}
           presets={demoPresets}
+          preflight={renderPreflight}
           result={renderResult}
           workspace={workspace}
+          onPreflight={onPreflightDemoRender}
           onRender={onRenderDemo}
         />
       </div>
@@ -9764,14 +9820,20 @@ function NarrationDemoPresetPanel({
 }
 
 function NarrationDemoRenderPanel({
+  isPreflighting,
   isRendering,
+  onPreflight,
   onRender,
+  preflight,
   presets,
   result,
   workspace
 }: {
+  isPreflighting: boolean;
   isRendering: boolean;
+  onPreflight: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
   onRender: (presetId: string, generateNarratedVideo: boolean) => void;
+  preflight: NarrationDemoRenderPreflight | null;
   presets: NarrationDemoPreset[];
   result: NarrationDemoRenderResult | null;
   workspace: NarrationWorkspace | null;
@@ -9788,7 +9850,29 @@ function NarrationDemoRenderPanel({
   }, [presets, selectedPresetId]);
 
   const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0] ?? null;
-  const canRender = Boolean(selectedPreset) && replaceCurrentWorkspace && acknowledgeProviderCost && !isRendering;
+  const preflightMatchesSelection = Boolean(
+    selectedPreset && preflight?.presetId === selectedPreset.id && preflight.generateNarratedVideo === generateNarratedVideo
+  );
+  const requiredConfirmationsSatisfied = preflight?.requiredConfirmations.every((confirmation) => {
+    if (confirmation === 'REPLACE_EXISTING') {
+      return replaceCurrentWorkspace;
+    }
+    if (confirmation === 'PAID_PROVIDER') {
+      return acknowledgeProviderCost;
+    }
+    return true;
+  }) ?? false;
+  const preflightAllowsRender = preflightMatchesSelection && (preflight?.status === 'READY' || preflight?.status === 'ATTENTION');
+  const canPreflight = Boolean(selectedPreset) && !isPreflighting && !isRendering;
+  const canRender = Boolean(
+    selectedPreset
+      && replaceCurrentWorkspace
+      && acknowledgeProviderCost
+      && requiredConfirmationsSatisfied
+      && preflightAllowsRender
+      && !isRendering
+      && !isPreflighting
+  );
 
   return (
     <section className="nested-panel" aria-label="Render narration demo">
@@ -9864,6 +9948,14 @@ function NarrationDemoRenderPanel({
           </label>
           <button
             type="button"
+            disabled={!canPreflight}
+            onClick={() => onPreflight(selectedPreset.id, replaceCurrentWorkspace, generateNarratedVideo)}
+          >
+            {isPreflighting ? 'Preflighting...' : 'Run render preflight'}
+          </button>
+          <NarrationDemoRenderPreflightPanel preflight={preflight} matchesSelection={preflightMatchesSelection} />
+          <button
+            type="button"
             disabled={!canRender}
             onClick={() => onRender(selectedPreset.id, generateNarratedVideo)}
           >
@@ -9880,6 +9972,78 @@ function NarrationDemoRenderPanel({
       ) : (
         <p className="muted">No narration demo presets are available.</p>
       )}
+    </section>
+  );
+}
+
+function NarrationDemoRenderPreflightPanel({
+  matchesSelection,
+  preflight
+}: {
+  matchesSelection: boolean;
+  preflight: NarrationDemoRenderPreflight | null;
+}) {
+  if (!preflight) {
+    return (
+      <section className="render-preflight-panel" aria-label="Render preflight">
+        <p className="muted">Run preflight before rendering narration media.</p>
+      </section>
+    );
+  }
+
+  const statusClass = preflight.status === 'READY' ? 'ready' : preflight.status === 'ATTENTION' ? 'warning' : 'blocked';
+
+  return (
+    <section className="render-preflight-panel" aria-label="Render preflight">
+      <div className="compact-panel-heading">
+        <div>
+          <h5>Render preflight</h5>
+          <p className="muted">
+            {matchesSelection ? 'Current controls match this preflight.' : 'Change detected. Run preflight again before rendering.'}
+          </p>
+        </div>
+        <span className={`status-pill ${statusClass}`}>{preflight.status}</span>
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Provider</dt>
+          <dd>{preflight.providerMode}</dd>
+        </div>
+        <div>
+          <dt>Paid provider</dt>
+          <dd>{preflight.paidProvider ? 'Yes' : 'No'}</dd>
+        </div>
+        <div>
+          <dt>Preset size</dt>
+          <dd>{preflight.estimatedSegmentCount} segments · {preflight.estimatedCharacterCount} chars</dd>
+        </div>
+        <div>
+          <dt>Existing workspace</dt>
+          <dd>{preflight.existingWorkspaceSegmentCount} segments</dd>
+        </div>
+        <div>
+          <dt>Output plan</dt>
+          <dd>{preflight.generateNarratedVideo ? 'Audio + video' : 'Audio only'}</dd>
+        </div>
+      </dl>
+      <code className="safe-command">{preflight.safeNextCommand}</code>
+      {preflight.requiredConfirmations.length > 0 ? (
+        <p className="muted">Required confirmations: {preflight.requiredConfirmations.join(', ')}</p>
+      ) : null}
+      <ul className="compact-list">
+        {preflight.checks.map((check) => (
+          <li key={check.key}>
+            <strong>{check.key}: {check.status}</strong> - {check.message}
+          </li>
+        ))}
+      </ul>
+      {preflight.evidenceRoutes.length > 0 ? (
+        <ul className="compact-list evidence-routes">
+          {preflight.evidenceRoutes.map((route) => (
+            <li key={route}>{route}</li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

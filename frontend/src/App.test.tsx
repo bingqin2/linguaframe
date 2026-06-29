@@ -31,6 +31,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   NarrationDemoPreset,
+  NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationGeneration,
@@ -2689,6 +2690,9 @@ describe('App', () => {
         segmentCount: 4
       }));
     vi.spyOn(linguaFrameApi, 'listNarrationDemoPresets').mockResolvedValue([narrationDemoPresetFixture()]);
+    const preflightNarrationDemoRender = vi.spyOn(linguaFrameApi, 'preflightNarrationDemoRender')
+      .mockResolvedValueOnce(narrationDemoRenderPreflightFixture({ status: 'ATTENTION' }))
+      .mockResolvedValueOnce(narrationDemoRenderPreflightFixture({ status: 'READY', paidProvider: true }));
     const renderNarrationDemo = vi.spyOn(linguaFrameApi, 'renderNarrationDemo')
       .mockResolvedValue(narrationDemoRenderResultFixture({
         jobId: 'narration-render-job',
@@ -2710,6 +2714,16 @@ describe('App', () => {
 
     await userEvent.click(within(renderPanel).getByLabelText(/i understand this can call tts providers/i));
     await userEvent.click(within(renderPanel).getByRole('checkbox', { name: /generate narrated video/i }));
+    expect(within(renderPanel).getByRole('button', { name: /render narration demo/i })).toBeDisabled();
+    await userEvent.click(within(renderPanel).getByRole('button', { name: /run render preflight/i }));
+    expect(preflightNarrationDemoRender).toHaveBeenCalledWith('narration-render-job', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true,
+      generateNarratedVideo: false
+    });
+    expect(await within(renderPanel).findByText('TTS_PROVIDER: WARN', { exact: false })).toBeInTheDocument();
+    expect(within(renderPanel).getByText('openai')).toBeInTheDocument();
+    expect(within(renderPanel).getAllByText('Audio only').length).toBeGreaterThan(0);
     await userEvent.click(within(renderPanel).getByRole('button', { name: /render narration demo/i }));
 
     expect(renderNarrationDemo).toHaveBeenCalledWith('narration-render-job', {
@@ -2718,10 +2732,63 @@ describe('App', () => {
       generateNarratedVideo: false
     });
     expect(await within(narrationPanel).findByText('Rendered narration demo tears-showcase-narration: READY.')).toBeInTheDocument();
+    expect(preflightNarrationDemoRender).toHaveBeenCalledTimes(2);
     expect(within(renderPanel).getByText('PRESET_APPLY: SUCCEEDED')).toBeInTheDocument();
     expect(within(renderPanel).getByText('NARRATION_AUDIO: SUCCEEDED')).toBeInTheDocument();
     expect(within(renderPanel).getByText('NARRATED_VIDEO: SUCCEEDED')).toBeInTheDocument();
     expect((await within(narrationPanel).findAllByText('Rendered first explanation.')).length).toBeGreaterThan(0);
+  });
+
+  test('keeps narration demo render disabled when preflight is blocked', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-blocked-job', videoId: 'narration-blocked-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-blocked-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture({ status: 'ATTENTION' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture({ jobId: 'narration-blocked-job' }));
+    vi.spyOn(linguaFrameApi, 'listNarrationDemoPresets').mockResolvedValue([narrationDemoPresetFixture()]);
+    const preflightNarrationDemoRender = vi.spyOn(linguaFrameApi, 'preflightNarrationDemoRender').mockResolvedValue(
+      narrationDemoRenderPreflightFixture({
+        jobId: 'narration-blocked-job',
+        status: 'BLOCKED',
+        generateNarratedVideo: false,
+        requiredConfirmations: ['REPLACE_EXISTING'],
+        checks: [
+          {
+            key: 'REPLACE_CONFIRMATION',
+            label: 'Replace confirmation',
+            status: 'BLOCK',
+            message: 'Rendering would replace existing narration rows.'
+          }
+        ]
+      })
+    );
+    const renderNarrationDemo = vi.spyOn(linguaFrameApi, 'renderNarrationDemo');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-blocked-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const renderPanel = within(narrationPanel).getByRole('region', { name: /render narration demo/i });
+
+    await userEvent.click(within(renderPanel).getByRole('checkbox', { name: /generate narrated video/i }));
+    await userEvent.click(within(renderPanel).getByRole('button', { name: /run render preflight/i }));
+
+    expect(preflightNarrationDemoRender).toHaveBeenCalledWith('narration-blocked-job', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: false,
+      generateNarratedVideo: false
+    });
+    expect(await within(renderPanel).findByText('BLOCKED')).toBeInTheDocument();
+    expect(within(renderPanel).getAllByText('Audio only').length).toBeGreaterThan(0);
+    expect(within(renderPanel).getByText('REPLACE_CONFIRMATION: BLOCK', { exact: false })).toBeInTheDocument();
+    expect(within(renderPanel).getByRole('button', { name: /render narration demo/i })).toBeDisabled();
+    expect(renderNarrationDemo).not.toHaveBeenCalled();
   });
 
   test('renders ready demo handoff checklist and demo run package link for completed reviewed media jobs', async () => {
@@ -6117,6 +6184,56 @@ function narrationDemoRenderResultFixture(overrides: Partial<NarrationDemoRender
       narratedVideoReady: true
     }),
     generatedArtifactCount: 2,
+    ...overrides
+  };
+}
+
+function narrationDemoRenderPreflightFixture(
+  overrides: Partial<NarrationDemoRenderPreflight> = {}
+): NarrationDemoRenderPreflight {
+  return {
+    jobId: 'narration-render-job',
+    presetId: 'tears-showcase-narration',
+    status: 'ATTENTION',
+    checks: [
+      {
+        key: 'PRESET',
+        label: 'Preset',
+        status: 'PASS',
+        message: 'Preset tears-showcase-narration is available.'
+      },
+      {
+        key: 'REPLACE_CONFIRMATION',
+        label: 'Replace confirmation',
+        status: 'WARN',
+        message: 'Rendering will replace 2 existing narration rows.'
+      },
+      {
+        key: 'TTS_PROVIDER',
+        label: 'TTS provider',
+        status: 'WARN',
+        message: 'Narration render can call the configured openai TTS provider.'
+      },
+      {
+        key: 'NARRATED_VIDEO_INPUT',
+        label: 'Narrated video input',
+        status: 'PASS',
+        message: 'A base video artifact is available.'
+      }
+    ],
+    estimatedSegmentCount: 4,
+    estimatedCharacterCount: 128,
+    providerMode: 'openai',
+    paidProvider: true,
+    existingWorkspaceSegmentCount: 2,
+    generateNarratedVideo: false,
+    requiredConfirmations: ['REPLACE_EXISTING', 'PAID_PROVIDER'],
+    safeNextCommand: 'LINGUAFRAME_DEMO_JOB_ID=narration-render-job scripts/demo/narration-demo-render.sh',
+    evidenceRoutes: [
+      '/api/jobs/narration-render-job/narration-demo/render',
+      '/api/jobs/narration-render-job/narration-evidence',
+      '/api/jobs/narration-render-job/narration-script-package'
+    ],
     ...overrides
   };
 }

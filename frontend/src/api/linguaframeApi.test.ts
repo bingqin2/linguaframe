@@ -58,6 +58,7 @@ import {
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
   generateNarratedVideo,
+  preflightNarrationDemoRender,
   renderNarrationDemo,
   importNarrationScriptPackage,
   getDemoSession,
@@ -483,6 +484,49 @@ describe('linguaframeApi', () => {
     });
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Frender/narration-demo/render');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        presetId: 'tears-showcase-narration',
+        replaceExisting: true,
+        generateNarratedVideo: false
+      })
+    });
+  });
+
+  test('preflights narration demo render with encoded route and explicit render options', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job narration/render',
+        presetId: 'tears-showcase-narration',
+        status: 'ATTENTION',
+        checks: [
+          {
+            key: 'TTS_PROVIDER',
+            label: 'TTS provider',
+            status: 'WARN',
+            message: 'Narration render can call the configured openai TTS provider.'
+          }
+        ],
+        estimatedSegmentCount: 4,
+        estimatedCharacterCount: 128,
+        providerMode: 'openai',
+        paidProvider: true,
+        existingWorkspaceSegmentCount: 1,
+        generateNarratedVideo: false,
+        requiredConfirmations: ['REPLACE_EXISTING', 'PAID_PROVIDER'],
+        safeNextCommand: 'LINGUAFRAME_DEMO_JOB_ID=job narration/render scripts/demo/narration-demo-render.sh',
+        evidenceRoutes: ['/api/jobs/job narration/render/narration-evidence']
+      })
+    );
+
+    await preflightNarrationDemoRender('job narration/render', {
+      presetId: 'tears-showcase-narration',
+      replaceExisting: true,
+      generateNarratedVideo: false
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Frender/narration-demo/render/preflight');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
       method: 'POST',
       body: JSON.stringify({
