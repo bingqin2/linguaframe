@@ -165,7 +165,7 @@ Build:
 - OpenAI TTS client.
 - Job-level TTS voice selection. Status: implemented through upload API, React form, job/list/detail responses, dispatch payloads, provider requests, and TTS cache identity.
 - Dubbing text preparation.
-- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, React narration workspace, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, and terminal evidence exports.
+- Time-coded custom narration segments. Status: implemented with backend persistence, workspace APIs, React narration timeline workbench, numeric mix controls, per-segment TTS mixed into a timed `NARRATION_AUDIO` bed, standalone `NARRATED_VIDEO` export that preserves original/base audio and applies saved ducking, narration gain, and fades during narration windows, metadata-only narration evidence, and terminal evidence exports. The workbench shows span, covered time, gaps, readiness, proportional segment bars, and selected-segment diagnostics.
 - TTS artifact storage.
 - Audio preview and download API.
 - TTS usage and cost record.
@@ -182,7 +182,7 @@ Exit criteria:
 - A completed transcript or translation can produce a TTS audio file.
 - The frontend can play or download the generated audio.
 - TTS failures are retryable and visible.
-- Operators can add multiple time-coded explanatory voiceover segments and produce separate timed narration audio plus a standalone narrated video with configurable original-audio ducking, narration gain, and fades without disrupting the current localization pipeline. Future slices can add waveform editing, automation curves, and richer timeline editing.
+- Operators can add multiple time-coded explanatory voiceover segments, inspect intentional gaps before generation, and produce separate timed narration audio plus a standalone narrated video with configurable original-audio ducking, narration gain, and fades without disrupting the current localization pipeline. Future slices can add waveform editing, automation curves, and drag/drop timeline editing.
 
 Suggested ExecPlan:
 

@@ -14,7 +14,7 @@ The project should stay focused on video localization:
 - Upload-time subtitle polishing control for disabled, balanced, or strict subtitle cleanup.
 - Reusable demo run profiles that apply a complete localization preset while preserving manual overrides.
 - TTS dubbing audio.
-- Time-coded custom narration segments for adding explanatory voiceover on top of localization output.
+- Time-coded custom narration segments with timeline inspection for adding explanatory voiceover on top of localization output.
 - Subtitle-burned preview video.
 - Cost, retry, and failure observability.
 
@@ -142,13 +142,14 @@ A user should be able to:
 21. Open a demo acceptance gate that gives one final `READY`, `ATTENTION`, or `BLOCKED` answer with required checks, warning checks, safe evidence, and next action.
 22. Download a demo handoff portal ZIP with `index.html` as an offline reviewer entry point to all safe job evidence.
 23. Open a private-demo evidence gallery that lists completed runs, marks the recommended handoff candidate, and exposes safe package links without opening every job manually.
-24. Play the generated dubbing audio with visible file metadata and download evidence.
-25. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
-26. Inspect cost and processing time.
-25. Retry the job if a step fails.
-26. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
-27. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
-28. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
+24. Add time-coded narration rows, inspect proportional timeline bars, understand gaps as intentional silence, fix overlaps or invalid windows, tune mix settings, generate narration audio/video, and download safe narration evidence.
+25. Play the generated dubbing audio with visible file metadata and download evidence.
+26. Preview or download generated and reviewed subtitle-burned videos as separate outputs.
+27. Inspect cost and processing time.
+28. Retry the job if a step fails.
+29. Identify the current stage, slowest stage, and stage timing evidence without reading backend logs.
+30. Review source and translated subtitle rows side by side with missing-target, timing-delta, quality, and downloadable subtitle artifact evidence.
+31. Copy or download quality-evaluation evidence that captures score, verdict, dimensions, issue/fix counts, and safe routes without exposing raw media text or secrets.
 
 The UI should make the system feel like a media workflow tool, not a chat page.
 
@@ -187,7 +188,7 @@ The backend should provide:
 - FFmpeg integration for audio extraction and subtitle burn-in.
 - Preset-based subtitle burn-in styling that is persisted per job and applied to generated preview videos.
 - TTS dubbed-video delivery that combines generated `DUBBING_AUDIO` with generated `BURNED_VIDEO` into a separate `DUBBED_VIDEO` artifact when both inputs are available.
-- Time-coded narration authoring that lets an operator attach multiple text segments to video time ranges, synthesize them through the existing TTS provider boundary, generate a timed `NARRATION_AUDIO` bed, tune numeric ducking/narration/fade settings, and generate standalone `NARRATED_VIDEO` with original/base audio ducked under narration without replacing generated or reviewed subtitle artifacts. Waveform editing, drag/drop timeline editing, and multitrack automation curves remain later targets.
+- Time-coded narration authoring that lets an operator attach multiple text segments to video time ranges, inspect computed span/covered/gap/readiness metadata in a compact timeline workbench, synthesize them through the existing TTS provider boundary, generate a timed `NARRATION_AUDIO` bed, tune numeric ducking/narration/fade settings, and generate standalone `NARRATED_VIDEO` with original/base audio ducked under narration without replacing generated or reviewed subtitle artifacts. Gaps are intentional silence; overlaps and invalid windows remain blocked. Waveform editing, drag/drop timeline editing, and multitrack automation curves remain later targets.
 - OpenAI speech-to-text client.
 - OpenAI language client for translation and subtitle polishing.
 - Translation style metadata that is persisted per job and included in provider prompts, safe summaries, and translation cache keys.

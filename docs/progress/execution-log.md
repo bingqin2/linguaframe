@@ -3924,6 +3924,22 @@ Validation so far:
 
 Work:
 
+- Documented the narration timeline workbench browser workflow, including gap/overlap semantics, save/mix/generate steps, evidence refresh, and safe downloads.
+- Updated product roadmap, target state, smoke checklist, Docker demo guide, and decisions to mark timeline inspection as implemented while keeping waveform rendering, drag/drop editing, and automation curves as future slices.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationEvidenceServiceTests` passed with `Tests run: 77, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 732, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Added the React narration timeline workbench with proportional segment bars, gap/readiness metrics, selected-segment inspector details, and typed frontend timeline/evidence fields.
 - Split the narration workspace UI into timeline, segment table, inspector, evidence metrics, and mix-settings subcomponents while keeping keyboard-friendly row editing.
 - Disabled narration audio/video generation when local segment validation fails; evidence refresh and downloads remain available for diagnosis.

@@ -676,6 +676,14 @@ Impact: `/api/jobs/{jobId}/demo-replay-card`, the browser `Demo replay card` pan
 
 ## 2026-06-29
 
+Decision: Add narration timeline inspection before waveform or drag editing.
+
+Reason: Operators need to see where explanatory voiceover segments land, how much time is covered, and whether gaps or overlaps exist before spending TTS/video-generation cost. A computed timeline workbench gives demo-ready feedback without introducing a nonlinear editor surface.
+
+Impact: The narration workspace now exposes backend-computed span, covered time, gap count/seconds, overlap state, readiness, proportional segment bars, and selected-segment diagnostics in React. Gaps are allowed as intentional silence; overlaps and invalid ranges still block save/generate actions. Waveform rendering, drag/drop segment editing, multitrack automation curves, and voice-cloning style controls remain future slices.
+
+## 2026-06-29
+
 Decision: Generate demo completion certificates on demand from existing safe evidence surfaces.
 
 Reason: A completed public demo needs one final proof surface, but persisting another artifact would duplicate state already represented by delivery manifests, presenter packs, replay cards, share sheets, snapshots, run matrices, and package routes.

@@ -100,15 +100,15 @@
 - Modify: `docs/plans/136-narration-timeline-workbench.md`
 - Modify: `docs/progress/execution-log.md`
 
-- [ ] Document the browser workflow: open narration workspace, inspect timeline bars, fix gaps/invalid rows, save narration, save mix settings, generate audio/video, verify evidence.
-- [ ] Document that gaps are allowed as intentional silent intervals while overlaps remain blocked.
-- [ ] Record the decision that this slice adds timeline inspection before waveform/drag editing.
-- [ ] Run focused backend validations from Tasks 1-2.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
+- [x] Document the browser workflow: open narration workspace, inspect timeline bars, fix gaps/invalid rows, save narration, save mix settings, generate audio/video, verify evidence.
+- [x] Document that gaps are allowed as intentional silent intervals while overlaps remain blocked.
+- [x] Record the decision that this slice adds timeline inspection before waveform/drag editing.
+- [x] Run focused backend validations from Tasks 1-2.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
 - [ ] Commit with message `Document narration timeline workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.
