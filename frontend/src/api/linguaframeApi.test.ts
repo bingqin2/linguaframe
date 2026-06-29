@@ -35,6 +35,8 @@ import {
   getRuntimeLiveChecks,
   getOpenAiReadinessEvidence,
   downloadOpenAiReadinessEvidenceMarkdown,
+  getOpenAiSmokeProof,
+  downloadOpenAiSmokeProofMarkdown,
   getDemoSession,
   getAuthSession,
   loginAuthSession,
@@ -1249,6 +1251,49 @@ describe('linguaframeApi', () => {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
     });
+  });
+
+  test('fetches OpenAI smoke proof with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(openAiSmokeProofFixture())
+    );
+
+    const proof = await getOpenAiSmokeProof('job with spaces/slash');
+
+    expect(proof.overallStatus).toBe('READY');
+    expect(proof.requiredChecks[0]?.name).toBe('OpenAI transcription call');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/openai-smoke-proof', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads OpenAI smoke proof markdown with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame OpenAI Smoke Proof', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadOpenAiSmokeProofMarkdown('job with spaces/slash');
+
+    expect(await result.text()).toContain('OpenAI Smoke Proof');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/openai-smoke-proof/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
   });
 
   test('fetches demo session command center with selected job id and demo token header', async () => {
@@ -2928,6 +2973,72 @@ function runtimeLiveChecksFixture() {
       minio: { status: 'UP', latencyMs: 7, message: 'MinIO bucket is reachable' },
       ffmpeg: { status: 'UP', latencyMs: 8, message: 'FFmpeg executable responded' }
     }
+  };
+}
+
+function openAiSmokeProofFixture() {
+  return {
+    jobId: 'job-openai-smoke',
+    videoId: 'video-openai-smoke',
+    targetLanguage: 'zh-CN',
+    overallStatus: 'READY',
+    phase: 'OPENAI_SMOKE_PROVEN',
+    recommendedNextAction: 'Use this proof to present the completed OpenAI smoke run.',
+    completedAt: '2026-06-29T01:03:00Z',
+    requiredChecks: [
+      {
+        name: 'OpenAI transcription call',
+        status: 'READY',
+        detail: 'Successful OpenAI TRANSCRIPTION call recorded.',
+        nextAction: 'No action required.'
+      }
+    ],
+    optionalChecks: [
+      {
+        name: 'Quality evaluation',
+        status: 'READY',
+        detail: 'Quality score 91 / 100, verdict GOOD.',
+        nextAction: 'No action required.'
+      }
+    ],
+    modelCalls: [
+      {
+        stage: 'TRANSCRIPT_SUBTITLE_EXPORT',
+        operation: 'TRANSCRIPTION',
+        provider: 'OPENAI',
+        model: 'gpt-4o-mini-transcribe',
+        promptVersion: 'openai-audio-transcriptions-v1',
+        status: 'SUCCEEDED',
+        latencyMs: 250,
+        inputTokens: null,
+        outputTokens: null,
+        audioSeconds: 30,
+        characterCount: null,
+        estimatedCostUsd: 0.0012,
+        safeErrorSummary: null
+      }
+    ],
+    artifacts: [
+      {
+        artifactId: 'target-srt',
+        type: 'TARGET_SUBTITLE_SRT',
+        filename: 'target-subtitles.zh-CN.srt',
+        contentType: 'application/x-subrip',
+        sizeBytes: 128,
+        contentSha256: 'hash-target-srt',
+        cacheHit: false,
+        createdAt: '2026-06-29T01:03:00Z'
+      }
+    ],
+    safeLinks: [
+      {
+        label: 'AI audit package',
+        href: '/api/jobs/job-openai-smoke/ai-audit-package/download',
+        contentType: 'application/zip',
+        description: 'Prompt, model-call, usage, and cost audit package.'
+      }
+    ],
+    safetyNotes: ['Metadata only.']
   };
 }
 

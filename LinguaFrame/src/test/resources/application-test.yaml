@@ -15,6 +15,8 @@ management:
   health:
     rabbit:
       enabled: false
+    redis:
+      enabled: false
 
 linguaframe:
   cost:

@@ -29,6 +29,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   OpenAiReadinessEvidence,
+  OpenAiSmokeProof,
   DemoRunProfile,
   DemoSessionStatus,
   DemoUploadReadiness,
@@ -485,7 +486,6 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
-
     render(<App />);
 
     const dashboard = await screen.findByRole('region', { name: /operator dashboard/i });
@@ -1580,7 +1580,6 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
-
     render(<App />);
 
     await userEvent.type(screen.getByLabelText(/open job id/i), 'manual-job');
@@ -1673,6 +1672,10 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getOpenAiSmokeProof').mockResolvedValue(openAiSmokeProofFixture());
+    const downloadSmokeProof = vi.spyOn(linguaFrameApi, 'downloadOpenAiSmokeProofMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame OpenAI Smoke Proof'], { type: 'text/markdown' })
+    );
 
     render(<App />);
 
@@ -1703,6 +1706,15 @@ describe('App', () => {
     expect(within(modelCalls).getByText('target=zh-CN, segments=2, sourceChars=61')).toBeInTheDocument();
     expect(within(modelCalls).getByText('segments=2, targetChars=29')).toBeInTheDocument();
     expect(within(modelCalls).queryByText('Hello from LinguaFrame.')).not.toBeInTheDocument();
+    const smokeProof = screen.getByRole('region', { name: /openai smoke proof/i });
+    expect(within(smokeProof).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(smokeProof).getByText('OPENAI_SMOKE_PROVEN')).toBeInTheDocument();
+    expect(within(smokeProof).getByText(/OpenAI transcription call/)).toBeInTheDocument();
+    expect(within(smokeProof).getByText('TRANSCRIPTION')).toBeInTheDocument();
+    expect(within(smokeProof).getByText('TARGET_SUBTITLE_SRT')).toBeInTheDocument();
+    expect(within(smokeProof).queryByText('raw transcript text')).not.toBeInTheDocument();
+    await userEvent.click(within(smokeProof).getByRole('button', { name: /download smoke proof/i }));
+    await waitFor(() => expect(downloadSmokeProof).toHaveBeenCalledWith('job-1'));
     const failureTriage = screen.getByRole('region', { name: /failure triage/i });
     expect(within(failureTriage).getByText('OPENAI_AUTH_OR_MODEL')).toBeInTheDocument();
     expect(within(failureTriage).getByText('OpenAI rejected the configured credentials or model.')).toBeInTheDocument();
@@ -5566,5 +5578,77 @@ function pipelineProgressFixture(
       }
     ],
     ...overrides
+  };
+}
+
+function openAiSmokeProofFixture(): OpenAiSmokeProof {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    targetLanguage: 'zh-CN',
+    overallStatus: 'READY',
+    phase: 'OPENAI_SMOKE_PROVEN',
+    recommendedNextAction: 'Use this proof to present the completed OpenAI smoke run.',
+    completedAt: '2026-06-26T10:00:04Z',
+    requiredChecks: [
+      {
+        name: 'OpenAI transcription call',
+        status: 'READY',
+        detail: 'Successful OpenAI TRANSCRIPTION call recorded.',
+        nextAction: 'No action required.'
+      },
+      {
+        name: 'OpenAI translation call',
+        status: 'READY',
+        detail: 'Successful OpenAI TRANSLATION call recorded.',
+        nextAction: 'No action required.'
+      }
+    ],
+    optionalChecks: [
+      {
+        name: 'Quality evaluation',
+        status: 'READY',
+        detail: 'Quality score 92 / 100, verdict GOOD.',
+        nextAction: 'No action required.'
+      }
+    ],
+    modelCalls: [
+      {
+        stage: 'TRANSCRIPT_SUBTITLE_EXPORT',
+        operation: 'TRANSCRIPTION',
+        provider: 'OPENAI',
+        model: 'gpt-4o-mini-transcribe',
+        promptVersion: 'openai-audio-transcriptions-v1',
+        status: 'SUCCEEDED',
+        latencyMs: 250,
+        inputTokens: null,
+        outputTokens: null,
+        audioSeconds: 30,
+        characterCount: null,
+        estimatedCostUsd: 0.0012,
+        safeErrorSummary: null
+      }
+    ],
+    artifacts: [
+      {
+        artifactId: 'target-srt',
+        type: 'TARGET_SUBTITLE_SRT',
+        filename: 'target-subtitles.zh-CN.srt',
+        contentType: 'application/x-subrip',
+        sizeBytes: 128,
+        contentSha256: 'hash-target-srt',
+        cacheHit: false,
+        createdAt: '2026-06-26T10:00:04Z'
+      }
+    ],
+    safeLinks: [
+      {
+        label: 'AI audit package',
+        href: '/api/jobs/job-1/ai-audit-package/download',
+        contentType: 'application/zip',
+        description: 'Prompt, model-call, usage, and cost audit package.'
+      }
+    ],
+    safetyNotes: ['Metadata only; sensitive content is excluded.']
   };
 }

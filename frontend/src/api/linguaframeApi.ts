@@ -29,6 +29,7 @@ import type {
   MediaUploadValidation,
   ModelUsageLedger,
   OpenAiReadinessEvidence,
+  OpenAiSmokeProof,
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
@@ -730,6 +731,18 @@ export async function downloadOpenAiReadinessEvidenceMarkdown(): Promise<Blob> {
   });
 }
 
+export async function getOpenAiSmokeProof(jobId: string): Promise<OpenAiSmokeProof> {
+  return requestJson<OpenAiSmokeProof>(`/api/jobs/${encodeURIComponent(jobId)}/openai-smoke-proof`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadOpenAiSmokeProofMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/openai-smoke-proof/markdown/download`, {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -978,6 +991,8 @@ export const linguaFrameApi = {
   getRuntimeLiveChecks,
   getOpenAiReadinessEvidence,
   downloadOpenAiReadinessEvidenceMarkdown,
+  getOpenAiSmokeProof,
+  downloadOpenAiSmokeProofMarkdown,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

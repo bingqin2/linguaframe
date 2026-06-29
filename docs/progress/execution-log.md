@@ -6,6 +6,31 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned OpenAI smoke proof workspace in `docs/plans/128-openai-smoke-proof-workspace.md`.
+- Added backend `GET /api/jobs/{jobId}/openai-smoke-proof` and Markdown download for post-run OpenAI smoke evidence.
+- Added browser selected-job `OpenAI smoke proof` panel with required checks, OpenAI call rows, artifacts, safe links, refresh, and Markdown download.
+- Added `scripts/demo/openai-smoke-proof.sh` and extended `scripts/demo/docker-e2e-openai-smoke.sh` to export proof JSON/Markdown after completion.
+- Documented readiness-before-upload versus smoke-proof-after-completion usage.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=OpenAiSmokeProofServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests` passed with `Tests run: 55, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 81 passed`.
+- `npm test -- --run src/App.test.tsx` passed with `Test Files 1 passed` and `Tests 91 passed`.
+- `mvn -pl LinguaFrame test -Dtest=OpenAiSmokeProofServiceTests,LocalizationJobControllerTests` passed with `Tests run: 59, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=ActuatorHealthTests,DemoAccessInterceptorTests,MediaUploadControllerTests,RuntimeDependencyControllerTests` passed with `Tests run: 36, Failures: 0, Errors: 0, Skipped: 0`; this verified deterministic test isolation for local Redis and current Flyway V26.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 668, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 172 passed`.
+- `npm test -- --run` passed with `Test Files 3 passed` and `Tests 179 passed`.
+- `npm run build` passed.
+- `bash -n scripts/demo/openai-smoke-proof.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-29
+
+Work:
+
 - Planned the OpenAI readiness evidence center in `docs/plans/127-openai-readiness-evidence-center.md`.
 - Added backend `GET /api/operator/openai-readiness-evidence` and Markdown download for metadata-only OpenAI provider readiness, live-check, upload readiness, budget, and model-usage evidence.
 - Added a React `OpenAI readiness evidence` panel with provider rows, readiness signals, safe commands, and backend Markdown download.
