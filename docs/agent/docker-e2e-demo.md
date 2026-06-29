@@ -553,7 +553,7 @@ In the browser, edit subtitle text in the subtitle draft editor and separately s
 
 ## Narration Workspace And Evidence Export
 
-Use the browser `Narration workspace` panel when you need explanatory voiceover that is separate from subtitle dubbing. Add time-coded rows, save the workspace, generate narration audio, and verify `NARRATION_AUDIO` appears in media delivery as a playable audio card. This first slice generates separate narration audio and metadata-only evidence; it does not mux narration into a new video.
+Use the browser `Narration workspace` panel when you need explanatory voiceover that is separate from subtitle dubbing. Add time-coded rows, save the workspace, generate narration audio, generate narrated video, and verify `NARRATION_AUDIO` plus `NARRATED_VIDEO` appear in media delivery as playable cards. Narrated-video export creates a standalone `narrated-video.mp4`; it does not replace dubbing audio, dubbed video, burned video, or reviewed handoff media.
 
 Terminal evidence export:
 
@@ -561,7 +561,7 @@ Terminal evidence export:
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-evidence.sh
 ```
 
-The script writes `narration-evidence.json`, `narration-evidence.md`, and `narration-evidence.zip` under `/tmp/linguaframe-demo/narration-evidence/`. It exits non-zero when evidence is `BLOCKED`; set `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true` to export a blocked report. The ZIP must contain `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`, and must not include narration script bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
+The script writes `narration-evidence.json`, `narration-evidence.md`, and `narration-evidence.zip` under `/tmp/linguaframe-demo/narration-evidence/`. Set `LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO=true` to call the narrated-video generation endpoint when narration audio is ready. It exits non-zero when evidence is `BLOCKED`; set `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true` to export a blocked report. The ZIP must contain `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`, and must not include narration script bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 
 ## Optional OpenAI TTS Demo
 

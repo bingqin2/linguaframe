@@ -3667,6 +3667,7 @@ Work:
 - Added backend narrated-video generation through `POST /api/jobs/{jobId}/narration-workspace/generate-video`, using existing `NARRATION_AUDIO`, preferred base video selection, FFmpeg audio replacement, and isolated `NARRATED_VIDEO` artifact creation.
 - Extended narration evidence, runtime required routes, job evidence Markdown, demo handoff portal links, and demo run package media counts for `NARRATED_VIDEO`.
 - Added React API helpers, narration workspace `Generate narrated video` action, narrated-video evidence readiness display, and `NARRATED_VIDEO` media-delivery card.
+- Extended narration evidence scripts, deterministic/OpenAI/full Tears demo scripts, README, Docker demo guide, smoke checklist, roadmap, target state, and decisions for optional narrated-video generation and verification.
 
 Validation so far:
 
@@ -3675,6 +3676,7 @@ Validation so far:
 - `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests,RuntimeDependencyControllerTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests,DemoRunPackageServiceTests -q` passed.
 - `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with jsdom navigation warnings and exit code 0.
 - `npm run build` passed.
+- `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 
 ## 2026-06-29
 

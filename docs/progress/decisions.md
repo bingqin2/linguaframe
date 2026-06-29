@@ -729,3 +729,11 @@ Decision: Implement the first narration slice as separate audio plus metadata-on
 Reason: The project needs a complete, demoable narration feature that fits the existing localization architecture without turning the app into a full video editor. Generating separate narration audio proves the TTS workflow and browser editor while keeping reviewed subtitle and media delivery semantics intact.
 
 Impact: Narration segments are stored as job-level time-coded rows, synthesized through the existing TTS provider and budget guard, and saved as `NARRATION_AUDIO`. Narration evidence JSON/Markdown/ZIP exposes counts, timing, audio readiness, and safe links only. Generated subtitles, reviewed subtitles, `DUBBING_AUDIO`, `DUBBED_VIDEO`, burned videos, and handoff artifacts are not replaced by narration.
+
+## 2026-06-29
+
+Decision: Generate narrated videos as standalone artifacts through the existing FFmpeg audio replacement boundary.
+
+Reason: The narration workflow now needs a complete demo path from time-coded narration text to playable video, but the project still should not become a full nonlinear editor or mutate existing localization outputs.
+
+Impact: `POST /api/jobs/{jobId}/narration-workspace/generate-video` combines the preferred available base video with existing `NARRATION_AUDIO`, stores `narrated-video.mp4` as `NARRATED_VIDEO`, and leaves dubbing, burned-video, reviewed subtitle, and handoff artifacts unchanged. Evidence, handoff links, demo scripts, and frontend media delivery treat narrated video as an independent output; ducking, mixing, waveform editing, and drag/drop timeline controls remain future work.

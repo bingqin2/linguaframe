@@ -150,6 +150,20 @@ PY
 if [[ "$narration_status" == "BLOCKED" ]]; then
   echo "Narration evidence is BLOCKED; no narration segments have been saved for this run."
 else
+  if [[ "${LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO:-false}" == "true" ]]; then
+    narration_audio_ready="$(python3 - "$OUTPUT_DIR/narration-evidence.json" <<'PY'
+import json
+import sys
+print(str(json.load(open(sys.argv[1], encoding="utf-8")).get("narrationAudioReady", False)).lower())
+PY
+)"
+    if [[ "$narration_audio_ready" == "true" ]]; then
+      generate_narrated_video_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narrated-video-generation.json"
+      download_narration_evidence_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.json"
+    else
+      echo "Skipping narrated video generation because narration audio is not ready."
+    fi
+  fi
   download_narration_evidence_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.md"
   download_narration_evidence_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-evidence.zip"
   print_narration_evidence_summary_file "$OUTPUT_DIR/narration-evidence.json" "$OUTPUT_DIR/narration-evidence.md" "$OUTPUT_DIR/narration-evidence.zip"

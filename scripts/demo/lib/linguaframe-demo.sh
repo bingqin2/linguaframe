@@ -587,6 +587,17 @@ download_narration_workspace_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-workspace" -o "$output_path"
 }
 
+generate_narrated_video_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS -X POST "$base_url/api/jobs/$encoded_job_id/narration-workspace/generate-video" -o "$output_path"
+}
+
 download_narration_evidence_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3184,6 +3195,8 @@ print("narrationEvidenceJobId=" + str(evidence.get("jobId", "")))
 print("narrationEvidenceStatus=" + str(evidence.get("status", "")))
 print("narrationEvidenceSegmentCount=" + str(evidence.get("segmentCount", 0)))
 print("narrationEvidenceAudioArtifactCount=" + str(evidence.get("audioArtifactCount", 0)))
+print("narrationEvidenceNarratedVideoReady=" + str(evidence.get("narratedVideoReady", False)).lower())
+print("narrationEvidenceNarratedVideoArtifactCount=" + str(evidence.get("narratedVideoArtifactCount", 0)))
 print("narrationEvidenceCharacterCount=" + str(evidence.get("totalCharacterCount", 0)))
 print("narrationEvidencePackageEntryCount=" + str(len(required_entries)))
 print("narrationEvidenceJsonPath=" + str(json_path))

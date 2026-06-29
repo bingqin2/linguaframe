@@ -140,14 +140,14 @@
 **Interfaces:**
 - Optional env: `LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO=true` for scripts that already know a job id and have narration audio.
 
-- [ ] Add Bash helper `generate_narrated_video_json(base_url, job_id, output_path)`.
-- [ ] Extend narration evidence summary to print narrated-video readiness and artifact count.
-- [ ] Extend deterministic, OpenAI smoke, and full Tears scripts to optionally call generate-video after narration audio exists; skip cleanly when missing prerequisites.
-- [ ] Document browser workflow: save narration rows, generate narration audio, generate narrated video, verify `NARRATED_VIDEO` media card.
-- [ ] Document terminal workflow and expected metadata-only evidence output.
-- [ ] Update product docs to say narrated-video export exists, while ducking/mixing/waveform editing remain future work.
-- [ ] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add Bash helper `generate_narrated_video_json(base_url, job_id, output_path)`.
+- [x] Extend narration evidence summary to print narrated-video readiness and artifact count.
+- [x] Extend deterministic, OpenAI smoke, and full Tears scripts to optionally call generate-video after narration audio exists; skip cleanly when missing prerequisites.
+- [x] Document browser workflow: save narration rows, generate narration audio, generate narrated video, verify `NARRATED_VIDEO` media card.
+- [x] Document terminal workflow and expected metadata-only evidence output.
+- [x] Update product docs to say narrated-video export exists, while ducking/mixing/waveform editing remain future work.
+- [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 
 ## Task 6: Final Verification, Commit, And Merge
 
