@@ -61,6 +61,19 @@ print(
     f"{value['estimatedDurationSecondsLower']}..{value['estimatedDurationSecondsUpper']}"
 )
 print(f"uploadExecutionPlanRecommendedNextAction={value['recommendedNextAction']}")
+reuse = value.get("sourceReuse") or {}
+if reuse.get("sourceContentSha256"):
+    print(f"uploadExecutionPlanSourceSha256={reuse['sourceContentSha256']}")
+print(f"uploadExecutionPlanDuplicateSourceMatchCount={reuse.get('candidateCount', 0)}")
+print(f"uploadExecutionPlanSourceReuseRecommendedAction={reuse.get('recommendedAction', 'UPLOAD_NEW_SOURCE')}")
+if reuse.get("recommendedExistingJobId"):
+    print(f"uploadExecutionPlanRecommendedExistingJobId={reuse['recommendedExistingJobId']}")
+for candidate in reuse.get("candidates", [])[:5]:
+    print(
+        "uploadExecutionPlanSourceReuseCandidate="
+        f"{candidate['jobId']}:{candidate['jobStatus']}:{candidate.get('demoProfileId') or 'default'}:"
+        f"{candidate.get('translationStyle') or 'unknown'}"
+    )
 for gate in value.get("gates", []):
     if gate.get("blocking"):
         print(

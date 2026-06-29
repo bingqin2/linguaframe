@@ -11,6 +11,7 @@ public record VideoRecord(
         String contentType,
         long fileSizeBytes,
         Integer durationSeconds,
+        String sourceContentSha256,
         String sourceObjectKey,
         MediaUploadStatus status,
         Instant createdAt
@@ -24,7 +25,7 @@ public record VideoRecord(
             MediaUploadStatus status,
             Instant createdAt
     ) {
-        this(id, "demo-owner", originalFilename, contentType, fileSizeBytes, null, sourceObjectKey, status, createdAt);
+        this(id, "demo-owner", originalFilename, contentType, fileSizeBytes, null, null, sourceObjectKey, status, createdAt);
     }
 
     public VideoRecord(
@@ -37,6 +38,20 @@ public record VideoRecord(
             MediaUploadStatus status,
             Instant createdAt
     ) {
-        this(id, "demo-owner", originalFilename, contentType, fileSizeBytes, durationSeconds, sourceObjectKey, status, createdAt);
+        this(id, "demo-owner", originalFilename, contentType, fileSizeBytes, durationSeconds, null, sourceObjectKey, status, createdAt);
+    }
+
+    public VideoRecord(
+            String id,
+            String ownerId,
+            String originalFilename,
+            String contentType,
+            long fileSizeBytes,
+            Integer durationSeconds,
+            String sourceObjectKey,
+            MediaUploadStatus status,
+            Instant createdAt
+    ) {
+        this(id, ownerId, originalFilename, contentType, fileSizeBytes, durationSeconds, null, sourceObjectKey, status, createdAt);
     }
 }

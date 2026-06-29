@@ -873,6 +873,22 @@ td {
   margin: 0;
 }
 
+.upload-validation-subsection {
+  margin: 12px 0;
+  border: 1px solid #d7e0e6;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fbfcfd;
+}
+
+.upload-validation-subsection h4 {
+  margin: 0;
+}
+
+.compact-panel-heading {
+  margin-bottom: 8px;
+}
+
 .validation-message {
   margin: 0 0 12px;
 }

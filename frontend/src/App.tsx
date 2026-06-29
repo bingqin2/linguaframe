@@ -3089,6 +3089,50 @@ function UploadExecutionPlanPanel({
               ))}
             </ul>
           ) : null}
+          {plan.sourceReuse?.sourceContentSha256 ? (
+            <div className="upload-validation-subsection" aria-label="Source reuse">
+              <div className="panel-heading compact-panel-heading">
+                <h4>Source reuse</h4>
+                <span className={readinessStatusClassName(plan.sourceReuse.candidateCount > 0 ? 'ATTENTION' : 'READY')}>
+                  {plan.sourceReuse.recommendedAction}
+                </span>
+              </div>
+              <dl className="status-grid compact-status-grid upload-validation-grid">
+                <div>
+                  <dt>Source SHA-256</dt>
+                  <dd><code>{formatShortHash(plan.sourceReuse.sourceContentSha256)}</code></dd>
+                </div>
+                <div>
+                  <dt>Matches</dt>
+                  <dd>{plan.sourceReuse.candidateCount}</dd>
+                </div>
+                <div>
+                  <dt>Recommended job</dt>
+                  <dd>{plan.sourceReuse.recommendedExistingJobId ?? 'None'}</dd>
+                </div>
+              </dl>
+              {plan.sourceReuse.candidates.length > 0 ? (
+                <ul className="readiness-list" aria-label="Source reuse candidates">
+                  {plan.sourceReuse.candidates.slice(0, 3).map((candidate) => (
+                    <li key={candidate.jobId}>
+                      <span>{candidate.originalFilename}</span>
+                      <span className={readinessStatusClassName(sourceReuseJobReadiness(candidate.jobStatus))}>{candidate.jobStatus}</span>
+                      <span>{formatDemoProfileId(candidate.demoProfileId)} / {candidate.translationStyle}</span>
+                      <span>
+                        <a className="secondary-link" href={`#job-${candidate.jobId}`}>
+                          Open job
+                        </a>
+                        {' '}
+                        <a className="secondary-link" href={linguaFrameApi.demoShareSheetMarkdownDownloadUrl(candidate.jobId)}>
+                          Share sheet
+                        </a>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {plan.stages.length > 0 ? (
             <ul className="readiness-list" aria-label="Upload execution plan stages">
               {plan.stages.map((stage) => (
@@ -8182,6 +8226,24 @@ function formatGlossaryMetadata(entryCount: number | null | undefined, hash: str
   }
   const normalizedHash = hash?.trim();
   return `Glossary ${count} · ${normalizedHash ? normalizedHash.slice(0, 8) : 'no hash'}`;
+}
+
+function formatShortHash(hash: string | null | undefined): string {
+  const normalized = hash?.trim();
+  if (!normalized) {
+    return 'none';
+  }
+  return normalized.length <= 16 ? normalized : `${normalized.slice(0, 12)}...${normalized.slice(-8)}`;
+}
+
+function sourceReuseJobReadiness(status: LocalizationJobStatus): DemoUploadReadiness['overallStatus'] {
+  if (status === 'COMPLETED') {
+    return 'READY';
+  }
+  if (status === 'FAILED' || status === 'CANCELLED') {
+    return 'BLOCKED';
+  }
+  return 'ATTENTION';
 }
 
 function formatEnabled(value: boolean): string {

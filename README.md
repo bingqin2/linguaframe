@@ -174,7 +174,7 @@ LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
 scripts/demo/upload-execution-plan.sh
 ```
 
-It calls `POST /api/media/uploads/execution-plan`, writes `/tmp/linguaframe-demo/upload-execution-plan.json`, and prints metadata-only status, duration, cost, estimated processing time, blocking gates, paid stages, and commands. The browser upload form exposes the same `Execution plan` panel beside validation/readiness/cost. Use it as the main pre-upload decision surface; it does not store media, create jobs, dispatch queues, execute FFmpeg, or call OpenAI.
+It calls `POST /api/media/uploads/execution-plan`, writes `/tmp/linguaframe-demo/upload-execution-plan.json`, and prints metadata-only status, duration, cost, estimated processing time, source SHA-256, duplicate source match count, recommended reuse action, blocking gates, paid stages, and commands. The browser upload form exposes the same `Execution plan` panel beside validation/readiness/cost, including a `Source reuse` section when the selected file matches prior owner-scoped uploads. To test reuse, complete one upload for a sample video, then run `scripts/demo/upload-execution-plan.sh` again with the same sample path; `uploadExecutionPlanDuplicateSourceMatchCount` should be greater than zero. Use it as the main pre-upload decision surface; it does not store media, create jobs, dispatch queues, execute FFmpeg, or call OpenAI.
 
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 

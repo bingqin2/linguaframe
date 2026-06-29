@@ -3439,3 +3439,22 @@ Validation so far:
 - `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests,MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` first failed with HTTP 405 before the endpoint was added, then passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
 - `npm --prefix frontend run build` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned source media fingerprint preflight in `docs/plans/118-source-media-fingerprint-preflight.md`.
+- Added nullable `videos.source_content_sha256`, owner-scoped duplicate source lookup, and upload-time SHA-256 persistence.
+- Added execution-plan source reuse evidence with source SHA-256, duplicate candidate count, recommended action, recommended existing job id, and safe same-owner job candidates.
+- Added browser `Source reuse` guidance in the upload execution plan panel, terminal output in `scripts/demo/upload-execution-plan.sh`, and README testing guidance.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=VideoRepositoryTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=SourceMediaFingerprintServiceTests,MediaUploadServiceTests test` first failed due to an incorrect `DigestInputStream` import, then passed with `Tests run: 23, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests,UploadSourceReuseServiceTests test` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
+- `npm --prefix frontend run build` first failed on a missing `jobStatusClassName` helper, then passed.
+- `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/lib/linguaframe-demo.sh` passed.
