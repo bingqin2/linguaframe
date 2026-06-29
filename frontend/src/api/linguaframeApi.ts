@@ -41,7 +41,8 @@ import type {
   SubtitleReviewSummary,
   SubtitleSegment,
   TranscriptSegment,
-  UpdateSubtitleDraftRequest
+  UpdateSubtitleDraftRequest,
+  UploadCostEstimate
 } from '../domain/jobTypes';
 
 export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
@@ -116,6 +117,33 @@ export async function validateUpload(file: File): Promise<MediaUploadValidation>
   });
 }
 
+export async function estimateUploadCost(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): Promise<UploadCostEstimate> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestJson<UploadCostEstimate>('/api/media/uploads/cost-estimate', {
+    method: 'POST',
+    body
+  });
+}
+
 export async function getOwnerQuotaPreflight(): Promise<OwnerQuotaPreflight> {
   return requestJson<OwnerQuotaPreflight>('/api/media/uploads/preflight', {
     method: 'GET'
@@ -144,6 +172,33 @@ export async function uploadMedia(
   subtitlePolishingMode?: string,
   demoProfileId?: string
 ): Promise<MediaUpload> {
+  const body = buildUploadOptionsFormData(
+    file,
+    targetLanguage,
+    ttsVoice,
+    translationStyle,
+    subtitleStylePreset,
+    translationGlossary,
+    subtitlePolishingMode,
+    demoProfileId
+  );
+
+  return requestJson<MediaUpload>('/api/media/uploads', {
+    method: 'POST',
+    body
+  });
+}
+
+function buildUploadOptionsFormData(
+  file: File,
+  targetLanguage: string,
+  ttsVoice?: string,
+  translationStyle?: string,
+  subtitleStylePreset?: string,
+  translationGlossary?: string,
+  subtitlePolishingMode?: string,
+  demoProfileId?: string
+): FormData {
   const body = new FormData();
   body.set('file', file);
   body.set('targetLanguage', targetLanguage);
@@ -171,11 +226,7 @@ export async function uploadMedia(
   if (normalizedDemoProfileId) {
     body.set('demoProfileId', normalizedDemoProfileId);
   }
-
-  return requestJson<MediaUpload>('/api/media/uploads', {
-    method: 'POST',
-    body
-  });
+  return body;
 }
 
 export async function listDemoRunProfiles(): Promise<DemoRunProfile[]> {
@@ -575,6 +626,7 @@ export const linguaFrameApi = {
   loginAuthSession,
   logoutAuthSession,
   validateUpload,
+  estimateUploadCost,
   getOwnerQuotaPreflight,
   getDemoUploadReadiness,
   uploadMedia,

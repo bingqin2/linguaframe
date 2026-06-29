@@ -40,6 +40,7 @@ import {
   getDemoShareSheet,
   getDemoUploadReadiness,
   getOwnerQuotaPreflight,
+  estimateUploadCost,
   listDemoRunProfiles,
   loginDemoSession,
   logoutDemoSession,
@@ -573,6 +574,68 @@ describe('linguaframeApi', () => {
     const body = fetchMock.mock.calls[0]?.[1]?.body;
     expect(body).toBeInstanceOf(FormData);
     expect((body as FormData).get('file')).toBe(file);
+  });
+
+  test('estimates media upload cost as multipart form data', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        overallStatus: 'READY',
+        recommendedNextAction: 'Upload can proceed with the selected profile and options.',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        maxFileSizeBytes: 104857600,
+        durationSeconds: 90,
+        maxDurationSeconds: 300,
+        valid: true,
+        validationCode: 'READY',
+        validationMessage: 'File is ready for upload.',
+        targetLanguage: 'zh-CN',
+        ttsVoice: null,
+        translationStyle: 'FORMAL',
+        subtitleStylePreset: 'HIGH_CONTRAST',
+        translationGlossaryEntryCount: 1,
+        translationGlossaryHash: 'hash',
+        subtitlePolishingMode: 'BALANCED',
+        demoProfileId: 'tears-showcase',
+        estimatedCostUsdLower: 0.001,
+        estimatedCostUsd: 0.002,
+        estimatedCostUsdUpper: 0.003,
+        stages: [],
+        budgets: [],
+        cacheNotes: [],
+        safetyNotes: []
+      })
+    );
+    const file = new File(['demo'], 'sample.mp4', { type: 'video/mp4' });
+
+    const result = await estimateUploadCost(
+      file,
+      ' zh-CN ',
+      '',
+      ' formal ',
+      ' high_contrast ',
+      'Maya => 玛雅',
+      ' balanced ',
+      'tears-showcase'
+    );
+
+    expect(result.overallStatus).toBe('READY');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media/uploads/cost-estimate',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.any(FormData)
+      })
+    );
+    const body = fetchMock.mock.calls[0]?.[1]?.body as FormData;
+    expect(body.get('file')).toBe(file);
+    expect(body.get('targetLanguage')).toBe(' zh-CN ');
+    expect(body.get('translationStyle')).toBe('FORMAL');
+    expect(body.get('subtitleStylePreset')).toBe('HIGH_CONTRAST');
+    expect(body.get('translationGlossary')).toBe('Maya => 玛雅');
+    expect(body.get('subtitlePolishingMode')).toBe('BALANCED');
+    expect(body.get('demoProfileId')).toBe('tears-showcase');
   });
 
   test('fetches owner quota preflight before upload', async () => {

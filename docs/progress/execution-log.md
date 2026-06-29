@@ -3406,3 +3406,20 @@ Post-merge verification:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed on `main` with `Test Files 2 passed` and `Tests 147 passed`.
 - `scripts/demo/test-linguaframe-demo-client.sh` passed on `main`.
 - `git diff --check` passed on `main`.
+
+## 2026-06-29
+
+Work:
+
+- Planned upload cost estimation preflight in `docs/plans/116-upload-cost-estimation-preflight.md`.
+- Added backend `POST /api/media/uploads/cost-estimate` for metadata-only pre-upload validation, provider-stage cost estimates, budget impact, owner quota impact, cache notes, and recommended next action.
+- Added a React `Cost estimate` panel in the upload form with manual refresh, cost range, budget rows, paid provider stages, and non-blocking error handling.
+- Added `scripts/demo/upload-cost-estimate.sh` for Tears/full-sample pre-upload cost checks and documented browser/terminal usage in README.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadCostEstimateServiceTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadCostBeforeCreatingUpload+returnsBlockedCostEstimateForInvalidFile test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 62 passed`.
+- `npm --prefix frontend run build` passed.
+- `mvn -pl LinguaFrame test` currently fails on existing environment-dependent readiness/health checks because local Redis/dependency health is down: `ActuatorHealthTests.actuatorHealthReturnsUp`, `DemoAccessInterceptorTests.leavesDeploymentReadinessEndpointsOpen`, and `MediaUploadControllerTests.returnsDemoUploadReadiness`.

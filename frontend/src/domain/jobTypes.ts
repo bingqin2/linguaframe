@@ -71,6 +71,59 @@ export interface OwnerQuotaPreflight {
   blockingReasons: string[];
 }
 
+export interface UploadCostEstimateStage {
+  id: string;
+  label: string;
+  status: string;
+  provider: string;
+  model: string;
+  paidProviderCall: boolean;
+  estimatedCostUsd: number;
+  basis: string;
+  detail: string;
+}
+
+export interface UploadCostEstimateBudget {
+  id: string;
+  label: string;
+  enabled: boolean;
+  status: DemoUploadReadinessStatus;
+  currentUsd: number;
+  estimateUsd: number;
+  projectedUsd: number;
+  limitUsd: number;
+  detail: string;
+}
+
+export interface UploadCostEstimate {
+  overallStatus: DemoUploadReadinessStatus;
+  recommendedNextAction: string;
+  filename: string | null;
+  contentType: string | null;
+  fileSizeBytes: number;
+  maxFileSizeBytes: number;
+  durationSeconds: number | null;
+  maxDurationSeconds: number;
+  valid: boolean;
+  validationCode: MediaUploadValidationCode;
+  validationMessage: string;
+  targetLanguage: string;
+  ttsVoice: string | null;
+  translationStyle: string;
+  subtitleStylePreset: string;
+  translationGlossaryEntryCount: number;
+  translationGlossaryHash: string;
+  subtitlePolishingMode: string;
+  demoProfileId: string | null;
+  estimatedCostUsdLower: number;
+  estimatedCostUsd: number;
+  estimatedCostUsdUpper: number;
+  stages: UploadCostEstimateStage[];
+  budgets: UploadCostEstimateBudget[];
+  cacheNotes: string[];
+  safetyNotes: string[];
+}
+
 export type DemoUploadReadinessStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
 
 export interface DemoUploadReadinessCheck {

@@ -119,6 +119,50 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void estimatesUploadCostBeforeCreatingUpload() throws Exception {
+        properties.getCost().setTranscriptionUsdPerMinute(new java.math.BigDecimal("0.006"));
+        properties.getCost().setTranslationInputUsdPerMillionTokens(new java.math.BigDecimal("5"));
+        properties.getCost().setTranslationOutputUsdPerMillionTokens(new java.math.BigDecimal("15"));
+        properties.getCost().setTtsUsdPerMillionCharacters(new java.math.BigDecimal("15"));
+        properties.getCost().setBudgetGuardEnabled(true);
+        properties.getCost().setMaxJobCostUsd(new java.math.BigDecimal("1.00"));
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "sample.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads/cost-estimate")
+                        .file(file)
+                        .param("targetLanguage", " zh-CN ")
+                        .param("translationStyle", "formal")
+                        .param("subtitleStylePreset", "high_contrast")
+                        .param("subtitlePolishingMode", "balanced")
+                        .param("translationGlossary", "Maya => 玛雅")
+                        .param("demoProfileId", "tears-showcase"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("READY"))
+                .andExpect(jsonPath("$.targetLanguage").value("zh-CN"))
+                .andExpect(jsonPath("$.translationStyle").value("FORMAL"))
+                .andExpect(jsonPath("$.subtitleStylePreset").value("HIGH_CONTRAST"))
+                .andExpect(jsonPath("$.subtitlePolishingMode").value("BALANCED"))
+                .andExpect(jsonPath("$.demoProfileId").value("tears-showcase"))
+                .andExpect(jsonPath("$.translationGlossaryEntryCount").value(1))
+                .andExpect(jsonPath("$.estimatedCostUsd").value(not(isEmptyOrNullString())))
+                .andExpect(jsonPath("$.stages[?(@.id == 'transcription')]").isArray())
+                .andExpect(jsonPath("$.budgets[?(@.id == 'jobCost')]").isArray());
+    }
+
+    @Test
+    void returnsBlockedCostEstimateForInvalidFile() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "notes.txt", "text/plain", new byte[] {1});
+
+        mockMvc.perform(multipart("/api/media/uploads/cost-estimate").file(file))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.overallStatus").value("BLOCKED"))
+                .andExpect(jsonPath("$.valid").value(false))
+                .andExpect(jsonPath("$.validationCode").value("UNSUPPORTED_CONTENT_TYPE"))
+                .andExpect(jsonPath("$.recommendedNextAction").value("Replace the source video or choose media inside the configured upload limits."));
+    }
+
+    @Test
     void returnsBadRequestForTooLongValidationFile() throws Exception {
         when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(300.001));
         MockMultipartFile file = new MockMultipartFile(
