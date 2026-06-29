@@ -88,15 +88,15 @@
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh`
 - `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh`
 
-- [ ] Add shared Bash helper `render_narration_demo_json "$base_url" "$job_id" "$preset_id" "$generate_video" "$output_path"`.
-- [ ] Add `print_narration_demo_render_summary_file` that prints overall status, step statuses, preset id, audio filename, narrated-video filename when present, evidence status, artifact counts, and output paths.
-- [ ] Create `scripts/demo/narration-demo-render.sh` with env vars `LINGUAFRAME_NARRATION_DEMO_RENDER_OUTPUT_DIR`, `LINGUAFRAME_NARRATION_DEMO_PRESET_ID`, `LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO`, and `LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY`.
-- [ ] In report-only mode, list the recommended preset and exit without calling the render endpoint.
-- [ ] In normal mode, call render, download refreshed narration script package JSON/Markdown/ZIP, download refreshed narration evidence JSON/Markdown/ZIP, and validate summaries.
-- [ ] Extend full Tears script so `LINGUAFRAME_RENDER_NARRATION_DEMO=true` runs the render script before narration evidence export.
-- [ ] Keep existing `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true` behavior for apply-only flows; if both are true, render wins and apply-only is skipped.
-- [ ] Run `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Update `docs/progress/execution-log.md`.
+- [x] Add shared Bash helper `render_narration_demo_json "$base_url" "$job_id" "$preset_id" "$generate_video" "$output_path"`.
+- [x] Add `print_narration_demo_render_summary_file` that prints overall status, step statuses, preset id, audio filename, narrated-video filename when present, evidence status, artifact counts, and output paths.
+- [x] Create `scripts/demo/narration-demo-render.sh` with env vars `LINGUAFRAME_NARRATION_DEMO_RENDER_OUTPUT_DIR`, `LINGUAFRAME_NARRATION_DEMO_PRESET_ID`, `LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO`, and `LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY`.
+- [x] In report-only mode, list the recommended preset and exit without calling the render endpoint.
+- [x] In normal mode, call render, download refreshed narration script package JSON/Markdown/ZIP, download refreshed narration evidence JSON/Markdown/ZIP, and validate summaries.
+- [x] Extend full Tears script so `LINGUAFRAME_RENDER_NARRATION_DEMO=true` runs the render script before narration evidence export.
+- [x] Keep existing `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true` behavior for apply-only flows; if both are true, render wins and apply-only is skipped.
+- [x] Run `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Update `docs/progress/execution-log.md`.
 - [ ] Commit with message `Add narration demo render script`.
 
 ## Task 4: Documentation, Final Verification, And Merge

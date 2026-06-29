@@ -623,6 +623,24 @@ apply_narration_demo_preset_json() {
     -o "$output_path"
 }
 
+render_narration_demo_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local preset_id="$3"
+  local generate_video="$4"
+  local output_path="$5"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"presetId\":\"$preset_id\",\"replaceExisting\":true,\"generateNarratedVideo\":$generate_video}" \
+    "$base_url/api/jobs/$encoded_job_id/narration-demo/render" \
+    -o "$output_path"
+}
+
 generate_narrated_video_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3424,6 +3442,67 @@ if apply_path and apply_path.exists():
     print("narrationDemoPresetApplyScriptStatus=" + str(package.get("status", "")))
     print("narrationDemoPresetApplyEvidenceStatus=" + str(evidence.get("status", "")))
     print("narrationDemoPresetApplyJsonPath=" + str(apply_path))
+PY
+}
+
+print_narration_demo_render_summary_file() {
+  local render_json_path="$1"
+
+  python3 - "$render_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+render = json.loads(path.read_text(encoding="utf-8"))
+
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+combined = json.dumps(render, ensure_ascii=False)
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration demo render output contains forbidden sensitive string: " + marker)
+
+audio = render.get("narrationAudio") or {}
+video = render.get("narratedVideo") or {}
+evidence = render.get("narrationEvidence") or {}
+package = render.get("scriptPackage") or {}
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("narrationDemoRenderJobId=" + text(render.get("jobId")))
+print("narrationDemoRenderPresetId=" + text(render.get("presetId")))
+print("narrationDemoRenderStatus=" + text(render.get("status")))
+print("narrationDemoRenderStepCount=" + text(len(render.get("steps", []))))
+for step in render.get("steps", []):
+    print(
+        "narrationDemoRenderStep="
+        + text(step.get("key"))
+        + ":"
+        + text(step.get("status"))
+    )
+print("narrationDemoRenderAudioFilename=" + text(audio.get("filename")))
+print("narrationDemoRenderNarratedVideoFilename=" + text(video.get("filename")))
+print("narrationDemoRenderScriptPackageStatus=" + text(package.get("status")))
+print("narrationDemoRenderEvidenceStatus=" + text(evidence.get("status")))
+print("narrationDemoRenderGeneratedArtifactCount=" + text(render.get("generatedArtifactCount", 0)))
+print("narrationDemoRenderJsonPath=" + str(path))
 PY
 }
 

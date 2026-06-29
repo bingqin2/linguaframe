@@ -12,6 +12,9 @@ Work:
 - Render orchestration preserves partial progress: if narrated-video generation fails after audio succeeds, the generated `NARRATION_AUDIO` artifact remains and the response returns `PARTIAL`.
 - Added frontend render request/result types and `renderNarrationDemo` API helper.
 - Added a `Render narration demo` panel inside the selected-job narration workspace with explicit replace confirmation, paid-provider acknowledgement, optional narrated-video generation, step rows, refreshed workspace/evidence/package/artifact state, and compact panel styling.
+- Added shared demo helpers for `POST /api/jobs/{jobId}/narration-demo/render` and safe render-result summary printing.
+- Added `scripts/demo/narration-demo-render.sh` to inspect the recommended preset, render narration demo media for an existing job, and download refreshed narration script package plus narration evidence.
+- Extended the full Tears script so `LINGUAFRAME_RENDER_NARRATION_DEMO=true` runs the one-click render flow before narration evidence export, while preserving the apply-only preset path.
 
 Validation:
 
@@ -22,6 +25,8 @@ Validation:
 - After adding frontend API/types/UI, the same command failed because the render panel test queried duplicate preset label text across the select option and metrics row.
 - After tightening the assertion to accept duplicated visible preset labels, `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings from download actions.
 - `npm run build` passed.
+- `bash -n scripts/demo/narration-demo-render.sh` first failed because the render script did not exist.
+- After adding the render script and full Tears integration, `bash -n scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 
 ## 2026-06-30
 
