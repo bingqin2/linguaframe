@@ -109,9 +109,9 @@
 - [x] Run `npm run build`.
 - [x] Run `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit with message `Document narration timeline workbench`.
-- [ ] Merge feature branch back to `main`.
-- [ ] Confirm `git status --short --branch` is clean on `main`.
+- [x] Commit with message `Document narration timeline workbench`.
+- [x] Merge feature branch back to `main`.
+- [x] Confirm `git status --short --branch` is clean on `main`.
 
 ## Validation Plan
 
