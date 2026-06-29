@@ -13,7 +13,10 @@ import com.linguaframe.media.domain.vo.UploadCostEstimateStageVo;
 import com.linguaframe.media.domain.vo.UploadCostEstimateVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseCandidateVo;
+import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionActionVo;
+import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseVo;
+import com.linguaframe.media.service.impl.UploadSourceReuseDecisionServiceImpl;
 import com.linguaframe.media.service.impl.UploadExecutionPlanServiceImpl;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import org.junit.jupiter.api.Test;
@@ -33,11 +36,13 @@ class UploadExecutionPlanServiceTests {
     private final StubDemoUploadReadinessService readinessService = new StubDemoUploadReadinessService();
     private final StubOwnerQuotaPreflightService ownerQuotaPreflightService = new StubOwnerQuotaPreflightService();
     private final StubUploadSourceReuseService uploadSourceReuseService = new StubUploadSourceReuseService();
+    private final UploadSourceReuseDecisionService uploadSourceReuseDecisionService = new UploadSourceReuseDecisionServiceImpl();
     private final UploadExecutionPlanService service = new UploadExecutionPlanServiceImpl(
             costEstimateService,
             readinessService,
             ownerQuotaPreflightService,
-            uploadSourceReuseService
+            uploadSourceReuseService,
+            uploadSourceReuseDecisionService
     );
 
     @Test
@@ -83,6 +88,7 @@ class UploadExecutionPlanServiceTests {
                 });
         assertThat(plan.sourceReuse().recommendedAction()).isEqualTo("UPLOAD_NEW_SOURCE");
         assertThat(plan.sourceReuse().candidateCount()).isZero();
+        assertThat(plan.sourceReuseDecision().status()).isEqualTo("UPLOAD_NEW_SOURCE");
     }
 
     @Test
@@ -99,6 +105,7 @@ class UploadExecutionPlanServiceTests {
         assertThat(plan.stages()).isEmpty();
         assertThat(plan.sourceReuse().sourceContentSha256()).isNull();
         assertThat(plan.sourceReuse().candidateCount()).isZero();
+        assertThat(plan.sourceReuseDecision().status()).isEqualTo("UPLOAD_NEW_SOURCE");
         assertThat(plan.gates())
                 .anySatisfy(gate -> {
                     assertThat(gate.id()).isEqualTo("uploadValidation");
@@ -160,7 +167,12 @@ class UploadExecutionPlanServiceTests {
                         "FORMAL",
                         "HIGH_CONTRAST",
                         "BALANCED",
-                        Instant.parse("2026-06-28T12:00:00Z")
+                        Instant.parse("2026-06-28T12:00:00Z"),
+                        "/api/jobs/job-existing",
+                        "/api/jobs/job-existing/demo-share-sheet",
+                        "/api/jobs/job-existing/evidence/markdown/download",
+                        "/api/jobs/job-existing/demo-run-package/download",
+                        "/api/jobs/job-existing/demo-acceptance-gate"
                 ))
         );
 
@@ -176,6 +188,10 @@ class UploadExecutionPlanServiceTests {
                     assertThat(candidate.jobStatus()).isEqualTo(LocalizationJobStatus.COMPLETED);
                     assertThat(candidate.demoProfileId()).isEqualTo("tears-showcase");
                 });
+        assertThat(plan.sourceReuseDecision().status()).isEqualTo("REUSE_COMPLETED_RUN");
+        assertThat(plan.sourceReuseDecision().actions())
+                .extracting(UploadSourceReuseDecisionActionVo::id)
+                .contains("openJob", "downloadPackage");
     }
 
     private static MockMultipartFile videoFile() {

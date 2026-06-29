@@ -3458,3 +3458,21 @@ Validation so far:
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
 - `npm --prefix frontend run build` first failed on a missing `jobStatusClassName` helper, then passed.
 - `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+
+## 2026-06-29
+
+Work:
+
+- Planned source reuse decision workspace in `docs/plans/119-source-reuse-decision-workspace.md`.
+- Added backend source reuse decision VO/service that turns duplicate-source matches into `UPLOAD_NEW_SOURCE`, `REUSE_COMPLETED_RUN`, `WAIT_FOR_ACTIVE_RUN`, or `REVIEW_DUPLICATES` recommendations.
+- Enriched execution-plan source reuse candidates with safe job evidence, share sheet, demo run package, and acceptance gate links.
+- Updated the browser execution plan panel to show a decision-first source reuse card.
+- Added terminal source reuse decision output in `scripts/demo/upload-execution-plan.sh` and a focused `scripts/demo/source-reuse-decision.sh` helper.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests,UploadExecutionPlanServiceTests,UploadSourceReuseServiceTests test` passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 63 passed`.
+- `npm --prefix frontend run build` passed.
+- `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/source-reuse-decision.sh scripts/demo/lib/linguaframe-demo.sh` passed.

@@ -68,6 +68,15 @@ print(f"uploadExecutionPlanDuplicateSourceMatchCount={reuse.get('candidateCount'
 print(f"uploadExecutionPlanSourceReuseRecommendedAction={reuse.get('recommendedAction', 'UPLOAD_NEW_SOURCE')}")
 if reuse.get("recommendedExistingJobId"):
     print(f"uploadExecutionPlanRecommendedExistingJobId={reuse['recommendedExistingJobId']}")
+decision = value.get("sourceReuseDecision") or {}
+if decision:
+    print(f"sourceReuseDecisionStatus={decision.get('status', 'UPLOAD_NEW_SOURCE')}")
+    print(f"sourceReuseDecisionHeadline={decision.get('headline', '')}")
+    print(f"sourceReuseDecisionRecommendedAction={decision.get('recommendedAction', 'UPLOAD_NEW_SOURCE')}")
+    if decision.get("recommendedExistingJobId"):
+        print(f"sourceReuseDecisionRecommendedExistingJobId={decision['recommendedExistingJobId']}")
+    for link in decision.get("links", [])[:5]:
+        print(f"sourceReuseDecisionLink={link['kind']}:{link['href']}")
 for candidate in reuse.get("candidates", [])[:5]:
     print(
         "uploadExecutionPlanSourceReuseCandidate="

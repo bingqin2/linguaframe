@@ -12,10 +12,12 @@ import com.linguaframe.media.domain.vo.UploadExecutionPlanCommandVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanGateVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanStageVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
+import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseVo;
 import com.linguaframe.media.service.DemoUploadReadinessService;
 import com.linguaframe.media.service.UploadCostEstimateService;
 import com.linguaframe.media.service.UploadExecutionPlanService;
+import com.linguaframe.media.service.UploadSourceReuseDecisionService;
 import com.linguaframe.media.service.UploadSourceReuseService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,17 +37,20 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
     private final DemoUploadReadinessService demoUploadReadinessService;
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
     private final UploadSourceReuseService uploadSourceReuseService;
+    private final UploadSourceReuseDecisionService uploadSourceReuseDecisionService;
 
     public UploadExecutionPlanServiceImpl(
             UploadCostEstimateService costEstimateService,
             DemoUploadReadinessService demoUploadReadinessService,
             OwnerQuotaPreflightService ownerQuotaPreflightService,
-            UploadSourceReuseService uploadSourceReuseService
+            UploadSourceReuseService uploadSourceReuseService,
+            UploadSourceReuseDecisionService uploadSourceReuseDecisionService
     ) {
         this.costEstimateService = costEstimateService;
         this.demoUploadReadinessService = demoUploadReadinessService;
         this.ownerQuotaPreflightService = ownerQuotaPreflightService;
         this.uploadSourceReuseService = uploadSourceReuseService;
+        this.uploadSourceReuseDecisionService = uploadSourceReuseDecisionService;
     }
 
     @Override
@@ -60,6 +65,7 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
         int upper = estimateDurationUpper(estimate, stages);
         String status = overallStatus(estimate, readiness, ownerQuota, gates);
         UploadSourceReuseVo sourceReuse = uploadSourceReuseService.evaluate(file, estimate, safeOptions);
+        UploadSourceReuseDecisionVo sourceReuseDecision = uploadSourceReuseDecisionService.decide(sourceReuse);
 
         return new UploadExecutionPlanVo(
                 status,
@@ -90,6 +96,7 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
                 gates,
                 commands(status, estimate.demoProfileId()),
                 sourceReuse,
+                sourceReuseDecision,
                 estimate.cacheNotes(),
                 safetyNotes(estimate, readiness)
         );

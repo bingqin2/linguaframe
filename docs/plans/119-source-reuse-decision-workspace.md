@@ -1,6 +1,6 @@
 # Source Reuse Decision Workspace Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn duplicate-source detection into an actionable reuse workspace that tells the operator whether to reuse an existing completed run, wait for an active run, or intentionally upload a new run, with safe evidence links in backend, frontend, and terminal demos.
 
@@ -34,10 +34,10 @@
 - `UploadSourceReuseDecisionLinkVo` contains `kind`, `label`, and `href`.
 - `UploadSourceReuseCandidateVo` gains safe per-candidate links: `jobDetailHref`, `shareSheetHref`, `evidenceHref`, `demoRunPackageHref`, and `acceptanceGateHref`.
 
-- [ ] Add VO records with explicit field names and no optional maps.
-- [ ] Keep existing `UploadSourceReuseVo.empty()` backward-compatible with empty lists and no links.
-- [ ] Add tests that assert completed, active, and no-candidate decisions can be represented without null pointer risks.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests test` and expect compile failure before the service exists.
+- [x] Add VO records with explicit field names and no optional maps.
+- [x] Keep existing `UploadSourceReuseVo.empty()` backward-compatible with empty lists and no links.
+- [x] Add tests that assert completed, active, and no-candidate decisions can be represented without null pointer risks.
+- [x] Run `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests test` and expect compile failure before the service exists.
 
 ## Task 2: Backend Decision Service and Execution Plan Enrichment
 
@@ -54,18 +54,18 @@
 - `UploadSourceReuseDecisionService.decide(UploadSourceReuseVo sourceReuse)` returns `UploadSourceReuseDecisionVo`.
 - `UploadExecutionPlanVo` gains `sourceReuseDecision`.
 
-- [ ] Populate candidate evidence links inside `UploadSourceReuseServiceImpl` using safe API routes only:
+- [x] Populate candidate evidence links inside `UploadSourceReuseServiceImpl` using safe API routes only:
   - `/api/jobs/{jobId}`
   - `/api/jobs/{jobId}/demo-share-sheet`
   - `/api/jobs/{jobId}/evidence/markdown/download`
   - `/api/jobs/{jobId}/demo-run-package/download`
   - `/api/jobs/{jobId}/demo-acceptance-gate`
-- [ ] Implement decision statuses: `UPLOAD_NEW_SOURCE`, `REUSE_COMPLETED_RUN`, `WAIT_FOR_ACTIVE_RUN`, and `REVIEW_DUPLICATES`.
-- [ ] For a completed recommended job, add enabled actions for opening job evidence, downloading the demo run package, and refreshing the upload plan.
-- [ ] For an active recommended job, add actions for opening the active job and waiting for completion.
-- [ ] For no candidates, add an enabled action to continue upload and a note that no prior source match was found.
-- [ ] Embed `sourceReuseDecision` in execution-plan responses.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests,UploadExecutionPlanServiceTests test`.
+- [x] Implement decision statuses: `UPLOAD_NEW_SOURCE`, `REUSE_COMPLETED_RUN`, `WAIT_FOR_ACTIVE_RUN`, and `REVIEW_DUPLICATES`.
+- [x] For a completed recommended job, add enabled actions for opening job evidence, downloading the demo run package, and refreshing the upload plan.
+- [x] For an active recommended job, add actions for opening the active job and waiting for completion.
+- [x] For no candidates, add an enabled action to continue upload and a note that no prior source match was found.
+- [x] Embed `sourceReuseDecision` in execution-plan responses.
+- [x] Run `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests,UploadExecutionPlanServiceTests test`.
 
 ## Task 3: API Contract, Frontend Types, and Upload UI
 
@@ -80,14 +80,14 @@
 - `/api/media/uploads/execution-plan` includes `sourceReuseDecision`.
 - The browser upload form shows a `Source reuse decision` card inside the execution plan panel.
 
-- [ ] Add controller JSON assertions for `sourceReuseDecision.status`, `headline`, `actions`, and safe links.
-- [ ] Extend TypeScript types for the decision, action, and link records.
-- [ ] Update API fixtures to include a completed-run reuse decision.
-- [ ] Replace the current raw source reuse block with a decision-first UI: headline, status pill, recommended action, primary safe links, and the top three candidates.
-- [ ] Keep hash and candidate count visible, but make the action the dominant information.
-- [ ] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
-- [ ] Run `npm run build`.
+- [x] Add controller JSON assertions for `sourceReuseDecision.status`, `headline`, `actions`, and safe links.
+- [x] Extend TypeScript types for the decision, action, and link records.
+- [x] Update API fixtures to include a completed-run reuse decision.
+- [x] Replace the current raw source reuse block with a decision-first UI: headline, status pill, recommended action, primary safe links, and the top three candidates.
+- [x] Keep hash and candidate count visible, but make the action the dominant information.
+- [x] Run `mvn -pl LinguaFrame -Dtest=MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts`.
+- [x] Run `npm run build`.
 
 ## Task 4: Terminal Demo Script and Documentation
 
@@ -101,24 +101,24 @@
 - `scripts/demo/source-reuse-decision.sh` calls the same execution-plan endpoint and prints only `sourceReuseDecision*` lines.
 - Existing `scripts/demo/upload-execution-plan.sh` also prints the decision status, headline, recommended job, and primary links.
 
-- [ ] Add terminal output fields: `sourceReuseDecisionStatus`, `sourceReuseDecisionHeadline`, `sourceReuseDecisionRecommendedAction`, `sourceReuseDecisionRecommendedExistingJobId`, and `sourceReuseDecisionLink`.
-- [ ] Add a focused script for source reuse decision checks using the same sample path and upload options environment variables.
-- [ ] Document how to prove the workflow: complete one upload, rerun source reuse decision with the same sample, then open the recommended job evidence/package links.
-- [ ] Record validation commands and any failures in `docs/progress/execution-log.md`.
-- [ ] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/source-reuse-decision.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Add terminal output fields: `sourceReuseDecisionStatus`, `sourceReuseDecisionHeadline`, `sourceReuseDecisionRecommendedAction`, `sourceReuseDecisionRecommendedExistingJobId`, and `sourceReuseDecisionLink`.
+- [x] Add a focused script for source reuse decision checks using the same sample path and upload options environment variables.
+- [x] Document how to prove the workflow: complete one upload, rerun source reuse decision with the same sample, then open the recommended job evidence/package links.
+- [x] Record validation commands and any failures in `docs/progress/execution-log.md`.
+- [x] Run `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/source-reuse-decision.sh scripts/demo/lib/linguaframe-demo.sh`.
 
 ## Task 5: Final Verification and Merge
 
 **Files:**
 - Modify: `docs/plans/119-source-reuse-decision-workspace.md`
 
-- [ ] Mark this plan checklist complete after implementation.
-- [ ] Run focused backend tests:
+- [x] Mark this plan checklist complete after implementation.
+- [x] Run focused backend tests:
   `mvn -pl LinguaFrame -Dtest=UploadSourceReuseDecisionServiceTests,UploadExecutionPlanServiceTests,MediaUploadControllerTests#estimatesUploadExecutionPlanBeforeCreatingUpload+returnsBlockedExecutionPlanForInvalidFile test`
-- [ ] Run frontend and script checks:
+- [x] Run frontend and script checks:
   `npm test -- --run src/api/linguaframeApi.test.ts`
   `npm run build`
   `bash -n scripts/demo/upload-execution-plan.sh scripts/demo/source-reuse-decision.sh scripts/demo/lib/linguaframe-demo.sh`
-- [ ] Run `git diff --check`.
-- [ ] Commit as `Add source reuse decision workspace`.
-- [ ] Merge the feature branch back to `main` after validation passes.
+- [x] Run `git diff --check`.
+- [x] Commit as `Add source reuse decision workspace`.
+- [x] Merge the feature branch back to `main` after validation passes.

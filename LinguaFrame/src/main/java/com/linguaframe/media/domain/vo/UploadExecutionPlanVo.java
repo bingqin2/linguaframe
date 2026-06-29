@@ -32,6 +32,7 @@ public record UploadExecutionPlanVo(
         List<UploadExecutionPlanGateVo> gates,
         List<UploadExecutionPlanCommandVo> commands,
         UploadSourceReuseVo sourceReuse,
+        UploadSourceReuseDecisionVo sourceReuseDecision,
         List<String> cacheNotes,
         List<String> safetyNotes
 ) {
