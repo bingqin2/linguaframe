@@ -37,14 +37,14 @@
   - `formatNarrationQuickScript(segments: NarrationWorkspace['segments']): string`
   - `formatQuickScriptTimestamp(seconds: number): string`
 
-- [ ] Write failing formatter tests proving saved rows export as `00:15-00:28 | alloy | Explain the first scene.` and inherited voice rows export as `00:55-01:10 || Inherit default voice.`
-- [ ] Write failing formatter tests proving decimals are preserved compactly, invalid negative/non-finite values are clamped to `00:00`, and caller-owned segment objects are not mutated.
-- [ ] Write failing round-trip tests proving `parseNarrationQuickScript(formatNarrationQuickScript(segments), { mode: 'replace' })` recreates the same timing, text, and voice values.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify formatter tests fail because the formatter is missing.
-- [ ] Implement `formatQuickScriptTimestamp(seconds)` with `HH:MM:SS`, `MM:SS`, or `SS` output, preserving up to three decimal places only when needed.
-- [ ] Implement `formatNarrationQuickScript(segments)` in index order without mutating segments.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN formatter evidence.
+- [x] Write failing formatter tests proving saved rows export as `00:15-00:28 | alloy | Explain the first scene.` and inherited voice rows export as `00:55-01:10 || Inherit default voice.`
+- [x] Write failing formatter tests proving decimals are preserved compactly, invalid negative/non-finite values are clamped to `00:00`, and caller-owned segment objects are not mutated.
+- [x] Write failing round-trip tests proving `parseNarrationQuickScript(formatNarrationQuickScript(segments), { mode: 'replace' })` recreates the same timing, text, and voice values.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify formatter tests fail because the formatter is missing.
+- [x] Implement `formatQuickScriptTimestamp(seconds)` with `HH:MM:SS`, `MM:SS`, or `SS` output, preserving up to three decimal places only when needed.
+- [x] Implement `formatNarrationQuickScript(segments)` in index order without mutating segments.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN formatter evidence.
 - [ ] Commit with message `Add narration quick script formatter`.
 
 ## Task 2: Browser Export Workbench

@@ -1,7 +1,11 @@
 import { describe, expect, test } from 'vitest';
 
 import type { NarrationWorkspace } from './jobTypes';
-import { parseNarrationQuickScript } from './narrationQuickScriptImport';
+import {
+  formatNarrationQuickScript,
+  formatQuickScriptTimestamp,
+  parseNarrationQuickScript
+} from './narrationQuickScriptImport';
 
 const voiceCatalog: NarrationWorkspace['voiceCatalog'] = {
   provider: 'demo',
@@ -163,5 +167,125 @@ describe('narrationQuickScriptImport', () => {
     });
     expect(existingSegments).toHaveLength(1);
     expect(existingSegments[0].index).toBe(0);
+  });
+
+  test('formats explicit and inherited voice rows as quick script text', () => {
+    const script = formatNarrationQuickScript([
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Explain the first scene.',
+        voice: 'alloy',
+        characterCount: 24,
+        updatedAt: null
+      },
+      {
+        index: 1,
+        startSeconds: 55,
+        endSeconds: 70,
+        durationSeconds: 15,
+        text: 'Inherit default voice.',
+        voice: null,
+        characterCount: 22,
+        updatedAt: null
+      }
+    ]);
+
+    expect(script).toBe([
+      '00:15-00:28 | alloy | Explain the first scene.',
+      '00:55-01:10 || Inherit default voice.'
+    ].join('\n'));
+  });
+
+  test('formats compact timestamps and does not mutate caller segments', () => {
+    const segments: NarrationWorkspace['segments'] = [
+      {
+        index: 0,
+        startSeconds: 62.5,
+        endSeconds: 3725.25,
+        durationSeconds: 3662.75,
+        text: 'Decimal timing.',
+        voice: 'verse',
+        characterCount: 15,
+        updatedAt: '2026-06-30T00:00:00Z'
+      },
+      {
+        index: 1,
+        startSeconds: -10,
+        endSeconds: Number.POSITIVE_INFINITY,
+        durationSeconds: 0,
+        text: 'Invalid timing clamps.',
+        voice: '',
+        characterCount: 22,
+        updatedAt: null
+      }
+    ];
+    const before = structuredClone(segments);
+
+    expect(formatQuickScriptTimestamp(62.5)).toBe('01:02.5');
+    expect(formatQuickScriptTimestamp(3725.25)).toBe('01:02:05.25');
+    expect(formatQuickScriptTimestamp(-10)).toBe('00:00');
+    expect(formatQuickScriptTimestamp(Number.NaN)).toBe('00:00');
+    expect(formatNarrationQuickScript(segments)).toBe([
+      '01:02.5-01:02:05.25 | verse | Decimal timing.',
+      '00:00-00:00 || Invalid timing clamps.'
+    ].join('\n'));
+    expect(segments).toEqual(before);
+  });
+
+  test('round trips formatted quick script through the parser', () => {
+    const segments: NarrationWorkspace['segments'] = [
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Explain the first scene.',
+        voice: 'alloy',
+        characterCount: 24,
+        updatedAt: null
+      },
+      {
+        index: 1,
+        startSeconds: 62.5,
+        endSeconds: 65.25,
+        durationSeconds: 2.75,
+        text: 'Explain the second scene.',
+        voice: null,
+        characterCount: 25,
+        updatedAt: null
+      }
+    ];
+
+    const result = parseNarrationQuickScript(
+      formatNarrationQuickScript(segments),
+      { existingSegments: [], voiceCatalog, mode: 'replace' }
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.segments).toEqual([
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        text: 'Explain the first scene.',
+        voice: 'alloy',
+        characterCount: 24,
+        updatedAt: null
+      },
+      {
+        index: 1,
+        startSeconds: 62.5,
+        endSeconds: 65.25,
+        durationSeconds: 2.75,
+        text: 'Explain the second scene.',
+        voice: null,
+        characterCount: 25,
+        updatedAt: null
+      }
+    ]);
   });
 });

@@ -4477,6 +4477,19 @@ Validation:
 
 Work:
 
+- Started the narration quick script export workbench feature slice.
+- Added formatter tests and `formatNarrationQuickScript` / `formatQuickScriptTimestamp` so the current local narration draft can be represented as pasteable quick script text.
+- Formatter output uses `START-END | VOICE | TEXT` for explicit voices and `START-END || TEXT` for inherited/default voice rows, preserving compact decimal timestamps and round-tripping through the existing parser.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` first failed because `formatNarrationQuickScript` and `formatQuickScriptTimestamp` were missing.
+- After adding the formatter, the same command first exposed the inherited voice separator as `|  |`; after changing inherited voice output to `||`, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` passed with `Test Files 1 passed` and `Tests 8 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Added the browser quick script import workbench to the narration workspace.
 - The panel accepts compact timed rows in `START-END | VOICE | TEXT` format, previews parsed row count, total duration, row text, and inherited/default voice state.
 - Replace and append actions now apply valid parsed rows to the local narration draft through the existing draft history path; no save call, provider call, artifact generation, or evidence update happens until the existing workflow actions run.
