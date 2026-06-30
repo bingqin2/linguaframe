@@ -6,6 +6,56 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Documented voice audition in README, Docker E2E guidance, smoke-test checklist, roadmap, target state, and decisions.
+- The docs now show browser order: audition a preset with sample text, apply it to selected/all local draft rows, save only when ready, then generate audio/video explicitly.
+- The docs now show terminal order for `scripts/demo/narration-voice-audition.sh`, including required job id, explicit voice, audition text/text-file options, local MP3 output, and provider-credit warning.
+- The docs state that audition preview can call the configured provider, but it does not save rows, create artifacts, update evidence, generate video, or write object storage.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx -t "voice audition"` passed with `Test Files 1 passed` and `Tests 5 passed | 130 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 158 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run` passed with `Test Files 9 passed` and `Tests 277 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed; Vite printed the existing single-bundle chunk-size warning.
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Added `scripts/demo/narration-voice-audition.sh` for terminal voice preset audition.
+- The script requires a job id, explicit audition voice, and audition text or text file, then writes a request JSON and downloads a local MP3 preview atomically through the existing transient segment-preview API.
+- Terminal output is metadata-only: job id, voice, character count, content type, byte count, request path, output path, and provider-credit warning.
+
+Validation:
+
+- `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` initially failed with permission denied because the new script lacked executable mode.
+- After adding executable mode, `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` exited `2` with `Set LINGUAFRAME_NARRATION_AUDITION_VOICE or pass a voice as the second argument.`, proving it rejects missing voice before calling the API.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo LINGUAFRAME_NARRATION_AUDITION_VOICE=alloy scripts/demo/narration-voice-audition.sh` exited `2` with `Set LINGUAFRAME_NARRATION_AUDITION_TEXT or LINGUAFRAME_NARRATION_AUDITION_TEXT_FILE.`, proving it rejects missing audition text before calling the API.
+
+## 2026-06-30
+
+Work:
+
+- Started the narration voice audition workbench feature slice from `docs/plans/150-narration-voice-audition-workbench.md`.
+- Added a browser `Voice audition` panel driven by the narration voice catalog.
+- The panel previews a selected voice preset with custom sample text through the existing transient segment-preview API, renders a local audio player, and applies the selected voice to the selected row or all local draft rows.
+- Voice audition preview can call the configured TTS provider and may consume credits; apply actions stay local-only and do not save rows, generate media, refresh evidence, create artifacts, or write object storage.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx -t "voice audition"` first failed because the `Voice audition` region did not exist.
+- After adding the panel, the same command passed with `Test Files 1 passed` and `Tests 5 passed | 130 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 158 passed`; jsdom printed expected navigation warnings from download actions.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration quick script import workbench feature slice from `docs/plans/148-narration-quick-script-import-workbench.md`.
 - Added a pure frontend narration quick-script parser for `START-END | VOICE | TEXT` rows.
 - Parser supports `SS`, `MM:SS`, `HH:MM:SS`, decimal seconds, blank voice inheritance, voice-catalog validation, overlap detection, replace mode, and append mode reindexing without mutating caller-owned rows.

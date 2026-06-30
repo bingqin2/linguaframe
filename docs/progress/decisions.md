@@ -2,6 +2,14 @@
 
 This file records project-level decisions that affect future implementation. Feature-specific decisions should also be recorded in the relevant ExecPlan under `docs/plans/`.
 
+## 2026-06-30
+
+Decision: Reuse transient segment preview for voice audition before adding voice cloning, uploaded reference audio, or provider tuning.
+
+Reason: Operators need to hear configured presets before committing narration rows, but the immediate demo need is preset comparison and local draft assignment, not a new voice asset pipeline. Reusing the existing segment-preview provider boundary gives browser and terminal audition audio while preserving the current artifact, evidence, save, and render contracts.
+
+Impact: The browser `Voice audition` panel previews a selected catalog voice with custom sample text and can apply that voice to the selected row or all local draft rows. `scripts/demo/narration-voice-audition.sh` produces a local MP3 preview for an explicit preset. Audition preview can consume provider credits, but it does not save rows, create artifacts, update evidence, generate video, write object storage, add database schema, or introduce uploaded reference audio.
+
 ## 2026-06-28
 
 Decision: Add transient narration segment TTS preview before voice cloning, uploaded reference audio, provider voice browsing, or persistent preview caching.

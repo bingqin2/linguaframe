@@ -2548,6 +2548,165 @@ describe('App', () => {
     expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeEnabled();
   });
 
+  test('renders voice audition presets with default sample text', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-voice-audition-job', videoId: 'narration-voice-audition-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-voice-audition-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-voice-audition-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const auditionPanel = within(narrationPanel).getByRole('region', { name: /voice audition/i });
+
+    expect(within(auditionPanel).getByText('Voice audition')).toBeInTheDocument();
+    expect(within(auditionPanel).getByText(/may consume credits/i)).toBeInTheDocument();
+    expect(within(auditionPanel).getByRole('combobox', { name: /audition voice/i })).toHaveValue('verse');
+    expect(within(auditionPanel).getByRole('option', { name: 'Alloy' })).toBeInTheDocument();
+    expect(within(auditionPanel).getByRole('option', { name: 'Verse' })).toBeInTheDocument();
+    expect(within(auditionPanel).getByLabelText(/audition text/i)).toHaveValue('This is a LinguaFrame narration voice preview.');
+  });
+
+  test('previews a selected voice audition without saving narration rows', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-voice-preview-job', videoId: 'narration-voice-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-voice-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment')
+      .mockResolvedValue(new Blob(['voice-preview'], { type: 'audio/mpeg' }));
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:voice-audition-preview');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-voice-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const auditionPanel = within(narrationPanel).getByRole('region', { name: /voice audition/i });
+
+    await userEvent.selectOptions(within(auditionPanel).getByRole('combobox', { name: /audition voice/i }), 'alloy');
+    await userEvent.clear(within(auditionPanel).getByLabelText(/audition text/i));
+    await userEvent.type(within(auditionPanel).getByLabelText(/audition text/i), 'A custom voice audition line.');
+    await userEvent.click(within(auditionPanel).getByRole('button', { name: /preview voice/i }));
+
+    expect(previewNarrationSegment).toHaveBeenCalledWith('narration-voice-preview-job', {
+      text: 'A custom voice audition line.',
+      voice: 'alloy'
+    });
+    expect(await within(auditionPanel).findByText('Voice preview ready for alloy.')).toBeInTheDocument();
+    expect(within(auditionPanel).getByLabelText('Voice audition preview player')).toHaveAttribute('src', 'blob:voice-audition-preview');
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('keeps narration actions usable when voice audition preview is rejected', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-voice-preview-error-job', videoId: 'narration-voice-preview-error-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-voice-preview-error-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'previewNarrationSegment').mockRejectedValue(new Error('Voice preview rejected.'));
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-voice-preview-error-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const auditionPanel = within(narrationPanel).getByRole('region', { name: /voice audition/i });
+
+    await userEvent.click(within(auditionPanel).getByRole('button', { name: /preview voice/i }));
+
+    expect(await within(auditionPanel).findByText('Voice preview rejected.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('button', { name: /save narration/i })).toBeEnabled();
+    expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeEnabled();
+    expect(within(narrationPanel).getByRole('button', { name: /refresh evidence/i })).toBeEnabled();
+  });
+
+  test('applies a voice audition preset to the selected local draft row only', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-voice-apply-selected-job', videoId: 'narration-voice-apply-selected-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-voice-apply-selected-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-voice-apply-selected-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const auditionPanel = within(narrationPanel).getByRole('region', { name: /voice audition/i });
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: '2' }));
+    await userEvent.selectOptions(within(auditionPanel).getByRole('combobox', { name: /audition voice/i }), 'alloy');
+    await userEvent.click(within(auditionPanel).getByRole('button', { name: /apply to selected row/i }));
+
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i })).toHaveValue('alloy');
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 2 voice/i })).toHaveValue('alloy');
+    expect(within(auditionPanel).getByText('Applied alloy to narration 2.')).toBeInTheDocument();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('applies a voice audition preset to all local draft rows without provider or save calls', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-voice-apply-all-job', videoId: 'narration-voice-apply-all-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-voice-apply-all-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+    const generateNarratedVideo = vi.spyOn(linguaFrameApi, 'generateNarratedVideo');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-voice-apply-all-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const auditionPanel = within(narrationPanel).getByRole('region', { name: /voice audition/i });
+
+    await userEvent.selectOptions(within(auditionPanel).getByRole('combobox', { name: /audition voice/i }), 'alloy');
+    await userEvent.click(within(auditionPanel).getByRole('button', { name: /apply to all rows/i }));
+
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i })).toHaveValue('alloy');
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 2 voice/i })).toHaveValue('alloy');
+    expect(within(auditionPanel).getByText('Applied alloy to 2 narration rows.')).toBeInTheDocument();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(previewNarrationSegment).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+    expect(generateNarratedVideo).not.toHaveBeenCalled();
+  });
+
   test('renders quick script import with parse preview for valid pasted rows', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-quick-import-job', videoId: 'narration-quick-import-video', targetLanguage: 'zh-CN' })
