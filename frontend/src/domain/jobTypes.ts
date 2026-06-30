@@ -1603,6 +1603,24 @@ export interface NarratedVideoGeneration {
   status: string;
 }
 
+export interface NarrationWaveformBucket {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  peak: number;
+  rms: number;
+}
+
+export interface NarrationWaveform {
+  jobId: string;
+  status: 'READY' | 'UNAVAILABLE' | 'FAILED_SAFE' | string;
+  sourceType: 'NARRATION_AUDIO' | 'NARRATED_VIDEO' | 'BURNED_VIDEO' | 'SOURCE_MEDIA' | 'NONE' | string;
+  bucketCount: number;
+  durationSeconds: number;
+  buckets: NarrationWaveformBucket[];
+  fallbackReason: string;
+}
+
 export interface NarrationEvidenceCheck {
   key: string;
   label: string;

@@ -6,6 +6,8 @@ import com.linguaframe.job.domain.bo.TranscriptionResultBo;
 import com.linguaframe.job.domain.bo.TranscriptionSegmentBo;
 import com.linguaframe.job.domain.bo.TranslationResultBo;
 import com.linguaframe.job.domain.bo.TranslationSegmentBo;
+import com.linguaframe.media.domain.bo.AudioWaveformBo;
+import com.linguaframe.media.domain.bo.AudioWaveformBucketBo;
 import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
@@ -33,6 +35,7 @@ import com.linguaframe.media.domain.enums.MediaUploadStatus;
 import com.linguaframe.media.domain.bo.DubbedVideoBo;
 import com.linguaframe.media.repository.VideoRepository;
 import com.linguaframe.media.service.FfmpegAudioReplacementService;
+import com.linguaframe.media.service.FfmpegAudioWaveformService;
 import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.FfmpegTimedAudioBedService;
 import com.linguaframe.storage.domain.bo.StoreObjectCommand;
@@ -121,6 +124,9 @@ class LocalizationJobControllerTests {
     private FfmpegAudioReplacementService ffmpegAudioReplacementService;
 
     @MockitoBean
+    private FfmpegAudioWaveformService ffmpegAudioWaveformService;
+
+    @MockitoBean
     private FfmpegNarratedVideoMixService ffmpegNarratedVideoMixService;
 
     @MockitoBean
@@ -154,6 +160,19 @@ class LocalizationJobControllerTests {
         );
         when(ffmpegTimedAudioBedService.createAudioBed(any())).thenReturn(
                 new TtsResultBo(new byte[] {1, 2, 3}, "narration-audio.mp3", "audio/mpeg")
+        );
+        when(ffmpegAudioWaveformService.analyze(any())).thenReturn(
+                new AudioWaveformBo(
+                        96,
+                        new BigDecimal("120.000"),
+                        List.of(new AudioWaveformBucketBo(
+                                0,
+                                new BigDecimal("0.000"),
+                                new BigDecimal("1.250"),
+                                new BigDecimal("0.750"),
+                                new BigDecimal("0.500")
+                        ))
+                )
         );
     }
 
@@ -2345,6 +2364,25 @@ class LocalizationJobControllerTests {
                 .doesNotContain("provider request payload")
                 .doesNotContain("/Users/")
                 .doesNotContain("sk-");
+    }
+
+    @Test
+    void returnsDecodedNarrationWaveformJson() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:16:30Z");
+        createJobWithDuration("job-controller-video-waveform", "job-controller-job-waveform", 120, createdAt);
+        saveSmokeProofArtifact("waveform-narration", "job-controller-job-waveform", JobArtifactType.NARRATION_AUDIO);
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-waveform", "job-controller-job-waveform")
+                        .param("bucketCount", "999"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-waveform"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.sourceType").value("NARRATION_AUDIO"))
+                .andExpect(jsonPath("$.bucketCount").value(96))
+                .andExpect(jsonPath("$.durationSeconds").value(120.000))
+                .andExpect(jsonPath("$.buckets[0].peak").value(0.750))
+                .andExpect(jsonPath("$.buckets[0].rms").value(0.500))
+                .andExpect(jsonPath("$.fallbackReason").value(""));
     }
 
     @Test

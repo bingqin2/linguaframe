@@ -889,3 +889,11 @@ Decision: Keep narration render preflight read-only and separate from render.
 Reason: Operators need a safe go/no-go surface for replacement impact, provider-cost attention, estimated narration size, generated-video readiness, evidence routes, and next command before any OpenAI TTS or FFmpeg render work runs. Folding that logic into render would make `BLOCKED` and `ATTENTION` states harder to review and would risk spending provider credits before the user sees the consequences.
 
 Impact: `POST /api/jobs/{jobId}/narration-demo/render/preflight`, the browser `Render preflight` subsection, and `scripts/demo/narration-demo-render-preflight.sh` compose existing preset, workspace, artifact, script package, evidence, and provider configuration metadata without mutating jobs, saving narration rows, creating artifacts, dispatching workers, calling OpenAI, or touching object storage. Terminal render can require preflight with `LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true`; blocked preflight refuses render, while advisory OpenAI cost estimates remain separate from provider-side billing truth.
+
+## 2026-06-30
+
+Decision: Add decoded narration waveform buckets before persistent waveform artifacts or multitrack automation curves.
+
+Reason: Operators need to see whether generated narration audio or narrated video really contains usable audio before tuning automation. A read-only FFmpeg-derived bucket API proves the audio surface in the existing narration workbench while preserving the current metadata-derived waveform as a safe fallback.
+
+Impact: `GET /api/jobs/{jobId}/narration-waveform`, the browser `Narration waveform overview`, and `scripts/demo/narration-waveform.sh` read existing `NARRATION_AUDIO`, `NARRATED_VIDEO`, `BURNED_VIDEO`, or source media in priority order and return bounded peak/RMS buckets. The endpoint does not call providers, save narration rows, create artifacts, expose object keys, print local paths, or include transcript/subtitle/narration text. Persistent waveform artifacts, automation curves, uploaded reference audio, and full multitrack editing remain later slices.

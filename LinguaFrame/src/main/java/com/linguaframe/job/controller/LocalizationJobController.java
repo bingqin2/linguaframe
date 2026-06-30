@@ -53,6 +53,7 @@ import com.linguaframe.job.domain.vo.NarrationGenerationVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
+import com.linguaframe.job.domain.vo.NarrationWaveformVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
@@ -94,6 +95,7 @@ import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
+import com.linguaframe.job.service.NarrationWaveformService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.job.service.NarratedVideoService;
 import com.linguaframe.job.service.OpenAiSmokeProofService;
@@ -174,6 +176,7 @@ public class LocalizationJobController {
     private final NarrationEvidenceService narrationEvidenceService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
+    private final NarrationWaveformService narrationWaveformService;
     private final NarrationWorkspaceService narrationWorkspaceService;
     private final NarratedVideoService narratedVideoService;
     private final ObjectMapper objectMapper;
@@ -219,6 +222,7 @@ public class LocalizationJobController {
             NarrationEvidenceService narrationEvidenceService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
+            NarrationWaveformService narrationWaveformService,
             NarrationWorkspaceService narrationWorkspaceService,
             NarratedVideoService narratedVideoService,
             ObjectMapper objectMapper
@@ -263,6 +267,7 @@ public class LocalizationJobController {
         this.narrationEvidenceService = narrationEvidenceService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
+        this.narrationWaveformService = narrationWaveformService;
         this.narrationWorkspaceService = narrationWorkspaceService;
         this.narratedVideoService = narratedVideoService;
         this.objectMapper = objectMapper;
@@ -1400,6 +1405,17 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return narrationEvidenceService.getEvidence(jobId);
+    }
+
+    @GetMapping("/{jobId}/narration-waveform")
+    @Operation(summary = "Get decoded narration waveform buckets for a localization job")
+    public NarrationWaveformVo narrationWaveform(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(description = "Requested waveform bucket count, capped between 24 and 192.")
+            @RequestParam(required = false) Integer bucketCount
+    ) {
+        return narrationWaveformService.getWaveform(jobId, bucketCount);
     }
 
     @GetMapping("/{jobId}/narration-evidence/markdown/download")

@@ -226,6 +226,48 @@ download_reviewed_subtitle_workflow_json() {
   demo_curl -fsS "$base_url/api/jobs/$job_id/reviewed-subtitle-workflow" -o "$output_path"
 }
 
+download_narration_waveform_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local bucket_count="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-waveform?bucketCount=$bucket_count" -o "$output_path"
+}
+
+print_narration_waveform_summary_file() {
+  local waveform_json_path="$1"
+
+  python3 - "$waveform_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    waveform = json.load(handle)
+
+buckets = waveform.get("buckets") or []
+peak_max = max((float(bucket.get("peak") or 0) for bucket in buckets), default=0.0)
+rms_average = (
+    sum(float(bucket.get("rms") or 0) for bucket in buckets) / len(buckets)
+    if buckets else 0.0
+)
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("narrationWaveformStatus=" + text(waveform.get("status")))
+print("narrationWaveformSourceType=" + text(waveform.get("sourceType")))
+print("narrationWaveformBucketCount=" + text(waveform.get("bucketCount")))
+print("narrationWaveformDurationSeconds=" + text(waveform.get("durationSeconds")))
+print(f"narrationWaveformPeakMax={peak_max:.3f}")
+print(f"narrationWaveformRmsAverage={rms_average:.3f}")
+print("narrationWaveformFallbackReason=" + text(waveform.get("fallbackReason")))
+PY
+}
+
 download_demo_session_json() {
   local base_url="$1"
   local output_path="$2"

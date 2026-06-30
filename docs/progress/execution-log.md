@@ -4725,3 +4725,28 @@ Validation:
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 510.21 kB bundle.
 - `bash -n scripts/demo/narration-timing-assistant.sh scripts/demo/narration-evidence.sh scripts/demo/narration-script-package.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started and implemented the decoded narration waveform package feature slice.
+- Added an FFmpeg-backed waveform analyzer that decodes media to mono PCM and emits bounded peak/RMS buckets without exposing local paths in safe failure messages.
+- Added `GET /api/jobs/{jobId}/narration-waveform?bucketCount=96` with source priority `NARRATION_AUDIO`, `NARRATED_VIDEO`, `BURNED_VIDEO`, then uploaded source media; failures return `FAILED_SAFE` and missing sources return `UNAVAILABLE`.
+- Added frontend API typing and a narration waveform panel mode switch: decoded peak/RMS buckets render when ready, while the existing metadata-derived 48-bucket overview remains the fallback.
+- Added `scripts/demo/narration-waveform.sh` and script-library helpers for metadata-only terminal waveform summaries.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioWaveformServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWaveformServiceTests` passed with `Tests run: 5, Failures: 0, Errors: 0`.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioWaveformServiceTests,NarrationWaveformServiceTests,LocalizationJobControllerTests#returnsDecodedNarrationWaveformJson` passed with `Tests run: 10, Failures: 0, Errors: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "loads decoded narration waveform buckets"` passed.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "decoded narration waveform|falls back to metadata narration waveform|renders narration waveform overview"` passed with `Tests 3 passed | 137 skipped`.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioWaveformServiceTests,NarrationWaveformServiceTests,LocalizationJobControllerTests#returnsDecodedNarrationWaveformJson` passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration waveform"` passed with `Test Files 2 passed` and `Tests 7 passed | 229 skipped`.
+- `bash -n scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/narration-evidence.sh scripts/demo/narration-script-package.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 789, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 10 passed` and `Tests 287 passed`; jsdom printed expected navigation warnings.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 511.76 kB bundle.
+- `git diff --check` passed.

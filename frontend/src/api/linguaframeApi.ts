@@ -38,6 +38,7 @@ import type {
   NarrationGeneration,
   NarrationScriptPackage,
   NarrationScriptPackageImportResult,
+  NarrationWaveform,
   NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
@@ -957,6 +958,15 @@ export async function generateNarratedVideo(jobId: string): Promise<NarratedVide
   );
 }
 
+export async function getNarrationWaveform(jobId: string, bucketCount = 96): Promise<NarrationWaveform> {
+  return requestJson<NarrationWaveform>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-waveform?bucketCount=${encodeURIComponent(String(bucketCount))}`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function renderNarrationDemo(
   jobId: string,
   request: RenderNarrationDemoRequest
@@ -1324,6 +1334,7 @@ export const linguaFrameApi = {
   generateNarrationAudio,
   previewNarrationSegment,
   generateNarratedVideo,
+  getNarrationWaveform,
   preflightNarrationDemoRender,
   renderNarrationDemo,
   getNarrationEvidence,

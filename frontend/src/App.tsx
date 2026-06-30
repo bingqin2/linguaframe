@@ -94,6 +94,7 @@ import type {
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
+  NarrationWaveform,
   NarrationScriptPackage,
   ImportNarrationScriptPackageRequest,
   NarrationWorkspace,
@@ -9392,9 +9393,11 @@ function NarrationWorkspacePanel({
   const [timingTargetGapSeconds, setTimingTargetGapSeconds] = useState(0.25);
   const [timingMinimumReportGapSeconds, setTimingMinimumReportGapSeconds] = useState(0.5);
   const [timingAssistantStatus, setTimingAssistantStatus] = useState<string | null>(null);
+  const [decodedWaveform, setDecodedWaveform] = useState<NarrationWaveform | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
   const auditionPreviewUrlRef = useRef<string | null>(null);
+  const artifactSignature = artifacts.map((artifact) => artifact.artifactId).join('|');
 
   function replaceTtsPreviewUrl(nextUrl: string | null) {
     if (ttsPreviewUrlRef.current) {
@@ -9450,6 +9453,33 @@ function NarrationWorkspacePanel({
       auditionPreviewUrlRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setDecodedWaveform(null);
+    linguaFrameApi.getNarrationWaveform(jobId, 96)
+      .then((waveform) => {
+        if (active) {
+          setDecodedWaveform(waveform);
+        }
+      })
+      .catch((waveformError) => {
+        if (active) {
+          setDecodedWaveform({
+            jobId,
+            status: 'FAILED_SAFE',
+            sourceType: 'NONE',
+            bucketCount: 96,
+            durationSeconds: 0,
+            buckets: [],
+            fallbackReason: toErrorMessage(waveformError)
+          });
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [artifactSignature, jobId]);
 
   const segments = draftHistory.present;
   const selectedSegment = segments[selectedIndex] ?? null;
@@ -9844,6 +9874,7 @@ function NarrationWorkspacePanel({
           />
           ) : null}
           <NarrationWaveformOverviewPanel
+            decodedWaveform={decodedWaveform}
             overview={waveformOverview}
             previewAvailable={previewSource.available}
             selectedSegment={selectedSegment}
@@ -11270,68 +11301,133 @@ function NarrationPreviewPanel({
 }
 
 function NarrationWaveformOverviewPanel({
+  decodedWaveform,
   onSeek,
   overview,
   previewAvailable,
   selectedSegment
 }: {
+  decodedWaveform: NarrationWaveform | null;
   onSeek: (seconds: number) => void;
   overview: NarrationWaveformOverview;
   previewAvailable: boolean;
   selectedSegment: NarrationWorkspace['segments'][number] | null;
 }) {
-  const canScrub = previewAvailable && overview.durationSeconds > 0;
+  const decodedReady = decodedWaveform?.status === 'READY' && decodedWaveform.buckets.length > 0;
+  const displayStartSeconds = decodedReady ? 0 : overview.startSeconds;
+  const displayEndSeconds = decodedReady
+    ? Math.max(decodedWaveform.durationSeconds, decodedWaveform.buckets[decodedWaveform.buckets.length - 1]?.endSeconds ?? 0)
+    : overview.endSeconds;
+  const displayDurationSeconds = Math.max(0, displayEndSeconds - displayStartSeconds);
+  const displayBuckets = decodedReady
+    ? decodedWaveform.buckets.map((bucket) => {
+      const peakPercent = Math.round(bucket.peak * 100);
+      const rmsPercent = Math.round(bucket.rms * 100);
+      const selected = selectedSegment == null
+        ? false
+        : bucket.endSeconds > selectedSegment.startSeconds && bucket.startSeconds < selectedSegment.endSeconds;
+      return {
+        active: bucket.peak > 0.01,
+        decoded: true,
+        gap: bucket.peak <= 0.01,
+        heightPercent: Math.max(8, peakPercent),
+        index: bucket.index,
+        peakPercent,
+        rmsPercent,
+        selected
+      };
+    })
+    : overview.buckets.map((bucket) => ({
+      active: bucket.active,
+      decoded: false,
+      gap: bucket.gap,
+      heightPercent: bucket.heightPercent,
+      index: bucket.index,
+      peakPercent: bucket.heightPercent,
+      rmsPercent: null,
+      selected: bucket.selected
+    }));
+  const selectedStartPercent = selectedSegment == null || displayDurationSeconds <= 0
+    ? null
+    : clampNumber(((selectedSegment.startSeconds - displayStartSeconds) / displayDurationSeconds) * 100, 0, 100);
+  const selectedEndPercent = selectedSegment == null || displayDurationSeconds <= 0
+    ? null
+    : clampNumber(((selectedSegment.endSeconds - displayStartSeconds) / displayDurationSeconds) * 100, 0, 100);
+  const metadataCurrentSeconds = overview.playheadPercent == null
+    ? displayStartSeconds
+    : secondsFromWaveformPercent({
+      percent: overview.playheadPercent,
+      startSeconds: overview.startSeconds,
+      endSeconds: overview.endSeconds
+    });
+  const playheadPercent = displayDurationSeconds <= 0
+    ? null
+    : clampNumber(((metadataCurrentSeconds - displayStartSeconds) / displayDurationSeconds) * 100, 0, 100);
+  const activeBucketCount = displayBuckets.filter((bucket) => bucket.active).length;
+  const gapBucketCount = displayBuckets.length - activeBucketCount;
+  const canScrub = previewAvailable && displayDurationSeconds > 0;
   const midpointSeconds = secondsFromWaveformPercent({
     percent: 50,
-    startSeconds: overview.startSeconds,
-    endSeconds: overview.endSeconds
+    startSeconds: displayStartSeconds,
+    endSeconds: displayEndSeconds
   });
-  const selectedStartSeconds = selectedSegment?.startSeconds ?? overview.startSeconds;
+  const selectedStartSeconds = selectedSegment?.startSeconds ?? displayStartSeconds;
+  const modeLabel = decodedReady ? 'Decoded waveform' : 'Metadata fallback';
+  const modeDescription = decodedReady
+    ? 'Decoded audio peak and RMS buckets'
+    : 'Metadata-derived narration density and silence overview';
 
   return (
     <section className="narration-waveform-overview" aria-label="Narration waveform overview">
       <div className="compact-panel-heading">
         <div>
           <h4>Narration waveform overview</h4>
-          <p className="muted">Metadata-derived narration density and silence overview</p>
+          <p className="muted">{modeDescription}</p>
         </div>
         <span className={previewAvailable ? 'status-pill ready' : 'status-pill blocked'}>
           {previewAvailable ? 'Scrubbable' : 'Preview unavailable'}
         </span>
       </div>
+      <p className="muted">{modeLabel}</p>
+      {!decodedReady && decodedWaveform?.fallbackReason ? (
+        <p className="muted">{decodedWaveform.fallbackReason}</p>
+      ) : null}
       <div className="narration-waveform-track" aria-label="Narration waveform buckets">
-        {overview.buckets.map((bucket) => (
+        {displayBuckets.map((bucket) => (
           <span
-            aria-label={`Waveform bucket ${bucket.index + 1}: ${bucket.gap ? 'gap' : 'active'}, ${bucket.heightPercent}%`}
+            aria-label={bucket.decoded
+              ? `Waveform bucket ${bucket.index + 1}: decoded, peak ${bucket.peakPercent}%, rms ${bucket.rmsPercent}%`
+              : `Waveform bucket ${bucket.index + 1}: ${bucket.gap ? 'gap' : 'active'}, ${bucket.heightPercent}%`}
             className={[
               'narration-waveform-bucket',
               bucket.active ? 'active' : 'gap',
+              bucket.decoded ? 'decoded' : '',
               bucket.selected ? 'selected' : ''
             ].filter(Boolean).join(' ')}
             key={bucket.index}
             style={{ height: `${bucket.heightPercent}%` }}
           />
         ))}
-        {overview.selectedStartPercent == null || overview.selectedEndPercent == null ? null : (
+        {selectedStartPercent == null || selectedEndPercent == null ? null : (
           <span
-            aria-label={`Selected waveform window: ${formatPercent(overview.selectedStartPercent)} to ${formatPercent(overview.selectedEndPercent)}`}
+            aria-label={`Selected waveform window: ${formatPercent(selectedStartPercent)} to ${formatPercent(selectedEndPercent)}`}
             className="narration-waveform-selection"
             style={{
-              left: `${overview.selectedStartPercent}%`,
-              width: `${Math.max(overview.selectedEndPercent - overview.selectedStartPercent, 1)}%`
+              left: `${selectedStartPercent}%`,
+              width: `${Math.max(selectedEndPercent - selectedStartPercent, 1)}%`
             }}
           />
         )}
-        {overview.playheadPercent == null ? null : (
+        {playheadPercent == null ? null : (
           <span
-            aria-label={`Narration waveform playhead: ${formatPercent(overview.playheadPercent)}`}
+            aria-label={`Narration waveform playhead: ${formatPercent(playheadPercent)}`}
             className="narration-waveform-playhead"
-            style={{ left: `${overview.playheadPercent}%` }}
+            style={{ left: `${playheadPercent}%` }}
           />
         )}
       </div>
       <div className="narration-preview-controls">
-        <button type="button" disabled={!canScrub} onClick={() => onSeek(overview.startSeconds)}>
+        <button type="button" disabled={!canScrub} onClick={() => onSeek(displayStartSeconds)}>
           Scrub to start
         </button>
         <button type="button" disabled={!canScrub} onClick={() => onSeek(midpointSeconds)}>
@@ -11344,19 +11440,23 @@ function NarrationWaveformOverviewPanel({
       <dl className="compact-metrics narration-waveform-metrics">
         <div>
           <dt>Active buckets</dt>
-          <dd>{overview.activeBucketCount}</dd>
+          <dd>{activeBucketCount}</dd>
         </div>
         <div>
           <dt>Gap buckets</dt>
-          <dd>{overview.gapBucketCount}</dd>
+          <dd>{gapBucketCount}</dd>
         </div>
         <div>
           <dt>Span</dt>
-          <dd>{formatSeconds(overview.durationSeconds)}</dd>
+          <dd>{formatSeconds(displayDurationSeconds)}</dd>
         </div>
         <div>
           <dt>Current</dt>
-          <dd>{overview.playheadPercent == null ? 'N/A' : formatPercent(overview.playheadPercent)}</dd>
+          <dd>{playheadPercent == null ? 'N/A' : formatPercent(playheadPercent)}</dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{decodedReady ? decodedWaveform.sourceType : 'METADATA'}</dd>
         </div>
       </dl>
     </section>

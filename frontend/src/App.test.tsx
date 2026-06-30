@@ -36,6 +36,7 @@ import type {
   NarrationEvidence,
   NarrationGeneration,
   NarrationScriptPackage,
+  NarrationWaveform,
   NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
@@ -119,6 +120,14 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoSampleMediaCatalog').mockResolvedValue(
       demoSampleMediaCatalogFixture()
     );
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue({
+      ...narrationWaveformFixture(),
+      status: 'UNAVAILABLE',
+      sourceType: 'NONE',
+      bucketCount: 96,
+      buckets: [],
+      fallbackReason: 'No decoded audio source is available for this job.'
+    });
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -3467,6 +3476,64 @@ describe('App', () => {
     expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(48);
     expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Active buckets26')).toBeInTheDocument();
     expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Gap buckets22')).toBeInTheDocument();
+  });
+
+  test('renders decoded narration waveform buckets when available', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-decoded-waveform-job', videoId: 'narration-decoded-waveform-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-decoded-waveform-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue(narrationWaveformFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-decoded-waveform-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+
+    expect(within(waveformPanel).getByText('Decoded waveform')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'SourceNARRATION_AUDIO')).toBeInTheDocument();
+    expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(96);
+    expect(within(waveformPanel).getByLabelText('Waveform bucket 1: decoded, peak 75%, rms 50%')).toBeInTheDocument();
+  });
+
+  test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-waveform-fallback-job', videoId: 'narration-waveform-fallback-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-waveform-fallback-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue({
+      ...narrationWaveformFixture(),
+      status: 'UNAVAILABLE',
+      sourceType: 'NONE',
+      bucketCount: 96,
+      buckets: [],
+      fallbackReason: 'No decoded audio source is available for this job.'
+    });
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-waveform-fallback-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const waveformPanel = within(narrationPanel).getByRole('region', { name: /narration waveform overview/i });
+
+    expect(within(waveformPanel).getByText('Metadata fallback')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText('No decoded audio source is available for this job.')).toBeInTheDocument();
+    expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(48);
   });
 
   test('updates selected narration waveform window when selecting another row', async () => {
@@ -7473,6 +7540,25 @@ function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage
     ],
     packageEntries: ['manifest.json', 'narration-script-package.json', 'narration-script-package.md', 'README.md'],
     safetyNotes: ['This explicit package includes operator-authored narration text.'],
+    ...overrides
+  };
+}
+
+function narrationWaveformFixture(overrides: Partial<NarrationWaveform> = {}): NarrationWaveform {
+  return {
+    jobId: 'narration-waveform-job',
+    status: 'READY',
+    sourceType: 'NARRATION_AUDIO',
+    bucketCount: 96,
+    durationSeconds: 120,
+    buckets: Array.from({ length: 96 }, (_value, index) => ({
+      index,
+      startSeconds: index * 1.25,
+      endSeconds: (index + 1) * 1.25,
+      peak: index === 0 ? 0.75 : 0.25,
+      rms: index === 0 ? 0.5 : 0.125
+    })),
+    fallbackReason: '',
     ...overrides
   };
 }

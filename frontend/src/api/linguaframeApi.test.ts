@@ -15,6 +15,7 @@ import {
   getMediaUpload,
   getNarrationEvidence,
   getNarrationScriptPackage,
+  getNarrationWaveform,
   getNarrationWorkspace,
   getNarrationDemoPreset,
   getReviewedSubtitleWorkflow,
@@ -382,6 +383,33 @@ describe('linguaframeApi', () => {
       narrationVolume: 1.75,
       fadeDurationMs: 400
     });
+  });
+
+  test('loads decoded narration waveform buckets', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job-narration',
+        status: 'READY',
+        sourceType: 'NARRATION_AUDIO',
+        bucketCount: 96,
+        durationSeconds: 120,
+        buckets: [
+          {
+            index: 0,
+            startSeconds: 0,
+            endSeconds: 1.25,
+            peak: 0.75,
+            rms: 0.5
+          }
+        ],
+        fallbackReason: ''
+      })
+    );
+
+    await getNarrationWaveform('job narration/waveform', 96);
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Fwaveform/narration-waveform?bucketCount=96');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
   });
 
   test('generates narration audio, narrated video, and downloads narration evidence', async () => {

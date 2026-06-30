@@ -498,7 +498,7 @@ td {
 .narration-waveform-track {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(48, minmax(4px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(3px, 1fr));
   align-items: center;
   gap: 2px;
   height: 78px;
@@ -520,6 +520,14 @@ td {
 
 .narration-waveform-bucket.active {
   background: #40836d;
+}
+
+.narration-waveform-bucket.decoded {
+  background: #5b6f9d;
+}
+
+.narration-waveform-bucket.decoded.active {
+  background: #2f6f92;
 }
 
 .narration-waveform-bucket.selected {
