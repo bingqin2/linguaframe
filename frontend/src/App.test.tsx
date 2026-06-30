@@ -2786,7 +2786,10 @@ describe('App', () => {
       value: revokeObjectUrl,
       configurable: true
     });
-    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    let clickedDownload = '';
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clickedDownload = this.download;
+    });
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-quick-download-job', videoId: 'narration-quick-download-video', targetLanguage: 'zh-CN' })
     );
@@ -2812,6 +2815,7 @@ describe('App', () => {
 
     expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
     expect(anchorClick).toHaveBeenCalled();
+    expect(clickedDownload).toBe('narration-quick-download-job-narration-quick-script.txt');
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:quick-script-export');
     expect(saveNarrationWorkspace).not.toHaveBeenCalled();
     expect(previewNarrationSegment).not.toHaveBeenCalled();
