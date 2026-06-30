@@ -89,9 +89,9 @@ class DemoHandoffPortalServiceTests {
         assertThat(portal.headline()).contains("ready");
         assertThat(portal.checks()).extracting("status").containsOnly("READY");
         assertThat(portal.checks()).extracting("key")
-                .contains("NARRATION_DELIVERY_PACKAGE");
+                .contains("NARRATION_DELIVERY_PACKAGE", "FINAL_PROOF_BUNDLE");
         assertThat(portal.sections()).extracting("title")
-                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Narration delivery", "Presentation evidence", "Safe packages");
+                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Narration delivery", "Final proof bundle", "Presentation evidence", "Safe packages");
         assertThat(portal.sections())
                 .filteredOn(section -> section.key().equals("NARRATION_AUDIO_MIX"))
                 .singleElement()
@@ -117,7 +117,12 @@ class DemoHandoffPortalServiceTests {
                         "/api/jobs/job-portal/narration-delivery-package/download",
                         "/api/jobs/job-portal/narration-workspace/generate-video",
                         "/api/jobs/job-portal/demo-run-snapshot/download",
-                        "/api/jobs/job-portal/demo-run-package/download"
+                        "/api/jobs/job-portal/demo-run-package/download",
+                        "/api/jobs/job-portal/demo-evidence-closure",
+                        "/api/jobs/job-portal/demo-evidence-closure/markdown/download",
+                        "/api/jobs/job-portal/demo-evidence-closure/download",
+                        "/api/jobs/job-portal/openai-smoke-proof/markdown/download",
+                        "/api/jobs/job-portal/ai-audit-package/download"
                 );
 
         StoredDemoHandoffPortalPackageBo portalPackage = service.openPackage("job-portal");
@@ -133,7 +138,9 @@ class DemoHandoffPortalServiceTests {
                 "share-sheet.json",
                 "run-monitor.json",
                 "narration-delivery-package.json",
-                "narration-delivery-package.md"
+                "narration-delivery-package.md",
+                "final-proof-bundle.json",
+                "final-proof-bundle.md"
         );
         assertThat(entries.get("index.html"))
                 .contains("<!doctype html>")
@@ -143,8 +150,25 @@ class DemoHandoffPortalServiceTests {
                 .contains("Narration volume: 1.750")
                 .contains("Fade duration ms: 400")
                 .contains("Narration delivery package")
-                .contains("/api/jobs/job-portal/narration-delivery-package/download");
-        assertThat(entries.keySet()).doesNotContain("narration-delivery-package.zip");
+                .contains("/api/jobs/job-portal/narration-delivery-package/download")
+                .contains("Final proof bundle")
+                .contains("/api/jobs/job-portal/demo-evidence-closure/download")
+                .contains("/api/jobs/job-portal/openai-smoke-proof/markdown/download")
+                .contains("/api/jobs/job-portal/ai-audit-package/download");
+        assertThat(entries.get("manifest.json"))
+                .contains("final-proof-bundle.json")
+                .contains("final-proof-bundle.md");
+        assertThat(entries.get("final-proof-bundle.json"))
+                .contains("\"jobId\":\"job-portal\"")
+                .contains("\"source\":\"final-proof-bundle\"")
+                .contains("\"evidenceClosureHref\":\"/api/jobs/job-portal/demo-evidence-closure\"");
+        assertThat(entries.get("final-proof-bundle.md"))
+                .contains("Final proof bundle")
+                .contains("/api/jobs/job-portal/demo-evidence-closure/download")
+                .contains("/api/jobs/job-portal/ai-audit-package/download")
+                .contains("actual-only");
+        assertThat(entries.keySet())
+                .doesNotContain("narration-delivery-package.zip", "demo-evidence-closure.zip", "ai-audit-package.zip");
     }
 
     @Test
@@ -242,6 +266,9 @@ class DemoHandoffPortalServiceTests {
                         "Linked safe route: /api/jobs/job-portal/narration-evidence/download",
                         "Linked safe route: /api/jobs/job-portal/narration-recovery-handoff/download",
                         "Linked safe route: /api/jobs/job-portal/narration-delivery-package/download",
+                        "Linked safe route: /api/jobs/job-portal/demo-evidence-closure/download",
+                        "Linked safe route: /api/jobs/job-portal/openai-smoke-proof/markdown/download",
+                        "Linked safe route: /api/jobs/job-portal/ai-audit-package/download",
                         "Linked safe route: /api/jobs/job-portal/narration-workspace/generate-video"
                 );
         assertThat(entries.get("narration-delivery-package.json"))

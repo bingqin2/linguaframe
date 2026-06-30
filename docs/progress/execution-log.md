@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the final proof bundle integration feature slice from `docs/plans/169-final-proof-bundle-integration.md`.
+- Added reviewer workspace and handoff portal final proof bundle checks, sections, safe links, package entries, and metadata-only ZIP entries for evidence closure, OpenAI smoke proof Markdown, and AI audit package routes.
+- Updated the full Tears demo script to export OpenAI smoke proof JSON/Markdown, AI audit ZIP, and demo evidence closure JSON/Markdown/ZIP before refreshing final reviewer and portal outputs.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target state for final proof bundle handoff.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=DemoReviewerWorkspaceServiceTests,DemoHandoffPortalServiceTests test` first failed because `FINAL_PROOF_BUNDLE`, final proof safe links, and final proof ZIP entries were missing; after adding the metadata-only integration, it passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "renders timeline"` first failed because the selected-job fixtures did not expose `final-proof-bundle.json`; after adding final proof checks, sections, links, and package entries to the fixtures, it passed with `Test Files 1 passed` and `Tests 1 passed | 150 skipped`.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/demo-evidence-closure.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=DemoReviewerWorkspaceServiceTests,DemoHandoffPortalServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 92, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo reviewer workspace|demo handoff portal|demo evidence closure|renders timeline"` passed with `Test Files 2 passed` and `Tests 10 passed | 249 skipped`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 840, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 316 passed`.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration final handoff integration feature slice from `docs/plans/168-narration-final-handoff-integration.md`.
 - Added delivery package readiness, evidence, and safe links to the demo acceptance gate.
 - Added narration delivery package checks, package entries, safe links, and JSON/Markdown ZIP entries to the demo reviewer workspace.

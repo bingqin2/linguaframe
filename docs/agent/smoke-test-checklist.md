@@ -323,6 +323,9 @@ Expected:
 - Demo reviewer workspace shows the narration delivery package optional check, JSON/Markdown package entries, and safe delivery ZIP route without embedding the delivery ZIP.
 - Demo handoff portal ZIP includes `narration-delivery-package.json` and `narration-delivery-package.md`, and its `index.html` links the safe narration delivery package route.
 - The full Tears script exports `narration-delivery-package/` after narration playback resolution/recovery, then refreshes `demo-acceptance-gate.json`, `demo-reviewer-workspace.*`, and `demo-handoff-portal.*` so final handoff files include current delivery readiness.
+- Demo reviewer workspace shows `Final proof bundle`, safe evidence closure, OpenAI smoke proof Markdown, and AI audit package links, plus `final-proof-bundle.json` and `final-proof-bundle.md` package entries.
+- Demo handoff portal ZIP includes `final-proof-bundle.json` and `final-proof-bundle.md`; its `index.html` links evidence closure, OpenAI smoke proof Markdown, and AI audit package routes without embedding nested proof ZIP binaries.
+- The full Tears script exports `openai-smoke-proof.json`, `openai-smoke-proof.md`, `ai-audit-package.zip`, `demo-evidence-closure.json`, `demo-evidence-closure.md`, and `demo-evidence-closure.zip` before refreshing final reviewer and portal outputs.
 - Demo acceptance gate narration resolution evidence must not print narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.

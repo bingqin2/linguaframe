@@ -454,7 +454,7 @@ Build:
 - Pre-upload demo readiness workspace. Status: implemented with `GET /api/media/uploads/readiness`, a browser `Upload readiness` panel, and `scripts/demo/upload-readiness.sh` for metadata-only terminal go/no-go checks.
 - Demo run launcher workspace. Status: implemented as a metadata-only operator aggregate that connects sample selection, the `tears-showcase` profile, upload-readiness gates, the full Tears command, and expected post-run evidence outputs before paid or full-video execution.
 - Reviewed subtitle workflow cockpit. Status: implemented as a metadata-only selected-job aggregate that connects subtitle review, draft edits, reviewed artifact readiness, optional reviewed burned-video availability, delivery manifest readiness, safe handoff links, browser UI, and terminal export.
-- Demo handoff portal package. Status: implemented as a metadata-only selected-job aggregate that exports JSON, Markdown, and a static `index.html` ZIP linking reviewer workspace, snapshot, run packages, diagnostics, evidence, and OpenAI proof without media bytes or secrets.
+- Demo handoff portal package. Status: implemented as a metadata-only selected-job aggregate that exports JSON, Markdown, and a static `index.html` ZIP linking reviewer workspace, snapshot, run packages, diagnostics, evidence, OpenAI proof, AI audit, evidence closure, narration delivery, and final proof bundle summaries without media bytes or secrets.
 
 Do not build yet:
 

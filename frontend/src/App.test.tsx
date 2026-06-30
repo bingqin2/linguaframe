@@ -1825,6 +1825,20 @@ describe('App', () => {
       '/api/jobs/job-1/narration-delivery-package/download'
     );
     expect(within(reviewerWorkspace).getByText('narration-delivery-package.json')).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByText('final-proof-bundle.json')).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByText('Final proof bundle')).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByRole('link', { name: /demo evidence closure zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/demo-evidence-closure/download'
+    );
+    expect(within(reviewerWorkspace).getByRole('link', { name: /openai smoke proof markdown/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/openai-smoke-proof/markdown/download'
+    );
+    expect(within(reviewerWorkspace).getByRole('link', { name: /ai audit package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/ai-audit-package/download'
+    );
     expect(within(reviewerWorkspace).getByText('Demo run package')).toBeInTheDocument();
     expect(within(reviewerWorkspace).queryByText('raw transcript text')).not.toBeInTheDocument();
     expect(within(reviewerWorkspace).queryByText('provider request payload')).not.toBeInTheDocument();
@@ -1837,9 +1851,23 @@ describe('App', () => {
     expect(within(handoffPortal).getByText(/Static handoff portal ZIP/)).toBeInTheDocument();
     expect(within(handoffPortal).getByText('index.html')).toBeInTheDocument();
     expect(within(handoffPortal).getByText('narration-delivery-package.md')).toBeInTheDocument();
+    expect(within(handoffPortal).getByText('final-proof-bundle.md')).toBeInTheDocument();
+    expect(within(handoffPortal).getByText('Final proof bundle')).toBeInTheDocument();
     expect(within(handoffPortal).getByRole('link', { name: /narration delivery package zip/i })).toHaveAttribute(
       'href',
       '/api/jobs/job-1/narration-delivery-package/download'
+    );
+    expect(within(handoffPortal).getByRole('link', { name: /demo evidence closure zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/demo-evidence-closure/download'
+    );
+    expect(within(handoffPortal).getByRole('link', { name: /openai smoke proof markdown/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/openai-smoke-proof/markdown/download'
+    );
+    expect(within(handoffPortal).getByRole('link', { name: /ai audit package/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/ai-audit-package/download'
     );
     expect(within(handoffPortal).getByText('Demo reviewer workspace')).toBeInTheDocument();
     expect(within(handoffPortal).queryByText('raw transcript text')).not.toBeInTheDocument();
@@ -9545,6 +9573,18 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
           'Narration audio ready: true',
           'Narrated video ready: true'
         ]
+      },
+      {
+        key: 'final-proof-bundle',
+        title: 'Final proof bundle',
+        status: 'READY',
+        facts: [
+          'Acceptance gate: READY',
+          'Completion certificate: READY',
+          'OpenAI smoke proof: READY',
+          'AI audit package route is available.',
+          'Evidence closure baseline mode: actual-only when no pre-upload baseline JSON is supplied.'
+        ]
       }
     ],
     checks: [
@@ -9571,6 +9611,14 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         detail: 'Narration delivery package status is READY; audioReady=true; videoReady=true.',
         nextAction: 'Download the narration delivery package.',
         required: false
+      },
+      {
+        key: 'final-proof-bundle',
+        label: 'Final proof bundle',
+        status: 'READY',
+        detail: 'Final proof bundle links completion, acceptance, OpenAI proof, AI audit, and evidence closure.',
+        nextAction: 'Use actual-only evidence closure when no pre-upload baseline JSON is available.',
+        required: false
       }
     ],
     safeLinks: [
@@ -9582,6 +9630,27 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         description: 'Metadata and links for the completed demo run.'
       },
       {
+        kind: 'AI_AUDIT_PACKAGE',
+        label: 'AI audit package',
+        href: '/api/jobs/job-1/ai-audit-package/download',
+        contentType: 'application/zip',
+        description: 'Model-call audit package.'
+      },
+      {
+        kind: 'OPENAI_SMOKE_PROOF_MARKDOWN',
+        label: 'OpenAI smoke proof Markdown',
+        href: '/api/jobs/job-1/openai-smoke-proof/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Provider-backed proof summary as Markdown.'
+      },
+      {
+        kind: 'DEMO_EVIDENCE_CLOSURE_ZIP',
+        label: 'Demo evidence closure ZIP',
+        href: '/api/jobs/job-1/demo-evidence-closure/download',
+        contentType: 'application/zip',
+        description: 'Final proof closure package.'
+      },
+      {
         kind: 'NARRATION_DELIVERY_PACKAGE_ZIP',
         label: 'Narration delivery package ZIP',
         href: '/api/jobs/job-1/narration-delivery-package/download',
@@ -9589,7 +9658,15 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         description: 'Narration delivery package.'
       }
     ],
-    packageEntries: ['manifest.json', 'reviewer-workspace.md', 'narration-delivery-package.json', 'narration-delivery-package.md', 'README.md'],
+    packageEntries: [
+      'manifest.json',
+      'reviewer-workspace.md',
+      'narration-delivery-package.json',
+      'narration-delivery-package.md',
+      'final-proof-bundle.json',
+      'final-proof-bundle.md',
+      'README.md'
+    ],
     safetyNotes: [
       'Metadata only: no media bytes, transcript bodies, subtitle bodies, local filesystem paths, object storage keys, provider request or response bodies, credentials, bearer tokens, or demo tokens are included.'
     ]
@@ -9632,6 +9709,14 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         detail: 'Narration delivery package status is READY; audioReady=true; videoReady=true.',
         nextAction: 'Download the narration delivery package.',
         required: false
+      },
+      {
+        key: 'final-proof-bundle',
+        label: 'Final proof bundle',
+        status: 'READY',
+        detail: 'Final proof bundle links completion, acceptance, OpenAI proof, AI audit, and evidence closure.',
+        nextAction: 'Open the final proof links from index.html.',
+        required: false
       }
     ],
     sections: [
@@ -9646,6 +9731,17 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         title: 'Narration delivery',
         status: 'READY',
         facts: ['Narration delivery package: READY', 'Narration delivery package link is available.']
+      },
+      {
+        key: 'final-proof-bundle',
+        title: 'Final proof bundle',
+        status: 'READY',
+        facts: [
+          'Acceptance gate: READY',
+          'Completion certificate: READY',
+          'OpenAI smoke proof: READY',
+          'Evidence closure baseline mode: actual-only when no pre-upload baseline JSON is supplied.'
+        ]
       }
     ],
     safeLinks: [
@@ -9664,6 +9760,27 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         description: 'Reviewer workspace package.'
       },
       {
+        kind: 'AI_AUDIT_PACKAGE',
+        label: 'AI audit package',
+        href: '/api/jobs/job-1/ai-audit-package/download',
+        contentType: 'application/zip',
+        description: 'Model-call audit package.'
+      },
+      {
+        kind: 'OPENAI_SMOKE_PROOF_MARKDOWN',
+        label: 'OpenAI smoke proof Markdown',
+        href: '/api/jobs/job-1/openai-smoke-proof/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Provider-backed proof summary as Markdown.'
+      },
+      {
+        kind: 'DEMO_EVIDENCE_CLOSURE_ZIP',
+        label: 'Demo evidence closure ZIP',
+        href: '/api/jobs/job-1/demo-evidence-closure/download',
+        contentType: 'application/zip',
+        description: 'Final proof closure package.'
+      },
+      {
         kind: 'NARRATION_DELIVERY_PACKAGE_ZIP',
         label: 'Narration delivery package ZIP',
         href: '/api/jobs/job-1/narration-delivery-package/download',
@@ -9671,7 +9788,15 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         description: 'Narration delivery package.'
       }
     ],
-    packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md', 'narration-delivery-package.json', 'narration-delivery-package.md'],
+    packageEntries: [
+      'index.html',
+      'manifest.json',
+      'handoff-portal.md',
+      'narration-delivery-package.json',
+      'narration-delivery-package.md',
+      'final-proof-bundle.json',
+      'final-proof-bundle.md'
+    ],
     safetyNotes: ['Metadata only; sensitive content is excluded.']
   };
 }

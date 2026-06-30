@@ -245,6 +245,11 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         checks.add(statusCheck("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", openAiProof.overallStatus(), false,
                 "OpenAI smoke proof status is " + openAiProof.overallStatus() + ".",
                 openAiProof.recommendedNextAction()));
+        checks.add(statusCheck("FINAL_PROOF_BUNDLE", "Final proof bundle",
+                finalProofStatus(acceptance.gateStatus(), certificate.certificateStatus(), openAiProof.overallStatus()),
+                false,
+                "Final proof bundle links completion, acceptance, OpenAI proof, AI audit, and evidence closure.",
+                "Open the final proof links from index.html or download the evidence closure package."));
         checks.add(statusCheck("NARRATION_DELIVERY_PACKAGE", "Narration delivery package", narrationDelivery.status(), false,
                 "Narration delivery package status is " + narrationDelivery.status()
                         + "; audioReady=" + narrationDelivery.audioReady()
@@ -295,6 +300,17 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Delivery package entries: " + narrationDelivery.packageEntries().size(),
                         "Narration delivery package link is available."
                 )),
+                section("FINAL_PROOF_BUNDLE", "Final proof bundle",
+                        finalProofStatus(acceptance.gateStatus(), certificate.certificateStatus(), openAiProof.overallStatus()),
+                        List.of(
+                                "Acceptance gate: " + acceptance.gateStatus(),
+                                "Completion certificate: " + certificate.certificateStatus(),
+                                "OpenAI smoke proof: " + openAiProof.overallStatus(),
+                                "Evidence closure package link is available.",
+                                "AI audit package link is available.",
+                                "OpenAI smoke proof Markdown link is available.",
+                                "Evidence closure baseline mode: actual-only when no pre-upload baseline JSON is supplied."
+                        )),
                 section("PRESENTATION_EVIDENCE", "Presentation evidence", shareSheet.readiness(), List.of(
                         "Share sheet: " + value(shareSheet.headline()),
                         "Snapshot readiness: " + value(snapshot.readiness()),
@@ -328,6 +344,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             writeEntry(zipOutputStream, "run-monitor.json", snapshotJson(portal, "run-monitor"));
             writeEntry(zipOutputStream, "narration-delivery-package.json", narrationDeliveryJson(portal));
             writeEntry(zipOutputStream, "narration-delivery-package.md", narrationDeliveryMarkdown(portal));
+            writeEntry(zipOutputStream, "final-proof-bundle.json", finalProofJson(portal));
+            writeEntry(zipOutputStream, "final-proof-bundle.md", finalProofMarkdown(portal));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to build demo handoff portal package", ex);
         }
@@ -385,7 +403,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
 
     private String manifest(DemoHandoffPortalVo portal) {
         return """
-                {"jobId":"%s","videoId":"%s","overallStatus":"%s","phase":"%s","entries":["index.html","manifest.json","handoff-portal.md","reviewer-workspace.json","README.md","acceptance-gate.json","completion-certificate.json","share-sheet.json","run-monitor.json","narration-delivery-package.json","narration-delivery-package.md"],"safeLinks":%d}
+                {"jobId":"%s","videoId":"%s","overallStatus":"%s","phase":"%s","entries":["index.html","manifest.json","handoff-portal.md","reviewer-workspace.json","README.md","acceptance-gate.json","completion-certificate.json","share-sheet.json","run-monitor.json","narration-delivery-package.json","narration-delivery-package.md","final-proof-bundle.json","final-proof-bundle.md"],"safeLinks":%d}
                 """.formatted(
                 json(portal.jobId()),
                 json(portal.videoId()),
@@ -426,6 +444,31 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 Source route: /api/jobs/%s/narration-delivery-package
                 Safety: metadata-only; media bytes and narration text are not embedded here.
                 """.formatted(value(portal.jobId()), value(portal.jobId()));
+    }
+
+    private String finalProofJson(DemoHandoffPortalVo portal) {
+        String status = portal.sections().stream()
+                .filter(section -> "FINAL_PROOF_BUNDLE".equals(section.key()))
+                .findFirst()
+                .map(DemoHandoffPortalSectionVo::status)
+                .orElse("UNKNOWN");
+        return """
+                {"jobId":"%s","status":"%s","source":"final-proof-bundle","evidenceClosureHref":"/api/jobs/%s/demo-evidence-closure","aiAuditPackageHref":"/api/jobs/%s/ai-audit-package/download","openAiSmokeProofMarkdownHref":"/api/jobs/%s/openai-smoke-proof/markdown/download","baselineMode":"actual-only"}
+                """.formatted(json(portal.jobId()), json(status), json(portal.jobId()), json(portal.jobId()), json(portal.jobId()));
+    }
+
+    private String finalProofMarkdown(DemoHandoffPortalVo portal) {
+        return """
+                # Final proof bundle
+
+                Job: %s
+                Completion certificate: /api/jobs/%s/demo-completion-certificate
+                Evidence closure: /api/jobs/%s/demo-evidence-closure/download
+                AI audit package: /api/jobs/%s/ai-audit-package/download
+                OpenAI smoke proof Markdown: /api/jobs/%s/openai-smoke-proof/markdown/download
+                Baseline mode: actual-only unless a pre-upload baseline JSON is supplied to the closure endpoint.
+                Safety: metadata-only; nested proof ZIP binaries, media bytes, transcript text, subtitle text, provider payloads, local paths, object keys, and secrets are not embedded here.
+                """.formatted(value(portal.jobId()), value(portal.jobId()), value(portal.jobId()), value(portal.jobId()), value(portal.jobId()));
     }
 
     private String readme(DemoHandoffPortalVo portal) {
@@ -512,7 +555,11 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download", "application/zip", "Reviewed delivery package."),
                 link("DIAGNOSTICS", "Diagnostics", "/api/jobs/" + jobId + "/diagnostics/download", "application/json", "Safe diagnostics report."),
                 link("EVIDENCE_MARKDOWN", "Evidence Markdown", "/api/jobs/" + jobId + "/evidence/markdown/download", "text/markdown", "Backend evidence report."),
-                link("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", "/api/jobs/" + jobId + "/openai-smoke-proof", "application/json", "Provider-backed proof when available.")
+                link("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", "/api/jobs/" + jobId + "/openai-smoke-proof", "application/json", "Provider-backed proof when available."),
+                link("OPENAI_SMOKE_PROOF_MARKDOWN", "OpenAI smoke proof Markdown", "/api/jobs/" + jobId + "/openai-smoke-proof/markdown/download", "text/markdown", "Provider-backed proof summary as Markdown."),
+                link("DEMO_EVIDENCE_CLOSURE", "Demo evidence closure", "/api/jobs/" + jobId + "/demo-evidence-closure", "application/json", "Final proof closure manifest."),
+                link("DEMO_EVIDENCE_CLOSURE_MARKDOWN", "Demo evidence closure Markdown", "/api/jobs/" + jobId + "/demo-evidence-closure/markdown/download", "text/markdown", "Final proof closure report."),
+                link("DEMO_EVIDENCE_CLOSURE_ZIP", "Demo evidence closure ZIP", "/api/jobs/" + jobId + "/demo-evidence-closure/download", "application/zip", "Final proof closure package.")
         ));
         for (var deliveryLink : narrationDelivery.safeLinks()) {
             links.add(link(deliveryLink.kind(), deliveryLink.label(), deliveryLink.href(), deliveryLink.contentType(), deliveryLink.description()));
@@ -533,10 +580,15 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 "run-monitor.json",
                 "narration-delivery-package.json",
                 "narration-delivery-package.md",
+                "final-proof-bundle.json",
+                "final-proof-bundle.md",
                 "Linked safe route: /api/jobs/" + jobId + "/subtitle-review-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-recovery-handoff/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-delivery-package/download",
+                "Linked safe route: /api/jobs/" + jobId + "/demo-evidence-closure/download",
+                "Linked safe route: /api/jobs/" + jobId + "/openai-smoke-proof/markdown/download",
+                "Linked safe route: /api/jobs/" + jobId + "/ai-audit-package/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-workspace/generate-video",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-reviewer-workspace/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download"
@@ -585,6 +637,16 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 || "FAIL".equals(status)
                 || "FAILED".equals(status)
                 || "HANDOFF_BLOCKED".equals(status);
+    }
+
+    private static String finalProofStatus(String acceptanceStatus, String certificateStatus, String openAiProofStatus) {
+        if (isBlockedStatus(acceptanceStatus) || isBlockedStatus(certificateStatus)) {
+            return "BLOCKED";
+        }
+        if (isReadyStatus(acceptanceStatus) && isReadyStatus(certificateStatus) && isReadyStatus(openAiProofStatus)) {
+            return "READY";
+        }
+        return "ATTENTION";
     }
 
     private static void writeEntry(ZipOutputStream zipOutputStream, String name, String content) throws IOException {

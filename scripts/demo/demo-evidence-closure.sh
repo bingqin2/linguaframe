@@ -25,49 +25,10 @@ fi
 
 mkdir -p "$OUTPUT_DIR"
 
-python3 - "$REQUEST_PATH" <<'PY'
-import json
-import os
-import sys
-from pathlib import Path
-
-request_path = Path(sys.argv[1])
-inline = os.environ.get("LINGUAFRAME_PRE_UPLOAD_JSON_INLINE")
-baseline_path = os.environ.get("LINGUAFRAME_PRE_UPLOAD_JSON_PATH")
-
-if inline is not None and inline.strip():
-    pre_upload_json = inline.strip()
-elif baseline_path:
-    pre_upload_json = Path(baseline_path).read_text(encoding="utf-8").strip()
-else:
-    pre_upload_json = None
-
-request_path.write_text(
-    json.dumps({"preUploadJson": pre_upload_json}, ensure_ascii=False),
-    encoding="utf-8",
-)
-PY
-
-demo_curl -fsS \
-  -H "Content-Type: application/json" \
-  -X POST \
-  --data @"$REQUEST_PATH" \
-  "$BASE_URL/api/jobs/$JOB_ID/demo-evidence-closure" \
-  -o "$JSON_OUTPUT_PATH"
-
-demo_curl -fsS \
-  -H "Content-Type: application/json" \
-  -X POST \
-  --data @"$REQUEST_PATH" \
-  "$BASE_URL/api/jobs/$JOB_ID/demo-evidence-closure/markdown/download" \
-  -o "$MARKDOWN_OUTPUT_PATH"
-
-demo_curl -fsS \
-  -H "Content-Type: application/json" \
-  -X POST \
-  --data @"$REQUEST_PATH" \
-  "$BASE_URL/api/jobs/$JOB_ID/demo-evidence-closure/download" \
-  -o "$ZIP_OUTPUT_PATH"
+write_demo_evidence_closure_request "$REQUEST_PATH"
+download_demo_evidence_closure_json "$BASE_URL" "$JOB_ID" "$REQUEST_PATH" "$JSON_OUTPUT_PATH"
+download_demo_evidence_closure_markdown "$BASE_URL" "$JOB_ID" "$REQUEST_PATH" "$MARKDOWN_OUTPUT_PATH"
+download_demo_evidence_closure_zip "$BASE_URL" "$JOB_ID" "$REQUEST_PATH" "$ZIP_OUTPUT_PATH"
 
 python3 - "$JSON_OUTPUT_PATH" "$MARKDOWN_OUTPUT_PATH" "$ZIP_OUTPUT_PATH" <<'PY'
 import json

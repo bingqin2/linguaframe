@@ -726,6 +726,85 @@ download_demo_handoff_portal_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-handoff-portal/download" -o "$output_path"
 }
 
+write_demo_evidence_closure_request() {
+  local output_path="$1"
+
+  mkdir -p "$(dirname "$output_path")"
+  python3 - "$output_path" <<'PY'
+import json
+import os
+import sys
+from pathlib import Path
+
+request_path = Path(sys.argv[1])
+inline = os.environ.get("LINGUAFRAME_PRE_UPLOAD_JSON_INLINE")
+baseline_path = os.environ.get("LINGUAFRAME_PRE_UPLOAD_JSON_PATH")
+
+if inline is not None and inline.strip():
+    pre_upload_json = inline.strip()
+elif baseline_path:
+    pre_upload_json = Path(baseline_path).read_text(encoding="utf-8").strip()
+else:
+    pre_upload_json = None
+
+request_path.write_text(
+    json.dumps({"preUploadJson": pre_upload_json}, ensure_ascii=False),
+    encoding="utf-8",
+)
+PY
+}
+
+download_demo_evidence_closure_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local request_path="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    --data @"$request_path" \
+    "$base_url/api/jobs/$encoded_job_id/demo-evidence-closure" \
+    -o "$output_path"
+}
+
+download_demo_evidence_closure_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local request_path="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    --data @"$request_path" \
+    "$base_url/api/jobs/$encoded_job_id/demo-evidence-closure/markdown/download" \
+    -o "$output_path"
+}
+
+download_demo_evidence_closure_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local request_path="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    --data @"$request_path" \
+    "$base_url/api/jobs/$encoded_job_id/demo-evidence-closure/download" \
+    -o "$output_path"
+}
+
 download_subtitle_review_evidence_json() {
   local base_url="$1"
   local job_id="$2"

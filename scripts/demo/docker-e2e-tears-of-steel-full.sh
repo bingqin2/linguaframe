@@ -105,6 +105,17 @@ download_demo_acceptance_gate_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-accep
 print_demo_acceptance_gate_summary_file "$OUTPUT_DIR/demo-acceptance-gate.json"
 echo "Downloaded demo acceptance gate to $OUTPUT_DIR/demo-acceptance-gate.json"
 
+echo "Final proof bundle:"
+download_openai_smoke_proof_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.json"
+download_openai_smoke_proof_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/openai-smoke-proof.md"
+download_ai_audit_package "$BASE_URL" "$job_id" "$OUTPUT_DIR/ai-audit-package.zip"
+write_demo_evidence_closure_request "$OUTPUT_DIR/demo-evidence-closure-request.json"
+download_demo_evidence_closure_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-evidence-closure-request.json" "$OUTPUT_DIR/demo-evidence-closure.json"
+download_demo_evidence_closure_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-evidence-closure-request.json" "$OUTPUT_DIR/demo-evidence-closure.md"
+download_demo_evidence_closure_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-evidence-closure-request.json" "$OUTPUT_DIR/demo-evidence-closure.zip"
+print_ai_audit_package_summary "$OUTPUT_DIR/ai-audit-package.zip" "$job_id"
+echo "Downloaded final proof bundle to $OUTPUT_DIR/openai-smoke-proof.json, $OUTPUT_DIR/openai-smoke-proof.md, $OUTPUT_DIR/ai-audit-package.zip, $OUTPUT_DIR/demo-evidence-closure.json, $OUTPUT_DIR/demo-evidence-closure.md, and $OUTPUT_DIR/demo-evidence-closure.zip"
+
 echo "Demo run monitor:"
 download_demo_run_monitor_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.json"
 download_demo_run_monitor_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-run-monitor.md"

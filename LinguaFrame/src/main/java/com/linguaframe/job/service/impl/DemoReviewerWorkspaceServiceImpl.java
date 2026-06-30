@@ -190,6 +190,11 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
         checks.add(statusCheck("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", openAiProof.overallStatus(), false,
                 "OpenAI smoke proof status is " + openAiProof.overallStatus() + ".",
                 openAiProof.recommendedNextAction()));
+        checks.add(statusCheck("FINAL_PROOF_BUNDLE", "Final proof bundle",
+                finalProofStatus(acceptance.gateStatus(), certificate.certificateStatus(), openAiProof.overallStatus()),
+                false,
+                "Final proof bundle links completion, acceptance, OpenAI proof, AI audit, and evidence closure.",
+                "Use actual-only evidence closure when no pre-upload baseline JSON is available."));
         checks.add(statusCheck("NARRATION_DELIVERY_PACKAGE", "Narration delivery package", narrationDelivery.status(), false,
                 "Narration delivery package status is " + narrationDelivery.status()
                         + "; audioReady=" + narrationDelivery.audioReady()
@@ -234,6 +239,16 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                         "Delivery package entries: " + narrationDelivery.packageEntries().size(),
                         "Delivery next action: " + value(narrationDelivery.recommendedNextAction())
                 )),
+                section("FINAL_PROOF_BUNDLE", "Final proof bundle",
+                        finalProofStatus(acceptance.gateStatus(), certificate.certificateStatus(), openAiProof.overallStatus()),
+                        List.of(
+                                "Acceptance gate: " + acceptance.gateStatus(),
+                                "Completion certificate: " + certificate.certificateStatus(),
+                                "OpenAI smoke proof: " + openAiProof.overallStatus(),
+                                "AI audit package route is available.",
+                                "Evidence closure route is available.",
+                                "Evidence closure baseline mode: actual-only when no pre-upload baseline JSON is supplied."
+                        )),
                 section("PACKAGES", "Packages", certificate.certificateStatus(), List.of(
                         "Acceptance gate: " + acceptance.gateStatus(),
                         "Completion certificate: " + certificate.certificateStatus(),
@@ -297,7 +312,11 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 link("DEMO_RUN_PACKAGE", "Demo run package", "/api/jobs/" + jobId + "/demo-run-package/download", "application/zip", "Detailed safe job package."),
                 link("AI_AUDIT_PACKAGE", "AI audit package", "/api/jobs/" + jobId + "/ai-audit-package/download", "application/zip", "Model-call audit package."),
                 link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download", "application/zip", "Reviewed delivery package."),
-                link("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", "/api/jobs/" + jobId + "/openai-smoke-proof", "application/json", "OpenAI proof when provider-backed.")
+                link("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", "/api/jobs/" + jobId + "/openai-smoke-proof", "application/json", "OpenAI proof when provider-backed."),
+                link("OPENAI_SMOKE_PROOF_MARKDOWN", "OpenAI smoke proof Markdown", "/api/jobs/" + jobId + "/openai-smoke-proof/markdown/download", "text/markdown", "Provider-backed proof summary as Markdown."),
+                link("DEMO_EVIDENCE_CLOSURE", "Demo evidence closure", "/api/jobs/" + jobId + "/demo-evidence-closure", "application/json", "Final proof closure manifest."),
+                link("DEMO_EVIDENCE_CLOSURE_MARKDOWN", "Demo evidence closure Markdown", "/api/jobs/" + jobId + "/demo-evidence-closure/markdown/download", "text/markdown", "Final proof closure report."),
+                link("DEMO_EVIDENCE_CLOSURE_ZIP", "Demo evidence closure ZIP", "/api/jobs/" + jobId + "/demo-evidence-closure/download", "application/zip", "Final proof closure package.")
         ));
         for (var deliveryLink : narrationDelivery.safeLinks()) {
             links.add(link(deliveryLink.kind(), deliveryLink.label(), deliveryLink.href(), deliveryLink.contentType(), deliveryLink.description()));
@@ -312,9 +331,13 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 "README.md",
                 "narration-delivery-package.json",
                 "narration-delivery-package.md",
+                "final-proof-bundle.json",
+                "final-proof-bundle.md",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download",
                 "Linked safe route: /api/jobs/" + jobId + "/ai-audit-package/download",
                 "Linked safe route: /api/jobs/" + jobId + "/handoff-package/download",
+                "Linked safe route: /api/jobs/" + jobId + "/demo-evidence-closure/download",
+                "Linked safe route: /api/jobs/" + jobId + "/openai-smoke-proof/markdown/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-delivery-package/download"
         );
     }
@@ -334,6 +357,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
             writeEntry(zipOutputStream, "reviewer-workspace.md", markdown);
             writeEntry(zipOutputStream, "narration-delivery-package.json", narrationDeliveryJson(workspace));
             writeEntry(zipOutputStream, "narration-delivery-package.md", narrationDeliveryMarkdown(workspace));
+            writeEntry(zipOutputStream, "final-proof-bundle.json", finalProofJson(workspace));
+            writeEntry(zipOutputStream, "final-proof-bundle.md", finalProofMarkdown(workspace));
             writeEntry(zipOutputStream, "README.md", readme(workspace));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to build demo reviewer workspace package", ex);
@@ -343,7 +368,7 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
 
     private String manifest(DemoReviewerWorkspaceVo workspace) {
         return """
-                {"jobId":"%s","overallStatus":"%s","phase":"%s","entries":["manifest.json","reviewer-workspace.md","narration-delivery-package.json","narration-delivery-package.md","README.md"],"safeLinks":%d}
+                {"jobId":"%s","overallStatus":"%s","phase":"%s","entries":["manifest.json","reviewer-workspace.md","narration-delivery-package.json","narration-delivery-package.md","final-proof-bundle.json","final-proof-bundle.md","README.md"],"safeLinks":%d}
                 """.formatted(
                 value(workspace.jobId()),
                 value(workspace.overallStatus()),
@@ -373,6 +398,30 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 """.formatted(value(workspace.jobId()), value(workspace.jobId()));
     }
 
+    private String finalProofJson(DemoReviewerWorkspaceVo workspace) {
+        String status = workspace.sections().stream()
+                .filter(section -> "FINAL_PROOF_BUNDLE".equals(section.key()))
+                .findFirst()
+                .map(DemoReviewerWorkspaceSectionVo::status)
+                .orElse("UNKNOWN");
+        return """
+                {"jobId":"%s","status":"%s","source":"final-proof-bundle","evidenceClosureHref":"/api/jobs/%s/demo-evidence-closure","aiAuditPackageHref":"/api/jobs/%s/ai-audit-package/download","openAiSmokeProofMarkdownHref":"/api/jobs/%s/openai-smoke-proof/markdown/download","baselineMode":"actual-only"}
+                """.formatted(value(workspace.jobId()), value(status), value(workspace.jobId()), value(workspace.jobId()), value(workspace.jobId()));
+    }
+
+    private String finalProofMarkdown(DemoReviewerWorkspaceVo workspace) {
+        return """
+                # Final proof bundle
+
+                Job: %s
+                Evidence closure: /api/jobs/%s/demo-evidence-closure/download
+                AI audit package: /api/jobs/%s/ai-audit-package/download
+                OpenAI smoke proof Markdown: /api/jobs/%s/openai-smoke-proof/markdown/download
+                Baseline mode: actual-only unless a pre-upload baseline JSON is supplied to the closure endpoint.
+                Safety: metadata-only; nested proof ZIP binaries, media bytes, transcript text, subtitle text, provider payloads, local paths, object keys, and secrets are not embedded here.
+                """.formatted(value(workspace.jobId()), value(workspace.jobId()), value(workspace.jobId()), value(workspace.jobId()));
+    }
+
     private String readme(DemoReviewerWorkspaceVo workspace) {
         return """
                 # Demo Reviewer Workspace Package
@@ -382,6 +431,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 Included files:
                 - `manifest.json`
                 - `reviewer-workspace.md`
+                - `final-proof-bundle.json`
+                - `final-proof-bundle.md`
                 - `README.md`
 
                 It links to existing safe packages instead of embedding generated media or raw model content.
@@ -444,6 +495,16 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
 
     private static boolean isBlockedStatus(String status) {
         return "BLOCKED".equals(status) || "FAIL".equals(status);
+    }
+
+    private static String finalProofStatus(String acceptanceStatus, String certificateStatus, String openAiProofStatus) {
+        if (isBlockedStatus(acceptanceStatus) || isBlockedStatus(certificateStatus)) {
+            return "BLOCKED";
+        }
+        if (isReadyStatus(acceptanceStatus) && isReadyStatus(certificateStatus) && isReadyStatus(openAiProofStatus)) {
+            return "READY";
+        }
+        return "ATTENTION";
     }
 
     private static String value(Object value) {

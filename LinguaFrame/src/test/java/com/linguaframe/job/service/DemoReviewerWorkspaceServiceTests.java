@@ -68,9 +68,9 @@ class DemoReviewerWorkspaceServiceTests {
         assertThat(workspace.phase()).isEqualTo("REVIEW_PACKAGE_READY");
         assertThat(workspace.checks()).extracting("status").containsOnly("READY");
         assertThat(workspace.checks()).extracting("key")
-                .contains("NARRATION_DELIVERY_PACKAGE");
+                .contains("NARRATION_DELIVERY_PACKAGE", "FINAL_PROOF_BUNDLE");
         assertThat(workspace.sections()).extracting("title")
-                .contains("Run summary", "Delivery", "OpenAI proof", "Narration delivery", "Packages");
+                .contains("Run summary", "Delivery", "OpenAI proof", "Narration delivery", "Final proof bundle", "Packages");
         assertThat(workspace.safeLinks()).extracting("href")
                 .contains(
                         "/api/jobs/job-reviewer",
@@ -78,6 +78,10 @@ class DemoReviewerWorkspaceServiceTests {
                         "/api/jobs/job-reviewer/demo-reviewer-workspace/download",
                         "/api/jobs/job-reviewer/demo-run-package/download",
                         "/api/jobs/job-reviewer/ai-audit-package/download",
+                        "/api/jobs/job-reviewer/demo-evidence-closure",
+                        "/api/jobs/job-reviewer/demo-evidence-closure/markdown/download",
+                        "/api/jobs/job-reviewer/demo-evidence-closure/download",
+                        "/api/jobs/job-reviewer/openai-smoke-proof/markdown/download",
                         "/api/jobs/job-reviewer/narration-delivery-package",
                         "/api/jobs/job-reviewer/narration-delivery-package/markdown/download",
                         "/api/jobs/job-reviewer/narration-delivery-package/download"
@@ -86,6 +90,10 @@ class DemoReviewerWorkspaceServiceTests {
                 .contains(
                         "narration-delivery-package.json",
                         "narration-delivery-package.md",
+                        "final-proof-bundle.json",
+                        "final-proof-bundle.md",
+                        "Linked safe route: /api/jobs/job-reviewer/demo-evidence-closure/download",
+                        "Linked safe route: /api/jobs/job-reviewer/openai-smoke-proof/markdown/download",
                         "Linked safe route: /api/jobs/job-reviewer/narration-delivery-package/download"
                 );
         assertThat(workspace.recommendedNextAction()).contains("share");
@@ -155,6 +163,9 @@ class DemoReviewerWorkspaceServiceTests {
                 .contains("- Overall status: READY")
                 .contains("Demo run package")
                 .contains("OpenAI smoke proof")
+                .contains("Final proof bundle")
+                .contains("/api/jobs/job-reviewer/demo-evidence-closure/download")
+                .contains("/api/jobs/job-reviewer/ai-audit-package/download")
                 .contains("Narration delivery package")
                 .contains("/api/jobs/job-reviewer/narration-delivery-package/download");
         assertThat(markdown)
@@ -182,14 +193,33 @@ class DemoReviewerWorkspaceServiceTests {
         Map<String, String> entries = zipEntries(service.openPackage("job-reviewer").inputStream());
 
         assertThat(entries.keySet())
-                .contains("narration-delivery-package.json", "narration-delivery-package.md")
-                .doesNotContain("narration-delivery-package.zip");
+                .contains(
+                        "narration-delivery-package.json",
+                        "narration-delivery-package.md",
+                        "final-proof-bundle.json",
+                        "final-proof-bundle.md"
+                )
+                .doesNotContain(
+                        "narration-delivery-package.zip",
+                        "demo-evidence-closure.zip",
+                        "ai-audit-package.zip",
+                        "openai-smoke-proof.md"
+                );
         assertThat(entries.get("narration-delivery-package.json"))
                 .contains("\"jobId\":\"job-reviewer\"")
                 .contains("\"status\":\"READY\"");
         assertThat(entries.get("narration-delivery-package.md"))
                 .contains("Narration delivery package")
                 .contains("metadata-only");
+        assertThat(entries.get("final-proof-bundle.json"))
+                .contains("\"jobId\":\"job-reviewer\"")
+                .contains("\"source\":\"final-proof-bundle\"")
+                .contains("\"evidenceClosureHref\":\"/api/jobs/job-reviewer/demo-evidence-closure\"");
+        assertThat(entries.get("final-proof-bundle.md"))
+                .contains("Final proof bundle")
+                .contains("/api/jobs/job-reviewer/demo-evidence-closure/download")
+                .contains("/api/jobs/job-reviewer/ai-audit-package/download")
+                .contains("actual-only");
     }
 
     private static DemoReviewerWorkspaceService service(
