@@ -3633,6 +3633,10 @@ describe('App', () => {
 
     expect(within(waveformPanel).getByText('Decoded waveform')).toBeInTheDocument();
     expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'SourceNARRATION_AUDIO')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Waveform artifactwaveform-artifact-1')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'CacheReused')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Source artifactnarration-audio-1')).toBeInTheDocument();
+    expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Hashwaveformhash')).toBeInTheDocument();
     expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(96);
     expect(within(waveformPanel).getByLabelText('Waveform bucket 1: decoded, peak 75%, rms 50%')).toBeInTheDocument();
   });
@@ -7728,6 +7732,12 @@ function narrationWaveformFixture(overrides: Partial<NarrationWaveform> = {}): N
       rms: index === 0 ? 0.5 : 0.125
     })),
     fallbackReason: '',
+    artifactId: 'waveform-artifact-1',
+    sourceArtifactId: 'narration-audio-1',
+    sourceContentSha256: 'sourcehash1234567890',
+    cacheHit: true,
+    contentSha256: 'waveformhash1234567890',
+    generatedAt: '2026-06-30T01:10:00Z',
     ...overrides
   };
 }

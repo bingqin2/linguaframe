@@ -4796,3 +4796,27 @@ Validation so far:
 - `mvn -pl LinguaFrame test` first failed because `RuntimeDependencyControllerTests` still expected migration version 30; after updating it to 31, the full backend suite passed with `Tests run: 793, Failures: 0, Errors: 0, Skipped: 0`.
 - `bash -n scripts/demo/narration-mix-automation.sh scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started the persistent narration waveform artifacts feature slice from `docs/plans/156-persistent-narration-waveform-artifacts.md`.
+- Added `NARRATION_WAVEFORM` as a persisted JSON job artifact for successful decoded narration waveform reads.
+- Added backend cache reuse by source artifact/hash and bucket count, while keeping `UNAVAILABLE` and `FAILED_SAFE` responses non-persistent.
+- Extended the narration waveform API with artifact id, source artifact id, source hash, cache-hit state, content hash, and generated time.
+- Extended the React narration waveform panel and terminal waveform summary with safe artifact/cache/source metadata.
+- Updated README, roadmap, and target-state docs so persistent waveform artifacts are no longer listed as future work.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationWaveformServiceTests test` first failed because the new tests referenced missing waveform artifact fields and `NARRATION_WAVEFORM`; after implementation it passed with `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run App.test.tsx -t "renders decoded narration waveform buckets when available"` first failed because the panel did not show waveform artifact metadata; after implementation it passed with `Tests 1 passed | 142 skipped`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "loads decoded narration waveform buckets"` passed with `Tests 1 passed | 95 skipped`.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegAudioWaveformServiceTests,NarrationWaveformServiceTests,LocalizationJobControllerTests#returnsDecodedNarrationWaveformJson` first failed because Spring could not choose the intended `NarrationWaveformServiceImpl` constructor; after marking the production constructor with `@Autowired`, it passed with `Tests run: 13, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration waveform"` passed with `Test Files 2 passed` and `Tests 7 passed | 232 skipped`.
+- `bash -n scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/narration-evidence.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 796, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 296 passed`; jsdom printed expected navigation warnings.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 522.93 kB bundle.
+- `git diff --check` passed.

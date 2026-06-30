@@ -18,6 +18,7 @@ import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.service.FfmpegAudioWaveformService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,12 +30,16 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NarrationWaveformServiceTests {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @TempDir
     private Path tempDir;
@@ -57,6 +62,13 @@ class NarrationWaveformServiceTests {
         assertThat(result.bucketCount()).isEqualTo(96);
         assertThat(result.buckets()).hasSize(1);
         assertThat(Files.readAllBytes(waveformService.command.inputMediaPath())).containsExactly(3, 3, 3);
+        assertThat(result.artifactId()).isEqualTo("created-waveform-1");
+        assertThat(result.sourceArtifactId()).isEqualTo("narration");
+        assertThat(result.cacheHit()).isFalse();
+        assertThat(result.contentSha256()).isNotBlank();
+        assertThat(result.generatedAt()).isEqualTo(Instant.parse("2026-06-30T01:10:00Z"));
+        assertThat(artifactService.createdCommands).hasSize(1);
+        assertThat(artifactService.createdCommands.get(0).type()).isEqualTo(JobArtifactType.NARRATION_WAVEFORM);
     }
 
     @Test
@@ -74,6 +86,73 @@ class NarrationWaveformServiceTests {
     }
 
     @Test
+    void reusesMatchingPersistedWaveformArtifactWithoutRunningAnalyzer() {
+        artifactService.artifacts.add(artifact("narration", JobArtifactType.NARRATION_AUDIO, 3));
+        artifactService.artifacts.add(waveformArtifact(
+                "waveform-cached",
+                "narration",
+                "narration-hash",
+                96,
+                9,
+                false
+        ));
+
+        var result = service().getWaveform("job-waveform", 96);
+
+        assertThat(result.status()).isEqualTo("READY");
+        assertThat(result.artifactId()).isEqualTo("waveform-cached");
+        assertThat(result.sourceArtifactId()).isEqualTo("narration");
+        assertThat(result.cacheHit()).isTrue();
+        assertThat(result.generatedAt()).isEqualTo(Instant.parse("2026-06-30T01:10:00Z"));
+        assertThat(result.buckets()).hasSize(1);
+        assertThat(waveformService.command).isNull();
+        assertThat(artifactService.createdCommands).isEmpty();
+    }
+
+    @Test
+    void regeneratesWhenPersistedWaveformSourceHashIsStale() {
+        artifactService.artifacts.add(artifact("narration", JobArtifactType.NARRATION_AUDIO, 3));
+        artifactService.artifacts.add(waveformArtifact(
+                "waveform-stale",
+                "narration",
+                "old-source-hash",
+                96,
+                8,
+                false
+        ));
+
+        var result = service().getWaveform("job-waveform", 96);
+
+        assertThat(result.status()).isEqualTo("READY");
+        assertThat(result.artifactId()).isEqualTo("created-waveform-1");
+        assertThat(result.sourceArtifactId()).isEqualTo("narration");
+        assertThat(result.cacheHit()).isFalse();
+        assertThat(waveformService.command).isNotNull();
+        assertThat(artifactService.createdCommands).hasSize(1);
+    }
+
+    @Test
+    void separatesPersistedWaveformsByBucketCount() {
+        artifactService.artifacts.add(artifact("narration", JobArtifactType.NARRATION_AUDIO, 3));
+        artifactService.artifacts.add(waveformArtifact(
+                "waveform-48",
+                "narration",
+                "narration-hash",
+                48,
+                8,
+                false
+        ));
+
+        var result = service().getWaveform("job-waveform", 96);
+
+        assertThat(result.status()).isEqualTo("READY");
+        assertThat(result.artifactId()).isEqualTo("created-waveform-1");
+        assertThat(result.bucketCount()).isEqualTo(96);
+        assertThat(waveformService.command).isNotNull();
+        assertThat(artifactService.createdCommands).hasSize(1);
+    }
+
+    @Test
     void returnsUnavailableWhenNoSourceCanBeOpened() {
         mediaUploadService.sourceAvailable = false;
 
@@ -83,6 +162,9 @@ class NarrationWaveformServiceTests {
         assertThat(result.sourceType()).isEqualTo("NONE");
         assertThat(result.buckets()).isEmpty();
         assertThat(result.fallbackReason()).isEqualTo("No decoded audio source is available for this job.");
+        assertThat(result.artifactId()).isBlank();
+        assertThat(result.cacheHit()).isFalse();
+        assertThat(artifactService.createdCommands).isEmpty();
     }
 
     @Test
@@ -97,6 +179,9 @@ class NarrationWaveformServiceTests {
         assertThat(result.buckets()).isEmpty();
         assertThat(result.fallbackReason()).contains("waveform analysis failed");
         assertThat(result.fallbackReason()).doesNotContain("/tmp/private/source.mp4");
+        assertThat(result.artifactId()).isBlank();
+        assertThat(result.cacheHit()).isFalse();
+        assertThat(artifactService.createdCommands).isEmpty();
     }
 
     @Test
@@ -132,13 +217,86 @@ class NarrationWaveformServiceTests {
         );
     }
 
+    private JobArtifactVo waveformArtifact(
+            String id,
+            String sourceArtifactId,
+            String sourceContentSha256,
+            int bucketCount,
+            int createdSecond,
+            boolean cacheHit
+    ) {
+        artifactService.waveformSourceHashes.put(id, sourceContentSha256);
+        return new JobArtifactVo(
+                id,
+                "job-waveform",
+                JobArtifactType.NARRATION_WAVEFORM,
+                id + ".json",
+                "application/json",
+                300L,
+                id + "-hash",
+                cacheHit,
+                sourceArtifactId,
+                Instant.parse("2026-06-30T01:00:0" + createdSecond + "Z")
+        );
+    }
+
+    private static byte[] waveformJson(
+            String jobId,
+            String artifactId,
+            String sourceArtifactId,
+            String sourceContentSha256,
+            int bucketCount
+    ) {
+        try {
+            Map<String, Object> waveform = new LinkedHashMap<>();
+            waveform.put("jobId", jobId);
+            waveform.put("status", "READY");
+            waveform.put("sourceType", "NARRATION_AUDIO");
+            waveform.put("bucketCount", bucketCount);
+            waveform.put("durationSeconds", "120.000");
+            waveform.put("buckets", List.of(Map.of(
+                    "index", 0,
+                    "startSeconds", "0.000",
+                    "endSeconds", "1.000",
+                    "peak", "0.500",
+                    "rms", "0.250"
+            )));
+            waveform.put("fallbackReason", "");
+            waveform.put("artifactId", artifactId);
+            waveform.put("sourceArtifactId", sourceArtifactId);
+            waveform.put("sourceContentSha256", sourceContentSha256);
+            waveform.put("cacheHit", false);
+            waveform.put("contentSha256", artifactId + "-hash");
+            waveform.put("generatedAt", "2026-06-30T01:10:00Z");
+            return OBJECT_MAPPER.writeValueAsBytes(waveform);
+        } catch (IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
     private static final class RecordingJobArtifactService implements JobArtifactService {
 
         private final List<JobArtifactVo> artifacts = new ArrayList<>();
+        private final List<CreateJobArtifactCommand> createdCommands = new ArrayList<>();
+        private final Map<String, String> waveformSourceHashes = new java.util.HashMap<>();
 
         @Override
         public JobArtifactVo createArtifact(CreateJobArtifactCommand command) {
-            throw new UnsupportedOperationException();
+            createdCommands.add(command);
+            JobArtifactVo artifact = new JobArtifactVo(
+                    "created-waveform-" + createdCommands.size(),
+                    command.jobId(),
+                    command.type(),
+                    command.filename(),
+                    command.contentType(),
+                    (long) command.content().length,
+                    "created-waveform-hash-" + createdCommands.size(),
+                    false,
+                    null,
+                    Instant.parse("2026-06-30T01:10:00Z")
+            );
+            artifacts.add(artifact);
+            return artifact;
         }
 
         @Override
@@ -155,6 +313,20 @@ class NarrationWaveformServiceTests {
 
         @Override
         public StoredObjectResourceBo openArtifact(String jobId, String artifactId) {
+            JobArtifactVo artifact = artifacts.stream()
+                    .filter(candidate -> candidate.artifactId().equals(artifactId))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Unexpected artifact id " + artifactId));
+            if (artifact.type() == JobArtifactType.NARRATION_WAVEFORM) {
+                byte[] content = waveformJson(
+                        jobId,
+                        artifact.artifactId(),
+                        artifact.sourceArtifactId(),
+                        waveformSourceHashes.getOrDefault(artifact.artifactId(), artifact.sourceArtifactId() + "-hash"),
+                        artifact.filename().contains("48") ? 48 : 96
+                );
+                return new StoredObjectResourceBo(artifact.filename(), artifact.contentType(), content.length, new ByteArrayInputStream(content));
+            }
             byte[] content = switch (artifactId) {
                 case "burned" -> new byte[] {1, 1, 1};
                 case "narrated" -> new byte[] {2, 2, 2};
