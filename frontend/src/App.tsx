@@ -9493,7 +9493,13 @@ function NarrationWorkspacePanel({
             bucketCount: 96,
             durationSeconds: 0,
             buckets: [],
-            fallbackReason: toErrorMessage(waveformError)
+            fallbackReason: toErrorMessage(waveformError),
+            artifactId: '',
+            sourceArtifactId: '',
+            sourceContentSha256: '',
+            cacheHit: false,
+            contentSha256: '',
+            generatedAt: null
           });
         }
       });
@@ -11713,6 +11719,9 @@ function NarrationWaveformOverviewPanel({
   const modeDescription = decodedReady
     ? 'Decoded audio peak and RMS buckets'
     : 'Metadata-derived narration density and silence overview';
+  const waveformArtifactId = decodedWaveform?.artifactId || '';
+  const sourceArtifactId = decodedWaveform?.sourceArtifactId || '';
+  const waveformHash = decodedWaveform?.contentSha256 ? decodedWaveform.contentSha256.slice(0, 12) : '';
 
   return (
     <section className="narration-waveform-overview" aria-label="Narration waveform overview">
@@ -11794,6 +11803,22 @@ function NarrationWaveformOverviewPanel({
         <div>
           <dt>Source</dt>
           <dd>{decodedReady ? decodedWaveform.sourceType : 'METADATA'}</dd>
+        </div>
+        <div>
+          <dt>Waveform artifact</dt>
+          <dd>{waveformArtifactId || 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Cache</dt>
+          <dd>{decodedWaveform?.cacheHit ? 'Reused' : decodedReady ? 'Generated' : 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Source artifact</dt>
+          <dd>{sourceArtifactId || 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Hash</dt>
+          <dd>{waveformHash || 'N/A'}</dd>
         </div>
       </dl>
     </section>

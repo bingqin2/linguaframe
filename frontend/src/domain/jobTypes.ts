@@ -1645,6 +1645,12 @@ export interface NarrationWaveform {
   durationSeconds: number;
   buckets: NarrationWaveformBucket[];
   fallbackReason: string;
+  artifactId: string;
+  sourceArtifactId: string;
+  sourceContentSha256: string;
+  cacheHit: boolean;
+  contentSha256: string;
+  generatedAt: string | null;
 }
 
 export interface NarrationEvidenceCheck {

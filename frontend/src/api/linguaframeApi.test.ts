@@ -416,14 +416,27 @@ describe('linguaframeApi', () => {
             rms: 0.5
           }
         ],
-        fallbackReason: ''
+        fallbackReason: '',
+        artifactId: 'waveform-artifact-1',
+        sourceArtifactId: 'narration-audio-1',
+        sourceContentSha256: 'sourcehash1234567890',
+        cacheHit: true,
+        contentSha256: 'waveformhash1234567890',
+        generatedAt: '2026-06-30T01:10:00Z'
       })
     );
 
-    await getNarrationWaveform('job narration/waveform', 96);
+    const waveform = await getNarrationWaveform('job narration/waveform', 96);
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Fwaveform/narration-waveform?bucketCount=96');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(waveform).toMatchObject({
+      artifactId: 'waveform-artifact-1',
+      sourceArtifactId: 'narration-audio-1',
+      cacheHit: true,
+      contentSha256: 'waveformhash1234567890',
+      generatedAt: '2026-06-30T01:10:00Z'
+    });
   });
 
   test('generates narration audio, narrated video, and downloads narration evidence', async () => {
