@@ -6,6 +6,21 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `scripts/demo/narration-voice-audition.sh` for terminal voice preset audition.
+- The script requires a job id, explicit audition voice, and audition text or text file, then writes a request JSON and downloads a local MP3 preview atomically through the existing transient segment-preview API.
+- Terminal output is metadata-only: job id, voice, character count, content type, byte count, request path, output path, and provider-credit warning.
+
+Validation:
+
+- `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` initially failed with permission denied because the new script lacked executable mode.
+- After adding executable mode, `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` exited `2` with `Set LINGUAFRAME_NARRATION_AUDITION_VOICE or pass a voice as the second argument.`, proving it rejects missing voice before calling the API.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo LINGUAFRAME_NARRATION_AUDITION_VOICE=alloy scripts/demo/narration-voice-audition.sh` exited `2` with `Set LINGUAFRAME_NARRATION_AUDITION_TEXT or LINGUAFRAME_NARRATION_AUDITION_TEXT_FILE.`, proving it rejects missing audition text before calling the API.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration voice audition workbench feature slice from `docs/plans/150-narration-voice-audition-workbench.md`.
 - Added a browser `Voice audition` panel driven by the narration voice catalog.
 - The panel previews a selected voice preset with custom sample text through the existing transient segment-preview API, renders a local audio player, and applies the selected voice to the selected row or all local draft rows.

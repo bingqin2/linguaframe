@@ -77,14 +77,14 @@
   - A local MP3 preview at `LINGUAFRAME_NARRATION_AUDITION_OUTPUT_PATH` or `/tmp/linguaframe-demo/narration-voice-audition.mp3`.
   - Safe terminal metadata: job id, voice, content type, bytes, output path, and provider-credit warning.
 
-- [ ] Write the script skeleton with usage comments and strict shell settings.
-- [ ] Add or reuse a helper that posts to `/api/jobs/{jobId}/narration-workspace/segment-preview` with text and explicit voice, downloads the response atomically, and prints safe metadata only.
-- [ ] Reject missing job id, missing voice, and missing audition text before calling the API.
-- [ ] Support text from `LINGUAFRAME_NARRATION_AUDITION_TEXT_FILE` so longer samples do not need shell escaping.
-- [ ] Keep raw API keys, provider payloads, object keys, local input media paths, transcript text, subtitle text, and narration script bodies out of terminal output.
-- [ ] Run `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
-- [ ] Run `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` and verify it exits before the API call with a missing voice or missing text message.
-- [ ] Update execution log with terminal script validation evidence.
+- [x] Write the script skeleton with usage comments and strict shell settings.
+- [x] Add or reuse a helper that posts to `/api/jobs/{jobId}/narration-workspace/segment-preview` with text and explicit voice, downloads the response atomically, and prints safe metadata only.
+- [x] Reject missing job id, missing voice, and missing audition text before calling the API.
+- [x] Support text from `LINGUAFRAME_NARRATION_AUDITION_TEXT_FILE` so longer samples do not need shell escaping.
+- [x] Keep raw API keys, provider payloads, object keys, local input media paths, transcript text, subtitle text, and narration script bodies out of terminal output.
+- [x] Run `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
+- [x] Run `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-voice-audition.sh` and verify it exits before the API call with a missing voice or missing text message.
+- [x] Update execution log with terminal script validation evidence.
 - [ ] Commit with message `Add narration voice audition script`.
 
 ## Task 3: Documentation, Validation, And Merge
