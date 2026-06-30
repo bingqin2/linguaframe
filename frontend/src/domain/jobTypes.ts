@@ -1794,6 +1794,39 @@ export interface NarrationPlaybackReview {
   safetyNotes: string[];
 }
 
+export interface NarrationPlaybackReviewResolutionSegment {
+  segmentIndex: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  decision: NarrationPlaybackReviewDecision;
+  resolutionStatus: string;
+  issueCategories: NarrationPlaybackIssueCategory[];
+  nextAction: string;
+  reviewerNotePresent: boolean;
+  reviewedAt: string | null;
+}
+
+export interface NarrationPlaybackReviewResolution {
+  jobId: string;
+  generatedAt: string;
+  status: string;
+  nextAction: string;
+  segmentCount: number;
+  readySegmentCount: number;
+  unresolvedSegmentCount: number;
+  textRevisionRequiredCount: number;
+  rerenderRequiredCount: number;
+  unreviewedSegmentCount: number;
+  audioReady: boolean;
+  audioArtifactCount: number;
+  videoReady: boolean;
+  narratedVideoArtifactCount: number;
+  unresolvedSegments: NarrationPlaybackReviewResolutionSegment[];
+  safeLinks: NarrationPlaybackReviewLink[];
+  safetyNotes: string[];
+}
+
 export interface UpdateNarrationPlaybackReviewSegmentRequest {
   decision: NarrationPlaybackReviewDecision;
   issueCategories: NarrationPlaybackIssueCategory[];

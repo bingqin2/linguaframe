@@ -208,6 +208,12 @@ LINGUAFRAME_DEMO_JOB_ID="$job_id" \
   LINGUAFRAME_NARRATION_PLAYBACK_REVIEW_REPORT_ONLY="${LINGUAFRAME_NARRATION_PLAYBACK_REVIEW_REPORT_ONLY:-true}" \
   "$SCRIPT_DIR/narration-playback-review.sh"
 
+echo "Narration playback resolution:"
+LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+  LINGUAFRAME_NARRATION_PLAYBACK_RESOLUTION_OUTPUT_DIR="$OUTPUT_DIR/narration-playback-resolution" \
+  LINGUAFRAME_NARRATION_PLAYBACK_RESOLUTION_REPORT_ONLY="${LINGUAFRAME_NARRATION_PLAYBACK_RESOLUTION_REPORT_ONLY:-true}" \
+  "$SCRIPT_DIR/narration-playback-review-resolution.sh"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

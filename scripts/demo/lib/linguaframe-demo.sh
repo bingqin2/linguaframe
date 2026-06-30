@@ -874,6 +874,28 @@ download_narration_playback_review_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review/markdown/download" -o "$output_path"
 }
 
+download_narration_playback_review_resolution_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review/resolution" -o "$output_path"
+}
+
+download_narration_playback_review_resolution_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review/resolution/markdown/download" -o "$output_path"
+}
+
 download_narration_script_package_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3623,6 +3645,69 @@ print("narrationPlaybackReviewDecisionCounts=" + decision_summary)
 print("narrationPlaybackReviewIssueCategoryCounts=" + issue_summary)
 print("narrationPlaybackReviewJsonPath=" + str(json_path))
 print("narrationPlaybackReviewMarkdownPath=" + str(markdown_path))
+PY
+}
+
+print_narration_playback_review_resolution_summary_file() {
+  local resolution_json_path="$1"
+  local resolution_markdown_path="$2"
+
+  python3 - "$resolution_json_path" "$resolution_markdown_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+resolution = json.loads(json_path.read_text(encoding="utf-8"))
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(resolution, ensure_ascii=False) + "\n" + markdown
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "Explain the first scene",
+    "Do not leak this playback resolution note",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration playback resolution contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+unresolved = resolution.get("unresolvedSegments") or []
+statuses = ",".join(
+    f"{item.get('segmentIndex')}:{item.get('resolutionStatus')}" for item in unresolved
+)
+print("narrationPlaybackResolutionJobId=" + text(resolution.get("jobId")))
+print("narrationPlaybackResolutionStatus=" + text(resolution.get("status")))
+print("narrationPlaybackResolutionNextAction=" + text(resolution.get("nextAction")))
+print("narrationPlaybackResolutionSegmentCount=" + text(resolution.get("segmentCount", 0)))
+print("narrationPlaybackResolutionReadySegmentCount=" + text(resolution.get("readySegmentCount", 0)))
+print("narrationPlaybackResolutionUnresolvedSegmentCount=" + text(resolution.get("unresolvedSegmentCount", 0)))
+print("narrationPlaybackResolutionTextRevisionRequiredCount=" + text(resolution.get("textRevisionRequiredCount", 0)))
+print("narrationPlaybackResolutionRerenderRequiredCount=" + text(resolution.get("rerenderRequiredCount", 0)))
+print("narrationPlaybackResolutionUnreviewedSegmentCount=" + text(resolution.get("unreviewedSegmentCount", 0)))
+print("narrationPlaybackResolutionAudioReady=" + str(resolution.get("audioReady", False)).lower())
+print("narrationPlaybackResolutionAudioArtifactCount=" + text(resolution.get("audioArtifactCount", 0)))
+print("narrationPlaybackResolutionVideoReady=" + str(resolution.get("videoReady", False)).lower())
+print("narrationPlaybackResolutionNarratedVideoArtifactCount=" + text(resolution.get("narratedVideoArtifactCount", 0)))
+print("narrationPlaybackResolutionUnresolvedStatuses=" + statuses)
+print("narrationPlaybackResolutionJsonPath=" + str(json_path))
+print("narrationPlaybackResolutionMarkdownPath=" + str(markdown_path))
 PY
 }
 

@@ -51,6 +51,7 @@ import com.linguaframe.job.domain.vo.NarrationDemoPresetApplyVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderPreflightVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewVo;
 import com.linguaframe.job.domain.vo.NarrationRenderReviewVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
@@ -96,6 +97,7 @@ import com.linguaframe.job.service.NarrationDemoPresetApplyService;
 import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationPlaybackReviewResolutionService;
 import com.linguaframe.job.service.NarrationPlaybackReviewService;
 import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
@@ -179,6 +181,7 @@ public class LocalizationJobController {
     private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
     private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService;
     private final NarrationPlaybackReviewService narrationPlaybackReviewService;
     private final NarrationRenderReviewService narrationRenderReviewService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
@@ -227,6 +230,7 @@ public class LocalizationJobController {
             NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
             NarrationEvidenceService narrationEvidenceService,
+            NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService,
             NarrationPlaybackReviewService narrationPlaybackReviewService,
             NarrationRenderReviewService narrationRenderReviewService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
@@ -274,6 +278,7 @@ public class LocalizationJobController {
         this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
         this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationPlaybackReviewResolutionService = narrationPlaybackReviewResolutionService;
         this.narrationPlaybackReviewService = narrationPlaybackReviewService;
         this.narrationRenderReviewService = narrationRenderReviewService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
@@ -1436,6 +1441,15 @@ public class LocalizationJobController {
         return narrationPlaybackReviewService.getReview(jobId);
     }
 
+    @GetMapping("/{jobId}/narration-playback-review/resolution")
+    @Operation(summary = "Get metadata-only narration playback review resolution gate")
+    public NarrationPlaybackReviewResolutionVo narrationPlaybackReviewResolution(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationPlaybackReviewResolutionService.getResolution(jobId);
+    }
+
     @PutMapping("/{jobId}/narration-playback-review/segments/{segmentIndex}")
     @Operation(summary = "Save metadata-only narration playback review decision for a segment")
     public NarrationPlaybackReviewVo updateNarrationPlaybackReviewSegment(
@@ -1502,6 +1516,22 @@ public class LocalizationJobController {
                 .contentType(MediaType.valueOf("text/markdown"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("linguaframe-job-" + jobId + "-narration-playback-review.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-playback-review/resolution/markdown/download")
+    @Operation(summary = "Download metadata-only narration playback review resolution Markdown")
+    public ResponseEntity<String> downloadNarrationPlaybackReviewResolutionMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationPlaybackReviewResolutionService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-playback-resolution.md")
                         .build()
                         .toString())
                 .body(markdown);

@@ -4860,3 +4860,21 @@ Validation so far:
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 298 passed`; jsdom printed expected navigation warnings.
 - `npm --prefix frontend run build` first failed because the UI referenced `videoArtifactCount` instead of `narratedVideoArtifactCount`; after fixing the field name, it passed with the existing chunk-size warning for a 525.50 kB bundle.
 - `git diff --check` passed.
+
+Work:
+
+- Started the narration playback review resolution loop feature slice from `docs/plans/159-narration-playback-review-resolution-loop.md`.
+- Added a metadata-only backend playback resolution service plus JSON and Markdown download endpoints that classify unresolved rows as unreviewed, text revision required, or rerender required.
+- Added frontend API types, client methods, and a browser `Playback resolution` panel with handoff metrics, safe next actions, unresolved row focus, and Markdown download.
+- Added `scripts/demo/narration-playback-review-resolution.sh`, shared demo helper functions, and full Tears demo integration after playback review export.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with the resolution gate and safe-export rules.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationPlaybackReviewResolutionServiceTests,LocalizationJobControllerTests#returnsNarrationPlaybackResolutionJsonAndMarkdown test` passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "playback resolution"` passed with `Tests 2 passed | 243 skipped`; jsdom printed the expected navigation warning from blob download.
+- `bash -n scripts/demo/narration-playback-review-resolution.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 816, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 302 passed`; jsdom printed expected navigation warnings from blob downloads.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 534.42 kB bundle.
+- `git diff --check` passed.

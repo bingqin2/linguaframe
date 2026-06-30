@@ -612,6 +612,7 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-evidence.sh
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-playback-review.sh
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-playback-review-resolution.sh
 ```
 
 The render script writes `narration-demo-presets.json`, `narration-demo-preset.json`, `narration-demo-render.json`, refreshed script package files, and refreshed narration evidence under `/tmp/linguaframe-demo/narration-demo-render/`. Set `LINGUAFRAME_NARRATION_DEMO_RENDER_REPORT_ONLY=true` to inspect the recommended preset without changing a job, `LINGUAFRAME_NARRATION_DEMO_GENERATE_VIDEO=false` for an audio-only render, or `LINGUAFRAME_NARRATION_DEMO_PRESET_ID=<preset-id>` to override the profile recommendation. Render requires explicit replace semantics and can call paid TTS providers when they are configured.
@@ -621,6 +622,8 @@ The preset script writes `narration-demo-presets.json`, `narration-demo-preset.j
 The script writes `narration-evidence.json`, `narration-evidence.md`, and `narration-evidence.zip` under `/tmp/linguaframe-demo/narration-evidence/`. Set `LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO=true` to call the narrated-video generation endpoint when narration audio is ready and print `mixMode=DUCKED_ORIGINAL_AUDIO`, `duckingVolume`, `narrationVolume`, `fadeDurationMs`, `mixSettingsSource`, and `narrationWindowCount`. It exits non-zero when evidence is `BLOCKED`; set `LINGUAFRAME_NARRATION_EVIDENCE_REPORT_ONLY=true` to export a blocked report. The ZIP must contain `manifest.json`, `narration-evidence.md`, `narration-summary.json`, and `README.md`, and must not include narration script bodies, transcript text, subtitle text, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 
 The playback review script writes `narration-playback-review.json` and `narration-playback-review.md` under `/tmp/linguaframe-demo/narration-playback-review/`. Use it after narration audio/video generation to record segment-level playback decisions from the browser `Playback review` panel and export safe counts. Set `LINGUAFRAME_NARRATION_PLAYBACK_REVIEW_REPORT_ONLY=true` to export a blocked report. The export must include only timing, decision, issue-category, artifact-readiness, note-present, and safe-link metadata; it must not include narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
+
+The playback resolution script writes `narration-playback-resolution.json` and `narration-playback-resolution.md` under `/tmp/linguaframe-demo/narration-playback-resolution/`. Use it after playback review to classify unresolved rows, identify whether text revision or rerender is needed, and prove whether narrated-video handoff is ready. Set `LINGUAFRAME_NARRATION_PLAYBACK_RESOLUTION_REPORT_ONLY=true` to export a blocked report. The export must stay metadata-only and must not include narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 
 Script package export:
 

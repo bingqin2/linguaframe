@@ -2515,6 +2515,124 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationPlaybackResolutionJsonAndMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:19:00Z");
+        createJob("video-playback-resolution", "job-playback-resolution", createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-playback-resolution")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "demo-voice"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        artifactRepository.save(new JobArtifactRecord(
+                "playback-resolution-audio",
+                "job-playback-resolution",
+                JobArtifactType.NARRATION_AUDIO,
+                "job-artifacts/job-playback-resolution/playback-resolution-audio/narration-audio.mp3",
+                "narration-audio.mp3",
+                "audio/mpeg",
+                3L,
+                "playback-resolution-audio-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(put(
+                        "/api/jobs/{jobId}/narration-playback-review/segments/{segmentIndex}",
+                        "job-playback-resolution",
+                        0
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "decision": "NEEDS_RERENDER",
+                                  "issueCategories": ["MIX", "VIDEO"],
+                                  "reviewerNote": "Do not leak this playback resolution note."
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(put(
+                        "/api/jobs/{jobId}/narration-playback-review/segments/{segmentIndex}",
+                        "job-playback-resolution",
+                        1
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "decision": "ACCEPTED",
+                                  "issueCategories": [],
+                                  "reviewerNote": ""
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-playback-review/resolution",
+                        "job-playback-resolution"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-playback-resolution"))
+                .andExpect(jsonPath("$.status").value("ATTENTION"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.readySegmentCount").value(1))
+                .andExpect(jsonPath("$.unresolvedSegmentCount").value(1))
+                .andExpect(jsonPath("$.rerenderRequiredCount").value(1))
+                .andExpect(jsonPath("$.audioReady").value(true))
+                .andExpect(jsonPath("$.videoReady").value(false))
+                .andExpect(jsonPath("$.unresolvedSegments[0].segmentIndex").value(0))
+                .andExpect(jsonPath("$.unresolvedSegments[0].resolutionStatus").value("RERENDER_REQUIRED"))
+                .andExpect(jsonPath("$.unresolvedSegments[0].issueCategories[0]").value("MIX"))
+                .andExpect(jsonPath("$.unresolvedSegments[0].reviewerNotePresent").value(true))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Do not leak this playback resolution note."))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Explain the first scene."))));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-playback-review/resolution/markdown/download",
+                        "job-playback-resolution"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-playback-resolution-narration-playback-resolution.md\""
+                ))
+                .andExpect(content().contentType("text/markdown"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# Narration Playback Resolution")
+                .contains("- Status: ATTENTION")
+                .contains("- Rerenders required: 1")
+                .contains("Segment 0")
+                .doesNotContain("Do not leak this playback resolution note.")
+                .doesNotContain("Explain the first scene.")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-")
+                .doesNotContain("objectKey");
+    }
+
+    @Test
     void returnsNarrationScriptPackageJsonMarkdownAndZip() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:16:00Z");
         createJob("job-controller-video-script-package", "job-controller-job-script-package", createdAt);
