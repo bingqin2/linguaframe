@@ -3813,6 +3813,156 @@ describe('App', () => {
     expect(downloadResolution).toHaveBeenCalledWith('narration-playback-resolution-job');
   });
 
+  test('guides blocked narration acceptance recovery and focuses unresolved rows', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-acceptance-recovery-job', videoId: 'narration-acceptance-recovery-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-acceptance-recovery-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture({
+      jobId: 'narration-acceptance-recovery-job',
+      narrationAudioReady: true,
+      narratedVideoReady: false,
+      audioArtifactCount: 1,
+      narratedVideoArtifactCount: 0
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture({
+      jobId: 'narration-acceptance-recovery-job'
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue(narrationWaveformFixture({
+      jobId: 'narration-acceptance-recovery-job'
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture({
+      jobId: 'narration-acceptance-recovery-job',
+      status: 'ATTENTION',
+      videoReady: false,
+      narratedVideoArtifactCount: 0
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture({
+      jobId: 'narration-acceptance-recovery-job',
+      status: 'ATTENTION',
+      needsEditCount: 0,
+      needsRerenderCount: 1,
+      unreviewedSegmentCount: 0,
+      segments: [
+        {
+          segmentIndex: 0,
+          startSeconds: 15,
+          endSeconds: 28,
+          durationSeconds: 13,
+          decision: 'ACCEPTED',
+          issueCategories: [],
+          reviewerNotePresent: false,
+          reviewedAt: '2026-06-30T07:01:00Z'
+        },
+        {
+          segmentIndex: 1,
+          startSeconds: 55,
+          endSeconds: 70,
+          durationSeconds: 15,
+          decision: 'NEEDS_RERENDER',
+          issueCategories: ['MIX', 'VIDEO'],
+          reviewerNotePresent: true,
+          reviewedAt: '2026-06-30T07:02:00Z'
+        }
+      ]
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture({
+      jobId: 'narration-acceptance-recovery-job',
+      unresolvedSegmentCount: 1,
+      rerenderRequiredCount: 1,
+      unresolvedSegments: [
+        {
+          segmentIndex: 1,
+          startSeconds: 55,
+          endSeconds: 70,
+          durationSeconds: 15,
+          decision: 'NEEDS_RERENDER',
+          resolutionStatus: 'RERENDER_REQUIRED',
+          issueCategories: ['MIX', 'VIDEO'],
+          nextAction: 'Regenerate narration audio/video after confirming mix, timing, and media artifacts.',
+          reviewerNotePresent: true,
+          reviewedAt: '2026-06-30T07:02:00Z'
+        }
+      ]
+    }));
+    vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(
+      demoAcceptanceGateFixture({
+        jobId: 'narration-acceptance-recovery-job',
+        videoId: 'narration-acceptance-recovery-video',
+        gateStatus: 'BLOCKED',
+        headline: 'tears-showcase acceptance gate for zh-CN (BLOCKED)',
+        summary: 'Job narration-acceptance-recovery-job is COMPLETED with gateStatus=BLOCKED, failedChecks=1, warningChecks=0.',
+        recommendedNextAction: 'Resolve failed required checks before using this run for the demo.',
+        runbookSteps: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLVED',
+            label: 'Resolve narration playback',
+            status: 'BLOCKED',
+            detail: 'Narration playback resolution status=ATTENTION; unresolved=1; textRevision=0; rerender=1; unreviewed=0.',
+            primaryAction: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+            safeCommand: 'LINGUAFRAME_DEMO_JOB_ID=narration-acceptance-recovery-job scripts/demo/narration-playback-review-resolution.sh',
+            safeLink: '/api/jobs/narration-acceptance-recovery-job/narration-playback-review/resolution'
+          }
+        ],
+        checks: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLVED',
+            label: 'Narration playback resolved',
+            status: 'FAIL',
+            detail: 'Narration playback resolution status=ATTENTION; unresolved=1; textRevision=0; rerender=1; unreviewed=0.',
+            required: true
+          }
+        ],
+        evidence: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLUTION_STATUS',
+            label: 'Narration playback resolution',
+            value: 'ATTENTION',
+            status: 'BLOCKED'
+          },
+          {
+            key: 'NARRATION_PLAYBACK_UNRESOLVED_COUNT',
+            label: 'Narration unresolved rows',
+            value: '1',
+            status: 'BLOCKED'
+          }
+        ]
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-acceptance-recovery-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const recoveryPanel = await within(narrationPanel).findByRole('region', { name: /acceptance recovery/i });
+
+    expect(within(recoveryPanel).getByText('Acceptance recovery')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('BLOCKED')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('1 unresolved')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('1 rerender')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Render review: ATTENTION')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Playback review: ATTENTION')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Narration audio: ready')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Narrated video: missing')).toBeInTheDocument();
+    expect(within(recoveryPanel).getAllByText('Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.')).toHaveLength(2);
+    expect(within(recoveryPanel).getByRole('link', { name: /open playback resolution/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/narration-acceptance-recovery-job/narration-playback-review/resolution'
+    );
+    expect(within(recoveryPanel).queryByText('Explain the second scene.')).not.toBeInTheDocument();
+    expect(within(recoveryPanel).queryByText('Do not leak this playback resolution note.')).not.toBeInTheDocument();
+
+    await userEvent.click(within(recoveryPanel).getByRole('button', { name: /focus unresolved row 2/i }));
+
+    expect(within(recoveryPanel).getByText('Focused narration row 2 for playback resolution.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('textbox', { name: /segment text/i })).toHaveValue('Explain the second scene.');
+  });
+
   test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-waveform-fallback-job', videoId: 'narration-waveform-fallback-video', targetLanguage: 'zh-CN' })
