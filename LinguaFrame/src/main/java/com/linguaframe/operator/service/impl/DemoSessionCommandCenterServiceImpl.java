@@ -19,6 +19,8 @@ import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveLinkVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionLinkVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
@@ -28,6 +30,7 @@ import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import com.linguaframe.operator.service.PrivateDemoRunArchiveService;
+import com.linguaframe.operator.service.SessionNarrationProductionBoardService;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -53,6 +56,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
     private final PrivateDemoRunArchiveService runArchiveService;
     private final ModelUsageLedgerService modelUsageLedgerService;
     private final DemoSessionRecoveryBoardService recoveryBoardService;
+    private final SessionNarrationProductionBoardService narrationProductionBoardService;
 
     public DemoSessionCommandCenterServiceImpl(
             PrivateDemoOperationsService operationsService,
@@ -62,7 +66,8 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
             PrivateDemoRunArchiveService runArchiveService,
             ModelUsageLedgerService modelUsageLedgerService,
-            DemoSessionRecoveryBoardService recoveryBoardService
+            DemoSessionRecoveryBoardService recoveryBoardService,
+            SessionNarrationProductionBoardService narrationProductionBoardService
     ) {
         this.operationsService = operationsService;
         this.launchRehearsalService = launchRehearsalService;
@@ -72,6 +77,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         this.runArchiveService = runArchiveService;
         this.modelUsageLedgerService = modelUsageLedgerService;
         this.recoveryBoardService = recoveryBoardService;
+        this.narrationProductionBoardService = narrationProductionBoardService;
     }
 
     @Override
@@ -84,17 +90,18 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         PrivateDemoRunArchiveVo archive = runArchiveService.runArchive();
         ModelUsageLedgerVo ledger = modelUsageLedgerService.ledger(20);
         DemoSessionRecoveryBoardVo recoveryBoard = recoveryBoardService.board(20);
+        SessionNarrationProductionBoardVo narrationBoard = narrationProductionBoardService.board(25);
 
         DemoSessionCommandCenterRunVo selected = run("SELECTED", cockpit.selectedRun());
         DemoSessionCommandCenterRunVo active = run("ACTIVE", cockpit.activeRun());
         DemoSessionCommandCenterRunVo recommended = recommendedRun(cockpit, archive);
         DemoSessionCommandCenterRunVo focus = focusRun(selected, active, recommended);
-        List<DemoSessionCommandCenterPhaseVo> phases = phases(operations, launch, launcher, cockpit, gallery, archive, ledger, recoveryBoard);
+        List<DemoSessionCommandCenterPhaseVo> phases = phases(operations, launch, launcher, cockpit, gallery, archive, ledger, recoveryBoard, narrationBoard);
         String overallStatus = overallStatus(phases, focus, ledger);
         String phase = phase(overallStatus, active, focus, gallery, ledger);
         String nextAction = nextAction(overallStatus, phase, cockpit, launch, launcher, focus);
         List<DemoSessionCommandCenterActionVo> actions = actions(launcher, launch, archive, focus);
-        List<DemoSessionCommandCenterEvidenceVo> evidenceLinks = evidenceLinks(cockpit, archive, ledger, recoveryBoard, focus);
+        List<DemoSessionCommandCenterEvidenceVo> evidenceLinks = evidenceLinks(cockpit, archive, ledger, recoveryBoard, narrationBoard, focus);
         ModelUsageLedgerSummaryVo usage = ledger.summary();
 
         return new DemoSessionCommandCenterVo(
@@ -117,6 +124,16 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
                 safe(recoveryBoard.recommendedNextAction()),
                 recoveryBoard.primaryAction(),
                 recoveryBoard.links(),
+                safeStatus(narrationBoard.overallStatus()),
+                narrationBoard.readyToDeliverCount(),
+                narrationBoard.needsReviewCount(),
+                narrationBoard.needsRenderCount(),
+                narrationBoard.needsAuthoringCount(),
+                narrationBoard.blockedCount(),
+                narrationBoard.notApplicableCount(),
+                safe(narrationBoard.recommendedNextAction()),
+                narrationBoard.primaryAction(),
+                narrationBoard.links(),
                 usage.estimatedCostUsd(),
                 usage.modelCallCount(),
                 usage.failedModelCallCount(),
@@ -148,6 +165,19 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         markdown.append("- Needs review: ").append(center.needsReviewCount()).append('\n');
         markdown.append("- Ready: ").append(center.readyCount()).append('\n');
         markdown.append("- Next action: ").append(center.recoveryRecommendedNextAction()).append("\n\n");
+        markdown.append("## Narration Production\n\n");
+        markdown.append("- Status: ").append(center.narrationProductionStatus()).append('\n');
+        markdown.append("- Ready: ").append(center.narrationReadyCount()).append('\n');
+        markdown.append("- Needs review: ").append(center.narrationNeedsReviewCount()).append('\n');
+        markdown.append("- Needs render: ").append(center.narrationNeedsRenderCount()).append('\n');
+        markdown.append("- Needs authoring: ").append(center.narrationNeedsAuthoringCount()).append('\n');
+        markdown.append("- Blocked: ").append(center.narrationBlockedCount()).append('\n');
+        markdown.append("- Not applicable: ").append(center.narrationNotApplicableCount()).append('\n');
+        markdown.append("- Next action: ").append(center.narrationRecommendedNextAction()).append("\n\n");
+        for (SessionNarrationProductionLinkVo link : center.narrationProductionLinks()) {
+            markdown.append("- ").append(link.label()).append(": ").append(link.href()).append('\n');
+        }
+        markdown.append('\n');
         markdown.append("## Phase Checklist\n\n");
         for (DemoSessionCommandCenterPhaseVo phase : center.phases()) {
             markdown.append("- ").append(phase.status()).append(" ").append(phase.label()).append(": ")
@@ -194,7 +224,8 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             PrivateDemoEvidenceGalleryVo gallery,
             PrivateDemoRunArchiveVo archive,
             ModelUsageLedgerVo ledger,
-            DemoSessionRecoveryBoardVo recoveryBoard
+            DemoSessionRecoveryBoardVo recoveryBoard,
+            SessionNarrationProductionBoardVo narrationBoard
     ) {
         List<DemoSessionCommandCenterPhaseVo> phases = new ArrayList<>();
         phases.add(phase("operations", "Operations readiness", operations.overallStatus(),
@@ -229,6 +260,11 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
                 "Recover now " + recoveryBoard.recoverNowCount() + ", watch " + recoveryBoard.watchCount() + ", needs review " + recoveryBoard.needsReviewCount() + ", ready " + recoveryBoard.readyCount() + ".",
                 recoveryBoard.recommendedNextAction(),
                 BLOCKED.equals(recoveryBoard.overallStatus())));
+        phases.add(phase("narration-production", "Narration production", narrationBoard.overallStatus(),
+                "Ready " + narrationBoard.readyToDeliverCount() + ", review " + narrationBoard.needsReviewCount() + ", render " + narrationBoard.needsRenderCount()
+                        + ", authoring " + narrationBoard.needsAuthoringCount() + ", blocked " + narrationBoard.blockedCount() + ".",
+                narrationBoard.recommendedNextAction(),
+                BLOCKED.equals(narrationBoard.overallStatus())));
         return List.copyOf(phases);
     }
 
@@ -257,6 +293,9 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         }
         if (active != null) {
             return "ACTIVE_RUN";
+        }
+        if (ATTENTION.equals(overallStatus) && (focus != null || gallery.completedJobCount() > 0 || ledger.summary().modelCallCount() > 0)) {
+            return "NEEDS_REVIEW";
         }
         if (focus != null && READY.equals(focus.acceptanceStatus())) {
             return "READY_TO_PRESENT";
@@ -324,6 +363,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             PrivateDemoRunArchiveVo archive,
             ModelUsageLedgerVo ledger,
             DemoSessionRecoveryBoardVo recoveryBoard,
+            SessionNarrationProductionBoardVo narrationBoard,
             DemoSessionCommandCenterRunVo focus
     ) {
         Map<String, DemoSessionCommandCenterEvidenceVo> links = new LinkedHashMap<>();
@@ -332,6 +372,9 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         add(links, evidence("Command center Markdown", "/api/operator/demo-session-command-center/markdown/download", "text/markdown",
                 "Downloadable command center notes."));
         for (DemoSessionRecoveryBoardLinkVo link : recoveryBoard.links()) {
+            add(links, evidence(link.label(), link.href(), link.contentType(), link.description()));
+        }
+        for (SessionNarrationProductionLinkVo link : narrationBoard.links()) {
             add(links, evidence(link.label(), link.href(), link.contentType(), link.description()));
         }
         add(links, evidence("Model usage ledger", "/api/operator/model-usage-ledger", "application/json",

@@ -71,13 +71,13 @@ Expected:
 - Recent jobs are grouped into recover-now, watch, needs-review, ready, or no-action rows.
 - The board links to existing per-job recovery and evidence routes but does not execute recovery actions.
 
-For command-center recovery integration changes, run:
+For command-center recovery or narration-production integration changes, run:
 
 ```bash
-mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests test
-npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo session command center|session recovery board"
+mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,PrivateDemoDeliveryReceiptServiceTests,OperatorDashboardControllerTests test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo session command center|session evidence package"
 bash scripts/demo/test-linguaframe-demo-client.sh
-bash -n scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/demo-session-recovery-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh
+bash -n scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/demo-session-recovery-board.sh scripts/demo/session-narration-production-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh
 ```
 
 Expected:
@@ -85,6 +85,9 @@ Expected:
 - The command center includes recovery status, recover-now/watch/review/ready counts, recovery next action, and recovery-board links.
 - A recover-now row makes the command center `BLOCKED`.
 - The session evidence package includes `recovery-board.json` and `recovery-board.md`.
+- The command center includes narration production status, ready/review/render/authoring/blocked counts, next action, and production-board links.
+- Blocked narration production rows make the command center `BLOCKED`; non-blocked attention rows surface as `ATTENTION`.
+- The session evidence package includes `narration-production-board.json` and `narration-production-board.md`.
 - Browser and terminal exports stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
 
 For worker logging changes, run:
@@ -268,6 +271,7 @@ Expected:
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh` writes JSON and Markdown under `/tmp/linguaframe-demo/narration-scene-board/`, prints metadata-only status, coverage, gap, voice/mix, audio/video readiness, blocked checks, and next action, and does not print narration text, object keys, local paths, provider payloads, tokens, or media bytes.
 - Browser run-day view shows `Session narration production board` with ready/review/render/authoring/blocked/not-applicable counts, grouped recent jobs, selected-job checks, safe narration links, refresh, and Markdown download.
 - `scripts/demo/session-narration-production-board.sh` writes JSON and Markdown under `/tmp/linguaframe-demo/session-narration-production-board/`, prints metadata-only production counts and first blocked job id, and exits non-zero for blocked rows unless `LINGUAFRAME_SESSION_NARRATION_PRODUCTION_BOARD_REPORT_ONLY=true`.
+- Browser `Demo session command center` shows narration production summary counts and safe production-board links; the session evidence package ZIP includes narration production JSON and Markdown.
 - Session narration production board exports must not call OpenAI, call TTS providers, run FFmpeg, upload media, save narration rows, print narration text, print reviewer notes, expose object keys, expose local paths, expose provider payloads, expose tokens or API keys, or include media bytes.
 - `Merge next` is disabled on the final row, and inserted blank rows block save until required text, voice, and timing validation passes.
 - Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.

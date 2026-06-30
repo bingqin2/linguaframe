@@ -24,6 +24,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveCandidateVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveLinkVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionLinkVo;
 import com.linguaframe.operator.service.impl.PrivateDemoDeliveryReceiptServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -275,6 +276,16 @@ class PrivateDemoDeliveryReceiptServiceTests {
                 "No recovery action.",
                 null,
                 List.of(),
+                "READY",
+                focus == null ? 0 : 1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                "Narration production is ready.",
+                null,
+                List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
                 new BigDecimal("0.01000000"),
                 4,
                 0,

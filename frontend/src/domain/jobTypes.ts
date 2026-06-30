@@ -699,6 +699,16 @@ export interface DemoSessionCommandCenter {
   recoveryRecommendedNextAction: string;
   recoveryPrimaryAction: DemoSessionRecoveryBoardAction | null;
   recoveryLinks: DemoSessionRecoveryBoardLink[];
+  narrationProductionStatus: SessionNarrationProductionBoardStatus;
+  narrationReadyCount: number;
+  narrationNeedsReviewCount: number;
+  narrationNeedsRenderCount: number;
+  narrationNeedsAuthoringCount: number;
+  narrationBlockedCount: number;
+  narrationNotApplicableCount: number;
+  narrationRecommendedNextAction: string;
+  narrationPrimaryAction: SessionNarrationProductionAction | null;
+  narrationProductionLinks: SessionNarrationProductionLink[];
   estimatedCostUsd: string;
   modelCallCount: number;
   failedModelCallCount: number;

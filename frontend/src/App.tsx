@@ -4891,6 +4891,48 @@ function DemoSessionCommandCenterPanel({
               </a>
             ) : null}
           </section>
+          <section className="command-center-recovery-summary" aria-label="Command center narration production">
+            <div className="operations-section-heading">
+              <strong>Narration production</strong>
+              <span className={demoSessionStatusClassName(commandCenter.narrationProductionStatus)}>
+                {commandCenter.narrationProductionStatus}
+              </span>
+            </div>
+            <dl className="status-grid compact-status-grid operations-summary-grid">
+              <div>
+                <dt>Ready</dt>
+                <dd>{commandCenter.narrationReadyCount} deliver</dd>
+              </div>
+              <div>
+                <dt>Needs review</dt>
+                <dd>{commandCenter.narrationNeedsReviewCount} review</dd>
+              </div>
+              <div>
+                <dt>Needs render</dt>
+                <dd>{commandCenter.narrationNeedsRenderCount} render</dd>
+              </div>
+              <div>
+                <dt>Needs authoring</dt>
+                <dd>{commandCenter.narrationNeedsAuthoringCount} author</dd>
+              </div>
+              <div>
+                <dt>Blocked</dt>
+                <dd>{commandCenter.narrationBlockedCount} blocked</dd>
+              </div>
+              <div>
+                <dt>Waiting</dt>
+                <dd>{commandCenter.narrationNotApplicableCount} waiting</dd>
+              </div>
+            </dl>
+            <p className={commandCenter.narrationProductionStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+              {commandCenter.narrationRecommendedNextAction}
+            </p>
+            {commandCenter.narrationPrimaryAction ? (
+              <a className="text-link" href={commandCenter.narrationPrimaryAction.href}>
+                {commandCenter.narrationPrimaryAction.label}
+              </a>
+            ) : null}
+          </section>
           {focusRun ? (
             <div className="evidence-gallery-recommended">
               <h3>Run focus</h3>
