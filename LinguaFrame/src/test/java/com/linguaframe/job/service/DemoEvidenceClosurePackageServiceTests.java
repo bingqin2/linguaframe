@@ -164,6 +164,7 @@ class DemoEvidenceClosurePackageServiceTests {
                 "Ready to present",
                 "Acceptance gate summary.",
                 "Present this run.",
+                List.of(),
                 List.of(new DemoAcceptanceGateCheckVo("JOB_COMPLETED", "Job completed", "PASS", "Completed.", true)),
                 List.of(new DemoAcceptanceGateEvidenceVo("QUALITY", "Quality", "91", "PASS")),
                 List.of(new DemoAcceptanceGateLinkVo("ACCEPTANCE_GATE_JSON", "Acceptance gate", "/api/jobs/job-1/demo-acceptance-gate")),

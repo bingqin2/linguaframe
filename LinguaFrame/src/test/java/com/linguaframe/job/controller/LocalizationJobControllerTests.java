@@ -3718,6 +3718,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.checks[?(@.key == 'MEDIA_OUTPUT_AVAILABLE')].status").value("PASS"))
                 .andExpect(jsonPath("$.checks[?(@.key == 'COMPLETION_CERTIFICATE_READY')].status").value("PASS"))
                 .andExpect(jsonPath("$.checks[?(@.key == 'NARRATION_PLAYBACK_RESOLVED')].status").value("PASS"))
+                .andExpect(jsonPath("$.runbookSteps").isEmpty())
                 .andExpect(jsonPath("$.evidence[?(@.key == 'MEDIA_OUTPUT_COUNT')].value").value("1"))
                 .andExpect(jsonPath("$.evidence[?(@.key == 'NARRATION_PLAYBACK_RESOLUTION_STATUS')].value").value("BLOCKED"))
                 .andExpect(jsonPath("$.evidence[?(@.key == 'NARRATION_PLAYBACK_RESOLUTION_STATUS')].status").value("READY"))

@@ -6,6 +6,7 @@ import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateCheckVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateEvidenceVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateLinkVo;
+import com.linguaframe.job.domain.vo.DemoAcceptanceGateRunbookStepVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoPresenterPackDownloadVo;
@@ -130,6 +131,7 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
                 headline(job, status),
                 summary(job, status, checks),
                 recommendedNextAction(status),
+                runbookSteps(jobId, checks),
                 checks,
                 evidence(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution),
                 links(jobId, certificate, presenterPack, replayCard, snapshot, narrationResolution),
@@ -316,6 +318,63 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             add(links, link(snapshotLink.kind(), snapshotLink.label(), snapshotLink.url()));
         }
         return List.copyOf(links.values());
+    }
+
+    private List<DemoAcceptanceGateRunbookStepVo> runbookSteps(String jobId, List<DemoAcceptanceGateCheckVo> checks) {
+        List<DemoAcceptanceGateRunbookStepVo> steps = new ArrayList<>();
+        for (DemoAcceptanceGateCheckVo check : checks) {
+            if ("PASS".equals(check.status())) {
+                continue;
+            }
+            String stepStatus = check.required() && "FAIL".equals(check.status()) ? "BLOCKED" : "ATTENTION";
+            steps.add(runbookStep(jobId, check, stepStatus));
+        }
+        return List.copyOf(steps);
+    }
+
+    private DemoAcceptanceGateRunbookStepVo runbookStep(
+            String jobId,
+            DemoAcceptanceGateCheckVo check,
+            String status
+    ) {
+        return switch (check.key()) {
+            case "NARRATION_PLAYBACK_RESOLVED" -> new DemoAcceptanceGateRunbookStepVo(
+                    check.key(),
+                    "Resolve narration playback",
+                    status,
+                    check.detail(),
+                    "Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.",
+                    "LINGUAFRAME_DEMO_JOB_ID=%s scripts/demo/narration-playback-review-resolution.sh".formatted(jobId),
+                    "/api/jobs/%s/narration-playback-review/resolution".formatted(jobId)
+            );
+            case "MEDIA_OUTPUT_AVAILABLE" -> new DemoAcceptanceGateRunbookStepVo(
+                    check.key(),
+                    "Generate playable media",
+                    status,
+                    check.detail(),
+                    "Generate playable media output, then re-run the acceptance gate.",
+                    "LINGUAFRAME_DEMO_JOB_ID=%s scripts/demo/demo-acceptance-gate.sh".formatted(jobId),
+                    "/api/jobs/%s/demo-acceptance-gate".formatted(jobId)
+            );
+            case "QUALITY_EVALUATION_READY" -> new DemoAcceptanceGateRunbookStepVo(
+                    check.key(),
+                    "Refresh quality evaluation",
+                    status,
+                    check.detail(),
+                    "Run the job through quality evaluation, then re-run the acceptance gate.",
+                    "LINGUAFRAME_DEMO_JOB_ID=%s scripts/demo/demo-acceptance-gate.sh".formatted(jobId),
+                    "/api/jobs/%s/diagnostics".formatted(jobId)
+            );
+            default -> new DemoAcceptanceGateRunbookStepVo(
+                    check.key(),
+                    check.label(),
+                    status,
+                    check.detail(),
+                    "Review this acceptance check, resolve the cited evidence, then re-run the acceptance gate.",
+                    "LINGUAFRAME_DEMO_JOB_ID=%s scripts/demo/demo-acceptance-gate.sh".formatted(jobId),
+                    "/api/jobs/%s/demo-acceptance-gate".formatted(jobId)
+            );
+        };
     }
 
     private void add(Map<String, DemoAcceptanceGateLinkVo> links, DemoAcceptanceGateLinkVo link) {

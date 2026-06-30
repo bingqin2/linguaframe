@@ -1579,6 +1579,13 @@ for check in gate.get("checks", []):
         text(check.get("status")),
         "required=" + str(bool(check.get("required"))).lower(),
     ]))
+for step in gate.get("runbookSteps", []):
+    key = text(step.get("key"))
+    print("demoAcceptanceGateRunbook=" + key + ":" + text(step.get("status")) + ":" + safe(step.get("primaryAction")))
+    if step.get("safeCommand"):
+        print("demoAcceptanceGateRunbookCommand=" + key + ":" + safe(step.get("safeCommand")))
+    if step.get("safeLink"):
+        print("demoAcceptanceGateRunbookLink=" + key + ":" + safe(step.get("safeLink")))
 for item in gate.get("evidence", []):
     print("demoAcceptanceGateEvidence=" + text(item.get("key")) + ":" + safe(item.get("value")) + ":" + text(item.get("status")))
 for link in gate.get("links", []):
