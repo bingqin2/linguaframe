@@ -1981,6 +1981,28 @@ class LocalizationJobControllerTests {
                                       "text": "Explain the second scene.",
                                       "voice": "demo-voice"
                                     }
+                                  ],
+                                  "mixKeyframes": [
+                                    {
+                                      "lane": "DUCKING_VOLUME",
+                                      "timeSeconds": 0.000,
+                                      "value": 0.600
+                                    },
+                                    {
+                                      "lane": "DUCKING_VOLUME",
+                                      "timeSeconds": 20.000,
+                                      "value": 0.250
+                                    },
+                                    {
+                                      "lane": "NARRATION_VOLUME",
+                                      "timeSeconds": 20.000,
+                                      "value": 1.400
+                                    },
+                                    {
+                                      "lane": "FADE_DURATION_MS",
+                                      "timeSeconds": 20.000,
+                                      "value": 500.000
+                                    }
                                   ]
                                 }
                                 """))
@@ -1994,6 +2016,15 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
                 .andExpect(jsonPath("$.mixSettings.narrationVolume").value(1.000))
                 .andExpect(jsonPath("$.mixSettings.fadeDurationMs").value(250))
+                .andExpect(jsonPath("$.mixAutomation.keyframeCount").value(4))
+                .andExpect(jsonPath("$.mixAutomation.duckingKeyframeCount").value(2))
+                .andExpect(jsonPath("$.mixAutomation.narrationKeyframeCount").value(1))
+                .andExpect(jsonPath("$.mixAutomation.fadeKeyframeCount").value(1))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[0].lane").value("DUCKING_VOLUME"))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[0].timeSeconds").value(0.000))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[0].value").value(0.600))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[3].lane").value("FADE_DURATION_MS"))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[3].value").value(500.000))
                 .andExpect(jsonPath("$.timeline.startSeconds").value(15.000))
                 .andExpect(jsonPath("$.timeline.endSeconds").value(70.500))
                 .andExpect(jsonPath("$.timeline.totalSpanSeconds").value(55.500))
@@ -2020,6 +2051,8 @@ class LocalizationJobControllerTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT_READY"))
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
+                .andExpect(jsonPath("$.mixAutomation.keyframeCount").value(4))
+                .andExpect(jsonPath("$.mixAutomation.keyframes[1].timeSeconds").value(20.000))
                 .andExpect(jsonPath("$.timeline.gapCount").value(1))
                 .andExpect(jsonPath("$.segments[0].duckingVolume").value(0.250))
                 .andExpect(jsonPath("$.segments[0].narrationVolume").value(1.500))
@@ -2074,6 +2107,7 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.status").value("EMPTY"))
                 .andExpect(jsonPath("$.segmentCount").value(0))
                 .andExpect(jsonPath("$.generationReady").value(false))
+                .andExpect(jsonPath("$.mixAutomation.keyframeCount").value(0))
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125));
     }
 

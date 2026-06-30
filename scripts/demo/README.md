@@ -8,7 +8,9 @@ Inspect effective narration mix automation values from an existing workspace:
 LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-mix-automation.sh
 ```
 
-The script downloads the narration workspace JSON, writes it to `/tmp/linguaframe-demo/narration-mix-automation/narration-workspace.json`, and prints segment count, override count, inherited count, minimum ducking volume, maximum narration volume, and maximum fade duration. It derives values from existing job mix settings plus segment overrides; it does not save narration rows, call providers, create artifacts, print narration text, expose object keys, or include media bytes.
+The script downloads the narration workspace JSON, writes it to `/tmp/linguaframe-demo/narration-mix-automation/narration-workspace.json`, and prints segment count, override count, inherited count, minimum ducking volume, maximum narration volume, maximum fade duration, persistent keyframe count, lane summary, and lane value ranges. It derives values from existing job mix settings, segment overrides, and saved `mixAutomation.keyframes`; it does not save narration rows, call providers, create artifacts, print narration text, expose object keys, or include media bytes.
+
+Browser demo order: edit narration rows, add or delete `Mix keyframes` in the inspector, click `Save narration`, run render preflight, generate the narrated video, then export the script package. Script package JSON/ZIP includes `mixKeyframes` so the same automation can be restored with the narration rows.
 
 ## Narration Waveform
 

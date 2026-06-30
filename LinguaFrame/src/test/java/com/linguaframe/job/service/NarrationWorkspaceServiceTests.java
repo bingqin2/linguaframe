@@ -1,10 +1,14 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.SaveNarrationMixKeyframeDto;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.impl.NarrationWorkspaceServiceImpl;
@@ -28,11 +32,22 @@ class NarrationWorkspaceServiceTests {
     @Test
     void savesValidTimeCodedNarrationSegments() {
         FakeNarrationSegmentRepository repository = new FakeNarrationSegmentRepository();
-        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, new FakeNarrationMixSettingsRepository(), CLOCK);
+        FakeNarrationMixKeyframeRepository keyframeRepository = new FakeNarrationMixKeyframeRepository();
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(
+                repository,
+                new FakeNarrationMixSettingsRepository(),
+                keyframeRepository,
+                CLOCK
+        );
 
         NarrationWorkspaceVo workspace = service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
                 new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "demo-voice", new BigDecimal("0.250"), new BigDecimal("1.500"), 125),
                 new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("55.000"), new BigDecimal("70.500"), "Explain the second scene.", "demo-voice")
+        ), List.of(
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("0.000"), new BigDecimal("0.600")),
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("20.000"), new BigDecimal("0.250")),
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.NARRATION_VOLUME, new BigDecimal("20.000"), new BigDecimal("1.400")),
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.FADE_DURATION_MS, new BigDecimal("20.000"), new BigDecimal("500.000"))
         )));
 
         assertThat(workspace.status()).isEqualTo("DRAFT_READY");
@@ -63,6 +78,18 @@ class NarrationWorkspaceServiceTests {
                         "0:0.00:23.42:READY",
                         "1:72.07:27.93:READY"
                 );
+        assertThat(workspace.mixAutomation().keyframeCount()).isEqualTo(4);
+        assertThat(workspace.mixAutomation().duckingKeyframeCount()).isEqualTo(2);
+        assertThat(workspace.mixAutomation().narrationKeyframeCount()).isEqualTo(1);
+        assertThat(workspace.mixAutomation().fadeKeyframeCount()).isEqualTo(1);
+        assertThat(workspace.mixAutomation().keyframes())
+                .extracting(keyframe -> keyframe.lane() + ":" + keyframe.timeSeconds() + ":" + keyframe.value())
+                .containsExactly(
+                        "DUCKING_VOLUME:0.000:0.600",
+                        "DUCKING_VOLUME:20.000:0.250",
+                        "NARRATION_VOLUME:20.000:1.400",
+                        "FADE_DURATION_MS:20.000:500.000"
+                );
         assertThat(workspace.segments())
                 .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice() + ":" + segment.duckingVolume() + ":" + segment.narrationVolume() + ":" + segment.fadeDurationMs())
                 .containsExactly(
@@ -72,6 +99,14 @@ class NarrationWorkspaceServiceTests {
         assertThat(repository.records)
                 .extracting(record -> record.segmentIndex() + ":" + record.text() + ":" + record.voice() + ":" + record.duckingVolume() + ":" + record.narrationVolume() + ":" + record.fadeDurationMs())
                 .containsExactly("0:Explain the first scene.:demo-voice:0.250:1.500:125", "1:Explain the second scene.:demo-voice:null:null:null");
+        assertThat(keyframeRepository.records)
+                .extracting(record -> record.lane() + ":" + record.timeSeconds() + ":" + record.value())
+                .containsExactly(
+                        "DUCKING_VOLUME:0.000:0.600",
+                        "DUCKING_VOLUME:20.000:0.250",
+                        "NARRATION_VOLUME:20.000:1.400",
+                        "FADE_DURATION_MS:20.000:500.000"
+                );
     }
 
     @Test
@@ -265,6 +300,49 @@ class NarrationWorkspaceServiceTests {
                 .hasMessageContaining("fadeDurationMs must be between 0 and 5000");
     }
 
+    @Test
+    void rejectsInvalidMixAutomationKeyframes() {
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(
+                new FakeNarrationSegmentRepository(),
+                new FakeNarrationMixSettingsRepository(),
+                new FakeNarrationMixKeyframeRepository(),
+                CLOCK
+        );
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Valid segment.", null)
+        ), List.of(
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("-0.001"), new BigDecimal("0.500"))
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Narration mix keyframe timeSeconds must be greater than or equal to 0");
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Valid segment.", null)
+        ), List.of(
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.NARRATION_VOLUME, new BigDecimal("1.000"), new BigDecimal("2.001"))
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("narrationVolume must be between 0.00 and 2.00");
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Valid segment.", null)
+        ), List.of(
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.FADE_DURATION_MS, new BigDecimal("1.000"), new BigDecimal("5000.001"))
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("fadeDurationMs must be between 0 and 5000");
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Valid segment.", null)
+        ), List.of(
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("1.000"), new BigDecimal("0.500")),
+                new SaveNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("1.0004"), new BigDecimal("0.250"))
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Narration mix keyframes must not duplicate lane and timeSeconds");
+    }
+
     private static final class FakeNarrationSegmentRepository implements NarrationSegmentRepository {
 
         private final List<NarrationSegmentRecord> records = new ArrayList<>();
@@ -304,6 +382,29 @@ class NarrationWorkspaceServiceTests {
             deleteByJobId(settings.jobId());
             records.add(settings);
             return settings;
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+            records.removeIf(record -> record.jobId().equals(jobId));
+        }
+    }
+
+    private static final class FakeNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        private final List<NarrationMixKeyframeRecord> records = new ArrayList<>();
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+            records.removeIf(record -> record.jobId().equals(jobId));
+            records.addAll(keyframes);
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .toList();
         }
 
         @Override

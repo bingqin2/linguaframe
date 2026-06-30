@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -2808,13 +2808,13 @@ describe('App', () => {
     await userEvent.click(within(importPanel).getByRole('button', { name: /append to draft/i }));
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
 
-    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-quick-append-job', {
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-quick-append-job', expect.objectContaining({
       segments: [
         { index: 0, startSeconds: 15, endSeconds: 28, text: 'Explain the first scene.', voice: 'alloy' },
         { index: 1, startSeconds: 55, endSeconds: 70.5, text: 'Explain the second scene.', voice: 'verse' },
         { index: 2, startSeconds: 80, endSeconds: 84, text: 'Appended row.', voice: 'alloy' }
       ]
-    });
+    }));
   });
 
   test('blocks invalid quick script import with row-level errors', async () => {
@@ -3080,7 +3080,7 @@ describe('App', () => {
 
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
 
-    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-timeline-job', {
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-timeline-job', expect.objectContaining({
       segments: [
         {
           index: 0,
@@ -3097,7 +3097,7 @@ describe('App', () => {
           voice: 'verse'
         }
       ]
-    });
+    }));
     expect(await within(narrationPanel).findByText('Narration saved.')).toBeInTheDocument();
   });
 
@@ -3222,6 +3222,55 @@ describe('App', () => {
     expect(within(automationPanel).getByLabelText('Mix automation row 2: override, ducking 0.2, narration 1.45, fade 125 ms')).toBeInTheDocument();
   });
 
+  test('saves narration mix keyframes with the workspace payload', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-mix-keyframes-job', videoId: 'narration-mix-keyframes-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-mix-keyframes-job',
+        mixAutomation: {
+          keyframeCount: 0,
+          duckingKeyframeCount: 0,
+          narrationKeyframeCount: 0,
+          fadeKeyframeCount: 0,
+          keyframes: [],
+          safetyNotes: []
+        }
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({ jobId: 'narration-mix-keyframes-job' })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-mix-keyframes-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const keyframePanel = within(narrationPanel).getByLabelText(/mix keyframes/i);
+    const keyframeValueInput = within(keyframePanel).getByLabelText(/mix keyframe value/i);
+    fireEvent.change(keyframeValueInput, { target: { value: '0.25' } });
+    await userEvent.click(within(keyframePanel).getByRole('button', { name: /save keyframe locally/i }));
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
+
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-mix-keyframes-job', expect.objectContaining({
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 15,
+          value: 0.25
+        }
+      ]
+    }));
+  });
+
   test('applies and clears narration mix automation locally without provider or save actions', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-mix-automation-actions-job', videoId: 'narration-mix-automation-actions-video', targetLanguage: 'zh-CN' })
@@ -3269,7 +3318,7 @@ describe('App', () => {
     await userEvent.click(within(automationPanel).getByRole('button', { name: /clear all row overrides/i }));
 
     expect(await within(automationPanel).findByText('Cleared overrides for 2 rows locally.')).toBeInTheDocument();
-    expect(within(narrationPanel).getByDisplayValue('0.35')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/ducking volume/i)).toHaveValue(0.35);
   });
 
   test('narration timing assistant resolves overlaps and keeps provider actions untouched', async () => {
@@ -3755,7 +3804,7 @@ describe('App', () => {
 
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
 
-    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-duplicate-command-job', {
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-duplicate-command-job', expect.objectContaining({
       segments: [
         {
           index: 0,
@@ -3779,7 +3828,7 @@ describe('App', () => {
           voice: 'verse'
         }
       ]
-    });
+    }));
   });
 
   test('narration editing commands split the selected row at the preview playhead', async () => {
@@ -3936,13 +3985,13 @@ describe('App', () => {
 
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
 
-    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-history-duplicate-job', {
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-history-duplicate-job', expect.objectContaining({
       segments: [
         { index: 0, startSeconds: 15, endSeconds: 28, text: 'Explain the first scene.', voice: 'alloy' },
         { index: 1, startSeconds: 28, endSeconds: 41, text: 'Explain the first scene.', voice: 'alloy' },
         { index: 2, startSeconds: 55, endSeconds: 70.5, text: 'Explain the second scene.', voice: 'verse' }
       ]
-    });
+    }));
   });
 
   test('narration draft history undo and redo restore table and timeline rows', async () => {
@@ -4124,6 +4173,13 @@ describe('App', () => {
           text: 'Imported first explanation.',
           voice: 'alloy'
         }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
+        }
       ]
     }));
     await userEvent.click(within(packagePanel).getByLabelText(/replace current narration workspace/i));
@@ -4143,6 +4199,13 @@ describe('App', () => {
           endSeconds: 28,
           text: 'Imported first explanation.',
           voice: 'alloy'
+        }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
         }
       ]
     });
@@ -7478,6 +7541,27 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
       fadeDurationMs: 250,
       updatedAt: null
     },
+    mixAutomation: {
+      keyframeCount: 2,
+      duckingKeyframeCount: 1,
+      narrationKeyframeCount: 1,
+      fadeKeyframeCount: 0,
+      keyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 0,
+          value: 0.6,
+          updatedAt: '2026-06-29T10:10:00Z'
+        },
+        {
+          lane: 'NARRATION_VOLUME',
+          timeSeconds: 20,
+          value: 1.4,
+          updatedAt: '2026-06-29T10:10:00Z'
+        }
+      ],
+      safetyNotes: ['Mix keyframe edits are local until saved.']
+    },
     voiceCatalog: {
       provider: 'openai',
       defaultVoice: 'verse',
@@ -7580,6 +7664,7 @@ function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage
       fadeDurationMs: 250,
       updatedAt: null
     },
+    mixKeyframes: narrationWorkspaceFixture().mixAutomation.keyframes,
     voiceCatalog: narrationWorkspaceFixture().voiceCatalog,
     segments: [
       {

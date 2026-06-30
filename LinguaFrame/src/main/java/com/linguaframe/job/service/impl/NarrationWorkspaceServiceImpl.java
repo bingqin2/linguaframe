@@ -1,15 +1,21 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.common.config.LinguaFrameProperties;
+import com.linguaframe.job.domain.dto.SaveNarrationMixKeyframeDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
+import com.linguaframe.job.domain.vo.NarrationMixAutomationVo;
+import com.linguaframe.job.domain.vo.NarrationMixKeyframeVo;
 import com.linguaframe.job.domain.vo.NarrationMixSettingsVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationTimelineSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationTimelineSummaryVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.NarrationVoiceCatalogService;
@@ -23,13 +29,16 @@ import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService {
 
     private static final int MAX_SEGMENTS = 20;
+    private static final int MAX_KEYFRAMES = 60;
     private static final int MAX_TEXT_LENGTH = 1000;
     private static final int MAX_VOICE_LENGTH = 64;
     private static final BigDecimal ZERO = new BigDecimal("0.000");
@@ -44,6 +53,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
 
     private final NarrationSegmentRepository repository;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationMixKeyframeRepository mixKeyframeRepository;
     private final NarrationVoiceCatalogService voiceCatalogService;
     private final Clock clock;
 
@@ -51,7 +61,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
             NarrationSegmentRepository repository,
             NarrationMixSettingsRepository mixSettingsRepository
     ) {
-        this(repository, mixSettingsRepository, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), Clock.systemUTC());
+        this(repository, mixSettingsRepository, new InMemoryNarrationMixKeyframeRepository(), new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), Clock.systemUTC());
     }
 
     public NarrationWorkspaceServiceImpl(
@@ -59,18 +69,38 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
             NarrationMixSettingsRepository mixSettingsRepository,
             Clock clock
     ) {
-        this(repository, mixSettingsRepository, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), clock);
+        this(repository, mixSettingsRepository, new InMemoryNarrationMixKeyframeRepository(), new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), clock);
     }
 
-    @Autowired
+    public NarrationWorkspaceServiceImpl(
+            NarrationSegmentRepository repository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
+            Clock clock
+    ) {
+        this(repository, mixSettingsRepository, mixKeyframeRepository, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()), clock);
+    }
+
     public NarrationWorkspaceServiceImpl(
             NarrationSegmentRepository repository,
             NarrationMixSettingsRepository mixSettingsRepository,
             NarrationVoiceCatalogService voiceCatalogService,
             Clock clock
     ) {
+        this(repository, mixSettingsRepository, new InMemoryNarrationMixKeyframeRepository(), voiceCatalogService, clock);
+    }
+
+    @Autowired
+    public NarrationWorkspaceServiceImpl(
+            NarrationSegmentRepository repository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
+            NarrationVoiceCatalogService voiceCatalogService,
+            Clock clock
+    ) {
         this.repository = repository;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.mixKeyframeRepository = mixKeyframeRepository;
         this.voiceCatalogService = voiceCatalogService;
         this.clock = clock;
     }
@@ -85,7 +115,11 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
         List<SaveNarrationSegmentsRequest.Segment> segments = request == null || request.segments() == null
                 ? List.of()
                 : request.segments();
+        List<SaveNarrationMixKeyframeDto> keyframes = request == null || request.mixKeyframes() == null
+                ? List.of()
+                : request.mixKeyframes();
         validate(segments);
+        validateKeyframes(keyframes);
 
         Instant now = Instant.now(clock);
         List<NarrationSegmentRecord> records = segments.stream()
@@ -105,7 +139,21 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                         now
                 ))
                 .toList();
+        List<NarrationMixKeyframeRecord> keyframeRecords = keyframes.stream()
+                .sorted(Comparator.comparing(SaveNarrationMixKeyframeDto::lane)
+                        .thenComparing(keyframe -> normalizeSeconds(keyframe.timeSeconds(), "mix keyframe timeSeconds")))
+                .map(keyframe -> new NarrationMixKeyframeRecord(
+                        "narration-mix-keyframe-" + UUID.randomUUID(),
+                        jobId,
+                        keyframe.lane(),
+                        normalizeSeconds(keyframe.timeSeconds(), "mix keyframe timeSeconds"),
+                        normalizeKeyframeValue(keyframe.lane(), keyframe.value()),
+                        now,
+                        now
+                ))
+                .toList();
         repository.replaceSegments(jobId, records);
+        mixKeyframeRepository.replaceKeyframes(jobId, keyframeRecords);
         return toWorkspace(jobId, records);
     }
 
@@ -135,6 +183,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
     @Override
     public NarrationWorkspaceVo clearWorkspace(String jobId) {
         repository.deleteByJobId(jobId);
+        mixKeyframeRepository.deleteByJobId(jobId);
         return toWorkspace(jobId, List.of());
     }
 
@@ -192,6 +241,27 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
         normalizeOptionalFadeDuration(segment.fadeDurationMs());
     }
 
+    private void validateKeyframes(List<SaveNarrationMixKeyframeDto> keyframes) {
+        if (keyframes.size() > MAX_KEYFRAMES) {
+            throw new IllegalArgumentException("Narration workspace supports at most 60 mix keyframes.");
+        }
+        Set<String> laneTimes = new HashSet<>();
+        for (SaveNarrationMixKeyframeDto keyframe : keyframes) {
+            if (keyframe == null || keyframe.lane() == null) {
+                throw new IllegalArgumentException("Narration mix keyframe lane is required.");
+            }
+            BigDecimal timeSeconds = normalizeSeconds(keyframe.timeSeconds(), "mix keyframe timeSeconds");
+            if (timeSeconds.compareTo(ZERO) < 0) {
+                throw new IllegalArgumentException("Narration mix keyframe timeSeconds must be greater than or equal to 0.");
+            }
+            normalizeKeyframeValue(keyframe.lane(), keyframe.value());
+            String laneTime = keyframe.lane().name() + ":" + timeSeconds;
+            if (!laneTimes.add(laneTime)) {
+                throw new IllegalArgumentException("Narration mix keyframes must not duplicate lane and timeSeconds.");
+            }
+        }
+    }
+
     private NarrationWorkspaceVo toWorkspace(String jobId, List<NarrationSegmentRecord> records) {
         List<NarrationSegmentVo> segments = records.stream()
                 .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
@@ -212,6 +282,7 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                 totalCharacters,
                 generationReady,
                 toMixSettings(jobId),
+                toMixAutomation(mixKeyframeRepository.findByJobId(jobId)),
                 voiceCatalogService.catalog(),
                 toTimeline(segments, generationReady),
                 segments,
@@ -221,6 +292,33 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                         "Narration outputs do not replace generated subtitles, reviewed subtitles, or dubbed video artifacts."
                 )
         );
+    }
+
+    private NarrationMixAutomationVo toMixAutomation(List<NarrationMixKeyframeRecord> records) {
+        List<NarrationMixKeyframeVo> keyframes = records.stream()
+                .sorted(Comparator.comparing(NarrationMixKeyframeRecord::lane)
+                        .thenComparing(NarrationMixKeyframeRecord::timeSeconds))
+                .map(record -> new NarrationMixKeyframeVo(
+                        record.lane(),
+                        record.timeSeconds().setScale(3, RoundingMode.HALF_UP),
+                        record.value().setScale(3, RoundingMode.HALF_UP),
+                        record.updatedAt()
+                ))
+                .toList();
+        return new NarrationMixAutomationVo(
+                keyframes.size(),
+                countLane(keyframes, NarrationMixLane.DUCKING_VOLUME),
+                countLane(keyframes, NarrationMixLane.NARRATION_VOLUME),
+                countLane(keyframes, NarrationMixLane.FADE_DURATION_MS),
+                keyframes,
+                List.of("Narration mix keyframe edits are local until the workspace is saved and rendered.")
+        );
+    }
+
+    private int countLane(List<NarrationMixKeyframeVo> keyframes, NarrationMixLane lane) {
+        return (int) keyframes.stream()
+                .filter(keyframe -> keyframe.lane() == lane)
+                .count();
     }
 
     private NarrationTimelineSummaryVo toTimeline(List<NarrationSegmentVo> segments, boolean generationReady) {
@@ -415,5 +513,39 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
             return null;
         }
         return normalizeFadeDuration(value);
+    }
+
+    private BigDecimal normalizeKeyframeValue(NarrationMixLane lane, BigDecimal value) {
+        if (lane == NarrationMixLane.FADE_DURATION_MS) {
+            if (value == null) {
+                throw new IllegalArgumentException("Narration fadeDurationMs is required.");
+            }
+            BigDecimal normalized = value.setScale(3, RoundingMode.HALF_UP);
+            if (normalized.stripTrailingZeros().scale() > 0) {
+                throw new IllegalArgumentException("fadeDurationMs must be between 0 and 5000.");
+            }
+            return new BigDecimal(normalizeFadeDuration(normalized.intValueExact()))
+                    .setScale(3, RoundingMode.HALF_UP);
+        }
+        if (lane == NarrationMixLane.NARRATION_VOLUME) {
+            return normalizeMixDecimal(value, "narrationVolume", MAX_NARRATION_VOLUME);
+        }
+        return normalizeMixDecimal(value, "duckingVolume", MAX_DUCKING_VOLUME);
+    }
+
+    private static final class InMemoryNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return List.of();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
     }
 }

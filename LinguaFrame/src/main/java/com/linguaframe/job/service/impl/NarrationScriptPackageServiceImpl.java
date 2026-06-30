@@ -3,13 +3,18 @@ package com.linguaframe.job.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
+import com.linguaframe.job.domain.dto.ImportNarrationMixKeyframeDto;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageSegmentDto;
+import com.linguaframe.job.domain.dto.SaveNarrationMixKeyframeDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationMixKeyframeVo;
 import com.linguaframe.job.domain.vo.NarrationMixSettingsVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageCheckVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
@@ -18,6 +23,7 @@ import com.linguaframe.job.domain.vo.NarrationScriptPackageSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
@@ -35,8 +41,10 @@ import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -48,6 +56,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
     private static final BigDecimal DEFAULT_NARRATION_VOLUME = new BigDecimal("1.000");
     private static final int DEFAULT_FADE_DURATION_MS = 250;
     private static final int MAX_SEGMENTS = 20;
+    private static final int MAX_KEYFRAMES = 60;
     private static final int MAX_TEXT_LENGTH = 1000;
     private static final int MAX_VOICE_LENGTH = 64;
     private static final BigDecimal MAX_DUCKING_VOLUME = new BigDecimal("1.000");
@@ -56,6 +65,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
 
     private final NarrationSegmentRepository segmentRepository;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationMixKeyframeRepository mixKeyframeRepository;
     private final LocalizationJobQueryService queryService;
     private final NarrationVoiceCatalogService voiceCatalogService;
     private final NarrationWorkspaceService workspaceService;
@@ -71,10 +81,51 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         this(
                 segmentRepository,
                 mixSettingsRepository,
+                new EmptyNarrationMixKeyframeRepository(),
                 queryService,
                 voiceCatalogService,
                 null,
                 null,
+                new ObjectMapper().findAndRegisterModules()
+        );
+    }
+
+    public NarrationScriptPackageServiceImpl(
+            NarrationSegmentRepository segmentRepository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
+            LocalizationJobQueryService queryService,
+            NarrationVoiceCatalogService voiceCatalogService
+    ) {
+        this(
+                segmentRepository,
+                mixSettingsRepository,
+                mixKeyframeRepository,
+                queryService,
+                voiceCatalogService,
+                null,
+                null,
+                new ObjectMapper().findAndRegisterModules()
+        );
+    }
+
+    public NarrationScriptPackageServiceImpl(
+            NarrationSegmentRepository segmentRepository,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
+            LocalizationJobQueryService queryService,
+            NarrationVoiceCatalogService voiceCatalogService,
+            NarrationWorkspaceService workspaceService,
+            VideoRepository videoRepository
+    ) {
+        this(
+                segmentRepository,
+                mixSettingsRepository,
+                mixKeyframeRepository,
+                queryService,
+                voiceCatalogService,
+                workspaceService,
+                videoRepository,
                 new ObjectMapper().findAndRegisterModules()
         );
     }
@@ -90,6 +141,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         this(
                 segmentRepository,
                 mixSettingsRepository,
+                new EmptyNarrationMixKeyframeRepository(),
                 queryService,
                 voiceCatalogService,
                 workspaceService,
@@ -102,6 +154,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
     public NarrationScriptPackageServiceImpl(
             NarrationSegmentRepository segmentRepository,
             NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
             LocalizationJobQueryService queryService,
             NarrationVoiceCatalogService voiceCatalogService,
             NarrationWorkspaceService workspaceService,
@@ -110,6 +163,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
     ) {
         this.segmentRepository = segmentRepository;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.mixKeyframeRepository = mixKeyframeRepository;
         this.queryService = queryService;
         this.voiceCatalogService = voiceCatalogService;
         this.workspaceService = workspaceService;
@@ -123,6 +177,11 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         List<NarrationScriptPackageSegmentVo> segments = segmentRepository.findByJobId(jobId).stream()
                 .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
                 .map(this::toSegment)
+                .toList();
+        List<NarrationMixKeyframeVo> mixKeyframes = mixKeyframeRepository.findByJobId(jobId).stream()
+                .sorted(Comparator.comparing(NarrationMixKeyframeRecord::lane)
+                        .thenComparing(NarrationMixKeyframeRecord::timeSeconds))
+                .map(this::toMixKeyframe)
                 .toList();
         GapSummary gapSummary = gapSummary(segments);
         return new NarrationScriptPackageVo(
@@ -139,6 +198,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 voiceSummary(segments),
                 voiceCatalogService.defaultVoice(),
                 mixSettings(jobId),
+                mixKeyframes,
                 voiceCatalogService.catalog(),
                 segments,
                 checks(segments, gapSummary),
@@ -168,7 +228,17 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         lines.add("- Ducking volume: " + scriptPackage.mixSettings().duckingVolume());
         lines.add("- Narration volume: " + scriptPackage.mixSettings().narrationVolume());
         lines.add("- Fade duration ms: " + scriptPackage.mixSettings().fadeDurationMs());
+        lines.add("- Mix keyframe count: " + scriptPackage.mixKeyframes().size());
+        lines.add("- Mix keyframe lane summary: " + mixKeyframeLaneSummary(scriptPackage.mixKeyframes()));
         lines.add("- Includes narration text bodies: true");
+        lines.add("");
+        lines.add("## Mix Keyframes");
+        if (scriptPackage.mixKeyframes().isEmpty()) {
+            lines.add("- No narration mix keyframes saved.");
+        }
+        for (NarrationMixKeyframeVo keyframe : scriptPackage.mixKeyframes()) {
+            lines.add("- " + keyframe.lane() + " @ " + keyframe.timeSeconds() + " = " + keyframe.value());
+        }
         lines.add("");
         lines.add("## Segments");
         if (scriptPackage.segments().isEmpty()) {
@@ -229,6 +299,10 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 : request.segments();
         validateImportSegments(segments, sourceDurationSeconds(job));
         validateImportMixSettings(request.mixSettings());
+        List<ImportNarrationMixKeyframeDto> mixKeyframes = request.mixKeyframes() == null
+                ? List.of()
+                : request.mixKeyframes();
+        validateImportMixKeyframes(mixKeyframes);
 
         NarrationWorkspaceVo workspace = workspaceService.saveWorkspace(
                 jobId,
@@ -244,7 +318,14 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                                 normalizeOptionalMixDecimal(segment.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME),
                                 normalizeOptionalFadeDuration(segment.fadeDurationMs())
                         ))
-                        .toList())
+                        .toList(),
+                        mixKeyframes.stream()
+                                .map(keyframe -> new SaveNarrationMixKeyframeDto(
+                                        keyframe.lane(),
+                                        normalizeSeconds(keyframe.timeSeconds(), "mix keyframe timeSeconds"),
+                                        normalizeKeyframeValue(keyframe.lane(), keyframe.value())
+                                ))
+                                .toList())
         );
         if (request.mixSettings() != null) {
             workspace = workspaceService.updateMixSettings(jobId, request.mixSettings());
@@ -269,6 +350,7 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                     "segmentCount", scriptPackage.segmentCount(),
                     "voiceSummary", scriptPackage.voiceSummary(),
                     "timelineGapCount", scriptPackage.timelineGapCount(),
+                    "mixKeyframeCount", scriptPackage.mixKeyframes().size(),
                     "includesNarrationTextBodies", true,
                     "entries", scriptPackage.packageEntries()
             )));
@@ -320,6 +402,15 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 normalizeStoredMixDecimal(record.narrationVolume()),
                 record.fadeDurationMs(),
                 text.length(),
+                record.updatedAt()
+        );
+    }
+
+    private NarrationMixKeyframeVo toMixKeyframe(NarrationMixKeyframeRecord record) {
+        return new NarrationMixKeyframeVo(
+                record.lane(),
+                record.timeSeconds().setScale(3, RoundingMode.HALF_UP),
+                record.value().setScale(3, RoundingMode.HALF_UP),
                 record.updatedAt()
         );
     }
@@ -466,6 +557,46 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         normalizeFadeDuration(request.fadeDurationMs());
     }
 
+    private void validateImportMixKeyframes(List<ImportNarrationMixKeyframeDto> keyframes) {
+        if (keyframes.size() > MAX_KEYFRAMES) {
+            throw new IllegalArgumentException("Narration workspace supports at most 60 mix keyframes.");
+        }
+        Set<String> seen = new HashSet<>();
+        for (ImportNarrationMixKeyframeDto keyframe : keyframes) {
+            if (keyframe.lane() == null) {
+                throw new IllegalArgumentException("Narration mix keyframe lane is required.");
+            }
+            BigDecimal timeSeconds = normalizeSeconds(keyframe.timeSeconds(), "mix keyframe timeSeconds");
+            if (timeSeconds.compareTo(ZERO) < 0) {
+                throw new IllegalArgumentException("Narration mix keyframe timeSeconds must be greater than or equal to 0.");
+            }
+            normalizeKeyframeValue(keyframe.lane(), keyframe.value());
+            if (!seen.add(keyframe.lane() + ":" + timeSeconds.toPlainString())) {
+                throw new IllegalArgumentException("Narration mix keyframes must not duplicate lane and timeSeconds.");
+            }
+        }
+    }
+
+    private BigDecimal normalizeKeyframeValue(NarrationMixLane lane, BigDecimal value) {
+        return switch (lane) {
+            case DUCKING_VOLUME -> normalizeMixDecimal(value, "duckingVolume", MAX_DUCKING_VOLUME);
+            case NARRATION_VOLUME -> normalizeMixDecimal(value, "narrationVolume", MAX_NARRATION_VOLUME);
+            case FADE_DURATION_MS -> normalizeKeyframeFadeDuration(value);
+        };
+    }
+
+    private BigDecimal normalizeKeyframeFadeDuration(BigDecimal value) {
+        if (value == null) {
+            throw new IllegalArgumentException("Narration fadeDurationMs is required.");
+        }
+        BigDecimal normalized = value.setScale(3, RoundingMode.HALF_UP);
+        if (normalized.stripTrailingZeros().scale() > 0) {
+            throw new IllegalArgumentException("fadeDurationMs must be a whole number.");
+        }
+        normalizeFadeDuration(normalized.intValueExact());
+        return normalized;
+    }
+
     private BigDecimal normalizeSeconds(BigDecimal value, String label) {
         if (value == null) {
             throw new IllegalArgumentException("Narration " + label + " is required.");
@@ -552,6 +683,21 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         return voices.size() == 1 ? "PRESET:" + voices.getFirst() : "MIXED";
     }
 
+    private String mixKeyframeLaneSummary(List<NarrationMixKeyframeVo> keyframes) {
+        if (keyframes.isEmpty()) {
+            return "none";
+        }
+        return "DUCKING_VOLUME=" + countLane(keyframes, NarrationMixLane.DUCKING_VOLUME)
+                + ",NARRATION_VOLUME=" + countLane(keyframes, NarrationMixLane.NARRATION_VOLUME)
+                + ",FADE_DURATION_MS=" + countLane(keyframes, NarrationMixLane.FADE_DURATION_MS);
+    }
+
+    private long countLane(List<NarrationMixKeyframeVo> keyframes, NarrationMixLane lane) {
+        return keyframes.stream()
+                .filter(keyframe -> keyframe.lane() == lane)
+                .count();
+    }
+
     private GapSummary gapSummary(List<NarrationScriptPackageSegmentVo> segments) {
         BigDecimal gapSeconds = ZERO;
         int gapCount = 0;
@@ -579,6 +725,22 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
 
     private String valueOrInherit(Object value) {
         return value == null ? "INHERIT_MIX" : value.toString();
+    }
+
+    private static final class EmptyNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return List.of();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
     }
 
     private record GapSummary(int gapCount, BigDecimal gapSeconds, boolean hasOverlap) {

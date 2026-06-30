@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -42,6 +43,8 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
     private final FfmpegNarratedVideoMixService narratedVideoMixService;
     private final NarrationSegmentRepository narrationSegmentRepository;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationMixKeyframeRepository mixKeyframeRepository;
+    private final NarrationMixAutomationResolver mixAutomationResolver = new NarrationMixAutomationResolver();
 
     public NarratedVideoServiceImpl(
             JobArtifactService artifactService,
@@ -50,7 +53,8 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
             MediaWorkDirectoryService workDirectoryService,
             FfmpegNarratedVideoMixService narratedVideoMixService,
             NarrationSegmentRepository narrationSegmentRepository,
-            NarrationMixSettingsRepository mixSettingsRepository
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository
     ) {
         this.artifactService = artifactService;
         this.queryService = queryService;
@@ -59,6 +63,7 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
         this.narratedVideoMixService = narratedVideoMixService;
         this.narrationSegmentRepository = narrationSegmentRepository;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.mixKeyframeRepository = mixKeyframeRepository;
     }
 
     @Override
@@ -164,15 +169,10 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
     }
 
     private List<NarrationWindowBo> narrationWindows(String jobId, NarrationMixSettingsRecord mixSettings) {
+        var keyframes = mixKeyframeRepository.findByJobId(jobId);
         return narrationSegmentRepository.findByJobId(jobId).stream()
                 .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
-                .map(segment -> new NarrationWindowBo(
-                        segment.startSeconds(),
-                        segment.endSeconds(),
-                        segment.duckingVolume() == null ? mixSettings.duckingVolume() : segment.duckingVolume(),
-                        segment.narrationVolume() == null ? mixSettings.narrationVolume() : segment.narrationVolume(),
-                        segment.fadeDurationMs() == null ? mixSettings.fadeDurationMs() : segment.fadeDurationMs()
-                ))
+                .map(segment -> mixAutomationResolver.resolveWindow(segment, mixSettings, keyframes))
                 .toList();
     }
 

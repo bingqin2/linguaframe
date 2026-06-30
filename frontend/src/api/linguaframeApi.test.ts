@@ -347,6 +347,13 @@ describe('linguaframeApi', () => {
           narrationVolume: 1.5,
           fadeDurationMs: 125
         }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
+        }
       ]
     });
     await clearNarrationWorkspace('job-narration');
@@ -371,6 +378,13 @@ describe('linguaframeApi', () => {
           duckingVolume: 0.25,
           narrationVolume: 1.5,
           fadeDurationMs: 125
+        }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
         }
       ]
     });
@@ -670,6 +684,13 @@ describe('linguaframeApi', () => {
           text: 'Explain the first scene.',
           voice: 'alloy'
         }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
+        }
       ]
     });
 
@@ -698,6 +719,13 @@ describe('linguaframeApi', () => {
           endSeconds: 28,
           text: 'Explain the first scene.',
           voice: 'alloy'
+        }
+      ],
+      mixKeyframes: [
+        {
+          lane: 'DUCKING_VOLUME',
+          timeSeconds: 20,
+          value: 0.25
         }
       ]
     });

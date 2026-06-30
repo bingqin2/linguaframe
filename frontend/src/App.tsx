@@ -61,6 +61,15 @@ import {
   buildNarrationMixAutomation,
   type NarrationMixAutomation
 } from './domain/narrationMixAutomation';
+import {
+  clearNarrationMixLane,
+  deleteNarrationMixKeyframe,
+  laneLabel,
+  NARRATION_MIX_LANES,
+  toSaveNarrationMixKeyframes,
+  upsertNarrationMixKeyframe,
+  validateNarrationMixKeyframes
+} from './domain/narrationMixKeyframes';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -98,6 +107,8 @@ import type {
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
+  NarrationMixKeyframe,
+  NarrationMixLane,
   NarrationWaveform,
   NarrationScriptPackage,
   ImportNarrationScriptPackageRequest,
@@ -2036,14 +2047,18 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
-  async function handleSaveNarrationWorkspace(segments: NarrationWorkspace['segments']) {
+  async function handleSaveNarrationWorkspace(
+    segments: NarrationWorkspace['segments'],
+    mixKeyframes: NarrationMixKeyframe[] = []
+  ) {
     if (!job) {
       return;
     }
     setIsSavingNarration(true);
     try {
       const updated = await linguaFrameApi.saveNarrationWorkspace(job.jobId, {
-        segments: segments.map((segment, index) => saveNarrationSegmentPayload(segment, index))
+        segments: segments.map((segment, index) => saveNarrationSegmentPayload(segment, index)),
+        mixKeyframes: toSaveNarrationMixKeyframes(mixKeyframes)
       });
       const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
       setNarrationWorkspace(updated);
@@ -9366,7 +9381,7 @@ function NarrationWorkspacePanel({
   onPreflightDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
   onRefreshEvidence: () => void;
   onRenderDemo: (presetId: string, generateNarratedVideo: boolean) => void;
-  onSave: (segments: NarrationWorkspace['segments']) => void;
+  onSave: (segments: NarrationWorkspace['segments'], mixKeyframes: NarrationMixKeyframe[]) => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   renderResult: NarrationDemoRenderResult | null;
   renderPreflight: NarrationDemoRenderPreflight | null;
@@ -9376,6 +9391,7 @@ function NarrationWorkspacePanel({
 }) {
   const [draftHistory, setDraftHistory] = useState<NarrationDraftHistoryState>(() => createNarrationDraftHistory([]));
   const [mixSettings, setMixSettings] = useState<NarrationWorkspace['mixSettings'] | null>(null);
+  const [mixKeyframes, setMixKeyframes] = useState<NarrationMixKeyframe[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
   const [previewWindowEndSeconds, setPreviewWindowEndSeconds] = useState<number | null>(null);
@@ -9428,6 +9444,7 @@ function NarrationWorkspacePanel({
   useEffect(() => {
     setDraftHistory(createNarrationDraftHistory(workspace?.segments ?? []));
     setMixSettings(workspace?.mixSettings ?? null);
+    setMixKeyframes(workspace?.mixAutomation?.keyframes ?? []);
     setSelectedIndex(0);
     setPreviewCurrentSeconds(0);
     setPreviewWindowEndSeconds(null);
@@ -9489,6 +9506,7 @@ function NarrationWorkspacePanel({
   const selectedSegment = segments[selectedIndex] ?? null;
   const validation = validateNarrationSegments(segments, workspace?.voiceCatalog ?? null);
   const mixValidation = validateNarrationMixSettings(mixSettings);
+  const mixKeyframeValidation = validateNarrationMixKeyframes(mixKeyframes);
   const draftSummary = useMemo(
     () => summarizeNarrationDraftChanges(draftHistory.saved, draftHistory.present),
     [draftHistory.present, draftHistory.saved]
@@ -9642,7 +9660,22 @@ function NarrationWorkspacePanel({
   }
 
   function saveDraftChanges() {
-    onSave(segments);
+    onSave(segments, mixKeyframes);
+  }
+
+  function addMixKeyframe(lane: NarrationMixLane, timeSeconds: number, value: number) {
+    setMixKeyframes((current) => upsertNarrationMixKeyframe(current, { lane, timeSeconds, value }));
+    setEditCommandStatus(`Updated ${laneLabel(lane).toLowerCase()} keyframe at ${formatSeconds(timeSeconds)} locally.`);
+  }
+
+  function deleteMixKeyframe(lane: NarrationMixLane, timeSeconds: number) {
+    setMixKeyframes((current) => deleteNarrationMixKeyframe(current, lane, timeSeconds));
+    setEditCommandStatus(`Deleted ${laneLabel(lane).toLowerCase()} keyframe at ${formatSeconds(timeSeconds)} locally.`);
+  }
+
+  function clearMixKeyframeLane(lane: NarrationMixLane) {
+    setMixKeyframes((current) => clearNarrationMixLane(current, lane));
+    setEditCommandStatus(`Cleared ${laneLabel(lane).toLowerCase()} keyframes locally.`);
   }
 
   function duplicateSelectedSegment() {
@@ -9880,16 +9913,16 @@ function NarrationWorkspacePanel({
         <div className="panel-actions">
           <button type="button" onClick={addSegment}>Add row</button>
           <button type="button" onClick={deleteSelectedSegment} disabled={!selectedSegment}>Delete row</button>
-          <button type="button" onClick={saveDraftChanges} disabled={isSaving || validation.length > 0}>
+          <button type="button" onClick={saveDraftChanges} disabled={isSaving || validation.length > 0 || mixKeyframeValidation.length > 0}>
             {isSaving ? 'Saving...' : 'Save narration'}
           </button>
-          <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady || validation.length > 0}>
+          <button type="button" onClick={onGenerateAudio} disabled={isGenerating || !workspace?.generationReady || validation.length > 0 || mixKeyframeValidation.length > 0}>
             {isGenerating ? 'Generating...' : 'Generate narration audio'}
           </button>
           <button
             type="button"
             onClick={onGenerateVideo}
-            disabled={isGeneratingVideo || !evidence?.narrationAudioReady || validation.length > 0}
+            disabled={isGeneratingVideo || !evidence?.narrationAudioReady || validation.length > 0 || mixKeyframeValidation.length > 0}
           >
             {isGeneratingVideo ? 'Generating video...' : 'Generate narrated video'}
           </button>
@@ -9901,6 +9934,11 @@ function NarrationWorkspacePanel({
       {validation.length > 0 ? (
         <ul className="error-list">
           {validation.map((message) => <li key={message}>{message}</li>)}
+        </ul>
+      ) : null}
+      {mixKeyframeValidation.length > 0 ? (
+        <ul className="error-list">
+          {mixKeyframeValidation.map((message) => <li key={message}>{message}</li>)}
         </ul>
       ) : null}
       <div className="narration-workbench">
@@ -10032,6 +10070,8 @@ function NarrationWorkspacePanel({
           isSaving={isSaving}
           jobId={jobId}
           mixSettings={mixSettings}
+          mixKeyframes={mixKeyframes}
+          mixKeyframeValidation={mixKeyframeValidation}
           mixValidation={mixValidation}
           segments={segments}
           selectedIndex={selectedIndex}
@@ -10041,6 +10081,9 @@ function NarrationWorkspacePanel({
           onApplySelectedMixToAllRows={applySelectedMixToAllRows}
           onClearAllMixOverrides={clearAllMixOverrides}
           onClearSelectedMixOverrides={clearSelectedMixOverrides}
+          onAddMixKeyframe={addMixKeyframe}
+          onClearMixKeyframeLane={clearMixKeyframeLane}
+          onDeleteMixKeyframe={deleteMixKeyframe}
           onRefreshEvidence={onRefreshEvidence}
           onSaveMixSettings={onSaveMixSettings}
           onUpdateMixSettings={setMixSettings}
@@ -10525,11 +10568,16 @@ function NarrationInspector({
   evidence,
   isSaving,
   jobId,
+  mixKeyframes,
+  mixKeyframeValidation,
   mixSettings,
   mixValidation,
   onApplySelectedMixToAllRows,
+  onAddMixKeyframe,
   onClearAllMixOverrides,
+  onClearMixKeyframeLane,
   onClearSelectedMixOverrides,
+  onDeleteMixKeyframe,
   onRefreshEvidence,
   onSaveMixSettings,
   onUpdateMixSettings,
@@ -10543,11 +10591,16 @@ function NarrationInspector({
   evidence: NarrationEvidence | null;
   isSaving: boolean;
   jobId: string;
+  mixKeyframes: NarrationMixKeyframe[];
+  mixKeyframeValidation: string[];
   mixSettings: NarrationWorkspace['mixSettings'] | null;
   mixValidation: string[];
   onApplySelectedMixToAllRows: () => void;
+  onAddMixKeyframe: (lane: NarrationMixLane, timeSeconds: number, value: number) => void;
   onClearAllMixOverrides: () => void;
+  onClearMixKeyframeLane: (lane: NarrationMixLane) => void;
   onClearSelectedMixOverrides: () => void;
+  onDeleteMixKeyframe: (lane: NarrationMixLane, timeSeconds: number) => void;
   onRefreshEvidence: () => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onUpdateMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
@@ -10603,6 +10656,15 @@ function NarrationInspector({
             onApplySelectedMixToAllRows={onApplySelectedMixToAllRows}
             onClearAllMixOverrides={onClearAllMixOverrides}
             onClearSelectedMixOverrides={onClearSelectedMixOverrides}
+          />
+          <NarrationMixKeyframePanel
+            keyframes={mixKeyframes}
+            mixSettings={mixSettings}
+            selectedSegment={selectedSegment}
+            validation={mixKeyframeValidation}
+            onAddKeyframe={onAddMixKeyframe}
+            onClearLane={onClearMixKeyframeLane}
+            onDeleteKeyframe={onDeleteMixKeyframe}
           />
           <NarrationEvidenceMetrics evidence={evidence} />
           {mixSettings ? (
@@ -10673,6 +10735,10 @@ function NarrationScriptPackagePanel({
         <div>
           <dt>Gaps</dt>
           <dd>{scriptPackage ? `${scriptPackage.timelineGapCount} gaps` : 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Keyframes</dt>
+          <dd>{scriptPackage ? scriptPackage.mixKeyframes.length : 'N/A'}</dd>
         </div>
         <div>
           <dt>Duration</dt>
@@ -11329,6 +11395,133 @@ function NarrationMixSettingsPanel({
       </button>
     </div>
   );
+}
+
+function NarrationMixKeyframePanel({
+  keyframes,
+  mixSettings,
+  onAddKeyframe,
+  onClearLane,
+  onDeleteKeyframe,
+  selectedSegment,
+  validation
+}: {
+  keyframes: NarrationMixKeyframe[];
+  mixSettings: NarrationWorkspace['mixSettings'] | null;
+  onAddKeyframe: (lane: NarrationMixLane, timeSeconds: number, value: number) => void;
+  onClearLane: (lane: NarrationMixLane) => void;
+  onDeleteKeyframe: (lane: NarrationMixLane, timeSeconds: number) => void;
+  selectedSegment: NarrationWorkspace['segments'][number];
+  validation: string[];
+}) {
+  const [lane, setLane] = useState<NarrationMixLane>('DUCKING_VOLUME');
+  const [timeSeconds, setTimeSeconds] = useState(selectedSegment.startSeconds);
+  const [value, setValue] = useState(defaultMixKeyframeValue('DUCKING_VOLUME', mixSettings));
+  const laneCounts = NARRATION_MIX_LANES.map((candidate) => ({
+    lane: candidate,
+    count: keyframes.filter((keyframe) => keyframe.lane === candidate).length
+  }));
+
+  useEffect(() => {
+    setTimeSeconds(selectedSegment.startSeconds);
+  }, [selectedSegment.startSeconds]);
+
+  function updateLane(nextLane: NarrationMixLane) {
+    setLane(nextLane);
+    setValue(defaultMixKeyframeValue(nextLane, mixSettings));
+  }
+
+  return (
+    <div className="mix-keyframe-panel" aria-label="Mix keyframes">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Mix keyframes</h4>
+          <p className="muted">Persist timeline-level mix automation for narrated video rendering.</p>
+        </div>
+        <span className={keyframes.length > 0 ? 'status-pill ready' : 'status-pill attention'}>
+          {keyframes.length} saved
+        </span>
+      </div>
+      <dl className="compact-metrics">
+        {laneCounts.map((entry) => (
+          <div key={entry.lane}>
+            <dt>{laneLabel(entry.lane)}</dt>
+            <dd>{entry.count}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="mix-keyframe-editor">
+        <label>
+          Lane
+          <select
+            aria-label="Mix keyframe lane"
+            value={lane}
+            onChange={(event) => updateLane(event.target.value as NarrationMixLane)}
+          >
+            {NARRATION_MIX_LANES.map((candidate) => (
+              <option key={candidate} value={candidate}>{laneLabel(candidate)}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Time
+          <input
+            aria-label="Mix keyframe time"
+            min="0"
+            step="0.001"
+            type="number"
+            value={timeSeconds}
+            onChange={(event) => setTimeSeconds(Number(event.target.value))}
+          />
+        </label>
+        <label>
+          Value
+          <input
+            aria-label="Mix keyframe value"
+            max={lane === 'NARRATION_VOLUME' ? 2 : lane === 'FADE_DURATION_MS' ? 5000 : 1}
+            min="0"
+            step={lane === 'FADE_DURATION_MS' ? 1 : 0.001}
+            type="number"
+            value={value}
+            onChange={(event) => setValue(Number(event.target.value))}
+          />
+        </label>
+      </div>
+      <div className="narration-command-buttons">
+        <button type="button" onClick={() => onAddKeyframe(lane, timeSeconds, value)}>Save keyframe locally</button>
+        <button type="button" onClick={() => setTimeSeconds(selectedSegment.startSeconds)}>Use selected start</button>
+        <button type="button" onClick={() => onClearLane(lane)}>Clear lane</button>
+      </div>
+      {validation.length > 0 ? (
+        <ul className="error-list">
+          {validation.map((message) => <li key={message}>{message}</li>)}
+        </ul>
+      ) : null}
+      {keyframes.length > 0 ? (
+        <ul className="mix-keyframe-list" aria-label="Saved mix keyframes">
+          {keyframes.map((keyframe) => (
+            <li key={`${keyframe.lane}-${keyframe.timeSeconds}`}>
+              <span>{laneLabel(keyframe.lane)} @ {formatSeconds(keyframe.timeSeconds)} = {keyframe.value}</span>
+              <button type="button" onClick={() => onDeleteKeyframe(keyframe.lane, keyframe.timeSeconds)}>Delete</button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted">No mix keyframes saved yet.</p>
+      )}
+    </div>
+  );
+}
+
+function defaultMixKeyframeValue(lane: NarrationMixLane, mixSettings: NarrationWorkspace['mixSettings'] | null): number {
+  switch (lane) {
+    case 'DUCKING_VOLUME':
+      return mixSettings?.duckingVolume ?? 0.35;
+    case 'NARRATION_VOLUME':
+      return mixSettings?.narrationVolume ?? 1;
+    case 'FADE_DURATION_MS':
+      return mixSettings?.fadeDurationMs ?? 250;
+  }
 }
 
 function NarrationPreviewPanel({
@@ -12165,7 +12358,14 @@ function parseNarrationScriptPackageImport(value: string): ImportNarrationScript
         ...optionalPayloadField('duckingVolume', parseOptionalNumber(String(segment.duckingVolume ?? ''))),
         ...optionalPayloadField('narrationVolume', parseOptionalNumber(String(segment.narrationVolume ?? ''))),
         ...optionalPayloadField('fadeDurationMs', parseOptionalNumber(String(segment.fadeDurationMs ?? '')))
-      }))
+      })),
+      mixKeyframes: Array.isArray(parsed.mixKeyframes)
+        ? parsed.mixKeyframes.map((keyframe) => ({
+            lane: String(keyframe.lane) as NarrationMixLane,
+            timeSeconds: Number(keyframe.timeSeconds),
+            value: Number(keyframe.value)
+          }))
+        : []
     };
   } catch {
     return null;
