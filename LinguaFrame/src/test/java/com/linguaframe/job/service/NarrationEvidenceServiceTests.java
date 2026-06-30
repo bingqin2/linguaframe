@@ -1,10 +1,12 @@
 package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
@@ -12,6 +14,7 @@ import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.impl.NarrationEvidenceServiceImpl;
 import org.junit.jupiter.api.Test;
@@ -64,6 +67,8 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.mixSettingsSource()).isEqualTo("SAVED");
         assertThat(evidence.segmentMixOverrideCount()).isEqualTo(1);
         assertThat(evidence.segmentMixOverrideSummary()).isEqualTo("segments=0");
+        assertThat(evidence.mixKeyframeCount()).isEqualTo(4);
+        assertThat(evidence.mixKeyframeLaneSummary()).isEqualTo("DUCKING_VOLUME=2,NARRATION_VOLUME=1,FADE_DURATION_MS=1");
         assertThat(evidence.safeLinks())
                 .extracting(link -> link.href())
                 .contains("/api/jobs/job-narration/narration-evidence/download");
@@ -90,6 +95,8 @@ class NarrationEvidenceServiceTests {
                 .contains("- Mix settings source: SAVED")
                 .contains("- Segment mix override count: 1")
                 .contains("- Segment mix override summary: segments=0")
+                .contains("- Mix keyframe count: 4")
+                .contains("- Mix keyframe lane summary: DUCKING_VOLUME=2,NARRATION_VOLUME=1,FADE_DURATION_MS=1")
                 .doesNotContain("Explain the first scene")
                 .doesNotContain("Explain the second scene")
                 .doesNotContain("sk-")
@@ -114,7 +121,9 @@ class NarrationEvidenceServiceTests {
                 .contains("\"voiceSummary\":\"PRESET:alloy\"")
                 .contains("\"defaultVoice\":\"demo-voice\"")
                 .contains("\"segmentMixOverrideCount\":1")
-                .contains("\"segmentMixOverrideSummary\":\"segments=0\"");
+                .contains("\"segmentMixOverrideSummary\":\"segments=0\"")
+                .contains("\"mixKeyframeCount\":4")
+                .contains("\"mixKeyframeLaneSummary\":\"DUCKING_VOLUME=2,NARRATION_VOLUME=1,FADE_DURATION_MS=1\"");
     }
 
     @Test
@@ -130,6 +139,7 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.fadeDurationMs()).isEqualTo(250);
         assertThat(evidence.mixSettingsSource()).isEqualTo("DEFAULTS");
         assertThat(evidence.segmentMixOverrideCount()).isEqualTo(1);
+        assertThat(evidence.mixKeyframeCount()).isEqualTo(4);
     }
 
     @Test
@@ -195,7 +205,29 @@ class NarrationEvidenceServiceTests {
         return new NarrationEvidenceServiceImpl(
                 new StaticNarrationSegmentRepository(segments),
                 new StaticLocalizationJobQueryService(artifacts),
-                new StaticNarrationMixSettingsRepository(settings)
+                new StaticNarrationMixSettingsRepository(settings),
+                new StaticNarrationMixKeyframeRepository(mixKeyframes())
+        );
+    }
+
+    private List<NarrationMixKeyframeRecord> mixKeyframes() {
+        return List.of(
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "0.000", "0.600"),
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "20.000", "0.250"),
+                keyframe(NarrationMixLane.NARRATION_VOLUME, "20.000", "1.400"),
+                keyframe(NarrationMixLane.FADE_DURATION_MS, "20.000", "500.000")
+        );
+    }
+
+    private NarrationMixKeyframeRecord keyframe(NarrationMixLane lane, String timeSeconds, String value) {
+        return new NarrationMixKeyframeRecord(
+                "keyframe-" + lane + "-" + timeSeconds,
+                "job-narration",
+                lane,
+                new BigDecimal(timeSeconds),
+                new BigDecimal(value),
+                Instant.parse("2026-06-29T10:20:00Z"),
+                Instant.parse("2026-06-29T10:20:00Z")
         );
     }
 
@@ -345,6 +377,25 @@ class NarrationEvidenceServiceTests {
         @Override
         public NarrationMixSettingsRecord upsert(NarrationMixSettingsRecord settings) {
             throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
+    }
+
+    private record StaticNarrationMixKeyframeRepository(List<NarrationMixKeyframeRecord> records)
+            implements NarrationMixKeyframeRepository {
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .toList();
         }
 
         @Override

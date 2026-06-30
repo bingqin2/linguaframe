@@ -1493,6 +1493,7 @@ export interface NarrationWorkspace {
   totalCharacterCount: number;
   generationReady: boolean;
   mixSettings: NarrationMixSettings;
+  mixAutomation: NarrationMixAutomation;
   voiceCatalog: NarrationVoiceCatalog;
   timeline: NarrationTimelineSummary;
   segments: NarrationSegment[];
@@ -1545,6 +1546,24 @@ export interface NarrationMixSettings {
   updatedAt: string | null;
 }
 
+export type NarrationMixLane = 'DUCKING_VOLUME' | 'NARRATION_VOLUME' | 'FADE_DURATION_MS';
+
+export interface NarrationMixKeyframe {
+  lane: NarrationMixLane;
+  timeSeconds: number;
+  value: number;
+  updatedAt: string | null;
+}
+
+export interface NarrationMixAutomation {
+  keyframeCount: number;
+  duckingKeyframeCount: number;
+  narrationKeyframeCount: number;
+  fadeKeyframeCount: number;
+  keyframes: NarrationMixKeyframe[];
+  safetyNotes: string[];
+}
+
 export interface SaveNarrationSegment {
   index: number;
   startSeconds: number;
@@ -1556,8 +1575,15 @@ export interface SaveNarrationSegment {
   fadeDurationMs?: number | null;
 }
 
+export interface SaveNarrationMixKeyframe {
+  lane: NarrationMixLane;
+  timeSeconds: number;
+  value: number;
+}
+
 export interface SaveNarrationWorkspaceRequest {
   segments: SaveNarrationSegment[];
+  mixKeyframes?: SaveNarrationMixKeyframe[];
 }
 
 export interface UpdateNarrationMixSettingsRequest {
@@ -1708,6 +1734,7 @@ export interface NarrationScriptPackage {
   voiceSummary: string;
   defaultVoice: string;
   mixSettings: NarrationMixSettings;
+  mixKeyframes: NarrationMixKeyframe[];
   voiceCatalog: NarrationVoiceCatalog;
   segments: NarrationScriptPackageSegment[];
   checks: NarrationScriptPackageCheck[];
@@ -1731,6 +1758,7 @@ export interface ImportNarrationScriptPackageRequest {
   replaceExisting: boolean;
   segments: ImportNarrationScriptPackageSegmentRequest[];
   mixSettings?: UpdateNarrationMixSettingsRequest | null;
+  mixKeyframes?: SaveNarrationMixKeyframe[];
 }
 
 export interface NarrationScriptPackageImportResult {

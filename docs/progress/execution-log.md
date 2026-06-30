@@ -4772,3 +4772,27 @@ Validation:
 - `mvn -pl LinguaFrame test` passed with `Tests run: 789, Failures: 0, Errors: 0, Skipped: 0`.
 - `bash -n scripts/demo/narration-mix-automation.sh scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started and implemented the persistent narration mix keyframes feature slice.
+- Added the `narration_mix_keyframes` persistence model, lane enum, JDBC repository, workspace API field `mixAutomation.keyframes`, and save payload field `mixKeyframes`.
+- Added keyframe validation for max count, non-negative time, known lane, value ranges, whole-number fade keyframes, and duplicate lane/time positions.
+- Added render-time resolution with precedence: segment override, latest keyframe at or before segment start, then job-level mix default.
+- Extended narration evidence and script packages with keyframe counts and lane summaries; script package import now replaces saved keyframes with the imported workspace.
+- Added the browser `Mix keyframes` editor in the narration inspector, frontend keyframe validation/payload helpers, and API/App coverage.
+- Extended `scripts/demo/narration-mix-automation.sh` output through the shared demo helper to include keyframe counts, lane summary, and lane value ranges.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "saves narration mix keyframes"` passed with `Tests 1 passed | 142 skipped`.
+- `npm --prefix frontend test -- --run src/domain/narrationMixKeyframes.test.ts src/api/linguaframeApi.test.ts` passed with `Tests 99 passed`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 296 passed`; jsdom printed expected navigation warnings.
+- `mvn -pl LinguaFrame test -Dtest=NarrationMixKeyframeRepositoryTests,NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarratedVideoServiceTests,NarrationEvidenceServiceTests,NarrationScriptPackageServiceTests` first failed because `NarrationEvidenceServiceImpl` had two `@Autowired` constructors; after removing the compatibility constructor annotation, it passed with `Tests run: 103, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 522.26 kB bundle.
+- `mvn -pl LinguaFrame test` first failed because `RuntimeDependencyControllerTests` still expected migration version 30; after updating it to 31, the full backend suite passed with `Tests run: 793, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-mix-automation.sh scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.

@@ -4,8 +4,12 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public record SaveNarrationSegmentsRequest(
-        List<Segment> segments
+        List<Segment> segments,
+        List<SaveNarrationMixKeyframeDto> mixKeyframes
 ) {
+    public SaveNarrationSegmentsRequest(List<Segment> segments) {
+        this(segments, List.of());
+    }
 
     public record Segment(
             int index,

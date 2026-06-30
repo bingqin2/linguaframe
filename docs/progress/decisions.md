@@ -905,3 +905,11 @@ Decision: Add derived narration mix automation curves before persistent keyframe
 Reason: Operators already have job-level mix settings and nullable segment overrides, but they need to understand the effective ducking, narration gain, and fade shape before saving or rendering. A derived workbench gives useful automation feedback and batch local actions without adding a new schema or turning the narration editor into a full multitrack editor.
 
 Impact: The browser `Mix automation` panel derives effective values from current local narration rows, shows inherited versus overridden windows, and lets operators apply the selected row's effective mix to all rows or clear selected/all row overrides locally. `scripts/demo/narration-mix-automation.sh` prints the same metadata-only summary from the workspace API. These actions do not call providers, save rows, create artifacts, update evidence, expose narration text, or mutate object storage until the existing save/generate controls are used.
+
+## 2026-06-30
+
+Decision: Add persistent narration mix keyframes after segment overrides and before deeper multitrack editing.
+
+Reason: Operators need reusable ducking, narration-volume, and fade automation across full videos, but individual narration rows still need precise local fixes. Keeping precedence as segment override, latest saved keyframe at or before the window start, then job default makes the behavior explainable, exportable, and compatible with existing mix settings.
+
+Impact: The workspace API now persists `mixAutomation.keyframes`, script packages export/import `mixKeyframes`, narrated-video generation resolves keyframes into effective mix windows, and narration evidence plus terminal summaries report keyframe counts by lane without exposing narration text or media paths. Browser keyframe edits remain local until `Save narration`; they do not call providers, create artifacts, write object storage, or generate media.

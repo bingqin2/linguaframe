@@ -283,6 +283,8 @@ default_ducking = float(mix.get("duckingVolume") if mix.get("duckingVolume") is 
 default_narration = float(mix.get("narrationVolume") if mix.get("narrationVolume") is not None else 1.0)
 default_fade = int(mix.get("fadeDurationMs") if mix.get("fadeDurationMs") is not None else 250)
 segments = workspace.get("segments") or []
+mix_automation = workspace.get("mixAutomation") or {}
+keyframes = mix_automation.get("keyframes") or []
 
 override_count = 0
 effective_ducking = []
@@ -298,12 +300,33 @@ for segment in segments:
 
 segment_count = len(segments)
 inherited_count = segment_count - override_count
+lane_order = ["DUCKING_VOLUME", "NARRATION_VOLUME", "FADE_DURATION_MS"]
+lane_counts = {lane: 0 for lane in lane_order}
+lane_values = {lane: [] for lane in lane_order}
+for keyframe in keyframes:
+    lane = keyframe.get("lane")
+    if lane not in lane_counts:
+        continue
+    lane_counts[lane] += 1
+    value = keyframe.get("value")
+    if value is not None:
+        lane_values[lane].append(float(value))
+
+lane_summary = ",".join(f"{lane}={lane_counts[lane]}" for lane in lane_order)
 print(f"narrationMixAutomationSegmentCount={segment_count}")
 print(f"narrationMixAutomationOverrideCount={override_count}")
 print(f"narrationMixAutomationInheritedCount={inherited_count}")
 print(f"narrationMixAutomationMinDuckingVolume={(min(effective_ducking) if effective_ducking else 0):.3f}")
 print(f"narrationMixAutomationMaxNarrationVolume={(max(effective_narration) if effective_narration else 0):.3f}")
 print(f"narrationMixAutomationMaxFadeDurationMs={max(effective_fade) if effective_fade else 0}")
+print(f"narrationMixKeyframeCount={len(keyframes)}")
+print(f"narrationMixKeyframeLaneSummary={lane_summary}")
+for lane in lane_order:
+    values = lane_values[lane]
+    min_value = min(values) if values else 0
+    max_value = max(values) if values else 0
+    print(f"narrationMixKeyframe{lane}Min={min_value:.3f}")
+    print(f"narrationMixKeyframe{lane}Max={max_value:.3f}")
 PY
 }
 

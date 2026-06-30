@@ -3,9 +3,11 @@ package com.linguaframe.job.service;
 import com.linguaframe.job.domain.bo.CreateJobArtifactCommand;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
@@ -19,6 +21,7 @@ import com.linguaframe.media.service.FfmpegNarratedVideoMixService;
 import com.linguaframe.media.service.MediaUploadService;
 import com.linguaframe.media.service.MediaWorkDirectoryService;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +47,7 @@ class NarratedVideoServiceTests {
     private final RecordingMediaUploadService mediaUploadService = new RecordingMediaUploadService();
     private final RecordingFfmpegNarratedVideoMixService narratedVideoMixService = new RecordingFfmpegNarratedVideoMixService();
     private final RecordingNarrationMixSettingsRepository mixSettingsRepository = new RecordingNarrationMixSettingsRepository();
+    private final RecordingNarrationMixKeyframeRepository mixKeyframeRepository = new RecordingNarrationMixKeyframeRepository();
 
     @TempDir
     private Path tempDir;
@@ -103,6 +107,12 @@ class NarratedVideoServiceTests {
                 400,
                 Instant.parse("2026-06-29T12:01:00Z")
         );
+        mixKeyframeRepository.records.addAll(List.of(
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "0.000", "0.600"),
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "50.000", "0.300"),
+                keyframe(NarrationMixLane.NARRATION_VOLUME, "50.000", "1.250"),
+                keyframe(NarrationMixLane.FADE_DURATION_MS, "50.000", "800.000")
+        ));
 
         var result = service(new RecordingMediaWorkDirectoryService(tempDir)).generateVideo("job-narrated");
 
@@ -112,9 +122,9 @@ class NarratedVideoServiceTests {
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).duckingVolume()).isEqualByComparingTo("0.250");
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).narrationVolume()).isEqualByComparingTo("1.500");
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).fadeDurationMs()).isEqualTo(125);
-        assertThat(narratedVideoMixService.command.narrationWindows().get(1).duckingVolume()).isEqualByComparingTo("0.125");
-        assertThat(narratedVideoMixService.command.narrationWindows().get(1).narrationVolume()).isEqualByComparingTo("1.750");
-        assertThat(narratedVideoMixService.command.narrationWindows().get(1).fadeDurationMs()).isEqualTo(400);
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).duckingVolume()).isEqualByComparingTo("0.300");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).narrationVolume()).isEqualByComparingTo("1.250");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).fadeDurationMs()).isEqualTo(800);
         assertThat(result.duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(result.narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(result.fadeDurationMs()).isEqualTo(400);
@@ -188,7 +198,20 @@ class NarratedVideoServiceTests {
                 workDirectoryService,
                 narratedVideoMixService,
                 new RecordingNarrationSegmentRepository(),
-                mixSettingsRepository
+                mixSettingsRepository,
+                mixKeyframeRepository
+        );
+    }
+
+    private NarrationMixKeyframeRecord keyframe(NarrationMixLane lane, String timeSeconds, String value) {
+        return new NarrationMixKeyframeRecord(
+                "keyframe-" + lane + "-" + timeSeconds,
+                "job-narrated",
+                lane,
+                new BigDecimal(timeSeconds),
+                new BigDecimal(value),
+                Instant.parse("2026-06-29T12:02:00Z"),
+                Instant.parse("2026-06-29T12:02:00Z")
         );
     }
 
@@ -435,6 +458,29 @@ class NarratedVideoServiceTests {
             if (saved != null && saved.jobId().equals(jobId)) {
                 saved = null;
             }
+        }
+    }
+
+    private static final class RecordingNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        private final List<NarrationMixKeyframeRecord> records = new ArrayList<>();
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+            records.removeIf(record -> record.jobId().equals(jobId));
+            records.addAll(keyframes);
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .toList();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+            records.removeIf(record -> record.jobId().equals(jobId));
         }
     }
 }

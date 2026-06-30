@@ -1,13 +1,16 @@
 package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.JobDiagnosticsArtifactVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceCheckVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceLinkVo;
 import com.linguaframe.job.domain.vo.NarrationEvidenceVo;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.LocalizationJobQueryService;
@@ -39,6 +42,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
     private final NarrationSegmentRepository narrationSegmentRepository;
     private final LocalizationJobQueryService queryService;
     private final NarrationMixSettingsRepository mixSettingsRepository;
+    private final NarrationMixKeyframeRepository mixKeyframeRepository;
     private final NarrationVoiceCatalogService voiceCatalogService;
 
     public NarrationEvidenceServiceImpl(
@@ -50,6 +54,27 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 narrationSegmentRepository,
                 queryService,
                 mixSettingsRepository,
+                new EmptyNarrationMixKeyframeRepository(),
+                () -> new com.linguaframe.job.domain.vo.NarrationVoiceCatalogVo(
+                        "demo",
+                        "demo-voice",
+                        List.of(new com.linguaframe.job.domain.vo.NarrationVoicePresetVo("demo-voice", "Demo voice", "demo", true, "Deterministic local demo TTS voice.")),
+                        List.of()
+                )
+        );
+    }
+
+    public NarrationEvidenceServiceImpl(
+            NarrationSegmentRepository narrationSegmentRepository,
+            LocalizationJobQueryService queryService,
+            NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository
+    ) {
+        this(
+                narrationSegmentRepository,
+                queryService,
+                mixSettingsRepository,
+                mixKeyframeRepository,
                 () -> new com.linguaframe.job.domain.vo.NarrationVoiceCatalogVo(
                         "demo",
                         "demo-voice",
@@ -64,11 +89,13 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
             NarrationSegmentRepository narrationSegmentRepository,
             LocalizationJobQueryService queryService,
             NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
             NarrationVoiceCatalogService voiceCatalogService
     ) {
         this.narrationSegmentRepository = narrationSegmentRepository;
         this.queryService = queryService;
         this.mixSettingsRepository = mixSettingsRepository;
+        this.mixKeyframeRepository = mixKeyframeRepository;
         this.voiceCatalogService = voiceCatalogService;
     }
 
@@ -87,6 +114,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         String status = status(segments.size(), audioArtifacts, narratedVideoArtifacts);
         NarrationMixSettingsSupport.ResolvedNarrationMixSettings mixSettings =
                 narratedVideoArtifacts > 0 ? NarrationMixSettingsSupport.resolve(mixSettingsRepository, jobId) : null;
+        List<NarrationMixKeyframeRecord> keyframes = mixKeyframeRepository.findByJobId(jobId);
         return new NarrationEvidenceVo(
                 jobId,
                 status,
@@ -112,6 +140,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 mixSettings == null ? null : mixSettings.source(),
                 segmentMixOverrideCount(segments),
                 segmentMixOverrideSummary(segments),
+                keyframes.size(),
+                mixKeyframeLaneSummary(keyframes),
                 checks(segments.size(), audioArtifacts, narratedVideoArtifacts),
                 safeLinks(jobId),
                 packageEntries(jobId),
@@ -147,6 +177,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Mix settings source: " + valueOrDefault(evidence.mixSettingsSource(), "N/A"));
         lines.add("- Segment mix override count: " + evidence.segmentMixOverrideCount());
         lines.add("- Segment mix override summary: " + evidence.segmentMixOverrideSummary());
+        lines.add("- Mix keyframe count: " + evidence.mixKeyframeCount());
+        lines.add("- Mix keyframe lane summary: " + evidence.mixKeyframeLaneSummary());
         lines.add("");
         lines.add("## Checks");
         for (NarrationEvidenceCheckVo check : evidence.checks()) {
@@ -199,7 +231,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s","includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s","mixKeyframeCount":%d,"mixKeyframeLaneSummary":"%s","includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -220,13 +252,15 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.fadeDurationMs(),
                 json(valueOrDefault(evidence.mixSettingsSource(), "N/A")),
                 evidence.segmentMixOverrideCount(),
-                json(evidence.segmentMixOverrideSummary())
+                json(evidence.segmentMixOverrideSummary()),
+                evidence.mixKeyframeCount(),
+                json(evidence.mixKeyframeLaneSummary())
         );
     }
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s"}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s","mixKeyframeCount":%d,"mixKeyframeLaneSummary":"%s"}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -249,7 +283,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 evidence.fadeDurationMs(),
                 json(valueOrDefault(evidence.mixSettingsSource(), "N/A")),
                 evidence.segmentMixOverrideCount(),
-                json(evidence.segmentMixOverrideSummary())
+                json(evidence.segmentMixOverrideSummary()),
+                evidence.mixKeyframeCount(),
+                json(evidence.mixKeyframeLaneSummary())
         );
     }
 
@@ -333,6 +369,21 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 .map(segment -> Integer.toString(segment.segmentIndex()))
                 .toList();
         return indexes.isEmpty() ? "none" : "segments=" + String.join(",", indexes);
+    }
+
+    private String mixKeyframeLaneSummary(List<NarrationMixKeyframeRecord> keyframes) {
+        if (keyframes.isEmpty()) {
+            return "none";
+        }
+        return "DUCKING_VOLUME=" + countLane(keyframes, NarrationMixLane.DUCKING_VOLUME)
+                + ",NARRATION_VOLUME=" + countLane(keyframes, NarrationMixLane.NARRATION_VOLUME)
+                + ",FADE_DURATION_MS=" + countLane(keyframes, NarrationMixLane.FADE_DURATION_MS);
+    }
+
+    private long countLane(List<NarrationMixKeyframeRecord> keyframes, NarrationMixLane lane) {
+        return keyframes.stream()
+                .filter(keyframe -> keyframe.lane() == lane)
+                .count();
     }
 
     private boolean hasSegmentMixOverride(NarrationSegmentRecord segment) {
@@ -424,5 +475,21 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private static String valueOrDefault(Object value, String defaultValue) {
         return value == null ? defaultValue : String.valueOf(value);
+    }
+
+    private static final class EmptyNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return List.of();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
     }
 }

@@ -2,11 +2,14 @@ package com.linguaframe.job.service;
 
 import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
+import com.linguaframe.job.domain.dto.ImportNarrationMixKeyframeDto;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageSegmentDto;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.entity.NarrationMixKeyframeRecord;
 import com.linguaframe.job.domain.entity.NarrationMixSettingsRecord;
 import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.enums.NarrationMixLane;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
@@ -16,6 +19,7 @@ import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationVoiceCatalogVo;
 import com.linguaframe.job.domain.vo.NarrationVoicePresetVo;
+import com.linguaframe.job.repository.NarrationMixKeyframeRepository;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.service.impl.NarrationScriptPackageServiceImpl;
@@ -45,7 +49,7 @@ class NarrationScriptPackageServiceTests {
 
     @Test
     void exportsBlockedPackageForEmptyWorkspaceWithoutScriptText() throws Exception {
-        NarrationScriptPackageService service = service(List.of(), null, job("job-empty"));
+        NarrationScriptPackageService service = service(List.of(), null, List.of(), job("job-empty"));
 
         NarrationScriptPackageVo scriptPackage = service.getPackage("job-empty");
 
@@ -92,7 +96,7 @@ class NarrationScriptPackageServiceTests {
 
     @Test
     void exportsReadyPackageWithSegmentsVoicesGapsAndSavedMixSettings() throws Exception {
-        NarrationScriptPackageService service = service(segments(), savedMixSettings(), job("job-narration"));
+        NarrationScriptPackageService service = service(segments(), savedMixSettings(), mixKeyframes(), job("job-narration"));
 
         NarrationScriptPackageVo scriptPackage = service.getPackage("job-narration");
 
@@ -109,6 +113,14 @@ class NarrationScriptPackageServiceTests {
         assertThat(scriptPackage.mixSettings().duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(scriptPackage.mixSettings().narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(scriptPackage.mixSettings().fadeDurationMs()).isEqualTo(400);
+        assertThat(scriptPackage.mixKeyframes())
+                .extracting(keyframe -> keyframe.lane() + ":" + keyframe.timeSeconds() + ":" + keyframe.value())
+                .containsExactly(
+                        "DUCKING_VOLUME:0.000:0.600",
+                        "DUCKING_VOLUME:20.000:0.250",
+                        "NARRATION_VOLUME:20.000:1.400",
+                        "FADE_DURATION_MS:20.000:500.000"
+                );
         assertThat(scriptPackage.segments())
                 .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.durationSeconds() + ":" + segment.voice() + ":" + segment.duckingVolume() + ":" + segment.narrationVolume() + ":" + segment.fadeDurationMs() + ":" + segment.text())
                 .containsExactly(
@@ -129,6 +141,8 @@ class NarrationScriptPackageServiceTests {
                 .contains("ducking=INHERIT_MIX")
                 .contains("- Voice summary: PRESET:demo-voice")
                 .contains("- Timeline gap count: 1")
+                .contains("- Mix keyframe count: 4")
+                .contains("- Mix keyframe lane summary: DUCKING_VOLUME=2,NARRATION_VOLUME=1,FADE_DURATION_MS=1")
                 .doesNotContain("source-videos/")
                 .doesNotContain("/Users/")
                 .doesNotContain("provider request payload")
@@ -143,6 +157,9 @@ class NarrationScriptPackageServiceTests {
                 .contains("\"duckingVolume\":0.250")
                 .contains("\"narrationVolume\":1.500")
                 .contains("\"fadeDurationMs\":125")
+                .contains("\"mixKeyframes\"")
+                .contains("\"lane\":\"DUCKING_VOLUME\"")
+                .contains("\"value\":0.600")
                 .contains("Explain the first scene.")
                 .doesNotContain("source-videos/")
                 .doesNotContain("/Users/")
@@ -156,9 +173,13 @@ class NarrationScriptPackageServiceTests {
                 List.of(segment(0, "1.000", "2.000", "Old script.", "demo-voice"))
         );
         MutableNarrationMixSettingsRepository mixSettingsRepository = new MutableNarrationMixSettingsRepository(savedMixSettings());
+        MutableNarrationMixKeyframeRepository mixKeyframeRepository = new MutableNarrationMixKeyframeRepository(List.of(
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "0.000", "0.900")
+        ));
         NarrationScriptPackageService service = importService(
                 segmentRepository,
                 mixSettingsRepository,
+                mixKeyframeRepository,
                 job("job-narration"),
                 90
         );
@@ -180,77 +201,95 @@ class NarrationScriptPackageServiceTests {
         assertThat(result.workspace().mixSettings().duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(result.workspace().mixSettings().narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(result.workspace().mixSettings().fadeDurationMs()).isEqualTo(400);
+        assertThat(result.workspace().mixAutomation().keyframeCount()).isEqualTo(4);
         assertThat(segmentRepository.records())
                 .extracting(record -> record.text() + ":" + record.duckingVolume() + ":" + record.narrationVolume() + ":" + record.fadeDurationMs())
                 .containsExactly("Explain the first scene.:0.250:1.500:125", "Explain the second scene.:null:null:null")
                 .doesNotContain("Old script.:null:null:null");
         assertThat(mixSettingsRepository.settings().duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(mixKeyframeRepository.records())
+                .extracting(record -> record.lane() + ":" + record.timeSeconds() + ":" + record.value())
+                .containsExactly(
+                        "DUCKING_VOLUME:0.000:0.600",
+                        "DUCKING_VOLUME:20.000:0.250",
+                        "NARRATION_VOLUME:20.000:1.400",
+                        "FADE_DURATION_MS:20.000:500.000"
+                );
     }
 
     @Test
     void rejectsInvalidImportWithoutReplacingExistingWorkspace() {
         assertRejectedImportLeavesWorkspaceUnchanged(
-                new ImportNarrationScriptPackageDto(false, validImportSegments(), validMixSettings()),
+                new ImportNarrationScriptPackageDto(false, validImportSegments(), validMixSettings(), validImportKeyframes()),
                 "Narration script package import requires replaceExisting=true."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice"),
                         importSegment(1, "20.000", "30.000", "Explain the second scene.", "demo-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration script package segments must not overlap."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "91.000", "Explain the first scene.", "demo-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration script package segment endSeconds must be within source duration."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "28.000", "Explain the first scene.", "missing-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration voice must be one of the configured presets."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "28.000", "15.000", "Explain the first scene.", "demo-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration endSeconds must be greater than startSeconds."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "28.000", " ", "demo-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration text must not be blank."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "28.000", "x".repeat(1001), "demo-voice")
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "Narration text must be at most 1000 characters."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, validImportSegments(),
-                        new UpdateNarrationMixSettingsDto(new BigDecimal("1.001"), new BigDecimal("1.000"), 250)),
+                        new UpdateNarrationMixSettingsDto(new BigDecimal("1.001"), new BigDecimal("1.000"), 250), validImportKeyframes()),
                 "duckingVolume must be between 0.00 and 1.00."
         );
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, List.of(
                         importSegment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice", "1.001", null, null)
-                ), validMixSettings()),
+                ), validMixSettings(), validImportKeyframes()),
                 "duckingVolume must be between 0.00 and 1.00."
+        );
+        assertRejectedImportLeavesWorkspaceUnchanged(
+                new ImportNarrationScriptPackageDto(true, validImportSegments(), validMixSettings(), List.of(
+                        new ImportNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("1.000"), new BigDecimal("0.500")),
+                        new ImportNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("1.000"), new BigDecimal("0.250"))
+                )),
+                "Narration mix keyframes must not duplicate lane and timeSeconds."
         );
     }
 
     private NarrationScriptPackageService service(
             List<NarrationSegmentRecord> segments,
             NarrationMixSettingsRecord settings,
+            List<NarrationMixKeyframeRecord> keyframes,
             LocalizationJobVo job
     ) {
         return new NarrationScriptPackageServiceImpl(
                 new StaticNarrationSegmentRepository(segments),
                 new StaticNarrationMixSettingsRepository(settings),
+                new StaticNarrationMixKeyframeRepository(keyframes),
                 new StaticLocalizationJobQueryService(job),
                 new StaticNarrationVoiceCatalogService()
         );
@@ -259,6 +298,7 @@ class NarrationScriptPackageServiceTests {
     private NarrationScriptPackageService importService(
             NarrationSegmentRepository segmentRepository,
             NarrationMixSettingsRepository mixSettingsRepository,
+            NarrationMixKeyframeRepository mixKeyframeRepository,
             LocalizationJobVo job,
             Integer durationSeconds
     ) {
@@ -277,11 +317,13 @@ class NarrationScriptPackageServiceTests {
         return new NarrationScriptPackageServiceImpl(
                 segmentRepository,
                 mixSettingsRepository,
+                mixKeyframeRepository,
                 new StaticLocalizationJobQueryService(job),
                 voiceCatalogService,
                 new NarrationWorkspaceServiceImpl(
                         segmentRepository,
                         mixSettingsRepository,
+                        mixKeyframeRepository,
                         voiceCatalogService,
                         Clock.fixed(Instant.parse("2026-06-29T11:00:00Z"), ZoneOffset.UTC)
                 ),
@@ -297,9 +339,11 @@ class NarrationScriptPackageServiceTests {
                 List.of(segment(0, "1.000", "2.000", "Old script.", "demo-voice"))
         );
         MutableNarrationMixSettingsRepository mixSettingsRepository = new MutableNarrationMixSettingsRepository(savedMixSettings());
+        MutableNarrationMixKeyframeRepository mixKeyframeRepository = new MutableNarrationMixKeyframeRepository(List.of(keyframe(NarrationMixLane.DUCKING_VOLUME, "0.000", "0.900")));
         NarrationScriptPackageService service = importService(
                 segmentRepository,
                 mixSettingsRepository,
+                mixKeyframeRepository,
                 job("job-narration"),
                 90
         );
@@ -312,10 +356,22 @@ class NarrationScriptPackageServiceTests {
                 .extracting(NarrationSegmentRecord::text)
                 .containsExactly("Old script.");
         assertThat(mixSettingsRepository.settings().duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(mixKeyframeRepository.records())
+                .extracting(NarrationMixKeyframeRecord::value)
+                .containsExactly(new BigDecimal("0.900"));
     }
 
     private ImportNarrationScriptPackageDto validImportRequest() {
-        return new ImportNarrationScriptPackageDto(true, validImportSegments(), validMixSettings());
+        return new ImportNarrationScriptPackageDto(true, validImportSegments(), validMixSettings(), validImportKeyframes());
+    }
+
+    private List<ImportNarrationMixKeyframeDto> validImportKeyframes() {
+        return List.of(
+                new ImportNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("0.000"), new BigDecimal("0.600")),
+                new ImportNarrationMixKeyframeDto(NarrationMixLane.DUCKING_VOLUME, new BigDecimal("20.000"), new BigDecimal("0.250")),
+                new ImportNarrationMixKeyframeDto(NarrationMixLane.NARRATION_VOLUME, new BigDecimal("20.000"), new BigDecimal("1.400")),
+                new ImportNarrationMixKeyframeDto(NarrationMixLane.FADE_DURATION_MS, new BigDecimal("20.000"), new BigDecimal("500.000"))
+        );
     }
 
     private List<ImportNarrationScriptPackageSegmentDto> validImportSegments() {
@@ -371,6 +427,27 @@ class NarrationScriptPackageServiceTests {
         return List.of(
                 segment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice"),
                 segment(1, "55.000", "70.500", "Explain the second scene.", "demo-voice")
+        );
+    }
+
+    private List<NarrationMixKeyframeRecord> mixKeyframes() {
+        return List.of(
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "0.000", "0.600"),
+                keyframe(NarrationMixLane.DUCKING_VOLUME, "20.000", "0.250"),
+                keyframe(NarrationMixLane.NARRATION_VOLUME, "20.000", "1.400"),
+                keyframe(NarrationMixLane.FADE_DURATION_MS, "20.000", "500.000")
+        );
+    }
+
+    private NarrationMixKeyframeRecord keyframe(NarrationMixLane lane, String timeSeconds, String value) {
+        return new NarrationMixKeyframeRecord(
+                "keyframe-" + lane + "-" + timeSeconds,
+                "job-narration",
+                lane,
+                new BigDecimal(timeSeconds),
+                new BigDecimal(value),
+                Instant.parse("2026-06-29T10:20:00Z"),
+                Instant.parse("2026-06-29T10:20:00Z")
         );
     }
 
@@ -486,6 +563,25 @@ class NarrationScriptPackageServiceTests {
         }
     }
 
+    private record StaticNarrationMixKeyframeRepository(List<NarrationMixKeyframeRecord> records)
+            implements NarrationMixKeyframeRepository {
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .toList();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+        }
+    }
+
     private static final class MutableNarrationSegmentRepository implements NarrationSegmentRepository {
 
         private List<NarrationSegmentRecord> records;
@@ -541,6 +637,36 @@ class NarrationScriptPackageServiceTests {
 
         private NarrationMixSettingsRecord settings() {
             return settings;
+        }
+    }
+
+    private static final class MutableNarrationMixKeyframeRepository implements NarrationMixKeyframeRepository {
+
+        private List<NarrationMixKeyframeRecord> records;
+
+        private MutableNarrationMixKeyframeRepository(List<NarrationMixKeyframeRecord> records) {
+            this.records = new ArrayList<>(records);
+        }
+
+        @Override
+        public void replaceKeyframes(String jobId, List<NarrationMixKeyframeRecord> keyframes) {
+            this.records = new ArrayList<>(keyframes);
+        }
+
+        @Override
+        public List<NarrationMixKeyframeRecord> findByJobId(String jobId) {
+            return records.stream()
+                    .filter(record -> record.jobId().equals(jobId))
+                    .toList();
+        }
+
+        @Override
+        public void deleteByJobId(String jobId) {
+            this.records = List.of();
+        }
+
+        private List<NarrationMixKeyframeRecord> records() {
+            return List.copyOf(records);
         }
     }
 
