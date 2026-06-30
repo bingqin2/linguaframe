@@ -2548,6 +2548,139 @@ describe('App', () => {
     expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeEnabled();
   });
 
+  test('renders quick script import with parse preview for valid pasted rows', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-import-job', videoId: 'narration-quick-import-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-import-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-import-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const importPanel = within(narrationPanel).getByRole('region', { name: /quick script import/i });
+
+    expect(within(importPanel).getByText('Quick script import')).toBeInTheDocument();
+    expect(within(importPanel).getByPlaceholderText(/00:15-00:28 \\| alloy \\| explain this moment/i)).toBeInTheDocument();
+
+    await userEvent.type(
+      within(importPanel).getByLabelText(/quick narration script/i),
+      '00:15-00:28 | alloy | Explain this moment.\n00:55-01:10 || Inherit default.'
+    );
+
+    expect(within(importPanel).getByText((_content, element) => element?.textContent === 'Rows2')).toBeInTheDocument();
+    expect(within(importPanel).getByText((_content, element) => element?.textContent === 'Duration28 s')).toBeInTheDocument();
+    expect(within(importPanel).getByText('1 · 15 s-28 s · alloy · Explain this moment.')).toBeInTheDocument();
+    expect(within(importPanel).getByText('2 · 55 s-70 s · inherit · Inherit default.')).toBeInTheDocument();
+  });
+
+  test('replaces narration draft with quick script rows without saving', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-replace-job', videoId: 'narration-quick-replace-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-replace-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-replace-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const importPanel = within(narrationPanel).getByRole('region', { name: /quick script import/i });
+
+    await userEvent.type(within(importPanel).getByLabelText(/quick narration script/i), '00:05-00:09 | verse | Replacement row.');
+    await userEvent.click(within(importPanel).getByRole('button', { name: /replace draft/i }));
+
+    expect(within(importPanel).getByText('Imported 1 narration row as local draft.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByLabelText(/narration 1 start/i)).toHaveValue(5);
+    expect(within(narrationPanel).getByLabelText(/narration 1 end/i)).toHaveValue(9);
+    expect(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i })).toHaveValue('verse');
+    expect(within(narrationPanel).getByDisplayValue('Replacement row.')).toBeInTheDocument();
+    expect(within(narrationPanel).queryByLabelText(/narration 2 start/i)).not.toBeInTheDocument();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('appends quick script rows and keeps save payload aligned', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-append-job', videoId: 'narration-quick-append-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-append-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({ jobId: 'narration-quick-append-job' })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-append-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const importPanel = within(narrationPanel).getByRole('region', { name: /quick script import/i });
+
+    await userEvent.click(within(importPanel).getByLabelText(/append to current draft/i));
+    await userEvent.type(within(importPanel).getByLabelText(/quick narration script/i), '01:20-01:24 | alloy | Appended row.');
+    await userEvent.click(within(importPanel).getByRole('button', { name: /append to draft/i }));
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
+
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-quick-append-job', {
+      segments: [
+        { index: 0, startSeconds: 15, endSeconds: 28, text: 'Explain the first scene.', voice: 'alloy' },
+        { index: 1, startSeconds: 55, endSeconds: 70.5, text: 'Explain the second scene.', voice: 'verse' },
+        { index: 2, startSeconds: 80, endSeconds: 84, text: 'Appended row.', voice: 'alloy' }
+      ]
+    });
+  });
+
+  test('blocks invalid quick script import with row-level errors', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-invalid-job', videoId: 'narration-quick-invalid-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-invalid-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-invalid-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const importPanel = within(narrationPanel).getByRole('region', { name: /quick script import/i });
+
+    await userEvent.type(
+      within(importPanel).getByLabelText(/quick narration script/i),
+      '00:04-00:02 | alloy | Backwards.\n00:10-00:12 | unknown | Bad voice.'
+    );
+
+    expect(within(importPanel).getByText('Line 1: end must be after start.')).toBeInTheDocument();
+    expect(within(importPanel).getByText('Line 2: voice must be one of the configured presets.')).toBeInTheDocument();
+    expect(within(importPanel).getByRole('button', { name: /replace draft/i })).toBeDisabled();
+    expect(within(importPanel).getByRole('button', { name: /append to draft/i })).toBeDisabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
   test('blocks narration save and generation when a saved voice is not in the preset catalog', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-unknown-voice-job', videoId: 'narration-unknown-video', targetLanguage: 'zh-CN' })

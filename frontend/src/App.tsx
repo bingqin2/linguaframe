@@ -44,6 +44,11 @@ import {
   type NarrationDraftChangeSummary,
   type NarrationDraftHistoryState
 } from './domain/narrationDraftHistory';
+import {
+  parseNarrationQuickScript,
+  type NarrationQuickScriptImportMode,
+  type NarrationQuickScriptImportResult
+} from './domain/narrationQuickScriptImport';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9372,6 +9377,9 @@ function NarrationWorkspacePanel({
   const [ttsPreviewStatus, setTtsPreviewStatus] = useState<string | null>(null);
   const [ttsPreviewError, setTtsPreviewError] = useState<string | null>(null);
   const [isPreviewingTts, setIsPreviewingTts] = useState(false);
+  const [quickScriptText, setQuickScriptText] = useState('');
+  const [quickScriptMode, setQuickScriptMode] = useState<NarrationQuickScriptImportMode>('replace');
+  const [quickScriptStatus, setQuickScriptStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
 
@@ -9396,6 +9404,9 @@ function NarrationWorkspacePanel({
     setPreviewCurrentSeconds(0);
     setPreviewWindowEndSeconds(null);
     setEditCommandStatus(null);
+    setQuickScriptText('');
+    setQuickScriptMode('replace');
+    setQuickScriptStatus(null);
     clearTtsPreview(null);
   }, [workspace]);
 
@@ -9432,6 +9443,14 @@ function NarrationWorkspacePanel({
       currentSeconds: previewCurrentSeconds
     }),
     [previewCurrentSeconds, segments, selectedIndex]
+  );
+  const quickScriptImportResult = useMemo(
+    () => parseNarrationQuickScript(quickScriptText, {
+      existingSegments: segments,
+      mode: quickScriptMode,
+      voiceCatalog: workspace?.voiceCatalog ?? null
+    }),
+    [quickScriptMode, quickScriptText, segments, workspace?.voiceCatalog]
   );
 
   function clampSelectedIndex(nextIndex: number, nextSegments: NarrationWorkspace['segments']) {
@@ -9548,6 +9567,30 @@ function NarrationWorkspacePanel({
   function insertSegmentAfterSelected() {
     const result = insertNarrationSegmentAfter(segments, selectedIndex);
     applyEditCommand(result, `Inserted narration ${result.selectedIndex + 1}.`);
+  }
+
+  function updateQuickScriptText(nextText: string) {
+    setQuickScriptText(nextText);
+    setQuickScriptStatus(null);
+  }
+
+  function applyQuickScriptImport(mode: NarrationQuickScriptImportMode) {
+    const result = parseNarrationQuickScript(quickScriptText, {
+      existingSegments: segments,
+      mode,
+      voiceCatalog: workspace?.voiceCatalog ?? null
+    });
+    if (!result.valid || result.segments.length === 0) {
+      setQuickScriptStatus('Fix quick script errors before importing.');
+      return;
+    }
+    setQuickScriptMode(mode);
+    commitDraftChange(
+      result.segments,
+      `Imported ${result.importedCount} narration ${result.importedCount === 1 ? 'row' : 'rows'} from quick script.`,
+      mode === 'append' ? Math.max(0, result.segments.length - result.importedCount) : 0
+    );
+    setQuickScriptStatus(`Imported ${result.importedCount} narration ${result.importedCount === 1 ? 'row' : 'rows'} as local draft.`);
   }
 
   function seekPreviewTo(seconds: number) {
@@ -9678,6 +9721,16 @@ function NarrationWorkspacePanel({
             status={ttsPreviewStatus}
             voiceCatalog={workspace?.voiceCatalog ?? null}
             onPreview={() => void previewSelectedNarrationSegmentTts()}
+          />
+          <NarrationQuickScriptImportPanel
+            mode={quickScriptMode}
+            result={quickScriptImportResult}
+            scriptText={quickScriptText}
+            status={quickScriptStatus}
+            onAppend={() => applyQuickScriptImport('append')}
+            onModeChange={setQuickScriptMode}
+            onReplace={() => applyQuickScriptImport('replace')}
+            onScriptTextChange={updateQuickScriptText}
           />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
@@ -9870,6 +9923,103 @@ function NarrationTtsPreviewPanel({
       )}
       {status ? <p className="narration-command-status">{status}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}
+    </section>
+  );
+}
+
+function NarrationQuickScriptImportPanel({
+  mode,
+  onAppend,
+  onModeChange,
+  onReplace,
+  onScriptTextChange,
+  result,
+  scriptText,
+  status
+}: {
+  mode: NarrationQuickScriptImportMode;
+  onAppend: () => void;
+  onModeChange: (mode: NarrationQuickScriptImportMode) => void;
+  onReplace: () => void;
+  onScriptTextChange: (value: string) => void;
+  result: NarrationQuickScriptImportResult;
+  scriptText: string;
+  status: string | null;
+}) {
+  const hasInput = scriptText.trim().length > 0;
+  const canImport = result.valid && result.importedCount > 0;
+  const statusClassName = canImport ? 'status-pill ready' : hasInput ? 'status-pill blocked' : 'status-pill attention';
+  const statusLabel = canImport ? 'Parsed' : hasInput ? 'Needs fixes' : 'Paste script';
+
+  return (
+    <section className="narration-quick-script-import" aria-label="Quick script import">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Quick script import</h4>
+          <p className="muted">Paste timed narration rows, preview the parsed draft, then replace or append locally.</p>
+        </div>
+        <span className={statusClassName}>{statusLabel}</span>
+      </div>
+      <textarea
+        aria-label="Quick narration script"
+        placeholder={'00:15-00:28 | alloy | Explain this moment.\n00:55-01:10 || Inherit default voice.'}
+        rows={5}
+        value={scriptText}
+        onChange={(event) => onScriptTextChange(event.target.value)}
+      />
+      <div className="narration-import-mode" role="radiogroup" aria-label="Quick script import mode">
+        <label>
+          <input
+            aria-label="Replace current draft"
+            checked={mode === 'replace'}
+            name="quick-script-import-mode"
+            type="radio"
+            onChange={() => onModeChange('replace')}
+          />
+          Replace current draft
+        </label>
+        <label>
+          <input
+            aria-label="Append to current draft"
+            checked={mode === 'append'}
+            name="quick-script-import-mode"
+            type="radio"
+            onChange={() => onModeChange('append')}
+          />
+          Append to current draft
+        </label>
+      </div>
+      <dl className="compact-metrics narration-quick-script-metrics">
+        <div>
+          <dt>Rows</dt>
+          <dd>{canImport ? result.importedCount : 0}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{formatSeconds(result.totalDurationSeconds)}</dd>
+        </div>
+      </dl>
+      {result.issues.length > 0 ? (
+        <ul className="quick-script-issues">
+          {result.issues.map((issue) => (
+            <li key={`${issue.lineNumber}-${issue.message}`}>{issue.message}</li>
+          ))}
+        </ul>
+      ) : null}
+      {canImport ? (
+        <ul className="quick-script-preview-rows" aria-label="Quick script preview rows">
+          {result.rows.map((row, index) => (
+            <li key={`${row.lineNumber}-${row.startSeconds}-${row.endSeconds}`}>
+              {index + 1} · {formatSeconds(row.startSeconds)}-{formatSeconds(row.endSeconds)} · {row.voice ?? 'inherit'} · {row.text}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="narration-command-buttons">
+        <button type="button" disabled={!canImport} onClick={onReplace}>Replace draft</button>
+        <button type="button" disabled={!canImport} onClick={onAppend}>Append to draft</button>
+      </div>
+      {status ? <p className="narration-command-status">{status}</p> : null}
     </section>
   );
 }

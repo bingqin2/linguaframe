@@ -844,6 +844,14 @@ Impact: `POST /api/jobs/{jobId}/narration-demo/render`, the browser `Render narr
 
 ## 2026-06-30
 
+Decision: Add quick script paste import before file upload import, voice browsing, or full timeline templates.
+
+Reason: Operators need a faster way to enter multiple explanatory narration rows for demos without spending TTS credits or introducing another persisted import format. A compact `START-END | VOICE | TEXT` paste surface covers the immediate narration-editor workflow while reusing existing draft validation, save, script package, TTS preview, audio generation, video render, and evidence paths.
+
+Impact: The React `Narration workspace` now includes `Quick script import` after selected-row TTS preview. It parses `SS`, `MM:SS`, and `HH:MM:SS` ranges, validates row shape, text limits, overlaps, and voice presets, previews rows/errors, and applies valid rows by replacing or appending only the local draft. It does not save rows, call OpenAI/TTS providers, generate artifacts, update evidence, write object storage, add backend routes, or add database schema. File upload import, timeline templates, provider voice browsing, voice cloning, and uploaded reference audio remain later slices.
+
+## 2026-06-30
+
 Decision: Keep narration render preflight read-only and separate from render.
 
 Reason: Operators need a safe go/no-go surface for replacement impact, provider-cost attention, estimated narration size, generated-video readiness, evidence routes, and next command before any OpenAI TTS or FFmpeg render work runs. Folding that logic into render would make `BLOCKED` and `ATTENTION` states harder to review and would risk spending provider credits before the user sees the consequences.

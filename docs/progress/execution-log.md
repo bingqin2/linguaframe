@@ -6,6 +6,20 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration quick script import workbench feature slice from `docs/plans/148-narration-quick-script-import-workbench.md`.
+- Added a pure frontend narration quick-script parser for `START-END | VOICE | TEXT` rows.
+- Parser supports `SS`, `MM:SS`, `HH:MM:SS`, decimal seconds, blank voice inheritance, voice-catalog validation, overlap detection, replace mode, and append mode reindexing without mutating caller-owned rows.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` first failed because `frontend/src/domain/narrationQuickScriptImport.ts` did not exist.
+- After adding the parser, the same command initially failed because an overlong voice also reported an unknown-voice error.
+- After prioritizing voice-length validation, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Documented the completed narration segment TTS preview workflow in README, Docker E2E guidance, smoke checklist, roadmap, target state, and decision log.
 - Clarified the browser order: edit/select a row, preview transient TTS, adjust text/voice locally, save only when ready, then generate full narration audio/video explicitly.
 - Clarified the terminal order for `scripts/demo/narration-segment-preview.sh`, including text/file input, optional voice, local MP3 output, provider credit warning, and no artifact/evidence/object-storage side effects.
@@ -4458,6 +4472,39 @@ Validation:
 - After wiring the panel, the same targeted test failed once because changed-row labels were only embedded in combined status text.
 - After rendering changed rows as discrete list items, `npm test -- --run src/App.test.tsx -t "narration draft history"` passed with `Test Files 1 passed` and `Tests 5 passed | 113 skipped`.
 - `npm test -- --run src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/domain/narrationTimelineEditing.test.ts src/domain/narrationWaveformOverview.test.ts src/App.test.tsx` passed with `Test Files 5 passed` and `Tests 145 passed`; jsdom printed expected navigation warnings.
+
+## 2026-06-30
+
+Work:
+
+- Added the browser quick script import workbench to the narration workspace.
+- The panel accepts compact timed rows in `START-END | VOICE | TEXT` format, previews parsed row count, total duration, row text, and inherited/default voice state.
+- Replace and append actions now apply valid parsed rows to the local narration draft through the existing draft history path; no save call, provider call, artifact generation, or evidence update happens until the existing workflow actions run.
+- Invalid rows show parser row-level errors and keep both import actions disabled.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` first failed because the `Quick script import` region did not exist.
+- After adding the panel, local state, parser wiring, replace/append actions, and compact styles, the same targeted command passed with `Test Files 1 passed | 1 skipped` and `Tests 2 passed | 129 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 131 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 146 passed`; jsdom printed expected navigation warnings.
+
+Work:
+
+- Documented quick script import in README, Docker E2E guidance, smoke-test checklist, roadmap, target state, and decisions.
+- The docs now show browser order: paste quick rows, inspect parsed rows/errors, replace or append the local draft, optionally preview selected-row TTS, save when ready, then generate narration audio/video.
+- The documented format is `START-END | VOICE | TEXT`, with `SS`, `MM:SS`, and `HH:MM:SS` timestamp support and blank voice for inherited/default voice.
+- The docs state that quick import is local-only and does not save rows, call providers, create artifacts, update evidence, generate video, or write object storage.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 146 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run` passed with `Test Files 9 passed` and `Tests 265 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationSegmentPreviewServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 90, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
 
 ## 2026-06-30
 
