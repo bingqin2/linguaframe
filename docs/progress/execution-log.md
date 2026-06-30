@@ -6,6 +6,29 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added `frontend/src/domain/narrationTimingAssistant.ts` with non-mutating helpers for timing issue reports, gap closing, overlap resolution, and row-order normalization.
+- Added the browser `Narration timing assistant` panel with material gap/overlap metrics, threshold controls, local close-gaps/resolve-overlaps/normalize-order actions, and draft-history integration.
+- Added `scripts/demo/narration-timing-assistant.sh` and `scripts/demo/README.md` for read-only terminal timing preflight.
+- Documented the timing assistant in README, roadmap, target state, and decisions.
+- Timing assistant actions stay local until `Save narration`; they do not call providers, generate artifacts, update evidence, write object storage, or generate video.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationTimingAssistant.test.ts` passed with `Test Files 1 passed` and `Tests 4 passed`.
+- `npm test -- --run src/App.test.tsx -t "narration timing assistant"` passed with `Test Files 1 passed` and `Tests 2 passed | 135 skipped`.
+- `npm test -- --run src/domain/narrationTimingAssistant.test.ts src/App.test.tsx -t "narration timing assistant|narrationTimingAssistant"` passed with `Test Files 2 passed` and `Tests 6 passed | 135 skipped`.
+- `npm test -- --run` passed with `Test Files 10 passed` and `Tests 283 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed; Vite printed the existing single-bundle chunk-size warning.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-timing-assistant.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `bash -n scripts/demo/narration-timing-assistant.sh scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `scripts/demo/narration-timing-assistant.sh` exited `2` with `Set LINGUAFRAME_DEMO_JOB_ID or pass a job id as the first argument.`, proving it rejects missing job id before API calls.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Documented voice audition in README, Docker E2E guidance, smoke-test checklist, roadmap, target state, and decisions.
 - The docs now show browser order: audition a preset with sample text, apply it to selected/all local draft rows, save only when ready, then generate audio/video explicitly.
 - The docs now show terminal order for `scripts/demo/narration-voice-audition.sh`, including required job id, explicit voice, audition text/text-file options, local MP3 output, and provider-credit warning.

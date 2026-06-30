@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-30
 
+Decision: Add a local narration timing assistant before decoded waveform editing or multitrack automation.
+
+Reason: Operators can already move, resize, import, and split narration windows, so the next demo bottleneck is quickly detecting and repairing timing problems before spending TTS or render cost. A local assistant improves authoring speed without changing backend persistence, artifact generation, provider calls, or object storage contracts.
+
+Impact: The browser `Narration timing assistant` reports material gaps, overlaps, longest gap, readiness, and local fix actions for close-gaps, resolve-overlaps, and normalize-order. `scripts/demo/narration-timing-assistant.sh` downloads the workspace and prints a metadata-only timing report. These actions do not save rows, call OpenAI/TTS providers, create artifacts, update evidence, write object storage, or generate video until the operator uses the existing save/generate flows.
+
+## 2026-06-30
+
 Decision: Reuse transient segment preview for voice audition before adding voice cloning, uploaded reference audio, or provider tuning.
 
 Reason: Operators need to hear configured presets before committing narration rows, but the immediate demo need is preset comparison and local draft assignment, not a new voice asset pipeline. Reusing the existing segment-preview provider boundary gives browser and terminal audition audio while preserving the current artifact, evidence, save, and render contracts.
