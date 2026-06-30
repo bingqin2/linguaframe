@@ -32,6 +32,8 @@ LINGUAFRAME_SESSION_NARRATION_PRODUCTION_BOARD_REPORT_ONLY=true scripts/demo/ses
 
 The script writes `session-narration-production-board.json` and `.md` to `/tmp/linguaframe-demo/session-narration-production-board/`, prints ready/review/render/authoring/blocked counts, first blocked job id, primary action, and the Markdown path. It is read-only and metadata-only: it does not call OpenAI, call TTS providers, run FFmpeg, upload media, save narration rows, or print narration text, reviewer notes, object keys, local paths, provider payloads, tokens, API keys, or media bytes. By default it exits non-zero when blocked rows exist; set report-only mode to export the board without failing.
 
+The same production summary is also surfaced by `scripts/demo/demo-session-command-center.sh` through `demoSessionCommandCenterNarration*` lines. `scripts/demo/demo-session-evidence-package.sh` includes `narration-production-board.json` and `narration-production-board.md` in the session ZIP so the run-day handoff contains narration readiness evidence without opening the standalone board first.
+
 ## Narration Render Review
 
 Export the metadata-only narration cue sheet after saving narration or running the demo render:

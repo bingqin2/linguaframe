@@ -1095,6 +1095,13 @@ test_demo_session_command_center_helpers_include_recovery_summary() {
   "recoveryStatus": "BLOCKED",
   "recoverNowCount": 1,
   "recoveryRecommendedNextAction": "Open stuck-job recovery.",
+  "narrationProductionStatus": "ATTENTION",
+  "narrationReadyCount": 1,
+  "narrationNeedsReviewCount": 1,
+  "narrationNeedsRenderCount": 1,
+  "narrationNeedsAuthoringCount": 1,
+  "narrationBlockedCount": 0,
+  "narrationRecommendedNextAction": "Finish narration render and review rows.",
   "token": "private-demo-token",
   "localPath": "/Users/example/private.mov"
 }
@@ -1111,6 +1118,13 @@ JSON
   [[ "$output" == *"demoSessionCommandCenterRecoveryStatus=BLOCKED"* ]] || fail "command center summary missed recovery status"
   [[ "$output" == *"demoSessionCommandCenterRecoverNowCount=1"* ]] || fail "command center summary missed recover-now count"
   [[ "$output" == *"demoSessionCommandCenterRecoveryNextAction=Open stuck-job recovery."* ]] || fail "command center summary missed recovery next action"
+  [[ "$output" == *"demoSessionCommandCenterNarrationProductionStatus=ATTENTION"* ]] || fail "command center summary missed narration production status"
+  [[ "$output" == *"demoSessionCommandCenterNarrationReadyCount=1"* ]] || fail "command center summary missed narration ready count"
+  [[ "$output" == *"demoSessionCommandCenterNarrationNeedsReviewCount=1"* ]] || fail "command center summary missed narration review count"
+  [[ "$output" == *"demoSessionCommandCenterNarrationNeedsRenderCount=1"* ]] || fail "command center summary missed narration render count"
+  [[ "$output" == *"demoSessionCommandCenterNarrationNeedsAuthoringCount=1"* ]] || fail "command center summary missed narration authoring count"
+  [[ "$output" == *"demoSessionCommandCenterNarrationBlockedCount=0"* ]] || fail "command center summary missed narration blocked count"
+  [[ "$output" == *"demoSessionCommandCenterNarrationNextAction=Finish narration render and review rows."* ]] || fail "command center summary missed narration next action"
   [[ "$output" != *"private-source.mp4"* ]] || fail "command center summary exposed filename"
   [[ "$output" != *"private-demo-token"* ]] || fail "command center summary exposed demo token"
   [[ "$output" != *"/Users/example"* ]] || fail "command center summary exposed local path"
@@ -1128,6 +1142,8 @@ test_demo_session_evidence_package_helpers_include_recovery_board_entries() {
   },
   "recoveryStatus": "BLOCKED",
   "recoverNowCount": 1,
+  "narrationProductionStatus": "BLOCKED",
+  "narrationBlockedCount": 1,
   "token": "private-demo-token",
   "localPath": "/Users/example/private.mov"
 }
@@ -1141,6 +1157,8 @@ with zipfile.ZipFile(sys.argv[1], "w") as package:
     package.writestr("command-center.json", "{}")
     package.writestr("recovery-board.json", "{}")
     package.writestr("recovery-board.md", "# Recovery")
+    package.writestr("narration-production-board.json", "{}")
+    package.writestr("narration-production-board.md", "# Session Narration Production Board")
 PY
 
   print_demo_session_evidence_package_summary_file \
@@ -1154,6 +1172,9 @@ PY
   [[ "$output" == *"demoSessionEvidencePackageRecoveryStatus=BLOCKED"* ]] || fail "evidence package summary missed recovery status"
   [[ "$output" == *"demoSessionEvidencePackageRecoverNowCount=1"* ]] || fail "evidence package summary missed recover-now count"
   [[ "$output" == *"demoSessionEvidencePackageHasRecoveryBoard=true"* ]] || fail "evidence package summary missed recovery board entries"
+  [[ "$output" == *"demoSessionEvidencePackageNarrationProductionStatus=BLOCKED"* ]] || fail "evidence package summary missed narration production status"
+  [[ "$output" == *"demoSessionEvidencePackageNarrationBlockedCount=1"* ]] || fail "evidence package summary missed narration blocked count"
+  [[ "$output" == *"demoSessionEvidencePackageHasNarrationProductionBoard=true"* ]] || fail "evidence package summary missed narration production board entries"
   [[ "$output" != *"private-source.mp4"* ]] || fail "evidence package summary exposed filename"
   [[ "$output" != *"private-demo-token"* ]] || fail "evidence package summary exposed demo token"
   [[ "$output" != *"/Users/example"* ]] || fail "evidence package summary exposed local path"

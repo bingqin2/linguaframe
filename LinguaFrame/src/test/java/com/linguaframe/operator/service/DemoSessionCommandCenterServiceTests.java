@@ -22,6 +22,11 @@ import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveCandidateVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveLinkVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionActionVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionCheckVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionJobVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionLinkVo;
 import com.linguaframe.operator.service.impl.DemoSessionCommandCenterServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -41,6 +46,7 @@ class DemoSessionCommandCenterServiceTests {
     private final StubPrivateDemoRunArchiveService archiveService = new StubPrivateDemoRunArchiveService();
     private final StubModelUsageLedgerService ledgerService = new StubModelUsageLedgerService();
     private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
+    private final StubSessionNarrationProductionBoardService narrationProductionBoardService = new StubSessionNarrationProductionBoardService();
 
     private final DemoSessionCommandCenterService service = new DemoSessionCommandCenterServiceImpl(
             operationsService,
@@ -50,7 +56,8 @@ class DemoSessionCommandCenterServiceTests {
             galleryService,
             archiveService,
             ledgerService,
-            recoveryBoardService
+            recoveryBoardService,
+            narrationProductionBoardService
     );
 
     @Test
@@ -66,14 +73,19 @@ class DemoSessionCommandCenterServiceTests {
         assertThat(center.modelCallCount()).isEqualTo(4);
         assertThat(center.estimatedCostUsd()).isEqualByComparingTo("0.01000000");
         assertThat(center.phases()).extracting("id")
-                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage", "recovery-board");
+                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage", "recovery-board", "narration-production");
         assertThat(center.recoveryStatus()).isEqualTo("READY");
         assertThat(center.recoverNowCount()).isZero();
         assertThat(center.recoveryRecommendedNextAction()).contains("No recovery action");
+        assertThat(center.narrationProductionStatus()).isEqualTo("READY");
+        assertThat(center.narrationReadyCount()).isEqualTo(1);
+        assertThat(center.narrationBlockedCount()).isZero();
+        assertThat(center.narrationRecommendedNextAction()).contains("Narration production is ready");
         assertThat(center.evidenceLinks()).extracting("href")
                 .contains(
                         "/api/operator/demo-session-command-center",
                         "/api/operator/demo-session-recovery-board",
+                        "/api/operator/session-narration-production-board",
                         "/api/operator/model-usage-ledger",
                         "/api/jobs/job-best/demo-run-package/download",
                         "/api/jobs/job-best/demo-evidence-closure/download"
@@ -155,6 +167,56 @@ class DemoSessionCommandCenterServiceTests {
     }
 
     @Test
+    void blocksWhenNarrationProductionBoardHasBlockedRows() {
+        narrationProductionBoardService.board = narrationProductionBoard("BLOCKED", 0, 1, 0, 0, 1, 0, "Open blocked narration production rows.");
+
+        DemoSessionCommandCenterVo center = service.commandCenter(null);
+        String markdown = service.commandCenterMarkdown(null);
+
+        assertThat(center.overallStatus()).isEqualTo("BLOCKED");
+        assertThat(center.phase()).isEqualTo("BLOCKED");
+        assertThat(center.narrationProductionStatus()).isEqualTo("BLOCKED");
+        assertThat(center.narrationNeedsReviewCount()).isEqualTo(1);
+        assertThat(center.narrationBlockedCount()).isEqualTo(1);
+        assertThat(center.narrationPrimaryAction().key()).isEqualTo("OPEN_SCENE_BOARD");
+        assertThat(center.narrationProductionLinks()).extracting("href")
+                .contains("/api/operator/session-narration-production-board/markdown/download");
+        assertThat(center.phases())
+                .filteredOn(phase -> phase.id().equals("narration-production"))
+                .singleElement()
+                .satisfies(phase -> {
+                    assertThat(phase.status()).isEqualTo("BLOCKED");
+                    assertThat(phase.blocking()).isTrue();
+                    assertThat(phase.nextAction()).contains("Open blocked narration production rows");
+                });
+        assertThat(markdown)
+                .contains("## Narration Production")
+                .contains("Blocked: 1")
+                .contains("/api/operator/session-narration-production-board");
+    }
+
+    @Test
+    void marksAttentionWhenNarrationProductionNeedsWorkWithoutBlockedRows() {
+        narrationProductionBoardService.board = narrationProductionBoard("ATTENTION", 1, 1, 1, 1, 0, 0, "Finish narration render and review rows.");
+
+        DemoSessionCommandCenterVo center = service.commandCenter(null);
+
+        assertThat(center.overallStatus()).isEqualTo("ATTENTION");
+        assertThat(center.phase()).isEqualTo("NEEDS_REVIEW");
+        assertThat(center.narrationProductionStatus()).isEqualTo("ATTENTION");
+        assertThat(center.narrationReadyCount()).isEqualTo(1);
+        assertThat(center.narrationNeedsRenderCount()).isEqualTo(1);
+        assertThat(center.narrationNeedsAuthoringCount()).isEqualTo(1);
+        assertThat(center.phases())
+                .filteredOn(phase -> phase.id().equals("narration-production"))
+                .singleElement()
+                .satisfies(phase -> {
+                    assertThat(phase.status()).isEqualTo("ATTENTION");
+                    assertThat(phase.blocking()).isFalse();
+                });
+    }
+
+    @Test
     void selectedJobFocusesCommandCenter() {
         DemoSessionCommandCenterVo center = service.commandCenter("job-selected");
 
@@ -181,7 +243,8 @@ class DemoSessionCommandCenterServiceTests {
         assertThat(markdown)
                 .contains("LinguaFrame Demo Session Command Center")
                 .contains("job-selected")
-                .contains("Model Usage");
+                .contains("Model Usage")
+                .contains("Narration Production");
         assertThat(json)
                 .doesNotContain("OPENAI_API_KEY")
                 .doesNotContain("private-demo-token")
@@ -426,6 +489,74 @@ class DemoSessionCommandCenterServiceTests {
         );
     }
 
+    private static SessionNarrationProductionBoardVo narrationProductionBoard(
+            String status,
+            int readyCount,
+            int needsReviewCount,
+            int needsRenderCount,
+            int needsAuthoringCount,
+            int blockedCount,
+            int notApplicableCount,
+            String nextAction
+    ) {
+        SessionNarrationProductionActionVo action = blockedCount == 0 ? null : new SessionNarrationProductionActionVo(
+                "OPEN_SCENE_BOARD",
+                "Open scene board",
+                "/api/jobs/job-narration-blocked/narration-scene-board",
+                "Inspect blocked scene-board checks.",
+                true
+        );
+        return new SessionNarrationProductionBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                status,
+                blockedCount == 0 ? "Narration production is ready." : blockedCount + " narration production job is blocked.",
+                nextAction,
+                25,
+                readyCount,
+                needsReviewCount,
+                needsRenderCount,
+                needsAuthoringCount,
+                blockedCount,
+                notApplicableCount,
+                action,
+                List.of(new SessionNarrationProductionJobVo(
+                        blockedCount == 0 ? "job-narration-ready" : "job-narration-blocked",
+                        "video-narration",
+                        "zh-CN",
+                        "COMPLETED",
+                        blockedCount == 0 ? "READY_TO_DELIVER" : "BLOCKED",
+                        blockedCount == 0 ? "INFO" : "BLOCKING",
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        Instant.parse("2026-06-29T08:00:00Z"),
+                        4,
+                        BigDecimal.valueOf(100),
+                        0,
+                        false,
+                        1,
+                        0,
+                        true,
+                        true,
+                        true,
+                        true,
+                        blockedCount == 0,
+                        blockedCount == 0,
+                        true,
+                        blockedCount == 0 ? null : "Scene board is blocked.",
+                        nextAction,
+                        List.of(new SessionNarrationProductionCheckVo("scene", "Scene board", status, nextAction, nextAction, blockedCount > 0)),
+                        action == null ? List.of() : List.of(action),
+                        List.of(new SessionNarrationProductionLinkVo("SCENE_BOARD", "Narration scene board", "/api/jobs/job-narration-blocked/narration-scene-board", "application/json", "Scene board metadata."))
+                )),
+                List.of(new SessionNarrationProductionCheckVo("narration-production", "Narration production", status, nextAction, nextAction, blockedCount > 0)),
+                List.of(
+                        new SessionNarrationProductionLinkVo("JSON", "Session narration production board", "/api/operator/session-narration-production-board", "application/json", "Production board JSON."),
+                        new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Production board Markdown.")
+                ),
+                List.of("Metadata only."),
+                "# Session Narration Production Board"
+        );
+    }
+
     private final class StubPrivateDemoOperationsService implements PrivateDemoOperationsService {
         private PrivateDemoOperationsVo operations = DemoSessionCommandCenterServiceTests.operations("READY");
 
@@ -504,6 +635,20 @@ class DemoSessionCommandCenterServiceTests {
 
         @Override
         public DemoSessionRecoveryBoardVo board(Integer limit) {
+            return board;
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return board.markdown();
+        }
+    }
+
+    private final class StubSessionNarrationProductionBoardService implements SessionNarrationProductionBoardService {
+        private SessionNarrationProductionBoardVo board = narrationProductionBoard("READY", 1, 0, 0, 0, 0, 0, "Narration production is ready.");
+
+        @Override
+        public SessionNarrationProductionBoardVo board(Integer limit) {
             return board;
         }
 

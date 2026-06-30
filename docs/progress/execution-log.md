@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the session narration command center integration feature slice from `docs/plans/173-session-narration-command-center-integration.md`.
+- Integrated `SessionNarrationProductionBoardService` into the demo session command center so narration production status, counts, recommended action, primary action, safe links, Markdown, and phase readiness are visible in the top-level run-day surface.
+- Added narration production JSON and Markdown entries to the demo session evidence package ZIP and manifest.
+- Added browser command center narration production summary, frontend API fixtures, terminal `demoSessionCommandCenterNarration*` and `demoSessionEvidencePackageNarration*` summary lines, and CLI ZIP-entry detection.
+- Updated README, demo script docs, smoke checklist, roadmap, target state, and this execution log with the command-center/session-package integration.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests test` first failed at test compile because command-center/evidence-package constructors and new VO fields had not been wired yet; after adding the narration board dependency and fixtures, it passed with `Tests run: 12, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx --testNamePattern "demo session command center"` first failed because the browser command center had no `Command center narration production` region; after adding the summary panel, it passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because command-center summary output did not print narration production status; after extending the demo helpers, it passed.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,PrivateDemoDeliveryReceiptServiceTests,OperatorDashboardControllerTests test` passed with `Tests run: 39, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx src/api/linguaframeApi.test.ts --testNamePattern "demo session command center|session evidence package"` passed with `Tests 5 passed | 262 skipped`; jsdom printed expected navigation warnings from blob download fixtures.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/session-narration-production-board.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 856, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 324 passed`; jsdom printed expected navigation warnings from safe-link/blob-download fixtures.
+- `npm --prefix frontend run build` first failed because a new frontend fixture used `kind` instead of the typed `key` field for `SessionNarrationProductionLink`; after correcting the fixture, it passed. Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
+Work:
+
 - Started the private demo delivery receipt feature slice from `docs/plans/170-private-demo-delivery-receipt.md`.
 - Added backend `GET /api/operator/private-demo/delivery-receipt`, Markdown download, and metadata-only ZIP download that compose existing operations, launch rehearsal, evidence gallery, run archive, command center, recovery board, model ledger, OpenAI readiness, reviewer workspace, handoff portal, evidence closure, OpenAI proof, and AI audit links.
 - Added the React `Private demo delivery receipt` panel with status, selected/recommended job, delivery checks, primary export command, final proof links, package entries, and Markdown/ZIP downloads.

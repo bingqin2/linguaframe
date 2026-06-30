@@ -810,6 +810,17 @@ describe('App', () => {
     expect(within(recovery).getByText('Recover now')).toBeInTheDocument();
     expect(within(recovery).getByText('1 job needs recovery')).toBeInTheDocument();
     expect(within(recovery).getByText('Open stuck-job recovery.')).toBeInTheDocument();
+    const narrationProduction = within(panel).getByRole('region', {
+      name: /command center narration production/i
+    });
+    expect(within(narrationProduction).getByText('ATTENTION')).toBeInTheDocument();
+    expect(within(narrationProduction).getByText('Needs render')).toBeInTheDocument();
+    expect(within(narrationProduction).getByText('1 render')).toBeInTheDocument();
+    expect(within(narrationProduction).getByText('Finish narration render and review rows.')).toBeInTheDocument();
+    expect(within(narrationProduction).getByRole('link', { name: /Open production board/i })).toHaveAttribute(
+      'href',
+      '/api/operator/session-narration-production-board'
+    );
     expect(within(panel).getAllByText('LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh').length)
       .toBeGreaterThan(0);
     expect(within(panel).getByRole('link', { name: /Command center Markdown/i })).toHaveAttribute(
@@ -819,6 +830,10 @@ describe('App', () => {
     expect(within(panel).getByRole('link', { name: /Recovery board Markdown/i })).toHaveAttribute(
       'href',
       '/api/operator/demo-session-recovery-board/markdown/download'
+    );
+    expect(within(panel).getByRole('link', { name: /Session narration production Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/session-narration-production-board/markdown/download'
     );
     await userEvent.click(within(panel).getByRole('button', { name: /download command center/i }));
     expect(downloadSpy).toHaveBeenCalledWith('job-session');
@@ -6884,6 +6899,12 @@ function demoSessionCommandCenterFixture(
         description: 'Downloadable recovery board.'
       },
       {
+        label: 'Session narration production Markdown',
+        href: '/api/operator/session-narration-production-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable narration production report.'
+      },
+      {
         label: 'Model usage ledger',
         href: '/api/operator/model-usage-ledger',
         contentType: 'application/json',
@@ -6910,6 +6931,30 @@ function demoSessionCommandCenterFixture(
         href: '/api/operator/demo-session-recovery-board/markdown/download',
         contentType: 'text/markdown',
         description: 'Downloadable recovery board.'
+      }
+    ],
+    narrationProductionStatus: 'ATTENTION',
+    narrationReadyCount: 1,
+    narrationNeedsReviewCount: 1,
+    narrationNeedsRenderCount: 1,
+    narrationNeedsAuthoringCount: 1,
+    narrationBlockedCount: 0,
+    narrationNotApplicableCount: 0,
+    narrationRecommendedNextAction: 'Finish narration render and review rows.',
+    narrationPrimaryAction: {
+      key: 'OPEN_PRODUCTION_BOARD',
+      label: 'Open production board',
+      href: '/api/operator/session-narration-production-board',
+      detail: 'Inspect narration production rows.',
+      primary: true
+    },
+    narrationProductionLinks: [
+      {
+        key: 'MARKDOWN',
+        label: 'Session narration production Markdown',
+        href: '/api/operator/session-narration-production-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable narration production report.'
       }
     ],
     estimatedCostUsd: '0.00020000',

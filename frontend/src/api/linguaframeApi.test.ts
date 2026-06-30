@@ -4266,6 +4266,30 @@ function demoSessionCommandCenterFixture() {
         description: 'Downloadable recovery board.'
       }
     ],
+    narrationProductionStatus: 'ATTENTION',
+    narrationReadyCount: 1,
+    narrationNeedsReviewCount: 1,
+    narrationNeedsRenderCount: 1,
+    narrationNeedsAuthoringCount: 1,
+    narrationBlockedCount: 0,
+    narrationNotApplicableCount: 0,
+    narrationRecommendedNextAction: 'Finish narration render and review rows.',
+    narrationPrimaryAction: {
+      key: 'OPEN_PRODUCTION_BOARD',
+      label: 'Open production board',
+      href: '/api/operator/session-narration-production-board',
+      detail: 'Inspect narration production rows.',
+      primary: true
+    },
+    narrationProductionLinks: [
+      {
+        key: 'MARKDOWN',
+        label: 'Session narration production Markdown',
+        href: '/api/operator/session-narration-production-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable narration production report.'
+      }
+    ],
     estimatedCostUsd: '0.00020000',
     modelCallCount: 2,
     failedModelCallCount: 0,

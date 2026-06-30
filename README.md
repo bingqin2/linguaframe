@@ -253,7 +253,7 @@ The script calls `GET /api/operator/model-usage-ledger` and `GET /api/operator/m
 
 ### Demo session command center
 
-Use the demo session command center as the run-day top-level surface after the backend is running. It combines private-demo operations, launch rehearsal, launcher, presentation cockpit, evidence gallery, run archive, model usage ledger, session recovery board, focused run links, and the next command into one metadata-only index. It is useful before upload, while a job is running, and after completion when you need one place to decide the next action.
+Use the demo session command center as the run-day top-level surface after the backend is running. It combines private-demo operations, launch rehearsal, launcher, presentation cockpit, evidence gallery, run archive, model usage ledger, session recovery board, session narration production board, focused run links, and the next command into one metadata-only index. It is useful before upload, while a job is running, and after completion when you need one place to decide the next action.
 
 ```bash
 scripts/demo/demo-session-command-center.sh
@@ -261,11 +261,11 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-session-command-center.sh
 LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true scripts/demo/demo-session-command-center.sh
 ```
 
-The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-command-center/markdown/download`, writing `demo-session-command-center.json` and `demo-session-command-center.md` under `/tmp/linguaframe-demo/demo-session-command-center/`. It prints `demoSessionCommandCenterRecovery*` lines and marks the command center `BLOCKED` when the session recovery board has recover-now rows. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true` to export evidence without failing the shell step. Use it as the operator table of contents, not as a replacement for per-job demo run packages, AI audit packages, or reviewed handoff packages.
+The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-command-center/markdown/download`, writing `demo-session-command-center.json` and `demo-session-command-center.md` under `/tmp/linguaframe-demo/demo-session-command-center/`. It prints `demoSessionCommandCenterRecovery*` and `demoSessionCommandCenterNarration*` lines, marks the command center `BLOCKED` when the session recovery board has recover-now rows, and also blocks when narration production has blocked rows. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_COMMAND_CENTER_REPORT_ONLY=true` to export evidence without failing the shell step. Use it as the operator table of contents, not as a replacement for per-job demo run packages, AI audit packages, or reviewed handoff packages.
 
 ### Demo session evidence package
 
-Use the demo session evidence package when you need one downloadable ZIP for a complete private-demo session. It packages the command center, launch readiness, operations checks, model usage ledger, presentation cockpit, evidence gallery, run archive, and session recovery board as safe metadata-only JSON and Markdown files.
+Use the demo session evidence package when you need one downloadable ZIP for a complete private-demo session. It packages the command center, launch readiness, operations checks, model usage ledger, presentation cockpit, evidence gallery, run archive, session recovery board, and session narration production board as safe metadata-only JSON and Markdown files.
 
 ```bash
 scripts/demo/demo-session-evidence-package.sh
@@ -273,7 +273,7 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-session-evidence-package.sh
 LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true scripts/demo/demo-session-evidence-package.sh
 ```
 
-The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-evidence-package/download`, writing `command-center.json` and `demo-session-evidence-package.zip` under `/tmp/linguaframe-demo/demo-session-evidence-package/`. It prints whether the ZIP contains `recovery-board.json` and `recovery-board.md`. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true` to export anyway. Use this ZIP as the session-level handoff bundle. Use command center Markdown for a quick run-day checklist, per-job demo run packages for detailed job evidence, AI audit packages for model-call review, reviewed handoff packages for subtitle review, and demo evidence closure for final actual-vs-baseline acceptance.
+The script calls `GET /api/operator/demo-session-command-center` and `GET /api/operator/demo-session-evidence-package/download`, writing `command-center.json` and `demo-session-evidence-package.zip` under `/tmp/linguaframe-demo/demo-session-evidence-package/`. It prints whether the ZIP contains `recovery-board.json`, `recovery-board.md`, `narration-production-board.json`, and `narration-production-board.md`. By default it exits non-zero when the command center status is `BLOCKED`; set `LINGUAFRAME_DEMO_SESSION_EVIDENCE_PACKAGE_REPORT_ONLY=true` to export anyway. Use this ZIP as the session-level handoff bundle. Use command center Markdown for a quick run-day checklist, per-job demo run packages for detailed job evidence, AI audit packages for model-call review, reviewed handoff packages for subtitle review, and demo evidence closure for final actual-vs-baseline acceptance.
 
 Upload cost estimation previews the likely provider spend for the selected file and profile before storage, queue dispatch, FFmpeg work, or OpenAI calls:
 
@@ -367,7 +367,7 @@ LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-acceptance-gate.sh
 
 The script writes `demo-acceptance-gate.json` under `/tmp/linguaframe-demo/demo-acceptance-gate/` by default and prints narration resolution status/count evidence plus `demoAcceptanceGateRunbook*` remediation lines when present. Use this gate when you need one final readiness answer; use the runbook lines to open playback resolution, fix unresolved rows, regenerate narration media, and re-run the gate before presenting.
 
-The browser demo also shows a `Demo session command center` panel backed by `GET /api/operator/demo-session-command-center`. Use it as the run-day entry point when you want one status, focused job, primary command, recovery summary, phase gates, model-call cost summary, and safe evidence links before moving into the more detailed session recovery board, presentation cockpit, or per-job evidence panels.
+The browser demo also shows a `Demo session command center` panel backed by `GET /api/operator/demo-session-command-center`. Use it as the run-day entry point when you want one status, focused job, primary command, recovery summary, narration production summary, phase gates, model-call cost summary, and safe evidence links before moving into the more detailed session recovery board, session narration production board, presentation cockpit, or per-job evidence panels.
 
 The browser demo also shows a `Demo presentation cockpit` panel backed by `GET /api/operator/demo-presentation-cockpit`. Use it as the first run-day surface before upload, during processing, and after completion: it combines launcher, upload readiness, live checks, private-demo operations, active run monitor, recommended completed run, acceptance gate, package links, and safety notes into one metadata-only next-action view. Terminal export is available with:
 

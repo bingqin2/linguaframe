@@ -31,6 +31,11 @@ import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveCandidateVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveLinkVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionActionVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionCheckVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionJobVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionLinkVo;
 import com.linguaframe.operator.service.impl.DemoSessionEvidencePackageServiceImpl;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +60,7 @@ class DemoSessionEvidencePackageServiceTests {
     private final StubPrivateDemoEvidenceGalleryService galleryService = new StubPrivateDemoEvidenceGalleryService();
     private final StubPrivateDemoRunArchiveService archiveService = new StubPrivateDemoRunArchiveService();
     private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
+    private final StubSessionNarrationProductionBoardService narrationProductionBoardService = new StubSessionNarrationProductionBoardService();
 
     private final DemoSessionEvidencePackageService service = new DemoSessionEvidencePackageServiceImpl(
             objectMapper,
@@ -65,7 +71,8 @@ class DemoSessionEvidencePackageServiceTests {
             cockpitService,
             galleryService,
             archiveService,
-            recoveryBoardService
+            recoveryBoardService,
+            narrationProductionBoardService
     );
 
     @Test
@@ -89,6 +96,8 @@ class DemoSessionEvidencePackageServiceTests {
                 "model-usage-ledger.md",
                 "recovery-board.json",
                 "recovery-board.md",
+                "narration-production-board.json",
+                "narration-production-board.md",
                 "presentation-cockpit.json",
                 "presentation-cockpit.md",
                 "evidence-gallery.json",
@@ -101,10 +110,12 @@ class DemoSessionEvidencePackageServiceTests {
         assertThat(manifest.path("packageType").asText()).isEqualTo("DEMO_SESSION_EVIDENCE_PACKAGE");
         assertThat(manifest.path("overallStatus").asText()).isEqualTo("READY");
         assertThat(manifest.path("phase").asText()).isEqualTo("READY_TO_PRESENT");
-        assertThat(manifest.path("entryCount").asInt()).isEqualTo(18);
+        assertThat(manifest.path("entryCount").asInt()).isEqualTo(20);
+        assertThat(manifest.path("entries").toString()).contains("narration-production-board.json", "narration-production-board.md");
         assertThat(entries.get("README.md")).contains("LinguaFrame Demo Session Evidence Package");
         assertThat(entries.get("command-center.md")).contains("Command center Markdown");
         assertThat(entries.get("recovery-board.md")).contains("Recovery Board");
+        assertThat(entries.get("narration-production-board.md")).contains("Session Narration Production Board");
         assertThat(entries.get("operations.md")).contains("Private Demo Operations");
         assertThat(entries.get("model-usage-ledger.md")).contains("Model Usage Ledger");
     }
@@ -139,7 +150,9 @@ class DemoSessionEvidencePackageServiceTests {
                 .doesNotContain("provider response payload")
                 .doesNotContain("raw transcript text:")
                 .doesNotContain("raw subtitle text:")
-                .doesNotContain("corrected subtitle text:");
+                .doesNotContain("corrected subtitle text:")
+                .doesNotContain("Narration script body")
+                .doesNotContain("reviewer note body");
     }
 
     private Map<String, String> unzip(DemoSessionEvidencePackageBo result) throws Exception {
@@ -187,6 +200,16 @@ class DemoSessionEvidencePackageServiceTests {
                 "Open stuck-job recovery.",
                 new DemoSessionRecoveryBoardActionVo("OPEN_STUCK_RECOVERY", "Open stuck-job recovery", "/api/jobs/job-stale/stuck-job-recovery", "Inspect recovery.", true),
                 List.of(new DemoSessionRecoveryBoardLinkVo("MARKDOWN", "Recovery board Markdown", "/api/operator/demo-session-recovery-board/markdown/download", "text/markdown", "Downloadable recovery board.")),
+                "BLOCKED",
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                "Open blocked narration production rows.",
+                new SessionNarrationProductionActionVo("OPEN_SCENE_BOARD", "Open scene board", "/api/jobs/job-narration-blocked/narration-scene-board", "Inspect blocked scene-board checks.", true),
+                List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
                 new BigDecimal("0.00020000"),
                 2,
                 0,
@@ -194,6 +217,62 @@ class DemoSessionEvidencePackageServiceTests {
                 100L,
                 1,
                 List.of("Metadata-only command center.")
+        );
+    }
+
+    private static SessionNarrationProductionBoardVo narrationProductionBoard() {
+        SessionNarrationProductionActionVo action = new SessionNarrationProductionActionVo(
+                "OPEN_SCENE_BOARD",
+                "Open scene board",
+                "/api/jobs/job-narration-blocked/narration-scene-board",
+                "Inspect blocked scene-board checks.",
+                true
+        );
+        return new SessionNarrationProductionBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                "BLOCKED",
+                "1 narration production job is blocked.",
+                "Open blocked narration production rows.",
+                25,
+                1,
+                1,
+                1,
+                1,
+                1,
+                0,
+                action,
+                List.of(new SessionNarrationProductionJobVo(
+                        "job-narration-blocked",
+                        "video-narration",
+                        "zh-CN",
+                        "COMPLETED",
+                        "BLOCKED",
+                        "BLOCKING",
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        Instant.parse("2026-06-29T08:00:00Z"),
+                        4,
+                        BigDecimal.valueOf(50),
+                        1,
+                        true,
+                        1,
+                        0,
+                        true,
+                        false,
+                        false,
+                        false,
+                        false,
+                        false,
+                        true,
+                        "Scene board is blocked.",
+                        "Open the narration scene board.",
+                        List.of(new SessionNarrationProductionCheckVo("scene", "Scene board", "BLOCKED", "Scene board is blocked.", "Open scene board.", true)),
+                        List.of(action),
+                        List.of(new SessionNarrationProductionLinkVo("SCENE_BOARD", "Narration scene board", "/api/jobs/job-narration-blocked/narration-scene-board", "application/json", "Scene board metadata."))
+                )),
+                List.of(new SessionNarrationProductionCheckVo("blocked", "Blocked", "BLOCKED", "1 job is blocked.", "Open scene board.", true)),
+                List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
+                List.of("Metadata only."),
+                "# Session Narration Production Board\n\n- Blocked: 1\n"
         );
     }
 
@@ -472,6 +551,18 @@ class DemoSessionEvidencePackageServiceTests {
         @Override
         public String boardMarkdown(Integer limit) {
             return "# Recovery Board\n\n- Recover now: 1\n";
+        }
+    }
+
+    private static final class StubSessionNarrationProductionBoardService implements SessionNarrationProductionBoardService {
+        @Override
+        public SessionNarrationProductionBoardVo board(Integer limit) {
+            return DemoSessionEvidencePackageServiceTests.narrationProductionBoard();
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return "# Session Narration Production Board\n\n- Blocked: 1\n";
         }
     }
 }
