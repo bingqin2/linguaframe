@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-28
 
+Decision: Add transient narration segment TTS preview before voice cloning, uploaded reference audio, provider voice browsing, or persistent preview caching.
+
+Reason: Operators need to hear one explanatory line before saving a script or generating a full narration bed, but voice cloning and provider catalogs would expand scope, secret handling, storage, and cost semantics. A transient preview through the existing `TtsProvider` proves the core narration loop while keeping persistence and artifact generation explicit.
+
+Impact: The browser `Narration TTS preview` panel and `scripts/demo/narration-segment-preview.sh` can call the configured TTS provider and may consume credits, but they do not save narration rows, create artifacts, update evidence, write object storage, or generate video. Full narration audio/video generation remains a separate explicit action.
+
+## 2026-06-28
+
 Decision: Add local owner-account JWT auth as a compatibility bridge instead of replacing the private-demo token or building public account management.
 
 Reason: LinguaFrame needs a concrete step toward Stage 3 authentication, but registration, password reset, roles, billing, and database-backed users would be too much scope for the current demo path. The existing demo token also remains useful for Swagger, curl, scripts, downloads, previews, and SSE.

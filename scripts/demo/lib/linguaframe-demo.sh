@@ -587,6 +587,23 @@ download_narration_workspace_json() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-workspace" -o "$output_path"
 }
 
+download_narration_segment_preview_audio() {
+  local base_url="$1"
+  local job_id="$2"
+  local request_path="$3"
+  local output_path="$4"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    --data-binary "@$request_path" \
+    "$base_url/api/jobs/$encoded_job_id/narration-workspace/segment-preview" \
+    -o "$output_path"
+}
+
 download_narration_demo_presets_json() {
   local base_url="$1"
   local output_path="$2"

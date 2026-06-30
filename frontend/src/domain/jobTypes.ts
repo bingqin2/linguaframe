@@ -1560,6 +1560,11 @@ export interface UpdateNarrationMixSettingsRequest {
   fadeDurationMs: number;
 }
 
+export interface PreviewNarrationSegmentRequest {
+  text: string;
+  voice: string | null;
+}
+
 export interface NarrationGeneration {
   jobId: string;
   artifactId: string;

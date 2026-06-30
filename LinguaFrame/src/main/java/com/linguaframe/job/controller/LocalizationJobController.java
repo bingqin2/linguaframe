@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
 import com.linguaframe.job.domain.dto.ApplyNarrationDemoPresetDto;
 import com.linguaframe.job.domain.dto.NarrationDemoRenderPreflightRequestDto;
+import com.linguaframe.job.domain.dto.PreviewNarrationSegmentRequestDto;
 import com.linguaframe.job.domain.dto.RenderNarrationDemoDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
@@ -49,6 +50,7 @@ import com.linguaframe.job.domain.vo.NarrationDemoPresetApplyVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderPreflightVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
@@ -90,6 +92,7 @@ import com.linguaframe.job.service.NarrationDemoPresetApplyService;
 import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.job.service.NarratedVideoService;
@@ -169,6 +172,7 @@ public class LocalizationJobController {
     private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
     private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
     private final NarrationWorkspaceService narrationWorkspaceService;
     private final NarratedVideoService narratedVideoService;
@@ -213,6 +217,7 @@ public class LocalizationJobController {
             NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
             NarrationEvidenceService narrationEvidenceService,
+            NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
             NarrationWorkspaceService narrationWorkspaceService,
             NarratedVideoService narratedVideoService,
@@ -256,6 +261,7 @@ public class LocalizationJobController {
         this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
         this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
         this.narrationWorkspaceService = narrationWorkspaceService;
         this.narratedVideoService = narratedVideoService;
@@ -1315,6 +1321,32 @@ public class LocalizationJobController {
             @RequestBody UpdateNarrationMixSettingsDto request
     ) {
         return narrationWorkspaceService.updateMixSettings(jobId, request);
+    }
+
+    @PostMapping("/{jobId}/narration-workspace/segment-preview")
+    @Operation(summary = "Preview TTS audio for one unsaved narration segment")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Transient narration segment preview audio was synthesized."),
+            @ApiResponse(responseCode = "400", description = "The preview text or voice is invalid."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<byte[]> previewNarrationSegment(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody PreviewNarrationSegmentRequestDto request
+    ) {
+        NarrationSegmentPreviewVo preview = narrationSegmentPreviewService.previewSegment(jobId, request);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(preview.contentType()))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline()
+                                .filename(preview.filename())
+                                .build()
+                                .toString()
+                )
+                .body(preview.audioContent());
     }
 
     @DeleteMapping("/{jobId}/narration-workspace")

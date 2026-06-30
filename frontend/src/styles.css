@@ -611,6 +611,37 @@ td {
   font-weight: 700;
 }
 
+.narration-tts-preview {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 560px;
+  margin-bottom: 12px;
+  border: 1px solid #d7e0e6;
+  border-radius: 6px;
+  padding: 0.85rem;
+  background: #ffffff;
+}
+
+.narration-tts-preview h4 {
+  margin: 0;
+}
+
+.narration-tts-preview .compact-panel-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.narration-tts-preview .muted {
+  margin: 0;
+}
+
+.narration-tts-preview audio {
+  width: 100%;
+  min-height: 40px;
+}
+
 .narration-command-buttons {
   display: flex;
   flex-wrap: wrap;

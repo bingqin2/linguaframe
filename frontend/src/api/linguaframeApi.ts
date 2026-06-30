@@ -48,6 +48,7 @@ import type {
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PrivateDemoRunArchive,
+  PreviewNarrationSegmentRequest,
   PublishReviewedSubtitlesRequest,
   PromptTemplate,
   RetentionCleanupResult,
@@ -931,6 +932,22 @@ export async function generateNarrationAudio(jobId: string): Promise<NarrationGe
   );
 }
 
+export async function previewNarrationSegment(
+  jobId: string,
+  request: PreviewNarrationSegmentRequest
+): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/segment-preview`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
 export async function generateNarratedVideo(jobId: string): Promise<NarratedVideoGeneration> {
   return requestJson<NarratedVideoGeneration>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-workspace/generate-video`,
@@ -1305,6 +1322,7 @@ export const linguaFrameApi = {
   clearNarrationWorkspace,
   updateNarrationMixSettings,
   generateNarrationAudio,
+  previewNarrationSegment,
   generateNarratedVideo,
   preflightNarrationDemoRender,
   renderNarrationDemo,

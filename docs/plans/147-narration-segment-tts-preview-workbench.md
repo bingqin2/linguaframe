@@ -49,27 +49,27 @@
   - `NarrationSegmentPreviewService.previewSegment(String jobId, PreviewNarrationSegmentRequestDto request)`
   - `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returning audio bytes with `Content-Type` and `Content-Disposition`.
 
-- [ ] Write failing service tests proving blank text is rejected before `TtsProvider` is called.
-- [ ] Write failing service tests proving explicit valid voice is passed to `TtsProvider` with job target language and trimmed text.
-- [ ] Write failing service tests proving blank voice inherits the job `ttsVoice`, then falls back to the voice catalog default.
-- [ ] Write failing service tests proving unknown voice presets and voices longer than 64 characters are rejected before provider calls.
-- [ ] Write failing service tests proving the returned preview uses provider audio bytes, content type, filename `narration-segment-preview.mp3`, character count, and a cost warning safety note.
-- [ ] Write failing controller tests proving `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returns `audio/mpeg`, `Content-Disposition: inline; filename="narration-segment-preview.mp3"`, and provider bytes.
-- [ ] Write failing controller tests proving validation failures return `400` and do not create job artifacts.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify the new tests fail because preview classes/routes do not exist.
-- [ ] Implement `PreviewNarrationSegmentRequestDto` with `text` and `voice` fields.
-- [ ] Implement `NarrationSegmentPreviewVo` as a record carrying preview bytes and safe metadata.
-- [ ] Implement `NarrationSegmentPreviewServiceImpl` validation:
+- [x] Write failing service tests proving blank text is rejected before `TtsProvider` is called.
+- [x] Write failing service tests proving explicit valid voice is passed to `TtsProvider` with job target language and trimmed text.
+- [x] Write failing service tests proving blank voice inherits the job `ttsVoice`, then falls back to the voice catalog default.
+- [x] Write failing service tests proving unknown voice presets and voices longer than 64 characters are rejected before provider calls.
+- [x] Write failing service tests proving the returned preview uses provider audio bytes, content type, filename `narration-segment-preview.mp3`, character count, and a cost warning safety note.
+- [x] Write failing controller tests proving `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returns `audio/mpeg`, `Content-Disposition: inline; filename="narration-segment-preview.mp3"`, and provider bytes.
+- [x] Write failing controller tests proving validation failures return `400` and do not create job artifacts.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify the new tests fail because preview classes/routes do not exist.
+- [x] Implement `PreviewNarrationSegmentRequestDto` with `text` and `voice` fields.
+- [x] Implement `NarrationSegmentPreviewVo` as a record carrying preview bytes and safe metadata.
+- [x] Implement `NarrationSegmentPreviewServiceImpl` validation:
   - Trim `text`; reject blank with `Narration preview text is required.`
   - Trim `voice`; reject length greater than 64 with `Narration preview voice must be 64 characters or fewer.`
   - Reject unknown explicit voice when not present in `voiceCatalog().presets()`.
   - Resolve effective voice from explicit voice, job `ttsVoice`, or `defaultVoice()`.
   - Call `ttsProvider.synthesize(new TtsRequestBo(jobId, job.targetLanguage(), effectiveVoice, trimmedText))`.
   - Return provider bytes, provider content type or `audio/mpeg`, filename `narration-segment-preview.mp3`, effective voice, text length, and safety note `Preview calls the configured TTS provider but does not create artifacts.`
-- [ ] Add controller route with OpenAPI summary `Preview TTS audio for one unsaved narration segment`.
-- [ ] Return `ResponseEntity<byte[]>` with inline content disposition, content type from preview result, and no persistence side effects.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Add controller route with OpenAPI summary `Preview TTS audio for one unsaved narration segment`.
+- [x] Return `ResponseEntity<byte[]>` with inline content disposition, content type from preview result, and no persistence side effects.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration segment TTS preview API`.
 
 ## Task 2: Frontend Preview Client And Workbench
@@ -92,25 +92,25 @@
   - `export interface PreviewNarrationSegmentRequest { text: string; voice: string | null; }`
   - A compact `Narration TTS preview` panel with `Preview selected TTS`, effective voice copy, provider cost warning, status/error text, and an `<audio controls>` player.
 
-- [ ] Write failing API tests proving `previewNarrationSegment('job-narration', { text: 'Hello', voice: 'alloy' })` posts JSON to `/api/jobs/job-narration/narration-workspace/segment-preview` and returns a blob.
-- [ ] Write failing App tests proving the narration workspace renders `Narration TTS preview` for a completed job.
-- [ ] Write failing App tests proving `Preview selected TTS` sends the selected draft row text and explicit voice, then renders an audio player using a blob URL.
-- [ ] Write failing App tests proving unsaved text edits are included in the preview request without calling `saveNarrationWorkspace`.
-- [ ] Write failing App tests proving blank selected text disables preview and shows the same validation guidance without calling the API.
-- [ ] Write failing App tests proving a rejected preview shows an error message and keeps save/generate controls usable.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify the new tests fail.
-- [ ] Add `PreviewNarrationSegmentRequest` to `frontend/src/domain/jobTypes.ts`.
-- [ ] Add `previewNarrationSegment(...)` to `frontend/src/api/linguaframeApi.ts` using existing `requestBlob`.
-- [ ] Export `previewNarrationSegment` from `linguaFrameApi`.
-- [ ] Add `NarrationTtsPreviewPanel` inside `NarrationWorkspacePanel`, placed after `NarrationDraftHistoryPanel` and before `NarrationPreviewPanel`.
-- [ ] Keep panel state local: `isPreviewingSegment`, `segmentPreviewUrl`, `segmentPreviewStatus`, `segmentPreviewError`.
-- [ ] Revoke old object URLs with `URL.revokeObjectURL` when replacing preview audio and when workspace/selected row changes.
-- [ ] Disable preview when no selected row, blank selected text, unknown selected voice, or a preview request is in flight.
-- [ ] On preview click, call `previewNarrationSegment(jobId, { text: selectedSegment.text, voice: selectedSegment.voice ?? null })`, create an object URL, and render `<audio controls src={segmentPreviewUrl} aria-label="Narration TTS preview player" />`.
-- [ ] Display cost warning text: `Preview calls the configured TTS provider and may consume credits; it does not save rows or create artifacts.`
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify it passes.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Write failing API tests proving `previewNarrationSegment('job-narration', { text: 'Hello', voice: 'alloy' })` posts JSON to `/api/jobs/job-narration/narration-workspace/segment-preview` and returns a blob.
+- [x] Write failing App tests proving the narration workspace renders `Narration TTS preview` for a completed job.
+- [x] Write failing App tests proving `Preview selected TTS` sends the selected draft row text and explicit voice, then renders an audio player using a blob URL.
+- [x] Write failing App tests proving unsaved text edits are included in the preview request without calling `saveNarrationWorkspace`.
+- [x] Write failing App tests proving blank selected text disables preview and shows the same validation guidance without calling the API.
+- [x] Write failing App tests proving a rejected preview shows an error message and keeps save/generate controls usable.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify the new tests fail.
+- [x] Add `PreviewNarrationSegmentRequest` to `frontend/src/domain/jobTypes.ts`.
+- [x] Add `previewNarrationSegment(...)` to `frontend/src/api/linguaframeApi.ts` using existing `requestBlob`.
+- [x] Export `previewNarrationSegment` from `linguaFrameApi`.
+- [x] Add `NarrationTtsPreviewPanel` inside `NarrationWorkspacePanel`, placed after `NarrationDraftHistoryPanel` and before `NarrationPreviewPanel`.
+- [x] Keep panel state local: `isPreviewingSegment`, `segmentPreviewUrl`, `segmentPreviewStatus`, `segmentPreviewError`.
+- [x] Revoke old object URLs with `URL.revokeObjectURL` when replacing preview audio and when workspace/selected row changes.
+- [x] Disable preview when no selected row, blank selected text, unknown selected voice, or a preview request is in flight.
+- [x] On preview click, call `previewNarrationSegment(jobId, { text: selectedSegment.text, voice: selectedSegment.voice ?? null })`, create an object URL, and render `<audio controls src={segmentPreviewUrl} aria-label="Narration TTS preview player" />`.
+- [x] Display cost warning text: `Preview calls the configured TTS provider and may consume credits; it does not save rows or create artifacts.`
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify it passes.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration TTS preview workbench`.
 
 ## Task 3: Terminal Segment Preview Script
@@ -130,19 +130,19 @@
   - `/tmp/linguaframe-demo/narration-segment-preview/narration-segment-preview-request.json`
   - Safe terminal summary lines: `narrationSegmentPreviewJobId`, `narrationSegmentPreviewVoice`, `narrationSegmentPreviewCharacters`, `narrationSegmentPreviewOutputPath`, `narrationSegmentPreviewProviderCostWarning`.
 
-- [ ] Write failing shell syntax validation entry by adding `scripts/demo/narration-segment-preview.sh` to the planned `bash -n` command before the file exists.
-- [ ] Implement script arguments and env:
+- [x] Write failing shell syntax validation entry by adding `scripts/demo/narration-segment-preview.sh` to the planned `bash -n` command before the file exists.
+- [x] Implement script arguments and env:
   - `LINGUAFRAME_DEMO_JOB_ID` is required.
   - `LINGUAFRAME_NARRATION_PREVIEW_TEXT` is required unless `LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE` points to a readable file.
   - `LINGUAFRAME_NARRATION_PREVIEW_VOICE` is optional and may be blank to inherit default/job voice.
   - `LINGUAFRAME_NARRATION_PREVIEW_OUTPUT_DIR` defaults to `/tmp/linguaframe-demo/narration-segment-preview`.
-- [ ] Build request JSON with structured escaping rather than shell string concatenation.
-- [ ] Call the preview route with existing demo-token header support from `linguaframe-demo.sh`.
-- [ ] Save MP3 output and request JSON under the output directory.
-- [ ] Print safe metadata only; do not print raw local env values, API keys, bearer tokens, provider payloads, or object keys.
-- [ ] Make failed HTTP responses print a concise error and exit non-zero without leaving partial MP3 output as success.
-- [ ] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
-- [ ] Update execution log with script validation evidence.
+- [x] Build request JSON with structured escaping rather than shell string concatenation.
+- [x] Call the preview route with existing demo-token header support from `linguaframe-demo.sh`.
+- [x] Save MP3 output and request JSON under the output directory.
+- [x] Print safe metadata only; do not print raw local env values, API keys, bearer tokens, provider payloads, or object keys.
+- [x] Make failed HTTP responses print a concise error and exit non-zero without leaving partial MP3 output as success.
+- [x] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
+- [x] Update execution log with script validation evidence.
 - [ ] Commit with message `Add narration segment preview demo script`.
 
 ## Task 4: Docs, Final Verification, And Merge
@@ -157,19 +157,19 @@
 - Modify: `docs/progress/execution-log.md`
 - Modify: `docs/plans/147-narration-segment-tts-preview-workbench.md`
 
-- [ ] Document the browser order: edit/select a narration row, preview TTS for that row, adjust text/voice locally, save only when ready, then generate full narration audio/video through explicit actions.
-- [ ] Document the terminal order: set `LINGUAFRAME_DEMO_JOB_ID`, provide preview text or text file, optionally provide voice, run `scripts/demo/narration-segment-preview.sh`, then listen to the local MP3 before saving/generating full narration.
-- [ ] State that segment preview calls the configured TTS provider and can consume OpenAI credits.
-- [ ] State that segment preview is transient and never creates artifacts, evidence packages, object-storage files, saved rows, or narrated videos.
-- [ ] Add a decision record explaining why this slice adds segment-level TTS preview before voice cloning, uploaded reference audio, persistent preview cache, or provider voice browsing.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
+- [x] Document the browser order: edit/select a narration row, preview TTS for that row, adjust text/voice locally, save only when ready, then generate full narration audio/video through explicit actions.
+- [x] Document the terminal order: set `LINGUAFRAME_DEMO_JOB_ID`, provide preview text or text file, optionally provide voice, run `scripts/demo/narration-segment-preview.sh`, then listen to the local MP3 before saving/generating full narration.
+- [x] State that segment preview calls the configured TTS provider and can consume OpenAI credits.
+- [x] State that segment preview is transient and never creates artifacts, evidence packages, object-storage files, saved rows, or narrated videos.
+- [x] Add a decision record explaining why this slice adds segment-level TTS preview before voice cloning, uploaded reference audio, persistent preview cache, or provider voice browsing.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
 - [ ] Commit with message `Document narration TTS preview workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

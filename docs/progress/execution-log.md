@@ -6,6 +6,54 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Documented the completed narration segment TTS preview workflow in README, Docker E2E guidance, smoke checklist, roadmap, target state, and decision log.
+- Clarified the browser order: edit/select a row, preview transient TTS, adjust text/voice locally, save only when ready, then generate full narration audio/video explicitly.
+- Clarified the terminal order for `scripts/demo/narration-segment-preview.sh`, including text/file input, optional voice, local MP3 output, provider credit warning, and no artifact/evidence/object-storage side effects.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests` passed with `Tests run: 85, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx` passed with `Test Files 3 passed` and `Tests 225 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run` passed with `Test Files 8 passed` and `Tests 256 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Added the terminal narration segment preview script for the same transient TTS preview route.
+- Added `download_narration_segment_preview_audio` to the demo helper library so scripts reuse existing base URL, job-id encoding, and demo-token header behavior.
+- `scripts/demo/narration-segment-preview.sh` accepts `LINGUAFRAME_DEMO_JOB_ID`, `LINGUAFRAME_NARRATION_PREVIEW_TEXT` or `LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE`, optional `LINGUAFRAME_NARRATION_PREVIEW_VOICE`, writes structured request JSON, saves a local MP3 atomically, and prints only safe metadata plus the provider credit warning.
+
+Validation:
+
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` first failed because `scripts/demo/narration-segment-preview.sh` did not exist.
+- After adding the helper and script, `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-segment-preview.sh` exited `2` with `Set LINGUAFRAME_NARRATION_PREVIEW_TEXT or LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE.`, proving the script rejects missing text before calling the API.
+
+## 2026-06-30
+
+Work:
+
+- Continued the narration segment TTS preview workbench feature slice from `docs/plans/147-narration-segment-tts-preview-workbench.md`.
+- Added the frontend transient preview request type and `linguaFrameApi.previewNarrationSegment(...)` blob client for `POST /api/jobs/{jobId}/narration-workspace/segment-preview`.
+- Added a compact `Narration TTS preview` panel between draft history and video preview, using the selected local draft row text/voice, showing the provider credit warning, rendering an audio player from a browser object URL, and revoking old object URLs when previews are replaced or local drafts change.
+- Added App coverage for selected-row preview, unsaved text preview without saving, blank-text disabled state, rejected-preview error handling, and keeping save/generate controls usable after preview errors.
+
+Validation:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "previews one narration segment|previews selected narration segment"` first failed because the `Narration TTS preview` region did not exist.
+- After adding the panel and API wiring, the same command passed with `Test Files 2 passed` and `Tests 2 passed | 212 skipped`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "TTS preview|transient audio blob"` passed with `Test Files 2 passed` and `Tests 3 passed | 214 skipped`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration"` passed with `Test Files 2 passed` and `Tests 38 passed | 179 skipped`; jsdom printed expected navigation warnings from download actions.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration draft history workbench feature slice from `docs/plans/146-narration-draft-history-workbench.md`.
 - Added pure frontend narration draft history helpers for saved/present snapshots, apply, undo, redo, revert-to-saved, mark-saved, and unsaved-change summaries.
 - Draft history helpers clone segment snapshots, keep history in memory only, and summarize added, removed, timing, text, and voice changes without mutating caller-owned rows.
@@ -4362,6 +4410,20 @@ Validation:
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started the narration segment TTS preview workbench feature slice.
+- Added transient backend segment-preview DTO/VO/service/controller support for synthesizing one selected narration row through the configured `TtsProvider`.
+- Added service and controller coverage for blank text, inherited/default voice selection, explicit voice selection, unknown voice rejection, voice length rejection, inline audio response headers, and no artifact creation.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` first failed at test compile because `PreviewNarrationSegmentRequestDto`, `NarrationSegmentPreviewVo`, `NarrationSegmentPreviewService`, and `NarrationSegmentPreviewServiceImpl` did not exist.
+- After implementing the preview contract, the same command failed twice because new controller test fixture ids exceeded the 36-character schema limit.
+- After shortening the test fixture ids, `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` passed with `Tests run: 78, Failures: 0, Errors: 0, Skipped: 0`.
 
 ## 2026-06-30
 
