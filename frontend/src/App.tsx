@@ -8403,6 +8403,22 @@ function DemoAcceptanceGatePanel({
               ))}
             </ul>
           ) : null}
+          {gate.runbookSteps.length > 0 ? (
+            <section className="inline-panel" aria-label="Acceptance resolution runbook">
+              <h4>Resolution runbook</h4>
+              <ul className="compact-list">
+                {gate.runbookSteps.map((step) => (
+                  <li key={step.key}>
+                    <strong>{step.label}: {step.status}</strong>
+                    <span>{step.primaryAction}</span>
+                    <span>{step.detail}</span>
+                    {step.safeCommand ? <code>{step.safeCommand}</code> : null}
+                    {step.safeLink ? <a href={step.safeLink}>Open safe route</a> : null}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
           <div className="snapshot-section-grid">
             <div>
               <h4>Acceptance evidence</h4>

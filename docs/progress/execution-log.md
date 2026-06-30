@@ -4881,6 +4881,26 @@ Validation so far:
 
 Work:
 
+- Started the acceptance resolution runbook feature slice from `docs/plans/161-acceptance-resolution-runbook.md`.
+- Added `DemoAcceptanceGateRunbookStepVo` and `runbookSteps` so failed required checks and warning checks produce metadata-only remediation steps.
+- Added narration-specific remediation for unresolved playback resolution: open playback resolution, focus unresolved rows, save revisions, regenerate narration media, then re-run the acceptance gate.
+- Rendered the browser `Resolution runbook` inside `Demo acceptance gate` and added terminal `demoAcceptanceGateRunbook*` summary lines.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with blocked-gate remediation.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests test` first failed because `DemoAcceptanceGateRunbookStepVo` and `runbookSteps()` did not exist, then passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "blocking narration playback resolution"` first failed because the `Acceptance resolution runbook` region was missing, then passed with `Tests 1 passed | 146 skipped`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because runbook lines were not printed, then passed.
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,LocalizationJobControllerTests#returnsDemoAcceptanceGateForSelectedCompletedJob test` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/demo-acceptance-gate.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 818, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 303 passed`; jsdom printed expected navigation warnings from blob downloads.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 534.99 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
 - Started the narration resolution acceptance gate feature slice from `docs/plans/160-narration-resolution-acceptance-gate.md`.
 - Added narration playback resolution as a required `Demo acceptance gate` check so unresolved narration review rows block final demo readiness.
 - Added acceptance evidence and links for narration resolution status, unresolved rows, text revision rows, rerender rows, and unreviewed rows without exposing narration text or reviewer note bodies.

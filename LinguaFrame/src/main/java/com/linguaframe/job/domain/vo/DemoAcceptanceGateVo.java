@@ -16,6 +16,7 @@ public record DemoAcceptanceGateVo(
         String headline,
         String summary,
         String recommendedNextAction,
+        List<DemoAcceptanceGateRunbookStepVo> runbookSteps,
         List<DemoAcceptanceGateCheckVo> checks,
         List<DemoAcceptanceGateEvidenceVo> evidence,
         List<DemoAcceptanceGateLinkVo> links,

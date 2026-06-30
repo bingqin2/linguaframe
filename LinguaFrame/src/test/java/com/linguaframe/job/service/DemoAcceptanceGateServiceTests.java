@@ -9,6 +9,7 @@ import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.enums.QualityEvaluationStatus;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
+import com.linguaframe.job.domain.vo.DemoAcceptanceGateRunbookStepVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateCheckVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateLinkVo;
@@ -71,6 +72,7 @@ class DemoAcceptanceGateServiceTests {
         assertThat(gate.links()).extracting("kind")
                 .contains("ACCEPTANCE_GATE_JSON", "COMPLETION_CERTIFICATE_JSON", "DEMO_RUN_PACKAGE", "SNAPSHOT_DOWNLOAD");
         assertThat(gate.recommendedNextAction()).contains("Present this run");
+        assertThat(gate.runbookSteps()).isEmpty();
         assertThat(gate.toString())
                 .doesNotContain("sk-test")
                 .doesNotContain("/Users/example")
@@ -99,6 +101,14 @@ class DemoAcceptanceGateServiceTests {
                 .anySatisfy(check -> {
                     assertThat(check.key()).isEqualTo("QUALITY_SCORE_DEMO_READY");
                     assertThat(check.status()).isEqualTo("WARN");
+                });
+        assertThat(gate.runbookSteps())
+                .anySatisfy(step -> {
+                    assertThat(step.key()).isEqualTo("REVIEWED_HANDOFF_AVAILABLE");
+                    assertThat(step.status()).isEqualTo("ATTENTION");
+                    assertThat(step.primaryAction()).isEqualTo("Review this acceptance check, resolve the cited evidence, then re-run the acceptance gate.");
+                    assertThat(step.safeCommand()).isEqualTo("LINGUAFRAME_DEMO_JOB_ID=job-attention scripts/demo/demo-acceptance-gate.sh");
+                    assertThat(step.safeLink()).isEqualTo("/api/jobs/job-attention/demo-acceptance-gate");
                 });
     }
 
@@ -175,6 +185,18 @@ class DemoAcceptanceGateServiceTests {
                 });
         assertThat(gate.links()).extracting("kind")
                 .contains("NARRATION_PLAYBACK_RESOLUTION_JSON", "NARRATION_PLAYBACK_RESOLUTION_MARKDOWN");
+        assertThat(gate.runbookSteps())
+                .anySatisfy(step -> {
+                    assertThat(step).isEqualTo(new DemoAcceptanceGateRunbookStepVo(
+                            "NARRATION_PLAYBACK_RESOLVED",
+                            "Resolve narration playback",
+                            "BLOCKED",
+                            "Narration playback resolution status=ATTENTION; unresolved=2; textRevision=1; rerender=1; unreviewed=0.",
+                            "Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.",
+                            "LINGUAFRAME_DEMO_JOB_ID=job-narration-blocked scripts/demo/narration-playback-review-resolution.sh",
+                            "/api/jobs/job-narration-blocked/narration-playback-review/resolution"
+                    ));
+                });
         assertThat(gate.safetyNotes())
                 .contains("Narration playback resolution is included as metadata-only counts and safe routes; narration text and reviewer note bodies are excluded.");
         assertThat(gate.toString())

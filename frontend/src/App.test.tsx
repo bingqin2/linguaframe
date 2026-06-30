@@ -5676,6 +5676,17 @@ describe('App', () => {
         headline: 'tears-showcase acceptance gate for zh-CN (BLOCKED)',
         summary: 'Job acceptance-narration-blocked-job is COMPLETED with gateStatus=BLOCKED, failedChecks=1, warningChecks=0.',
         recommendedNextAction: 'Resolve failed required checks before using this run for the demo.',
+        runbookSteps: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLVED',
+            label: 'Resolve narration playback',
+            status: 'BLOCKED',
+            detail: 'Narration playback resolution status=ATTENTION; unresolved=2; textRevision=1; rerender=1; unreviewed=0.',
+            primaryAction: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+            safeCommand: 'LINGUAFRAME_DEMO_JOB_ID=acceptance-narration-blocked-job scripts/demo/narration-playback-review-resolution.sh',
+            safeLink: '/api/jobs/acceptance-narration-blocked-job/narration-playback-review/resolution'
+          }
+        ],
         checks: [
           {
             key: 'NARRATION_PLAYBACK_RESOLVED',
@@ -5722,7 +5733,15 @@ describe('App', () => {
     expect(within(gate).getByText('tears-showcase acceptance gate for zh-CN (BLOCKED)')).toBeInTheDocument();
     expect(within(gate).getByText(/Resolve failed required checks/i)).toBeInTheDocument();
     expect(within(gate).getByText('Narration playback resolved: FAIL')).toBeInTheDocument();
-    expect(within(gate).getByText(/unresolved=2; textRevision=1; rerender=1; unreviewed=0/i)).toBeInTheDocument();
+    expect(within(gate).getAllByText(/unresolved=2; textRevision=1; rerender=1; unreviewed=0/i)).toHaveLength(2);
+    const runbook = within(gate).getByRole('region', { name: /acceptance resolution runbook/i });
+    expect(within(runbook).getByText('Resolve narration playback: BLOCKED')).toBeInTheDocument();
+    expect(within(runbook).getByText(/focus unresolved narration rows/i)).toBeInTheDocument();
+    expect(within(runbook).getByText('LINGUAFRAME_DEMO_JOB_ID=acceptance-narration-blocked-job scripts/demo/narration-playback-review-resolution.sh')).toBeInTheDocument();
+    expect(within(runbook).getByRole('link', { name: /open safe route/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/acceptance-narration-blocked-job/narration-playback-review/resolution'
+    );
     expect(within(gate).getByText('ATTENTION (BLOCKED)')).toBeInTheDocument();
     expect(within(gate).queryByText('Explain the first scene')).not.toBeInTheDocument();
     expect(within(gate).queryByText('Do not leak this playback resolution note')).not.toBeInTheDocument();
@@ -7578,6 +7597,7 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
     headline: 'tears-showcase acceptance gate for zh-CN (READY)',
     summary: `Job ${jobId} is COMPLETED with gateStatus=READY, failedChecks=0, warningChecks=0.`,
     recommendedNextAction: 'Present this run using the completion certificate, demo run package, and snapshot.',
+    runbookSteps: [],
     checks: [
       {
         key: 'JOB_COMPLETED',

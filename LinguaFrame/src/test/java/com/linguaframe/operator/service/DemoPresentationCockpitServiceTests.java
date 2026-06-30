@@ -307,6 +307,7 @@ class DemoPresentationCockpitServiceTests {
                 "Gate",
                 "Summary",
                 "Present this run.",
+                List.of(),
                 List.of(new DemoAcceptanceGateCheckVo("JOB_COMPLETED", "Job completed", "PASS", "Completed.", true)),
                 List.of(),
                 List.of(new DemoAcceptanceGateLinkVo("ACCEPTANCE_GATE_JSON", "Acceptance gate JSON", "/api/jobs/" + jobId + "/demo-acceptance-gate")),

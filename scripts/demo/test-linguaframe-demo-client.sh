@@ -1597,6 +1597,17 @@ test_print_demo_acceptance_gate_summary_is_metadata_only() {
   "headline": "tears-showcase acceptance gate",
   "summary": "raw transcript text /Users/example/private.mov sk-test provider payload",
   "recommendedNextAction": "Present this run using the completion certificate, demo run package, and snapshot.",
+  "runbookSteps": [
+    {
+      "key": "NARRATION_PLAYBACK_RESOLVED",
+      "label": "Resolve narration playback",
+      "status": "BLOCKED",
+      "detail": "Narration playback resolution status=ATTENTION; unresolved=2; textRevision=1; rerender=1; unreviewed=0. Do not leak this playback resolution note.",
+      "primaryAction": "Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.",
+      "safeCommand": "LINGUAFRAME_DEMO_JOB_ID=showcase-job scripts/demo/narration-playback-review-resolution.sh",
+      "safeLink": "/api/jobs/showcase-job/narration-playback-review/resolution"
+    }
+  ],
   "checks": [
     {
       "key": "JOB_COMPLETED",
@@ -1689,6 +1700,9 @@ JSON
   [[ "$output" == *"demoAcceptanceGateCheck=JOB_COMPLETED:PASS:required=true"* ]] || fail "acceptance gate summary missed required check"
   [[ "$output" == *"demoAcceptanceGateCheck=BASELINE_RECOMMENDED:WARN:required=false"* ]] || fail "acceptance gate summary missed warning check"
   [[ "$output" == *"demoAcceptanceGateCheck=NARRATION_PLAYBACK_RESOLVED:FAIL:required=true"* ]] || fail "acceptance gate summary missed narration resolution check"
+  [[ "$output" == *"demoAcceptanceGateRunbook=NARRATION_PLAYBACK_RESOLVED:BLOCKED:Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate."* ]] || fail "acceptance gate summary missed runbook step"
+  [[ "$output" == *"demoAcceptanceGateRunbookCommand=NARRATION_PLAYBACK_RESOLVED:LINGUAFRAME_DEMO_JOB_ID=showcase-job scripts/demo/narration-playback-review-resolution.sh"* ]] || fail "acceptance gate summary missed runbook command"
+  [[ "$output" == *"demoAcceptanceGateRunbookLink=NARRATION_PLAYBACK_RESOLVED:/api/jobs/showcase-job/narration-playback-review/resolution"* ]] || fail "acceptance gate summary missed runbook link"
   [[ "$output" == *"demoAcceptanceGateEvidence=MEDIA_OUTPUT_COUNT:1:READY"* ]] || fail "acceptance gate summary missed evidence"
   [[ "$output" == *"demoAcceptanceGateEvidence=NARRATION_PLAYBACK_RESOLUTION_STATUS:ATTENTION:BLOCKED"* ]] || fail "acceptance gate summary missed narration resolution status"
   [[ "$output" == *"demoAcceptanceGateEvidence=NARRATION_PLAYBACK_UNRESOLVED_COUNT:2:BLOCKED"* ]] || fail "acceptance gate summary missed narration unresolved count"

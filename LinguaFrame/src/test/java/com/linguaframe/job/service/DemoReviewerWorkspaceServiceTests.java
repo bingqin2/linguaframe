@@ -222,6 +222,7 @@ class DemoReviewerWorkspaceServiceTests {
                 "Reviewer run",
                 "Safe summary only.",
                 "READY".equals(status) ? "Present this run." : "Fix blockers before presenting.",
+                List.of(),
                 List.of(new DemoAcceptanceGateCheckVo("JOB_COMPLETED", "Job completed", "READY".equals(status) ? "PASS" : "FAIL", "Completion check.", true)),
                 List.of(new DemoAcceptanceGateEvidenceVo("SUBTITLE_OUTPUT_COUNT", "Subtitle outputs", "4", "READY")),
                 List.of(new DemoAcceptanceGateLinkVo("ACCEPTANCE_GATE_JSON", "Acceptance gate", "/api/jobs/job-reviewer/demo-acceptance-gate")),

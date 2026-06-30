@@ -2425,6 +2425,16 @@ export interface DemoAcceptanceGateLink {
   url: string;
 }
 
+export interface DemoAcceptanceGateRunbookStep {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  primaryAction: string;
+  safeCommand: string;
+  safeLink: string;
+}
+
 export interface DemoAcceptanceGate {
   jobId: string;
   videoId: string;
@@ -2436,6 +2446,7 @@ export interface DemoAcceptanceGate {
   headline: string;
   summary: string;
   recommendedNextAction: string;
+  runbookSteps: DemoAcceptanceGateRunbookStep[];
   checks: DemoAcceptanceGateCheck[];
   evidence: DemoAcceptanceGateEvidence[];
   links: DemoAcceptanceGateLink[];
