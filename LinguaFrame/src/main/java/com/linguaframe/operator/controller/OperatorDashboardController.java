@@ -14,6 +14,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoDeliveryReceiptVo;
+import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
@@ -28,6 +29,7 @@ import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import com.linguaframe.operator.service.PrivateDemoRunArchiveService;
 import com.linguaframe.operator.service.PrivateDemoDeliveryReceiptService;
+import com.linguaframe.operator.service.SessionNarrationProductionBoardService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -60,6 +62,7 @@ public class OperatorDashboardController {
     private final DemoSessionEvidencePackageService demoSessionEvidencePackageService;
     private final DemoSessionRecoveryBoardService demoSessionRecoveryBoardService;
     private final OpenAiReadinessEvidenceService openAiReadinessEvidenceService;
+    private final SessionNarrationProductionBoardService sessionNarrationProductionBoardService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -75,7 +78,8 @@ public class OperatorDashboardController {
             DemoSessionCommandCenterService demoSessionCommandCenterService,
             DemoSessionEvidencePackageService demoSessionEvidencePackageService,
             DemoSessionRecoveryBoardService demoSessionRecoveryBoardService,
-            OpenAiReadinessEvidenceService openAiReadinessEvidenceService
+            OpenAiReadinessEvidenceService openAiReadinessEvidenceService,
+            SessionNarrationProductionBoardService sessionNarrationProductionBoardService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -91,6 +95,7 @@ public class OperatorDashboardController {
         this.demoSessionEvidencePackageService = demoSessionEvidencePackageService;
         this.demoSessionRecoveryBoardService = demoSessionRecoveryBoardService;
         this.openAiReadinessEvidenceService = openAiReadinessEvidenceService;
+        this.sessionNarrationProductionBoardService = sessionNarrationProductionBoardService;
     }
 
     @GetMapping("/dashboard")
@@ -292,6 +297,29 @@ public class OperatorDashboardController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-recovery-board.md\"")
                 .contentType(MediaType.TEXT_MARKDOWN)
                 .body(demoSessionRecoveryBoardService.boardMarkdown(limit));
+    }
+
+    @GetMapping("/session-narration-production-board")
+    @Operation(summary = "Get session narration production board")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Session narration production board was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public SessionNarrationProductionBoardVo sessionNarrationProductionBoard(@RequestParam(required = false) Integer limit) {
+        return sessionNarrationProductionBoardService.board(limit);
+    }
+
+    @GetMapping(value = "/session-narration-production-board/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download session narration production board markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Session narration production board markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> sessionNarrationProductionBoardMarkdown(@RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"session-narration-production-board.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(sessionNarrationProductionBoardService.boardMarkdown(limit));
     }
 
     @GetMapping(value = "/demo-session-evidence-package/download", produces = "application/zip")

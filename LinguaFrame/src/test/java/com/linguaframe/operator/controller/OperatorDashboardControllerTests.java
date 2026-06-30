@@ -524,6 +524,49 @@ class OperatorDashboardControllerTests {
         }
 
         @Test
+        void returnsSessionNarrationProductionBoard() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:50:00Z");
+            createJob("session-narration-ready-video", "session-narration-ready-job", "narration-ready.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            createJob("session-narration-author-video", "session-narration-author-job", "narration-author.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt.plusSeconds(10));
+
+            mockMvc.perform(get("/api/operator/session-narration-production-board").param("limit", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.readyToDeliverCount").isNumber())
+                    .andExpect(jsonPath("$.needsAuthoringCount").isNumber())
+                    .andExpect(jsonPath("$.jobs[?(@.jobId == 'session-narration-ready-job')]").exists())
+                    .andExpect(jsonPath("$.links[?(@.href == '/api/operator/session-narration-production-board/markdown/download')]").exists())
+                    .andExpect(jsonPath("$.safetyNotes[0]").value(org.hamcrest.Matchers.containsString("metadata-only")))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                            .doesNotContain("source-videos/session-narration-ready-video")
+                            .doesNotContain("provider payload")
+                            .doesNotContain("raw transcript text")
+                            .doesNotContain("Narration script body"));
+        }
+
+        @Test
+        void downloadsSessionNarrationProductionBoardMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:55:00Z");
+            createJob("session-narration-markdown-video", "session-narration-markdown-job", "session-narration.md.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/session-narration-production-board/markdown/download").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("session-narration-production-board.md"))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Session Narration Production Board", "session-narration-markdown-job")
+                            .doesNotContain("source-videos/session-narration-markdown-video")
+                            .doesNotContain("provider payload")
+                            .doesNotContain("raw transcript text")
+                            .doesNotContain("Narration script body"));
+        }
+
+        @Test
         void downloadsDemoSessionEvidencePackageZip() throws Exception {
             Instant createdAt = Instant.parse("2026-06-27T10:00:00Z");
             createJob("session-package-controller-video", "session-package-controller-job", "session-package.mp4",

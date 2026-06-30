@@ -961,6 +961,123 @@ JSON
   fi
 }
 
+test_session_narration_production_board_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_session_narration_production_board_json "http://example.test" "25" "$TMPDIR/session-narration-production-board.json" \
+    >"$TMPDIR/session-narration-production-board-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_session_narration_production_board_markdown "http://example.test" "25" "$TMPDIR/session-narration-production-board.md" \
+    >"$TMPDIR/session-narration-production-board-markdown-curl.out"
+
+  local json_output markdown_output
+  json_output="$(cat "$TMPDIR/session-narration-production-board-json-curl.out")"
+  markdown_output="$(cat "$TMPDIR/session-narration-production-board-markdown-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/operator/session-narration-production-board?limit=25"* ]] || fail "session narration production board JSON helper used wrong route"
+  [[ "$markdown_output" == *"http://example.test/api/operator/session-narration-production-board/markdown/download?limit=25"* ]] || fail "session narration production board Markdown helper used wrong route"
+
+  cat >"$TMPDIR/session-narration-production-board.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "headline": "1 narration production job is blocked.",
+  "recommendedNextAction": "Open blocked narration production rows.",
+  "readyCount": 1,
+  "needsReviewCount": 1,
+  "needsRenderCount": 1,
+  "needsAuthoringCount": 1,
+  "blockedCount": 1,
+  "notApplicableCount": 0,
+  "primaryAction": {
+    "id": "OPEN_SCENE_BOARD",
+    "label": "Open scene board",
+    "href": "/api/jobs/job-narration-blocked/narration-scene-board",
+    "description": "Inspect blocked scene-board checks.",
+    "primary": true
+  },
+  "jobs": [
+    {
+      "jobId": "job-narration-blocked",
+      "filename": "private-source.mp4",
+      "classification": "BLOCKED",
+      "recommendedNextAction": "Open the narration scene board.",
+      "checks": [
+        {
+          "key": "SCENE_BOARD",
+          "label": "Scene board",
+          "status": "BLOCKED",
+          "message": "Scene board is blocked."
+        }
+      ],
+      "links": [
+        {
+          "kind": "SCENE_BOARD",
+          "label": "Narration scene board",
+          "href": "/api/jobs/job-narration-blocked/narration-scene-board",
+          "contentType": "application/json",
+          "description": "Scene board metadata."
+        }
+      ]
+    },
+    {
+      "jobId": "job-narration-ready",
+      "filename": "ready.mp4",
+      "classification": "READY_TO_DELIVER",
+      "recommendedNextAction": "Download narration delivery package."
+    }
+  ],
+  "links": [
+    {
+      "kind": "MARKDOWN",
+      "label": "Session narration production Markdown",
+      "href": "/api/operator/session-narration-production-board/markdown/download",
+      "contentType": "text/markdown",
+      "description": "Downloadable narration production report."
+    }
+  ],
+  "safetyNotes": [
+    "Session narration production board is metadata-only and read-only."
+  ]
+}
+JSON
+
+  print_session_narration_production_board_summary_file "$TMPDIR/session-narration-production-board.json" \
+    >"$TMPDIR/session-narration-production-board.out"
+  local output
+  output="$(cat "$TMPDIR/session-narration-production-board.out")"
+  [[ "$output" == *"sessionNarrationProductionBoardStatus=BLOCKED"* ]] || fail "session narration production board summary missed status"
+  [[ "$output" == *"sessionNarrationProductionBoardReadyCount=1"* ]] || fail "session narration production board summary missed ready count"
+  [[ "$output" == *"sessionNarrationProductionBoardNeedsReviewCount=1"* ]] || fail "session narration production board summary missed review count"
+  [[ "$output" == *"sessionNarrationProductionBoardNeedsRenderCount=1"* ]] || fail "session narration production board summary missed render count"
+  [[ "$output" == *"sessionNarrationProductionBoardNeedsAuthoringCount=1"* ]] || fail "session narration production board summary missed authoring count"
+  [[ "$output" == *"sessionNarrationProductionBoardBlockedCount=1"* ]] || fail "session narration production board summary missed blocked count"
+  [[ "$output" == *"sessionNarrationProductionBoardFirstBlockedJobId=job-narration-blocked"* ]] || fail "session narration production board summary missed blocked job"
+  [[ "$output" == *"sessionNarrationProductionBoardPrimaryAction=OPEN_SCENE_BOARD"* ]] || fail "session narration production board summary missed primary action"
+  [[ "$output" != *"private-source.mp4"* ]] || fail "session narration production board summary exposed filename"
+
+  cat >"$TMPDIR/session-narration-production-board-unsafe.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "blockedCount": 1,
+  "jobs": [
+    {
+      "jobId": "job-narration-blocked",
+      "localPath": "/Users/example/private.mov",
+      "sourceObjectKey": "source-videos/private.mov",
+      "providerPayload": "raw provider payload",
+      "token": "private-demo-token",
+      "apiKey": "sk-example"
+    }
+  ]
+}
+JSON
+  if print_session_narration_production_board_summary_file "$TMPDIR/session-narration-production-board-unsafe.json" \
+      >"$TMPDIR/session-narration-production-board-unsafe.out" 2>&1; then
+    fail "session narration production board summary accepted unsafe content"
+  fi
+}
+
 test_demo_session_command_center_helpers_include_recovery_summary() {
   cat >"$TMPDIR/command-center.json" <<'JSON'
 {
@@ -3555,6 +3672,7 @@ test_demo_run_launcher_helpers_are_metadata_only
 test_demo_run_launcher_script_exits_on_blocked_state
 test_demo_presentation_cockpit_helpers_are_metadata_only
 test_demo_session_recovery_board_helpers_are_metadata_only
+test_session_narration_production_board_helpers_are_metadata_only
 test_demo_session_command_center_helpers_include_recovery_summary
 test_demo_session_evidence_package_helpers_include_recovery_board_entries
 test_upload_demo_video_includes_subtitle_polishing_mode

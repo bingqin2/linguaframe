@@ -17,6 +17,7 @@ import type {
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
   DemoSessionRecoveryBoard,
+  SessionNarrationProductionBoard,
   DemoRunMonitor,
   DemoReplayCard,
   DemoRunSnapshot,
@@ -162,11 +163,17 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoSessionRecoveryBoard').mockResolvedValue(
       demoSessionRecoveryBoardFixture()
     );
+    vi.spyOn(linguaFrameApi, 'getSessionNarrationProductionBoard').mockResolvedValue(
+      sessionNarrationProductionBoardFixture()
+    );
     vi.spyOn(linguaFrameApi, 'downloadDemoSessionCommandCenterMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Demo Session Command Center'], { type: 'text/markdown' })
     );
     vi.spyOn(linguaFrameApi, 'downloadDemoSessionRecoveryBoardMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Demo Session Recovery Board'], { type: 'text/markdown' })
+    );
+    vi.spyOn(linguaFrameApi, 'downloadSessionNarrationProductionBoardMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Session Narration Production Board'], { type: 'text/markdown' })
     );
     vi.spyOn(linguaFrameApi, 'downloadDemoSessionEvidencePackageZip').mockResolvedValue(
       new Blob(['zip-bytes'], { type: 'application/zip' })
@@ -831,7 +838,7 @@ describe('App', () => {
     const panel = await screen.findByRole('region', {
       name: /demo session recovery board/i
     });
-    expect(within(panel).getByText('BLOCKED')).toBeInTheDocument();
+    expect(within(panel).getAllByText('BLOCKED').length).toBeGreaterThan(0);
     expect(within(panel).getByText('Recover now')).toBeInTheDocument();
     expect(within(panel).getByText('1 job')).toBeInTheDocument();
     expect(within(panel).getByText('job-stale')).toBeInTheDocument();
@@ -848,6 +855,41 @@ describe('App', () => {
     await userEvent.click(within(panel).getByRole('button', { name: /download recovery board/i }));
     expect(downloadSpy).toHaveBeenCalledWith(20);
     expect(panel).not.toHaveTextContent('raw transcript text');
+    expect(panel).not.toHaveTextContent('private-demo-token');
+    expect(panel).not.toHaveTextContent('/Users/');
+  });
+
+  test('shows session narration production board with grouped jobs and markdown export', async () => {
+    const downloadSpy = vi.spyOn(linguaFrameApi, 'downloadSessionNarrationProductionBoardMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Session Narration Production Board'], { type: 'text/markdown' })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', {
+      name: /session narration production board/i
+    });
+    expect(within(panel).getAllByText('BLOCKED').length).toBeGreaterThan(1);
+    expect(within(panel).getByText('Ready')).toBeInTheDocument();
+    expect(within(panel).getByText('Needs review')).toBeInTheDocument();
+    expect(within(panel).getByText('Needs render')).toBeInTheDocument();
+    expect(within(panel).getByText('Needs authoring')).toBeInTheDocument();
+    expect(within(panel).getAllByText('job-narration-blocked').length).toBeGreaterThan(0);
+    expect(within(panel).getAllByText('BLOCKED').length).toBeGreaterThan(1);
+    expect(within(panel).getAllByText('Scene board is blocked.').length).toBeGreaterThan(0);
+    expect(within(panel).getByRole('link', { name: /Narration scene board/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-narration-blocked/narration-scene-board'
+    );
+    expect(within(panel).getByRole('link', { name: /Session narration production Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/session-narration-production-board/markdown/download'
+    );
+
+    await userEvent.click(within(panel).getByRole('button', { name: /download narration production board/i }));
+    expect(downloadSpy).toHaveBeenCalledWith(25);
+    expect(panel).not.toHaveTextContent('Narration script body');
+    expect(panel).not.toHaveTextContent('reviewer note body');
     expect(panel).not.toHaveTextContent('private-demo-token');
     expect(panel).not.toHaveTextContent('/Users/');
   });
@@ -7358,6 +7400,136 @@ function demoSessionRecoveryBoardFixture(
     ],
     safetyNotes: ['Demo session recovery board is metadata-only and read-only.'],
     markdown: '# LinguaFrame Demo Session Recovery Board',
+    ...overrides
+  };
+}
+
+function sessionNarrationProductionBoardFixture(
+  overrides: Partial<SessionNarrationProductionBoard> = {}
+): SessionNarrationProductionBoard {
+  return {
+    generatedAt: '2026-06-30T10:20:00Z',
+    overallStatus: 'BLOCKED',
+    headline: '1 job has blocked narration production evidence.',
+    recommendedNextAction: 'Open blocked narration production rows.',
+    limit: 25,
+    readyToDeliverCount: 1,
+    needsReviewCount: 1,
+    needsRenderCount: 1,
+    needsAuthoringCount: 1,
+    blockedCount: 1,
+    notApplicableCount: 0,
+    primaryAction: {
+      key: 'OPEN_SCENE_BOARD',
+      label: 'Open scene board',
+      href: '/api/jobs/job-narration-blocked/narration-scene-board',
+      detail: 'Inspect blocked scene-board checks.',
+      primary: true
+    },
+    jobs: [
+      {
+        jobId: 'job-narration-blocked',
+        videoId: 'video-narration-blocked',
+        jobStatus: 'COMPLETED',
+        classification: 'BLOCKED',
+        attentionLevel: 'BLOCKED',
+        targetLanguage: 'zh-CN',
+        createdAt: '2026-06-30T09:00:00Z',
+        completedAt: '2026-06-30T09:10:00Z',
+        segmentCount: 2,
+        coveragePercent: '50.00',
+        gapCount: 1,
+        hasOverlap: true,
+        voiceCount: 1,
+        mixKeyframeCount: 1,
+        sceneBoardReady: false,
+        audioReady: false,
+        videoReady: false,
+        renderReviewReady: false,
+        playbackResolved: false,
+        deliveryReady: false,
+        acceptanceReady: false,
+        primaryBlocker: 'Scene board is blocked.',
+        recommendedNextAction: 'Open the narration scene board.',
+        checks: [
+          {
+            key: 'scene-board',
+            label: 'Scene board',
+            status: 'BLOCKED',
+            detail: 'Scene board needs attention.',
+            nextAction: 'Open scene board.',
+            blocking: true
+          }
+        ],
+        actions: [
+          {
+            key: 'OPEN_SCENE_BOARD',
+            label: 'Open scene board',
+            href: '/api/jobs/job-narration-blocked/narration-scene-board',
+            detail: 'Open blocked scene board.',
+            primary: true
+          }
+        ],
+        links: [
+          {
+            key: 'SCENE_BOARD',
+            label: 'Narration scene board',
+            href: '/api/jobs/job-narration-blocked/narration-scene-board',
+            contentType: 'application/json',
+            description: 'Scene board metadata.'
+          }
+        ]
+      },
+      {
+        jobId: 'job-narration-ready',
+        videoId: 'video-narration-ready',
+        jobStatus: 'COMPLETED',
+        classification: 'READY_TO_DELIVER',
+        attentionLevel: 'READY',
+        targetLanguage: 'zh-CN',
+        createdAt: '2026-06-30T08:00:00Z',
+        completedAt: '2026-06-30T08:10:00Z',
+        segmentCount: 4,
+        coveragePercent: '95.00',
+        gapCount: 0,
+        hasOverlap: false,
+        voiceCount: 1,
+        mixKeyframeCount: 2,
+        sceneBoardReady: true,
+        audioReady: true,
+        videoReady: true,
+        renderReviewReady: true,
+        playbackResolved: true,
+        deliveryReady: true,
+        acceptanceReady: true,
+        primaryBlocker: 'Narration delivery evidence is ready.',
+        recommendedNextAction: 'Download narration delivery package.',
+        checks: [],
+        actions: [],
+        links: []
+      }
+    ],
+    checks: [
+      {
+        key: 'blocked',
+        label: 'Blocked',
+        status: 'BLOCKED',
+        detail: '1 job has blocked narration production evidence.',
+        nextAction: 'Open first blocked row.',
+        blocking: true
+      }
+    ],
+    links: [
+      {
+        key: 'MARKDOWN',
+        label: 'Session narration production Markdown',
+        href: '/api/operator/session-narration-production-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable narration production report.'
+      }
+    ],
+    safetyNotes: ['Session narration production board is metadata-only and read-only.'],
+    markdown: '# LinguaFrame Session Narration Production Board',
     ...overrides
   };
 }

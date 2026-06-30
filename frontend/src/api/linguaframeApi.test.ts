@@ -48,6 +48,8 @@ import {
   downloadDemoSessionEvidencePackageZip,
   getDemoSessionRecoveryBoard,
   downloadDemoSessionRecoveryBoardMarkdown,
+  getSessionNarrationProductionBoard,
+  downloadSessionNarrationProductionBoardMarkdown,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,
@@ -2561,6 +2563,50 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches session narration production board with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(sessionNarrationProductionBoardFixture())
+    );
+
+    const board = await getSessionNarrationProductionBoard(9);
+
+    expect(board.overallStatus).toBe('BLOCKED');
+    expect(board.blockedCount).toBe(1);
+    expect(board.jobs[0]?.classification).toBe('BLOCKED');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/session-narration-production-board?limit=9', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads session narration production board markdown with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Session Narration Production Board', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadSessionNarrationProductionBoardMarkdown(9);
+
+    expect(await result.text()).toContain('Session Narration Production Board');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/session-narration-production-board/markdown/download?limit=9',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
   test('fetches private demo operations with demo access token header when stored', async () => {
     writeDemoToken(window.localStorage, 'private-demo-token');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -4305,6 +4351,79 @@ function demoSessionRecoveryBoardFixture() {
     ],
     safetyNotes: ['Demo session recovery board is metadata-only and read-only.'],
     markdown: '# LinguaFrame Demo Session Recovery Board'
+  };
+}
+
+function sessionNarrationProductionBoardFixture() {
+  return {
+    generatedAt: '2026-06-30T10:20:00Z',
+    overallStatus: 'BLOCKED',
+    headline: '1 job has blocked narration production evidence.',
+    recommendedNextAction: 'Open blocked narration rows.',
+    limit: 9,
+    readyToDeliverCount: 1,
+    needsReviewCount: 1,
+    needsRenderCount: 1,
+    needsAuthoringCount: 1,
+    blockedCount: 1,
+    notApplicableCount: 0,
+    primaryAction: {
+      key: 'OPEN_SCENE_BOARD',
+      label: 'Open scene board',
+      href: '/api/jobs/job-blocked/narration-scene-board',
+      detail: 'Inspect blocked scene-board checks.',
+      primary: true
+    },
+    jobs: [
+      {
+        jobId: 'job-blocked',
+        videoId: 'video-blocked',
+        jobStatus: 'COMPLETED',
+        classification: 'BLOCKED',
+        attentionLevel: 'BLOCKED',
+        targetLanguage: 'zh-CN',
+        createdAt: '2026-06-30T09:00:00Z',
+        completedAt: '2026-06-30T09:10:00Z',
+        segmentCount: 2,
+        coveragePercent: '50.00',
+        gapCount: 1,
+        hasOverlap: true,
+        voiceCount: 1,
+        mixKeyframeCount: 1,
+        sceneBoardReady: false,
+        audioReady: false,
+        videoReady: false,
+        renderReviewReady: false,
+        playbackResolved: false,
+        deliveryReady: false,
+        acceptanceReady: false,
+        primaryBlocker: 'Scene board is blocked.',
+        recommendedNextAction: 'Open the narration scene board.',
+        checks: [],
+        actions: [],
+        links: [
+          {
+            key: 'SCENE_BOARD',
+            label: 'Narration scene board',
+            href: '/api/jobs/job-blocked/narration-scene-board',
+            contentType: 'application/json',
+            description: 'Scene board.'
+          }
+        ]
+      }
+    ],
+    checks: [],
+    links: [
+      {
+        key: 'MARKDOWN',
+        label: 'Session narration production Markdown',
+        href: '/api/operator/session-narration-production-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable narration production report.'
+      }
+    ],
+    safetyNotes: ['Session narration production board is metadata-only and read-only.'],
+    markdown: '# LinguaFrame Session Narration Production Board'
   };
 }
 

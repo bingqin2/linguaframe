@@ -810,6 +810,82 @@ export interface DemoSessionRecoveryBoardLink {
   description: string;
 }
 
+export type SessionNarrationProductionBoardStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
+
+export interface SessionNarrationProductionBoard {
+  generatedAt: string;
+  overallStatus: SessionNarrationProductionBoardStatus;
+  headline: string;
+  recommendedNextAction: string;
+  limit: number;
+  readyToDeliverCount: number;
+  needsReviewCount: number;
+  needsRenderCount: number;
+  needsAuthoringCount: number;
+  blockedCount: number;
+  notApplicableCount: number;
+  primaryAction: SessionNarrationProductionAction | null;
+  jobs: SessionNarrationProductionJob[];
+  checks: SessionNarrationProductionCheck[];
+  links: SessionNarrationProductionLink[];
+  safetyNotes: string[];
+  markdown: string;
+}
+
+export interface SessionNarrationProductionJob {
+  jobId: string;
+  videoId: string;
+  jobStatus: LocalizationJobStatus;
+  classification: string;
+  attentionLevel: SessionNarrationProductionBoardStatus;
+  targetLanguage: string;
+  createdAt: string;
+  completedAt: string | null;
+  segmentCount: number;
+  coveragePercent: string;
+  gapCount: number;
+  hasOverlap: boolean;
+  voiceCount: number;
+  mixKeyframeCount: number;
+  sceneBoardReady: boolean;
+  audioReady: boolean;
+  videoReady: boolean;
+  renderReviewReady: boolean;
+  playbackResolved: boolean;
+  deliveryReady: boolean;
+  acceptanceReady: boolean;
+  primaryBlocker: string;
+  recommendedNextAction: string;
+  checks: SessionNarrationProductionCheck[];
+  actions: SessionNarrationProductionAction[];
+  links: SessionNarrationProductionLink[];
+}
+
+export interface SessionNarrationProductionAction {
+  key: string;
+  label: string;
+  href: string;
+  detail: string;
+  primary: boolean;
+}
+
+export interface SessionNarrationProductionCheck {
+  key: string;
+  label: string;
+  status: SessionNarrationProductionBoardStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface SessionNarrationProductionLink {
+  key: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export type ModelUsageLedgerStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
 
 export interface ModelUsageLedger {

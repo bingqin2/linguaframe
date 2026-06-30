@@ -251,6 +251,40 @@ download_demo_session_recovery_board_markdown() {
   demo_curl -fsS "$base_url/api/operator/demo-session-recovery-board/markdown/download$query" -o "$output_path"
 }
 
+session_narration_production_board_query() {
+  local limit="$1"
+
+  python3 - "$limit" <<'PY'
+import sys
+from urllib.parse import urlencode
+
+limit = sys.argv[1].strip()
+print("?" + urlencode({"limit": limit}))
+PY
+}
+
+download_session_narration_production_board_json() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(session_narration_production_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/session-narration-production-board$query" -o "$output_path"
+}
+
+download_session_narration_production_board_markdown() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(session_narration_production_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/session-narration-production-board/markdown/download$query" -o "$output_path"
+}
+
 download_reviewed_subtitle_workflow_json() {
   local base_url="$1"
   local job_id="$2"
@@ -1501,6 +1535,66 @@ print("demoSessionRecoveryBoardFirstRecoverableJobId=" + text(first_recoverable.
 print("demoSessionRecoveryBoardPrimaryAction=" + text(primary_action.get("id", "")))
 print("demoSessionRecoveryBoardJobCount=" + text(len(jobs)))
 print("demoSessionRecoveryBoardJsonPath=" + text(sys.argv[1]))
+PY
+}
+
+print_session_narration_production_board_summary_file() {
+  local board_json_path="$1"
+
+  python3 - "$board_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    board = json.load(handle)
+
+combined = json.dumps(board, ensure_ascii=False)
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "sourceObjectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "Narration script body",
+    "reviewer note body",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for value in forbidden:
+    if value in combined:
+        raise SystemExit("Session narration production board contains forbidden sensitive string: " + value)
+
+jobs = board.get("jobs") or []
+primary_action = board.get("primaryAction") or {}
+first_blocked = next((job for job in jobs if job.get("classification") == "BLOCKED"), {})
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+print("sessionNarrationProductionBoardStatus=" + text(board.get("overallStatus", "")))
+print("sessionNarrationProductionBoardHeadline=" + text(board.get("headline", "")))
+print("sessionNarrationProductionBoardNextAction=" + text(board.get("recommendedNextAction", "")))
+print("sessionNarrationProductionBoardReadyCount=" + text(board.get("readyCount", 0)))
+print("sessionNarrationProductionBoardNeedsReviewCount=" + text(board.get("needsReviewCount", 0)))
+print("sessionNarrationProductionBoardNeedsRenderCount=" + text(board.get("needsRenderCount", 0)))
+print("sessionNarrationProductionBoardNeedsAuthoringCount=" + text(board.get("needsAuthoringCount", 0)))
+print("sessionNarrationProductionBoardBlockedCount=" + text(board.get("blockedCount", 0)))
+print("sessionNarrationProductionBoardNotApplicableCount=" + text(board.get("notApplicableCount", 0)))
+print("sessionNarrationProductionBoardFirstBlockedJobId=" + text(first_blocked.get("jobId", "")))
+print("sessionNarrationProductionBoardPrimaryAction=" + text(primary_action.get("id", "")))
+print("sessionNarrationProductionBoardJobCount=" + text(len(jobs)))
+print("sessionNarrationProductionBoardJsonPath=" + text(sys.argv[1]))
 PY
 }
 
