@@ -1478,6 +1478,9 @@ export interface NarrationSegment {
   durationSeconds: number;
   text: string;
   voice: string | null;
+  duckingVolume?: number | null;
+  narrationVolume?: number | null;
+  fadeDurationMs?: number | null;
   characterCount: number;
   updatedAt: string | null;
 }
@@ -1548,6 +1551,9 @@ export interface SaveNarrationSegment {
   endSeconds: number;
   text: string;
   voice: string | null;
+  duckingVolume?: number | null;
+  narrationVolume?: number | null;
+  fadeDurationMs?: number | null;
 }
 
 export interface SaveNarrationWorkspaceRequest {
@@ -1634,6 +1640,8 @@ export interface NarrationEvidence {
   narrationVolume: number | null;
   fadeDurationMs: number;
   mixSettingsSource: string | null;
+  segmentMixOverrideCount: number;
+  segmentMixOverrideSummary: string;
   checks: NarrationEvidenceCheck[];
   safeLinks: NarrationEvidenceLink[];
   packageEntries: string[];
@@ -1647,6 +1655,9 @@ export interface NarrationScriptPackageSegment {
   durationSeconds: number;
   text: string;
   voice: string | null;
+  duckingVolume?: number | null;
+  narrationVolume?: number | null;
+  fadeDurationMs?: number | null;
   characterCount: number;
   updatedAt: string | null;
 }
@@ -1693,6 +1704,9 @@ export interface ImportNarrationScriptPackageSegmentRequest {
   endSeconds: number;
   text: string;
   voice: string | null;
+  duckingVolume?: number | null;
+  narrationVolume?: number | null;
+  fadeDurationMs?: number | null;
 }
 
 export interface ImportNarrationScriptPackageRequest {

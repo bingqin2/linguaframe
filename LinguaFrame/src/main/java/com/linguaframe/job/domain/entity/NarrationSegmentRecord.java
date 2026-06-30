@@ -11,6 +11,9 @@ public record NarrationSegmentRecord(
         BigDecimal endSeconds,
         String text,
         String voice,
+        BigDecimal duckingVolume,
+        BigDecimal narrationVolume,
+        Integer fadeDurationMs,
         Instant createdAt,
         Instant updatedAt
 ) {

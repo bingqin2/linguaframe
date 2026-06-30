@@ -1950,7 +1950,10 @@ class LocalizationJobControllerTests {
                                       "startSeconds": 15.000,
                                       "endSeconds": 28.000,
                                       "text": "Explain the first scene.",
-                                      "voice": "demo-voice"
+                                      "voice": "demo-voice",
+                                      "duckingVolume": 0.250,
+                                      "narrationVolume": 1.500,
+                                      "fadeDurationMs": 125
                                     },
                                     {
                                       "index": 1,
@@ -1986,6 +1989,12 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.segments[0].endSeconds").value(28.000))
                 .andExpect(jsonPath("$.segments[0].text").value("Explain the first scene."))
                 .andExpect(jsonPath("$.segments[0].voice").value("demo-voice"))
+                .andExpect(jsonPath("$.segments[0].duckingVolume").value(0.250))
+                .andExpect(jsonPath("$.segments[0].narrationVolume").value(1.500))
+                .andExpect(jsonPath("$.segments[0].fadeDurationMs").value(125))
+                .andExpect(jsonPath("$.segments[1].duckingVolume").doesNotExist())
+                .andExpect(jsonPath("$.segments[1].narrationVolume").doesNotExist())
+                .andExpect(jsonPath("$.segments[1].fadeDurationMs").doesNotExist())
                 .andExpect(jsonPath("$.segments[1].durationSeconds").value(15.500));
 
         mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration"))
@@ -1993,6 +2002,9 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.status").value("DRAFT_READY"))
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.350))
                 .andExpect(jsonPath("$.timeline.gapCount").value(1))
+                .andExpect(jsonPath("$.segments[0].duckingVolume").value(0.250))
+                .andExpect(jsonPath("$.segments[0].narrationVolume").value(1.500))
+                .andExpect(jsonPath("$.segments[0].fadeDurationMs").value(125))
                 .andExpect(jsonPath("$.segments[1].text").value("Explain the second scene."));
 
         mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace/mix-settings", "job-controller-job-narration")
@@ -2017,6 +2029,23 @@ class LocalizationJobControllerTests {
                                   "duckingVolume": 1.001,
                                   "narrationVolume": 1.000,
                                   "fadeDurationMs": 250
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-narration")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Invalid override.",
+                                      "duckingVolume": 1.001
+                                    }
+                                  ]
                                 }
                                 """))
                 .andExpect(status().isBadRequest());

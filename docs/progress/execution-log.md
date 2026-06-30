@@ -6,6 +6,28 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started and implemented the narration segment mix automation feature slice from `docs/plans/152-narration-segment-mix-automation.md`.
+- Added nullable `ducking_volume`, `narration_volume`, and `fade_duration_ms` fields to narration segments and round-tripped them through JDBC persistence.
+- Extended narration workspace save/read JSON, script package import/export JSON and Markdown, FFmpeg narration windows, narrated-video generation, narration evidence, terminal narration evidence summaries, and React selected-row inspector controls.
+- Kept job-level mix settings as defaults; blank selected-row values inherit the job mix, while explicit selected-row values override only that narration window.
+- Documented that selected-row mix editing is local until `Save narration` and does not call providers, generate artifacts, or mutate storage.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentRepositoryTests` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=LocalizationJobControllerTests#managesNarrationWorkspaceForLocalizationJob` passed with `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationScriptPackageServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=FfmpegNarratedVideoMixServiceTests` passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarratedVideoServiceTests` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -Dtest=NarrationEvidenceServiceTests` passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts` passed with `Test Files 1 passed` and `Tests 95 passed`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "narration inspector saves segment mix overrides"` passed with `Test Files 1 passed` and `Tests 1 passed | 137 skipped`.
+
+## 2026-06-30
+
+Work:
+
 - Added `frontend/src/domain/narrationTimingAssistant.ts` with non-mutating helpers for timing issue reports, gap closing, overlap resolution, and row-order normalization.
 - Added the browser `Narration timing assistant` panel with material gap/overlap metrics, threshold controls, local close-gaps/resolve-overlaps/normalize-order actions, and draft-history integration.
 - Added `scripts/demo/narration-timing-assistant.sh` and `scripts/demo/README.md` for read-only terminal timing preflight.
@@ -4685,4 +4707,21 @@ Validation:
 - `npm test -- --run` passed with `Test Files 3 passed` and `Tests 189 passed`; jsdom printed expected navigation warnings.
 - `npm run build` passed.
 - `bash -n scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Completed the narration segment mix automation feature slice.
+- Added per-segment ducking, narration gain, and fade override persistence, workspace API fields, script package import/export metadata, effective FFmpeg mix windows, narration evidence summary fields, browser inspector controls, demo terminal summaries, and product docs.
+- Kept job-level mix settings as defaults; blank selected-row values inherit the job defaults and local edits do not call providers or generate artifacts until the operator saves and explicitly renders.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentRepositoryTests,NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests,FfmpegNarratedVideoMixServiceTests,NarratedVideoServiceTests,NarrationEvidenceServiceTests,JobEvidenceReportServiceTests,DemoHandoffPortalServiceTests` passed with `Tests run: 110, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test -q` passed; surefire reports show `files=164 tests=789 failures=0 errors=0 skipped=0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 10 passed` and `Tests 284 passed`; jsdom printed expected navigation warnings.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 510.21 kB bundle.
+- `bash -n scripts/demo/narration-timing-assistant.sh scripts/demo/narration-evidence.sh scripts/demo/narration-script-package.sh scripts/demo/lib/linguaframe-demo.sh` passed.
 - `git diff --check` passed.

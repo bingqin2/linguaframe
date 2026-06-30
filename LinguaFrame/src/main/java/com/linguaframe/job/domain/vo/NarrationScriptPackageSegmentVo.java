@@ -10,6 +10,9 @@ public record NarrationScriptPackageSegmentVo(
         BigDecimal durationSeconds,
         String text,
         String voice,
+        BigDecimal duckingVolume,
+        BigDecimal narrationVolume,
+        Integer fadeDurationMs,
         int characterCount,
         Instant updatedAt
 ) {

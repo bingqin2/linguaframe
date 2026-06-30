@@ -40,6 +40,9 @@ class NarrationSegmentRepositoryTests {
                         new BigDecimal("28.000"),
                         "Explain first scene.",
                         "alloy",
+                        new BigDecimal("0.250"),
+                        new BigDecimal("1.500"),
+                        125,
                         Instant.parse("2026-06-29T10:00:00Z"),
                         Instant.parse("2026-06-29T10:01:00Z")
                 ),
@@ -51,6 +54,9 @@ class NarrationSegmentRepositoryTests {
                         new BigDecimal("70.500"),
                         "Explain second scene.",
                         null,
+                        null,
+                        null,
+                        null,
                         Instant.parse("2026-06-29T10:00:00Z"),
                         Instant.parse("2026-06-29T10:01:00Z")
                 )
@@ -60,10 +66,17 @@ class NarrationSegmentRepositoryTests {
 
         assertThat(records).hasSize(2);
         assertThat(records)
-                .extracting(record -> record.segmentIndex() + ":" + record.startSeconds() + ":" + record.endSeconds() + ":" + record.text() + ":" + record.voice())
+                .extracting(record -> record.segmentIndex()
+                        + ":" + record.startSeconds()
+                        + ":" + record.endSeconds()
+                        + ":" + record.text()
+                        + ":" + record.voice()
+                        + ":" + record.duckingVolume()
+                        + ":" + record.narrationVolume()
+                        + ":" + record.fadeDurationMs())
                 .containsExactly(
-                        "0:15.000:28.000:Explain first scene.:alloy",
-                        "1:55.000:70.500:Explain second scene.:null"
+                        "0:15.000:28.000:Explain first scene.:alloy:0.250:1.500:125",
+                        "1:55.000:70.500:Explain second scene.:null:null:null:null"
                 );
     }
 
@@ -77,6 +90,9 @@ class NarrationSegmentRepositoryTests {
                 new BigDecimal("2.000"),
                 "Old",
                 null,
+                null,
+                null,
+                null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:01:00Z")
         )));
@@ -87,6 +103,9 @@ class NarrationSegmentRepositoryTests {
                 new BigDecimal("3.000"),
                 new BigDecimal("4.000"),
                 "Other",
+                null,
+                null,
+                null,
                 null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:01:00Z")
@@ -100,6 +119,9 @@ class NarrationSegmentRepositoryTests {
                 new BigDecimal("6.000"),
                 "New",
                 "verse",
+                new BigDecimal("0.400"),
+                null,
+                500,
                 Instant.parse("2026-06-29T11:00:00Z"),
                 Instant.parse("2026-06-29T11:01:00Z")
         )));

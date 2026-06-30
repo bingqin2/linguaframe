@@ -7,6 +7,12 @@ public record ImportNarrationScriptPackageSegmentDto(
         BigDecimal startSeconds,
         BigDecimal endSeconds,
         String text,
-        String voice
+        String voice,
+        BigDecimal duckingVolume,
+        BigDecimal narrationVolume,
+        Integer fadeDurationMs
 ) {
+    public ImportNarrationScriptPackageSegmentDto(int index, BigDecimal startSeconds, BigDecimal endSeconds, String text, String voice) {
+        this(index, startSeconds, endSeconds, text, voice, null, null, null);
+    }
 }

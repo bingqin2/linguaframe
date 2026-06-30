@@ -55,7 +55,7 @@ class RuntimeDependencyControllerTests {
         assertThat(body.get("runtime")).isInstanceOf(Map.class);
         Map<?, ?> runtime = (Map<?, ?>) body.get("runtime");
         assertThat(runtime.get("appVersion")).isEqualTo("0.0.1-SNAPSHOT");
-        assertThat(runtime.get("latestMigrationVersion")).isEqualTo(29);
+        assertThat(runtime.get("latestMigrationVersion")).isEqualTo(30);
         assertThat((Iterable<String>) runtime.get("requiredRoutes"))
                 .contains(
                         "/api/runtime/dependencies",

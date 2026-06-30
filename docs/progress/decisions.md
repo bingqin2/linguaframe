@@ -4,6 +4,14 @@ This file records project-level decisions that affect future implementation. Fea
 
 ## 2026-06-30
 
+Decision: Add selected-row narration mix overrides before waveform automation curves.
+
+Reason: Operators need to fix short narration windows that are too loud, too quiet, or need different fade timing without changing the whole job. Nullable numeric overrides reuse the existing mix model, are easy to validate, persist, import/export, and audit, and keep LinguaFrame short of a full nonlinear audio editor.
+
+Impact: Narration rows can optionally override ducking volume, narration volume, and fade duration while inheriting job-level mix settings when blank. Script packages preserve the metadata, narrated-video generation resolves effective per-window values, and narration evidence reports override count/summary without exposing narration text. Local override edits do not call providers, create artifacts, write object storage, or generate media until save/generate actions run.
+
+## 2026-06-30
+
 Decision: Add a local narration timing assistant before decoded waveform editing or multitrack automation.
 
 Reason: Operators can already move, resize, import, and split narration windows, so the next demo bottleneck is quickly detecting and repairing timing problems before spending TTS or render cost. A local assistant improves authoring speed without changing backend persistence, artifact generation, provider calls, or object storage contracts.

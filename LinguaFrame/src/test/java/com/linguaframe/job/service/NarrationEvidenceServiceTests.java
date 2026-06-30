@@ -62,6 +62,8 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(evidence.fadeDurationMs()).isEqualTo(400);
         assertThat(evidence.mixSettingsSource()).isEqualTo("SAVED");
+        assertThat(evidence.segmentMixOverrideCount()).isEqualTo(1);
+        assertThat(evidence.segmentMixOverrideSummary()).isEqualTo("segments=0");
         assertThat(evidence.safeLinks())
                 .extracting(link -> link.href())
                 .contains("/api/jobs/job-narration/narration-evidence/download");
@@ -86,6 +88,8 @@ class NarrationEvidenceServiceTests {
                 .contains("- Narration volume: 1.750")
                 .contains("- Fade duration ms: 400")
                 .contains("- Mix settings source: SAVED")
+                .contains("- Segment mix override count: 1")
+                .contains("- Segment mix override summary: segments=0")
                 .doesNotContain("Explain the first scene")
                 .doesNotContain("Explain the second scene")
                 .doesNotContain("sk-")
@@ -108,7 +112,9 @@ class NarrationEvidenceServiceTests {
                 .contains("\"timelineHasOverlap\":false")
                 .contains("\"voicePresetCount\":1")
                 .contains("\"voiceSummary\":\"PRESET:alloy\"")
-                .contains("\"defaultVoice\":\"demo-voice\"");
+                .contains("\"defaultVoice\":\"demo-voice\"")
+                .contains("\"segmentMixOverrideCount\":1")
+                .contains("\"segmentMixOverrideSummary\":\"segments=0\"");
     }
 
     @Test
@@ -123,6 +129,7 @@ class NarrationEvidenceServiceTests {
         assertThat(evidence.narrationVolume()).isEqualByComparingTo("1.00");
         assertThat(evidence.fadeDurationMs()).isEqualTo(250);
         assertThat(evidence.mixSettingsSource()).isEqualTo("DEFAULTS");
+        assertThat(evidence.segmentMixOverrideCount()).isEqualTo(1);
     }
 
     @Test
@@ -218,6 +225,9 @@ class NarrationEvidenceServiceTests {
                 new BigDecimal(end),
                 text,
                 voice,
+                index == 0 ? new BigDecimal("0.250") : null,
+                index == 0 ? new BigDecimal("1.500") : null,
+                index == 0 ? 125 : null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:00:00Z")
         );

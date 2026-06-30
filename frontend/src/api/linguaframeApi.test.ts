@@ -341,7 +341,10 @@ describe('linguaframeApi', () => {
           startSeconds: 15,
           endSeconds: 28,
           text: 'Explain the first scene.',
-          voice: 'alloy'
+          voice: 'alloy',
+          duckingVolume: 0.25,
+          narrationVolume: 1.5,
+          fadeDurationMs: 125
         }
       ]
     });
@@ -363,7 +366,10 @@ describe('linguaframeApi', () => {
           startSeconds: 15,
           endSeconds: 28,
           text: 'Explain the first scene.',
-          voice: 'alloy'
+          voice: 'alloy',
+          duckingVolume: 0.25,
+          narrationVolume: 1.5,
+          fadeDurationMs: 125
         }
       ]
     });
