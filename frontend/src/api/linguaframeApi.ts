@@ -69,6 +69,7 @@ import type {
   SubtitleDraftSummary,
   SubtitleReviewEvidence,
   SubtitleReviewSummary,
+  StuckJobRecovery,
   SubtitleSegment,
   TranscriptSegment,
   UpdateNarrationMixSettingsRequest,
@@ -478,6 +479,35 @@ export async function getDemoPresenterPack(jobId: string): Promise<DemoPresenter
 export async function getDemoRunMonitor(jobId: string): Promise<DemoRunMonitor> {
   return requestJson<DemoRunMonitor>(`/api/jobs/${encodeURIComponent(jobId)}/demo-run-monitor`, {
     method: 'GET'
+  });
+}
+
+export async function getStuckJobRecovery(jobId: string): Promise<StuckJobRecovery> {
+  return requestJson<StuckJobRecovery>(`/api/jobs/${encodeURIComponent(jobId)}/stuck-job-recovery`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadStuckJobRecoveryMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/stuck-job-recovery/markdown/download`, {
+    method: 'GET'
+  });
+}
+
+export async function runStuckJobRecoveryAction(
+  jobId: string,
+  actionId: string,
+  confirmation: string
+): Promise<StuckJobRecovery> {
+  return requestJson<StuckJobRecovery>(`/api/jobs/${encodeURIComponent(jobId)}/stuck-job-recovery/actions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      actionId,
+      confirmation
+    })
   });
 }
 
@@ -1331,6 +1361,10 @@ export function demoRunMonitorMarkdownDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-monitor/markdown/download`;
 }
 
+export function stuckJobRecoveryMarkdownDownloadUrl(jobId: string): string {
+  return `/api/jobs/${encodeURIComponent(jobId)}/stuck-job-recovery/markdown/download`;
+}
+
 export function demoRunSnapshotDownloadUrl(jobId: string): string {
   return `/api/jobs/${encodeURIComponent(jobId)}/demo-run-snapshot/download`;
 }
@@ -1372,6 +1406,9 @@ export const linguaFrameApi = {
   getDeliveryManifest,
   getDemoRunMatrix,
   getDemoRunMonitor,
+  getStuckJobRecovery,
+  downloadStuckJobRecoveryMarkdown,
+  runStuckJobRecoveryAction,
   getDemoReplayCard,
   getDemoCompletionCertificate,
   getDemoAcceptanceGate,
@@ -1466,6 +1503,7 @@ export const linguaFrameApi = {
   sourceMediaDownloadUrl,
   deliveryManifestMarkdownDownloadUrl,
   demoRunMonitorMarkdownDownloadUrl,
+  stuckJobRecoveryMarkdownDownloadUrl,
   demoRunSnapshotDownloadUrl,
   demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,

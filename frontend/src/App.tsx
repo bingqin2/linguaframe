@@ -134,6 +134,7 @@ import type {
   RuntimeLiveCheckName,
   RuntimeLiveCheckSummary,
   ReviewedSubtitleWorkflow,
+  StuckJobRecovery,
   SubtitleDraftSummary,
   SubtitleReviewDecision,
   SubtitleReviewEvidence,
@@ -579,6 +580,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoRunMonitor, setDemoRunMonitor] = useState<DemoRunMonitor | null>(null);
   const [demoRunMonitorError, setDemoRunMonitorError] = useState<string | null>(null);
   const [isLoadingDemoRunMonitor, setIsLoadingDemoRunMonitor] = useState(false);
+  const [stuckJobRecovery, setStuckJobRecovery] = useState<StuckJobRecovery | null>(null);
+  const [stuckJobRecoveryError, setStuckJobRecoveryError] = useState<string | null>(null);
+  const [isLoadingStuckJobRecovery, setIsLoadingStuckJobRecovery] = useState(false);
+  const [isRunningStuckJobRecoveryAction, setIsRunningStuckJobRecoveryAction] = useState(false);
   const [demoReplayCard, setDemoReplayCard] = useState<DemoReplayCard | null>(null);
   const [demoReplayCardError, setDemoReplayCardError] = useState<string | null>(null);
   const [isLoadingDemoReplayCard, setIsLoadingDemoReplayCard] = useState(false);
@@ -745,6 +750,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setDemoRunMonitorError(toErrorMessage(monitorLoadError));
     } finally {
       setIsLoadingDemoRunMonitor(false);
+    }
+  }, []);
+
+  const loadStuckJobRecovery = useCallback(async (jobId: string) => {
+    setIsLoadingStuckJobRecovery(true);
+    try {
+      const recovery = await linguaFrameApi.getStuckJobRecovery(jobId);
+      setStuckJobRecovery(recovery);
+      setStuckJobRecoveryError(null);
+      return recovery;
+    } catch (recoveryLoadError) {
+      setStuckJobRecovery(null);
+      setStuckJobRecoveryError(toErrorMessage(recoveryLoadError));
+      return null;
+    } finally {
+      setIsLoadingStuckJobRecovery(false);
     }
   }, []);
 
@@ -1404,6 +1425,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     const timer = window.setTimeout(() => {
       void loadJob(job.jobId, { silent: true }).then((nextJob) => {
         void loadSourceMedia(nextJob.videoId);
+        void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadOpenAiSmokeProof(nextJob.jobId);
@@ -1413,7 +1435,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1428,6 +1450,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         setError(null);
         void loadSourceMedia(nextJob.videoId);
         void loadDemoRunMonitor(nextJob.jobId);
+        void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadOpenAiSmokeProof(nextJob.jobId);
@@ -1456,7 +1479,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia, loadStuckJobRecovery]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1725,6 +1748,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
       await loadDemoRunMatrix(upload.jobId);
       await loadDemoRunMonitor(upload.jobId);
+      await loadStuckJobRecovery(upload.jobId);
       await loadDemoPresenterPack(upload.jobId);
       await loadDemoReplayCard(upload.jobId);
       await loadDemoCompletionCertificate(upload.jobId);
@@ -1759,6 +1783,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(jobId, nextJob.targetLanguage ?? targetLanguage);
     await loadDemoRunMatrix(jobId);
     await loadDemoRunMonitor(jobId);
+    await loadStuckJobRecovery(jobId);
     await loadDemoPresenterPack(jobId);
     await loadDemoReplayCard(jobId);
     await loadDemoCompletionCertificate(jobId);
@@ -1784,6 +1809,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(retriedJob.videoId);
       await loadDemoRunMatrix(retriedJob.jobId);
       await loadDemoRunMonitor(retriedJob.jobId);
+      await loadStuckJobRecovery(retriedJob.jobId);
       await loadDemoPresenterPack(retriedJob.jobId);
       await loadDemoReplayCard(retriedJob.jobId);
       await loadDemoCompletionCertificate(retriedJob.jobId);
@@ -1816,6 +1842,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadSourceMedia(cancelledJob.videoId);
       await loadDemoRunMatrix(cancelledJob.jobId);
       await loadDemoRunMonitor(cancelledJob.jobId);
+      await loadStuckJobRecovery(cancelledJob.jobId);
       await loadDemoPresenterPack(cancelledJob.jobId);
       await loadDemoReplayCard(cancelledJob.jobId);
       await loadDemoCompletionCertificate(cancelledJob.jobId);
@@ -1836,6 +1863,32 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handleRunStuckJobRecoveryAction(actionId: string) {
+    if (!job) {
+      return;
+    }
+    const confirmation = window.prompt(`Type ${actionId} to run this recovery action.`);
+    if (confirmation !== actionId) {
+      setStuckJobRecoveryError('Recovery action confirmation did not match the action id.');
+      return;
+    }
+
+    setIsRunningStuckJobRecoveryAction(true);
+    try {
+      const recovery = await linguaFrameApi.runStuckJobRecoveryAction(job.jobId, actionId, confirmation);
+      setStuckJobRecovery(recovery);
+      setStuckJobRecoveryError(null);
+      const nextJob = await loadJob(job.jobId, { silent: true });
+      await loadSourceMedia(nextJob.videoId);
+      await loadDemoRunMonitor(nextJob.jobId);
+      await loadHistory(historyStatusFilter);
+    } catch (recoveryActionError) {
+      setStuckJobRecoveryError(toErrorMessage(recoveryActionError));
+    } finally {
+      setIsRunningStuckJobRecoveryAction(false);
+    }
+  }
+
   async function openRecentJob(recentJob: RecentJob) {
     setSelectedRecentJob(recentJob);
     setManualJobId(recentJob.jobId);
@@ -1851,6 +1904,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(recentJob.jobId, recentJob.targetLanguage);
     await loadDemoRunMatrix(recentJob.jobId);
     await loadDemoRunMonitor(recentJob.jobId);
+    await loadStuckJobRecovery(recentJob.jobId);
     await loadDemoPresenterPack(recentJob.jobId);
     await loadDemoReplayCard(recentJob.jobId);
     await loadDemoCompletionCertificate(recentJob.jobId);
@@ -1879,6 +1933,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(historyJob.jobId, nextJob.targetLanguage ?? historyJob.targetLanguage);
     await loadDemoRunMatrix(historyJob.jobId);
     await loadDemoRunMonitor(historyJob.jobId);
+    await loadStuckJobRecovery(historyJob.jobId);
     await loadDemoPresenterPack(historyJob.jobId);
     await loadDemoReplayCard(historyJob.jobId);
     await loadDemoCompletionCertificate(historyJob.jobId);
@@ -1908,6 +1963,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadPreviewData(failure.jobId, language);
     await loadDemoRunMatrix(failure.jobId);
     await loadDemoRunMonitor(failure.jobId);
+    await loadStuckJobRecovery(failure.jobId);
     await loadDemoPresenterPack(failure.jobId);
     await loadDemoReplayCard(failure.jobId);
     await loadDemoCompletionCertificate(failure.jobId);
@@ -2919,6 +2975,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               demoRunMatrixError={demoRunMatrixError}
               demoRunMonitor={demoRunMonitor}
               demoRunMonitorError={demoRunMonitorError}
+              stuckJobRecovery={stuckJobRecovery}
+              stuckJobRecoveryError={stuckJobRecoveryError}
               demoReplayCard={demoReplayCard}
               demoReplayCardError={demoReplayCardError}
               demoCompletionCertificate={demoCompletionCertificate}
@@ -2945,6 +3003,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoComparison={isLoadingDemoComparison}
               isLoadingDemoRunMatrix={isLoadingDemoRunMatrix}
               isLoadingDemoRunMonitor={isLoadingDemoRunMonitor}
+              isLoadingStuckJobRecovery={isLoadingStuckJobRecovery}
+              isRunningStuckJobRecoveryAction={isRunningStuckJobRecoveryAction}
               isLoadingDemoReplayCard={isLoadingDemoReplayCard}
               isLoadingDemoCompletionCertificate={isLoadingDemoCompletionCertificate}
               isLoadingDemoAcceptanceGate={isLoadingDemoAcceptanceGate}
@@ -2966,6 +3026,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onPinCacheReplayBaseline={handlePinCacheReplayBaseline}
               onRefreshDemoRunMatrix={() => void loadDemoRunMatrix(job.jobId)}
               onRefreshDemoRunMonitor={() => void loadDemoRunMonitor(job.jobId)}
+              onRefreshStuckJobRecovery={() => void loadStuckJobRecovery(job.jobId)}
+              onRunStuckJobRecoveryAction={handleRunStuckJobRecoveryAction}
               onRefreshDemoReplayCard={() => void loadDemoReplayCard(job.jobId)}
               onRefreshDemoCompletionCertificate={() => void loadDemoCompletionCertificate(job.jobId)}
               onRefreshDemoAcceptanceGate={() => void loadDemoAcceptanceGate(job.jobId)}
@@ -5824,6 +5886,8 @@ function JobDetail({
   demoRunMatrixError,
   demoRunMonitor,
   demoRunMonitorError,
+  stuckJobRecovery,
+  stuckJobRecoveryError,
   demoReplayCard,
   demoReplayCardError,
   demoCompletionCertificate,
@@ -5848,6 +5912,8 @@ function JobDetail({
   isLoadingDemoComparison,
   isLoadingDemoRunMatrix,
   isLoadingDemoRunMonitor,
+  isLoadingStuckJobRecovery,
+  isRunningStuckJobRecoveryAction,
   isLoadingDemoReplayCard,
   isLoadingDemoCompletionCertificate,
   isLoadingDemoAcceptanceGate,
@@ -5870,6 +5936,8 @@ function JobDetail({
   onPinCacheReplayBaseline,
   onRefreshDemoRunMatrix,
   onRefreshDemoRunMonitor,
+  onRefreshStuckJobRecovery,
+  onRunStuckJobRecoveryAction,
   onRefreshDemoReplayCard,
   onRefreshDemoCompletionCertificate,
   onRefreshDemoAcceptanceGate,
@@ -5947,6 +6015,8 @@ function JobDetail({
   demoRunMatrixError: string | null;
   demoRunMonitor: DemoRunMonitor | null;
   demoRunMonitorError: string | null;
+  stuckJobRecovery: StuckJobRecovery | null;
+  stuckJobRecoveryError: string | null;
   demoReplayCard: DemoReplayCard | null;
   demoReplayCardError: string | null;
   demoCompletionCertificate: DemoCompletionCertificate | null;
@@ -5973,6 +6043,8 @@ function JobDetail({
   isLoadingDemoComparison: boolean;
   isLoadingDemoRunMatrix: boolean;
   isLoadingDemoRunMonitor: boolean;
+  isLoadingStuckJobRecovery: boolean;
+  isRunningStuckJobRecoveryAction: boolean;
   isLoadingDemoReplayCard: boolean;
   isLoadingDemoCompletionCertificate: boolean;
   isLoadingDemoAcceptanceGate: boolean;
@@ -5994,6 +6066,8 @@ function JobDetail({
   onPinCacheReplayBaseline: () => void;
   onRefreshDemoRunMatrix: () => void;
   onRefreshDemoRunMonitor: () => void;
+  onRefreshStuckJobRecovery: () => void;
+  onRunStuckJobRecoveryAction: (actionId: string) => void;
   onRefreshDemoReplayCard: () => void;
   onRefreshDemoCompletionCertificate: () => void;
   onRefreshDemoAcceptanceGate: () => void;
@@ -6198,6 +6272,16 @@ function JobDetail({
         jobId={job.jobId}
         monitor={demoRunMonitor}
         onRefresh={onRefreshDemoRunMonitor}
+      />
+
+      <StuckJobRecoveryPanel
+        error={stuckJobRecoveryError}
+        isLoading={isLoadingStuckJobRecovery}
+        isRunningAction={isRunningStuckJobRecoveryAction}
+        jobId={job.jobId}
+        onRefresh={onRefreshStuckJobRecovery}
+        onRunAction={onRunStuckJobRecoveryAction}
+        recovery={stuckJobRecovery}
       />
 
       <PipelineProgressPanel progress={job.pipelineProgress} />
@@ -12936,6 +13020,118 @@ function NarrationTimelineWorkbench({
   );
 }
 
+function StuckJobRecoveryPanel({
+  error,
+  isLoading,
+  isRunningAction,
+  jobId,
+  onRefresh,
+  onRunAction,
+  recovery
+}: {
+  error: string | null;
+  isLoading: boolean;
+  isRunningAction: boolean;
+  jobId: string;
+  onRefresh: () => void;
+  onRunAction: (actionId: string) => void;
+  recovery: StuckJobRecovery | null;
+}) {
+  return (
+    <section className="panel demo-run-monitor-panel" aria-label="Stuck job recovery">
+      <div className="panel-heading">
+        <h3>Stuck job recovery</h3>
+        <div className="panel-actions">
+          <button type="button" className="secondary-button" onClick={onRefresh} disabled={isLoading}>
+            {isLoading ? 'Refreshing...' : 'Refresh'}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void downloadStuckJobRecoveryFile(jobId)}
+          >
+            Download recovery Markdown
+          </button>
+          <a className="secondary-link" href={linguaFrameApi.stuckJobRecoveryMarkdownDownloadUrl(jobId)}>
+            Backend Markdown
+          </a>
+        </div>
+      </div>
+      {isLoading && !recovery ? <p className="muted">Loading stuck job recovery...</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+      {recovery ? (
+        <>
+          <dl className="status-grid compact-status-grid">
+            <div>
+              <dt>Attention</dt>
+              <dd>{recovery.attentionLevel}</dd>
+            </div>
+            <div>
+              <dt>Classification</dt>
+              <dd>{recovery.classification}</dd>
+            </div>
+            <div>
+              <dt>Dispatch</dt>
+              <dd>{recovery.dispatchStatus ?? 'N/A'}</dd>
+            </div>
+            <div>
+              <dt>Attempts</dt>
+              <dd>{recovery.dispatchAttempts}</dd>
+            </div>
+            <div>
+              <dt>Age</dt>
+              <dd>{formatDurationSeconds(recovery.ageSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Stale</dt>
+              <dd>{formatDurationSeconds(recovery.staleSeconds)}</dd>
+            </div>
+          </dl>
+          <p>{recovery.headline}</p>
+          <p>
+            <strong>Next action:</strong> {recovery.recommendedNextAction}
+          </p>
+          <div className="action-row">
+            {recovery.actions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className={action.enabled ? 'secondary-button' : 'secondary-button muted-button'}
+                disabled={!action.enabled || isRunningAction}
+                onClick={() => onRunAction(action.id)}
+                title={action.description}
+              >
+                {isRunningAction ? 'Running...' : action.label}
+              </button>
+            ))}
+          </div>
+          <ul className="result-deliverable-list compact-list">
+            {recovery.checks.map((check) => (
+              <li key={check.key}>
+                <div className="result-deliverable-main">
+                  <strong>{check.label}</strong>
+                  <span>{check.detail}</span>
+                  <small>{check.nextAction}</small>
+                </div>
+                <span className={check.status === 'READY' ? 'status-pill ready' : 'status-pill attention'}>
+                  {check.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {recovery.safetyNotes.length > 0 ? (
+            <ul className="compact-list">
+              {recovery.safetyNotes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function formatEvidenceToken(value: string | null | undefined) {
   if (!value || value === 'MISSING') {
     return 'Missing';
@@ -13097,6 +13293,11 @@ async function downloadNarrationRecoveryHandoffFile(jobId: string, format: 'mark
     ? await linguaFrameApi.downloadNarrationRecoveryHandoffMarkdown(jobId)
     : await linguaFrameApi.downloadNarrationRecoveryHandoffZip(jobId);
   downloadBlob(blob, `narration-recovery-handoff-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
+async function downloadStuckJobRecoveryFile(jobId: string) {
+  const blob = await linguaFrameApi.downloadStuckJobRecoveryMarkdown(jobId);
+  downloadBlob(blob, `linguaframe-job-${sanitizeFilename(jobId)}-stuck-job-recovery.md`);
 }
 
 function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {

@@ -55,6 +55,58 @@ export interface DemoRunVarianceReport {
   safetyNotes: string[];
 }
 
+export type StuckJobRecoveryStatus = 'READY' | 'WATCH' | 'ATTENTION' | 'BLOCKED';
+
+export interface StuckJobRecoveryCheck {
+  key: string;
+  label: string;
+  status: StuckJobRecoveryStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface StuckJobRecoveryAction {
+  id: string;
+  label: string;
+  method: string;
+  href: string;
+  enabled: boolean;
+  requiresConfirmation: boolean;
+  description: string;
+}
+
+export interface StuckJobRecoveryLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface StuckJobRecovery {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  status: StuckJobRecoveryStatus;
+  attentionLevel: StuckJobRecoveryStatus;
+  classification: string;
+  headline: string;
+  recommendedNextAction: string;
+  jobStatus: LocalizationJobStatus;
+  dispatchStatus: string | null;
+  dispatchAttempts: number;
+  dispatchedAt: string | null;
+  lastTimelineAt: string | null;
+  ageSeconds: number;
+  staleSeconds: number;
+  checks: StuckJobRecoveryCheck[];
+  actions: StuckJobRecoveryAction[];
+  safeLinks: StuckJobRecoveryLink[];
+  safetyNotes: string[];
+  markdown: string;
+}
+
 export interface DemoEvidenceClosureSection {
   key: string;
   title: string;

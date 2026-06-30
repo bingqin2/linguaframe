@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class JobTimelineEventRepository {
@@ -75,6 +76,27 @@ public class JobTimelineEventRepository {
                 .param("jobId", jobId)
                 .query(this::mapRow)
                 .list();
+    }
+
+    public Optional<JobTimelineEventRecord> findLatestByJobId(String jobId) {
+        return jdbcClient.sql("""
+                        SELECT
+                            id,
+                            job_id,
+                            stage,
+                            status,
+                            message,
+                            duration_ms,
+                            error_summary,
+                            occurred_at
+                        FROM job_timeline_events
+                        WHERE job_id = :jobId
+                        ORDER BY occurred_at DESC, id DESC
+                        LIMIT 1
+                        """)
+                .param("jobId", jobId)
+                .query(this::mapRow)
+                .optional();
     }
 
     public int deleteByJobId(String jobId) {

@@ -41,6 +41,22 @@ Expected:
 - Tags include media uploads, localization jobs, runtime dependencies, prompt templates, operator dashboard, and retention cleanup.
 - Paths cover upload, job detail, event stream, retry/cancel, artifact, diagnostics, transcript, subtitle, runtime dependencies, runtime live checks, prompt-template, operator, and cleanup APIs.
 
+For stuck-job recovery changes, run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -Dtest=StuckJobRecoveryServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "stuck job recovery"
+bash scripts/demo/test-linguaframe-demo-client.sh
+bash -n scripts/demo/stuck-job-recovery.sh scripts/demo/lib/linguaframe-demo.sh
+```
+
+Expected:
+
+- Stale queued jobs classify as `QUEUED_STALE_DISPATCH` and can be requeued only with matching confirmation.
+- Stale processing jobs show cancel guidance without automatic retry.
+- Failed jobs surface retry eligibility through the existing retry semantics.
+- Browser and terminal output stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
+
 For worker logging changes, run:
 
 ```bash
