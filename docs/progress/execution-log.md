@@ -6,6 +6,21 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration voice audition workbench feature slice from `docs/plans/150-narration-voice-audition-workbench.md`.
+- Added a browser `Voice audition` panel driven by the narration voice catalog.
+- The panel previews a selected voice preset with custom sample text through the existing transient segment-preview API, renders a local audio player, and applies the selected voice to the selected row or all local draft rows.
+- Voice audition preview can call the configured TTS provider and may consume credits; apply actions stay local-only and do not save rows, generate media, refresh evidence, create artifacts, or write object storage.
+
+Validation:
+
+- `npm test -- --run src/App.test.tsx -t "voice audition"` first failed because the `Voice audition` region did not exist.
+- After adding the panel, the same command passed with `Test Files 1 passed` and `Tests 5 passed | 130 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 158 passed`; jsdom printed expected navigation warnings from download actions.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration quick script import workbench feature slice from `docs/plans/148-narration-quick-script-import-workbench.md`.
 - Added a pure frontend narration quick-script parser for `START-END | VOICE | TEXT` rows.
 - Parser supports `SS`, `MM:SS`, `HH:MM:SS`, decimal seconds, blank voice inheritance, voice-catalog validation, overlap detection, replace mode, and append mode reindexing without mutating caller-owned rows.

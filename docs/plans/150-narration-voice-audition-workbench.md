@@ -38,25 +38,25 @@
   - A `Voice audition` panel in the narration workspace.
   - Local actions: preview selected preset, apply to selected row, apply to all rows.
 
-- [ ] Write failing App tests proving `Voice audition` renders configured presets and default sample text when a narration workspace is open.
-- [ ] Write failing App tests proving `Preview voice` calls `previewNarrationSegment` with the selected preset and custom audition text, renders an audio player, and shows the provider-credit warning.
-- [ ] Write failing App tests proving preview failure shows an error while leaving save/generate/evidence actions usable.
-- [ ] Write failing App tests proving `Apply to selected row` updates only the selected local draft row voice without calling `saveNarrationWorkspace`.
-- [ ] Write failing App tests proving `Apply to all rows` updates all local draft row voices without saving, generating audio, generating video, or refreshing evidence.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "voice audition"` and verify tests fail because the panel does not exist.
-- [ ] Add local state for audition text, selected voice, preview status, preview error, and preview object URL.
-- [ ] Add `NarrationVoiceAuditionPanel` after the voice preset strip / row editor and before the existing preview/history panels.
-- [ ] Populate the voice select from `workspace.voiceCatalog.presets`, defaulting to `workspace.voiceCatalog.defaultVoice`.
-- [ ] Use a concise default audition text such as `This is a LinguaFrame narration voice preview.`
-- [ ] Implement preview by calling `previewNarrationSegment(jobId, { text: auditionText, voice: selectedVoice })`, revoking previous object URLs when replaced or unmounted.
-- [ ] Implement `Apply to selected row` through the existing local draft update path and keep draft history/validation/export in sync.
-- [ ] Implement `Apply to all rows` through the existing local draft update path and keep draft history/validation/export in sync.
-- [ ] Disable preview when no preset is selected or audition text is blank.
-- [ ] Disable apply buttons when there are no narration rows.
-- [ ] Style the panel with existing compact narration controls; avoid nested cards.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "voice audition"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN UI evidence.
+- [x] Write failing App tests proving `Voice audition` renders configured presets and default sample text when a narration workspace is open.
+- [x] Write failing App tests proving `Preview voice` calls `previewNarrationSegment` with the selected preset and custom audition text, renders an audio player, and shows the provider-credit warning.
+- [x] Write failing App tests proving preview failure shows an error while leaving save/generate/evidence actions usable.
+- [x] Write failing App tests proving `Apply to selected row` updates only the selected local draft row voice without calling `saveNarrationWorkspace`.
+- [x] Write failing App tests proving `Apply to all rows` updates all local draft row voices without saving, generating audio, generating video, or refreshing evidence.
+- [x] Run `npm test -- --run src/App.test.tsx -t "voice audition"` and verify tests fail because the panel does not exist.
+- [x] Add local state for audition text, selected voice, preview status, preview error, and preview object URL.
+- [x] Add `NarrationVoiceAuditionPanel` after the voice preset strip / row editor and before the existing preview/history panels.
+- [x] Populate the voice select from `workspace.voiceCatalog.presets`, defaulting to `workspace.voiceCatalog.defaultVoice`.
+- [x] Use a concise default audition text such as `This is a LinguaFrame narration voice preview.`
+- [x] Implement preview by calling `previewNarrationSegment(jobId, { text: auditionText, voice: selectedVoice })`, revoking previous object URLs when replaced or unmounted.
+- [x] Implement `Apply to selected row` through the existing local draft update path and keep draft history/validation/export in sync.
+- [x] Implement `Apply to all rows` through the existing local draft update path and keep draft history/validation/export in sync.
+- [x] Disable preview when no preset is selected or audition text is blank.
+- [x] Disable apply buttons when there are no narration rows.
+- [x] Style the panel with existing compact narration controls; avoid nested cards.
+- [x] Run `npm test -- --run src/App.test.tsx -t "voice audition"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN UI evidence.
 - [ ] Commit with message `Add narration voice audition workbench`.
 
 ## Task 2: Terminal Voice Audition Script

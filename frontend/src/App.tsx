@@ -9378,12 +9378,19 @@ function NarrationWorkspacePanel({
   const [ttsPreviewStatus, setTtsPreviewStatus] = useState<string | null>(null);
   const [ttsPreviewError, setTtsPreviewError] = useState<string | null>(null);
   const [isPreviewingTts, setIsPreviewingTts] = useState(false);
+  const [auditionText, setAuditionText] = useState('This is a LinguaFrame narration voice preview.');
+  const [auditionVoice, setAuditionVoice] = useState('');
+  const [auditionPreviewUrl, setAuditionPreviewUrl] = useState<string | null>(null);
+  const [auditionStatus, setAuditionStatus] = useState<string | null>(null);
+  const [auditionError, setAuditionError] = useState<string | null>(null);
+  const [isPreviewingAudition, setIsPreviewingAudition] = useState(false);
   const [quickScriptText, setQuickScriptText] = useState('');
   const [quickScriptMode, setQuickScriptMode] = useState<NarrationQuickScriptImportMode>('replace');
   const [quickScriptStatus, setQuickScriptStatus] = useState<string | null>(null);
   const [quickScriptExportStatus, setQuickScriptExportStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
+  const auditionPreviewUrlRef = useRef<string | null>(null);
 
   function replaceTtsPreviewUrl(nextUrl: string | null) {
     if (ttsPreviewUrlRef.current) {
@@ -9399,6 +9406,14 @@ function NarrationWorkspacePanel({
     setTtsPreviewError(null);
   }
 
+  function replaceAuditionPreviewUrl(nextUrl: string | null) {
+    if (auditionPreviewUrlRef.current) {
+      URL.revokeObjectURL(auditionPreviewUrlRef.current);
+    }
+    auditionPreviewUrlRef.current = nextUrl;
+    setAuditionPreviewUrl(nextUrl);
+  }
+
   useEffect(() => {
     setDraftHistory(createNarrationDraftHistory(workspace?.segments ?? []));
     setMixSettings(workspace?.mixSettings ?? null);
@@ -9406,6 +9421,11 @@ function NarrationWorkspacePanel({
     setPreviewCurrentSeconds(0);
     setPreviewWindowEndSeconds(null);
     setEditCommandStatus(null);
+    setAuditionText('This is a LinguaFrame narration voice preview.');
+    setAuditionVoice(workspace?.voiceCatalog?.defaultVoice ?? workspace?.voiceCatalog?.presets[0]?.voice ?? '');
+    replaceAuditionPreviewUrl(null);
+    setAuditionStatus(null);
+    setAuditionError(null);
     setQuickScriptText('');
     setQuickScriptMode('replace');
     setQuickScriptStatus(null);
@@ -9417,6 +9437,10 @@ function NarrationWorkspacePanel({
     if (ttsPreviewUrlRef.current) {
       URL.revokeObjectURL(ttsPreviewUrlRef.current);
       ttsPreviewUrlRef.current = null;
+    }
+    if (auditionPreviewUrlRef.current) {
+      URL.revokeObjectURL(auditionPreviewUrlRef.current);
+      auditionPreviewUrlRef.current = null;
     }
   }, []);
 
@@ -9474,6 +9498,30 @@ function NarrationWorkspacePanel({
     setEditCommandStatus(actionLabel);
     setQuickScriptExportStatus(null);
     clearTtsPreview('TTS preview cleared because the narration draft changed.');
+  }
+
+  function applyAuditionVoiceToSelected() {
+    if (!auditionVoice || segments.length === 0 || !selectedSegment) {
+      setAuditionStatus('Select a voice and narration row before applying.');
+      return;
+    }
+    const nextSegments = segments.map((segment, index) => (
+      index === selectedIndex ? { ...segment, voice: auditionVoice } : segment
+    ));
+    commitDraftChange(nextSegments, `Applied ${auditionVoice} to narration ${selectedIndex + 1}.`, selectedIndex);
+    setAuditionStatus(`Applied ${auditionVoice} to narration ${selectedIndex + 1}.`);
+    setAuditionError(null);
+  }
+
+  function applyAuditionVoiceToAll() {
+    if (!auditionVoice || segments.length === 0) {
+      setAuditionStatus('Select a voice and narration row before applying.');
+      return;
+    }
+    const nextSegments = segments.map((segment) => ({ ...segment, voice: auditionVoice }));
+    commitDraftChange(nextSegments, `Applied ${auditionVoice} to ${segments.length} narration rows.`, selectedIndex);
+    setAuditionStatus(`Applied ${auditionVoice} to ${segments.length} narration ${segments.length === 1 ? 'row' : 'rows'}.`);
+    setAuditionError(null);
   }
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
@@ -9673,6 +9721,38 @@ function NarrationWorkspacePanel({
     }
   }
 
+  async function previewAuditionVoice() {
+    const text = auditionText.trim();
+    if (!text) {
+      setAuditionError('Audition text is required.');
+      setAuditionStatus(null);
+      return;
+    }
+    if (!auditionVoice) {
+      setAuditionError('Audition voice is required.');
+      setAuditionStatus(null);
+      return;
+    }
+    setIsPreviewingAudition(true);
+    setAuditionError(null);
+    setAuditionStatus('Previewing audition voice...');
+    try {
+      const blob = await linguaFrameApi.previewNarrationSegment(jobId, {
+        text,
+        voice: auditionVoice
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      replaceAuditionPreviewUrl(objectUrl);
+      setAuditionStatus(`Voice preview ready for ${auditionVoice}.`);
+    } catch (previewError) {
+      replaceAuditionPreviewUrl(null);
+      setAuditionStatus(null);
+      setAuditionError(toErrorMessage(previewError));
+    } finally {
+      setIsPreviewingAudition(false);
+    }
+  }
+
   return (
     <section id="narration-workspace" className="panel narration-workspace-panel" aria-label="Narration workspace">
       <div className="panel-heading">
@@ -9756,6 +9836,29 @@ function NarrationWorkspacePanel({
             status={ttsPreviewStatus}
             voiceCatalog={workspace?.voiceCatalog ?? null}
             onPreview={() => void previewSelectedNarrationSegmentTts()}
+          />
+          <NarrationVoiceAuditionPanel
+            auditionText={auditionText}
+            auditionVoice={auditionVoice}
+            error={auditionError}
+            isPreviewing={isPreviewingAudition}
+            previewUrl={auditionPreviewUrl}
+            rowCount={segments.length}
+            status={auditionStatus}
+            voiceCatalog={workspace?.voiceCatalog ?? null}
+            onApplyAll={applyAuditionVoiceToAll}
+            onApplySelected={applyAuditionVoiceToSelected}
+            onAuditionTextChange={(value) => {
+              setAuditionText(value);
+              setAuditionStatus(null);
+              setAuditionError(null);
+            }}
+            onAuditionVoiceChange={(value) => {
+              setAuditionVoice(value);
+              setAuditionStatus(null);
+              setAuditionError(null);
+            }}
+            onPreview={() => void previewAuditionVoice()}
           />
           <NarrationQuickScriptImportPanel
             mode={quickScriptMode}
@@ -9961,6 +10064,94 @@ function NarrationTtsPreviewPanel({
         <audio aria-label="Narration TTS preview player" controls src={previewUrl} />
       ) : (
         <p className="muted">No segment preview audio generated yet.</p>
+      )}
+      {status ? <p className="narration-command-status">{status}</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
+    </section>
+  );
+}
+
+function NarrationVoiceAuditionPanel({
+  auditionText,
+  auditionVoice,
+  error,
+  isPreviewing,
+  onApplyAll,
+  onApplySelected,
+  onAuditionTextChange,
+  onAuditionVoiceChange,
+  onPreview,
+  previewUrl,
+  rowCount,
+  status,
+  voiceCatalog
+}: {
+  auditionText: string;
+  auditionVoice: string;
+  error: string | null;
+  isPreviewing: boolean;
+  onApplyAll: () => void;
+  onApplySelected: () => void;
+  onAuditionTextChange: (value: string) => void;
+  onAuditionVoiceChange: (value: string) => void;
+  onPreview: () => void;
+  previewUrl: string | null;
+  rowCount: number;
+  status: string | null;
+  voiceCatalog: NarrationWorkspace['voiceCatalog'] | null;
+}) {
+  const voiceOptions = voiceCatalog?.presets ?? [];
+  const canPreview = Boolean(auditionVoice && auditionText.trim()) && !isPreviewing;
+  const canApply = Boolean(auditionVoice) && rowCount > 0;
+
+  return (
+    <section className="narration-voice-audition" aria-label="Voice audition">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Voice audition</h4>
+          <p className="muted">Preview a configured preset, then apply it to local draft rows.</p>
+        </div>
+        <span className={previewUrl ? 'status-pill ready' : 'status-pill attention'}>
+          {previewUrl ? 'Audio ready' : 'Needs preview'}
+        </span>
+      </div>
+      <p className="muted">
+        Preview calls the configured TTS provider and may consume credits; apply only changes the local draft.
+      </p>
+      <div className="voice-audition-grid">
+        <label>
+          Audition voice
+          <select
+            aria-label="Audition voice"
+            value={auditionVoice}
+            onChange={(event) => onAuditionVoiceChange(event.target.value)}
+          >
+            {voiceOptions.map((preset) => (
+              <option key={preset.voice} value={preset.voice}>{preset.label}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Audition text
+          <textarea
+            aria-label="Audition text"
+            rows={3}
+            value={auditionText}
+            onChange={(event) => onAuditionTextChange(event.target.value)}
+          />
+        </label>
+      </div>
+      <div className="narration-command-buttons">
+        <button type="button" disabled={!canPreview} onClick={onPreview}>
+          {isPreviewing ? 'Previewing...' : 'Preview voice'}
+        </button>
+        <button type="button" disabled={!canApply} onClick={onApplySelected}>Apply to selected row</button>
+        <button type="button" disabled={!canApply} onClick={onApplyAll}>Apply to all rows</button>
+      </div>
+      {previewUrl ? (
+        <audio aria-label="Voice audition preview player" controls src={previewUrl} />
+      ) : (
+        <p className="muted">No voice audition audio generated yet.</p>
       )}
       {status ? <p className="narration-command-status">{status}</p> : null}
       {error ? <p className="error-text">{error}</p> : null}

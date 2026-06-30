@@ -611,7 +611,8 @@ td {
   font-weight: 700;
 }
 
-.narration-tts-preview {
+.narration-tts-preview,
+.narration-voice-audition {
   display: grid;
   gap: 0.65rem;
   min-width: 560px;
@@ -622,24 +623,57 @@ td {
   background: #ffffff;
 }
 
-.narration-tts-preview h4 {
+.narration-tts-preview h4,
+.narration-voice-audition h4 {
   margin: 0;
 }
 
-.narration-tts-preview .compact-panel-heading {
+.narration-tts-preview .compact-panel-heading,
+.narration-voice-audition .compact-panel-heading {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: start;
 }
 
-.narration-tts-preview .muted {
+.narration-tts-preview .muted,
+.narration-voice-audition .muted {
   margin: 0;
 }
 
-.narration-tts-preview audio {
+.narration-tts-preview audio,
+.narration-voice-audition audio {
   width: 100%;
   min-height: 40px;
+}
+
+.voice-audition-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.35fr) minmax(260px, 1fr);
+  gap: 0.75rem;
+}
+
+.voice-audition-grid label {
+  display: grid;
+  gap: 0.35rem;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.voice-audition-grid select,
+.voice-audition-grid textarea {
+  width: 100%;
+  border: 1px solid #cbd5de;
+  border-radius: 6px;
+  padding: 0.62rem;
+  color: #1f2933;
+  font: inherit;
+}
+
+.voice-audition-grid textarea {
+  resize: vertical;
+  line-height: 1.45;
 }
 
 .narration-quick-script-import,
