@@ -88,7 +88,7 @@
 - [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` and verify it passes.
 - [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
 - [x] Update execution log with RED/GREEN UI evidence.
-- [ ] Commit with message `Add narration quick script import workbench`.
+- [x] Commit with message `Add narration quick script import workbench`.
 
 ## Task 3: Documentation, Validation, And Merge
 
@@ -102,18 +102,18 @@
 - Modify: `docs/progress/execution-log.md`
 - Modify: `docs/plans/148-narration-quick-script-import-workbench.md`
 
-- [ ] Document browser order: paste quick script, inspect parsed rows/errors, replace or append local draft, preview selected TTS, save when ready, then generate narration audio/video.
-- [ ] Document supported line format and timestamp examples.
-- [ ] State that quick import is local-only and does not save rows, call providers, create artifacts, update evidence, or write object storage.
-- [ ] Add a decision record explaining why this slice uses a compact text importer before full timeline templates, file upload import, voice cloning, or provider voice browsing.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationSegmentPreviewServiceTests,NarrationScriptPackageServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification evidence.
+- [x] Document browser order: paste quick script, inspect parsed rows/errors, replace or append local draft, preview selected TTS, save when ready, then generate narration audio/video.
+- [x] Document supported line format and timestamp examples.
+- [x] State that quick import is local-only and does not save rows, call providers, create artifacts, update evidence, or write object storage.
+- [x] Add a decision record explaining why this slice uses a compact text importer before full timeline templates, file upload import, voice cloning, or provider voice browsing.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationSegmentPreviewServiceTests,NarrationScriptPackageServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification evidence.
 - [ ] Commit with message `Document narration quick script import`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

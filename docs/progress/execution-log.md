@@ -4489,6 +4489,23 @@ Validation:
 - `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 131 passed`; jsdom printed expected navigation warnings.
 - `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 146 passed`; jsdom printed expected navigation warnings.
 
+Work:
+
+- Documented quick script import in README, Docker E2E guidance, smoke-test checklist, roadmap, target state, and decisions.
+- The docs now show browser order: paste quick rows, inspect parsed rows/errors, replace or append the local draft, optionally preview selected-row TTS, save when ready, then generate narration audio/video.
+- The documented format is `START-END | VOICE | TEXT`, with `SS`, `MM:SS`, and `HH:MM:SS` timestamp support and blank voice for inherited/default voice.
+- The docs state that quick import is local-only and does not save rows, call providers, create artifacts, update evidence, generate video, or write object storage.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 146 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run` passed with `Test Files 9 passed` and `Tests 265 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationSegmentPreviewServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 90, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
 ## 2026-06-30
 
 Work:
