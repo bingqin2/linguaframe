@@ -107,6 +107,9 @@ import type {
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
+  NarrationPlaybackIssueCategory,
+  NarrationPlaybackReview,
+  NarrationPlaybackReviewDecision,
   NarrationRenderReview,
   NarrationMixKeyframe,
   NarrationMixLane,
@@ -9416,6 +9419,8 @@ function NarrationWorkspacePanel({
   const [timingAssistantStatus, setTimingAssistantStatus] = useState<string | null>(null);
   const [decodedWaveform, setDecodedWaveform] = useState<NarrationWaveform | null>(null);
   const [renderReview, setRenderReview] = useState<NarrationRenderReview | null>(null);
+  const [playbackReview, setPlaybackReview] = useState<NarrationPlaybackReview | null>(null);
+  const [playbackReviewStatus, setPlaybackReviewStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
   const auditionPreviewUrlRef = useRef<string | null>(null);
@@ -9522,6 +9527,26 @@ function NarrationWorkspacePanel({
       .catch(() => {
         if (active) {
           setRenderReview(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [artifactSignature, jobId, workspace?.segmentCount, workspace?.totalDurationSeconds]);
+
+  useEffect(() => {
+    let active = true;
+    setPlaybackReview(null);
+    setPlaybackReviewStatus(null);
+    linguaFrameApi.getNarrationPlaybackReview(jobId)
+      .then((review) => {
+        if (active) {
+          setPlaybackReview(review);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPlaybackReview(null);
         }
       });
     return () => {
@@ -9928,6 +9953,24 @@ function NarrationWorkspacePanel({
     }
   }
 
+  async function savePlaybackReviewSegment(
+    segmentIndex: number,
+    request: {
+      decision: NarrationPlaybackReviewDecision;
+      issueCategories: NarrationPlaybackIssueCategory[];
+      reviewerNote: string;
+    }
+  ) {
+    setPlaybackReviewStatus(null);
+    try {
+      const review = await linguaFrameApi.updateNarrationPlaybackReviewSegment(jobId, segmentIndex, request);
+      setPlaybackReview(review);
+      setPlaybackReviewStatus(`Playback review saved for segment ${segmentIndex + 1}.`);
+    } catch (playbackError) {
+      setPlaybackReviewStatus(toErrorMessage(playbackError));
+    }
+  }
+
   return (
     <section id="narration-workspace" className="panel narration-workspace-panel" aria-label="Narration workspace">
       <div className="panel-heading">
@@ -10117,6 +10160,12 @@ function NarrationWorkspacePanel({
           onUpdateSegment={updateSegment}
         />
         <NarrationRenderReviewPanel jobId={jobId} review={renderReview} />
+        <NarrationPlaybackReviewPanel
+          jobId={jobId}
+          review={playbackReview}
+          status={playbackReviewStatus}
+          onSaveSegment={(segmentIndex, request) => void savePlaybackReviewSegment(segmentIndex, request)}
+        />
         <NarrationScriptPackagePanel
           isImporting={isSaving}
           jobId={jobId}
@@ -10787,6 +10836,200 @@ function NarrationRenderReviewPanel({
       ) : (
         <p className="muted">Open a job with narration metadata to show render checks.</p>
       )}
+    </section>
+  );
+}
+
+const PLAYBACK_REVIEW_DECISIONS: NarrationPlaybackReviewDecision[] = [
+  'UNREVIEWED',
+  'ACCEPTED',
+  'NEEDS_EDIT',
+  'NEEDS_RERENDER'
+];
+
+const PLAYBACK_REVIEW_ISSUES: NarrationPlaybackIssueCategory[] = [
+  'TIMING',
+  'VOICE',
+  'TEXT',
+  'MIX',
+  'VIDEO',
+  'OTHER'
+];
+
+function NarrationPlaybackReviewPanel({
+  jobId,
+  onSaveSegment,
+  review,
+  status
+}: {
+  jobId: string;
+  onSaveSegment: (
+    segmentIndex: number,
+    request: {
+      decision: NarrationPlaybackReviewDecision;
+      issueCategories: NarrationPlaybackIssueCategory[];
+      reviewerNote: string;
+    }
+  ) => void;
+  review: NarrationPlaybackReview | null;
+  status: string | null;
+}) {
+  return (
+    <section className="script-package-panel" aria-label="Narration playback review">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Playback review</h4>
+          <p className="muted">{review ? review.nextAction : 'Playback review workspace is loading.'}</p>
+        </div>
+        <button type="button" onClick={() => void downloadNarrationPlaybackReviewFile(jobId)} disabled={!review}>
+          Download playback review Markdown
+        </button>
+      </div>
+      {review ? (
+        <>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Status</dt>
+              <dd>{review.status}</dd>
+            </div>
+            <div>
+              <dt>Reviewed</dt>
+              <dd>{review.reviewedSegmentCount} / {review.segmentCount}</dd>
+            </div>
+            <div>
+              <dt>Accepted</dt>
+              <dd>{review.acceptedSegmentCount}</dd>
+            </div>
+            <div>
+              <dt>Needs edit</dt>
+              <dd>{review.needsEditCount}</dd>
+            </div>
+            <div>
+              <dt>Needs rerender</dt>
+              <dd>{review.needsRerenderCount}</dd>
+            </div>
+            <div>
+              <dt>Unreviewed</dt>
+              <dd>{review.unreviewedSegmentCount}</dd>
+            </div>
+          </dl>
+          {status ? <p className="narration-command-status">{status}</p> : null}
+          <div className="playback-review-segments">
+            {review.segments.map((segment) => (
+              <NarrationPlaybackReviewSegmentRow
+                key={segment.segmentIndex}
+                segment={segment}
+                onSave={onSaveSegment}
+              />
+            ))}
+          </div>
+          <ul className="safe-link-list">
+            {review.safeLinks.map((link) => (
+              <li key={link.kind}>
+                <code>{link.kind}</code> {link.href}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">Open a job with narration metadata to review playback decisions.</p>
+      )}
+    </section>
+  );
+}
+
+function NarrationPlaybackReviewSegmentRow({
+  onSave,
+  segment
+}: {
+  onSave: (
+    segmentIndex: number,
+    request: {
+      decision: NarrationPlaybackReviewDecision;
+      issueCategories: NarrationPlaybackIssueCategory[];
+      reviewerNote: string;
+    }
+  ) => void;
+  segment: NarrationPlaybackReview['segments'][number];
+}) {
+  const [decision, setDecision] = useState<NarrationPlaybackReviewDecision>(segment.decision);
+  const [issueCategories, setIssueCategories] = useState<NarrationPlaybackIssueCategory[]>(segment.issueCategories);
+  const [reviewerNote, setReviewerNote] = useState('');
+
+  useEffect(() => {
+    setDecision(segment.decision);
+    setIssueCategories(segment.issueCategories);
+    setReviewerNote('');
+  }, [segment]);
+
+  function toggleIssue(category: NarrationPlaybackIssueCategory) {
+    setIssueCategories((current) => (
+      current.includes(category)
+        ? current.filter((item) => item !== category)
+        : [...current, category]
+    ));
+  }
+
+  return (
+    <section className="playback-review-segment" aria-label={`Playback review segment ${segment.segmentIndex + 1}`}>
+      <div className="compact-panel-heading">
+        <div>
+          <h5>Segment {segment.segmentIndex + 1}</h5>
+          <p className="muted">
+            {formatSeconds(segment.startSeconds)}-{formatSeconds(segment.endSeconds)} · {formatSeconds(segment.durationSeconds)}
+            {segment.reviewerNotePresent ? ' · reviewer note saved' : ''}
+          </p>
+        </div>
+        <span className={segment.decision === 'ACCEPTED' ? 'status-pill ready' : 'status-pill attention'}>
+          {segment.decision}
+        </span>
+      </div>
+      <label>
+        <span>Decision</span>
+        <select
+          aria-label={`Playback decision for segment ${segment.segmentIndex + 1}`}
+          value={decision}
+          onChange={(event) => setDecision(event.target.value as NarrationPlaybackReviewDecision)}
+        >
+          {PLAYBACK_REVIEW_DECISIONS.map((item) => (
+            <option key={item} value={item}>{item}</option>
+          ))}
+        </select>
+      </label>
+      <div className="playback-review-issues" aria-label={`Playback issues for segment ${segment.segmentIndex + 1}`}>
+        {PLAYBACK_REVIEW_ISSUES.map((category) => (
+          <label key={category}>
+            <input
+              aria-label={`${category} issue for segment ${segment.segmentIndex + 1}`}
+              type="checkbox"
+              checked={issueCategories.includes(category)}
+              onChange={() => toggleIssue(category)}
+            />
+            <span>{category}</span>
+          </label>
+        ))}
+      </div>
+      <label>
+        <span>Reviewer note</span>
+        <textarea
+          aria-label={`Reviewer note for segment ${segment.segmentIndex + 1}`}
+          maxLength={1000}
+          placeholder={segment.reviewerNotePresent ? 'Existing note is stored but not displayed.' : 'Optional private review note.'}
+          rows={2}
+          value={reviewerNote}
+          onChange={(event) => setReviewerNote(event.target.value)}
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() => onSave(segment.segmentIndex, {
+          decision,
+          issueCategories,
+          reviewerNote
+        })}
+      >
+        Save playback review for segment {segment.segmentIndex + 1}
+      </button>
     </section>
   );
 }
@@ -12451,6 +12694,11 @@ async function downloadNarrationScriptPackageFile(jobId: string, format: 'markdo
 async function downloadNarrationRenderReviewFile(jobId: string) {
   const blob = await linguaFrameApi.downloadNarrationRenderReviewMarkdown(jobId);
   downloadBlob(blob, `narration-render-review-${jobId}.md`);
+}
+
+async function downloadNarrationPlaybackReviewFile(jobId: string) {
+  const blob = await linguaFrameApi.downloadNarrationPlaybackReviewMarkdown(jobId);
+  downloadBlob(blob, `narration-playback-review-${jobId}.md`);
 }
 
 function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {

@@ -35,6 +35,7 @@ import type {
   NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationGeneration,
+  NarrationPlaybackReview,
   NarrationRenderReview,
   NarrationScriptPackage,
   NarrationWaveform,
@@ -130,6 +131,7 @@ describe('App', () => {
       fallbackReason: 'No decoded audio source is available for this job.'
     });
     vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -3676,6 +3678,89 @@ describe('App', () => {
     await userEvent.click(within(reviewPanel).getByRole('button', { name: /download review markdown/i }));
 
     expect(downloadReview).toHaveBeenCalledWith('narration-render-review-job');
+  });
+
+  test('renders and saves narration playback review decisions', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-playback-review-job', videoId: 'narration-playback-review-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-playback-review-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue(narrationWaveformFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture({
+      jobId: 'narration-playback-review-job'
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture({
+      jobId: 'narration-playback-review-job'
+    }));
+    const updatePlaybackReview = vi.spyOn(linguaFrameApi, 'updateNarrationPlaybackReviewSegment')
+      .mockResolvedValue(narrationPlaybackReviewFixture({
+        jobId: 'narration-playback-review-job',
+        status: 'READY',
+        reviewedSegmentCount: 2,
+        acceptedSegmentCount: 2,
+        needsEditCount: 0,
+        unreviewedSegmentCount: 0,
+        segments: [
+          {
+            segmentIndex: 0,
+            startSeconds: 15,
+            endSeconds: 28,
+            durationSeconds: 13,
+            decision: 'ACCEPTED',
+            issueCategories: [],
+            reviewerNotePresent: false,
+            reviewedAt: '2026-06-30T07:10:00Z'
+          },
+          {
+            segmentIndex: 1,
+            startSeconds: 55,
+            endSeconds: 70,
+            durationSeconds: 15,
+            decision: 'ACCEPTED',
+            issueCategories: [],
+            reviewerNotePresent: false,
+            reviewedAt: '2026-06-30T07:11:00Z'
+          }
+        ]
+      }));
+    const downloadPlaybackReview = vi.spyOn(linguaFrameApi, 'downloadNarrationPlaybackReviewMarkdown')
+      .mockResolvedValue(new Blob(['# Narration Playback Review'], { type: 'text/markdown' }));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-playback-review-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const playbackPanel = within(narrationPanel).getByRole('region', { name: /narration playback review/i });
+
+    expect(within(playbackPanel).getByText('Playback review')).toBeInTheDocument();
+    expect(within(playbackPanel).getByText((_content, element) => element?.textContent === 'StatusATTENTION')).toBeInTheDocument();
+    expect(within(playbackPanel).getByText((_content, element) => element?.textContent === 'Reviewed1 / 2')).toBeInTheDocument();
+    expect(within(playbackPanel).getByText('Segment 1')).toBeInTheDocument();
+    expect(within(playbackPanel).queryByText('Do not leak this playback reviewer note.')).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(within(playbackPanel).getByLabelText('Playback decision for segment 1'), 'ACCEPTED');
+    await userEvent.click(within(playbackPanel).getByLabelText('TEXT issue for segment 1'));
+    await userEvent.click(within(playbackPanel).getByLabelText('VOICE issue for segment 1'));
+    await userEvent.type(within(playbackPanel).getByLabelText('Reviewer note for segment 1'), 'Reviewed locally.');
+    await userEvent.click(within(playbackPanel).getByRole('button', { name: /save playback review for segment 1/i }));
+
+    await waitFor(() => expect(updatePlaybackReview).toHaveBeenCalledWith('narration-playback-review-job', 0, {
+      decision: 'ACCEPTED',
+      issueCategories: ['VOICE'],
+      reviewerNote: 'Reviewed locally.'
+    }));
+    expect(within(playbackPanel).getByText('Playback review saved for segment 1.')).toBeInTheDocument();
+
+    await userEvent.click(within(playbackPanel).getByRole('button', { name: /download playback review markdown/i }));
+
+    expect(downloadPlaybackReview).toHaveBeenCalledWith('narration-playback-review-job');
   });
 
   test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
@@ -7820,6 +7905,64 @@ function narrationRenderReviewFixture(overrides: Partial<NarrationRenderReview> 
       }
     ],
     safetyNotes: ['Narration render review is metadata-only.'],
+    ...overrides
+  };
+}
+
+function narrationPlaybackReviewFixture(overrides: Partial<NarrationPlaybackReview> = {}): NarrationPlaybackReview {
+  return {
+    jobId: 'narration-playback-review-job',
+    generatedAt: '2026-06-30T07:00:00Z',
+    status: 'ATTENTION',
+    nextAction: 'Review or revise narration segments before handoff.',
+    segmentCount: 2,
+    reviewedSegmentCount: 1,
+    acceptedSegmentCount: 0,
+    needsEditCount: 1,
+    needsRerenderCount: 0,
+    unreviewedSegmentCount: 1,
+    audioReady: true,
+    audioArtifactCount: 1,
+    videoReady: true,
+    narratedVideoArtifactCount: 1,
+    decisionCounts: [
+      { category: 'NEEDS_EDIT', count: 1 },
+      { category: 'UNREVIEWED', count: 1 }
+    ],
+    issueCategoryCounts: [
+      { category: 'TEXT', count: 1 }
+    ],
+    segments: [
+      {
+        segmentIndex: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        decision: 'NEEDS_EDIT',
+        issueCategories: ['TEXT'],
+        reviewerNotePresent: true,
+        reviewedAt: '2026-06-30T07:01:00Z'
+      },
+      {
+        segmentIndex: 1,
+        startSeconds: 55,
+        endSeconds: 70,
+        durationSeconds: 15,
+        decision: 'UNREVIEWED',
+        issueCategories: [],
+        reviewerNotePresent: false,
+        reviewedAt: null
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_PLAYBACK_REVIEW_MARKDOWN',
+        label: 'Narration playback review Markdown',
+        href: '/api/jobs/narration-playback-review-job/narration-playback-review/markdown/download',
+        contentType: 'text/markdown'
+      }
+    ],
+    safetyNotes: ['Playback review excludes narration text and reviewer notes from safe exports.'],
     ...overrides
   };
 }

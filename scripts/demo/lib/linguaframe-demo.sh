@@ -852,6 +852,28 @@ download_narration_render_review_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-render-review/markdown/download" -o "$output_path"
 }
 
+download_narration_playback_review_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review" -o "$output_path"
+}
+
+download_narration_playback_review_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review/markdown/download" -o "$output_path"
+}
+
 download_narration_script_package_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3537,6 +3559,70 @@ print("narrationRenderReviewBlockedChecks=" + ",".join(blocked))
 print("narrationRenderReviewWarnChecks=" + ",".join(warned))
 print("narrationRenderReviewJsonPath=" + str(json_path))
 print("narrationRenderReviewMarkdownPath=" + str(markdown_path))
+PY
+}
+
+print_narration_playback_review_summary_file() {
+  local review_json_path="$1"
+  local review_markdown_path="$2"
+
+  python3 - "$review_json_path" "$review_markdown_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+review = json.loads(json_path.read_text(encoding="utf-8"))
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(review, ensure_ascii=False) + "\n" + markdown
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "Explain the first scene",
+    "Do not leak this playback reviewer note",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration playback review contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+decision_counts = review.get("decisionCounts") or []
+issue_counts = review.get("issueCategoryCounts") or []
+decision_summary = ",".join(f"{item.get('category')}={item.get('count')}" for item in decision_counts)
+issue_summary = ",".join(f"{item.get('category')}={item.get('count')}" for item in issue_counts)
+print("narrationPlaybackReviewJobId=" + text(review.get("jobId")))
+print("narrationPlaybackReviewStatus=" + text(review.get("status")))
+print("narrationPlaybackReviewNextAction=" + text(review.get("nextAction")))
+print("narrationPlaybackReviewSegmentCount=" + text(review.get("segmentCount", 0)))
+print("narrationPlaybackReviewReviewedSegmentCount=" + text(review.get("reviewedSegmentCount", 0)))
+print("narrationPlaybackReviewAcceptedSegmentCount=" + text(review.get("acceptedSegmentCount", 0)))
+print("narrationPlaybackReviewNeedsEditCount=" + text(review.get("needsEditCount", 0)))
+print("narrationPlaybackReviewNeedsRerenderCount=" + text(review.get("needsRerenderCount", 0)))
+print("narrationPlaybackReviewUnreviewedSegmentCount=" + text(review.get("unreviewedSegmentCount", 0)))
+print("narrationPlaybackReviewAudioReady=" + str(review.get("audioReady", False)).lower())
+print("narrationPlaybackReviewAudioArtifactCount=" + text(review.get("audioArtifactCount", 0)))
+print("narrationPlaybackReviewVideoReady=" + str(review.get("videoReady", False)).lower())
+print("narrationPlaybackReviewNarratedVideoArtifactCount=" + text(review.get("narratedVideoArtifactCount", 0)))
+print("narrationPlaybackReviewDecisionCounts=" + decision_summary)
+print("narrationPlaybackReviewIssueCategoryCounts=" + issue_summary)
+print("narrationPlaybackReviewJsonPath=" + str(json_path))
+print("narrationPlaybackReviewMarkdownPath=" + str(markdown_path))
 PY
 }
 

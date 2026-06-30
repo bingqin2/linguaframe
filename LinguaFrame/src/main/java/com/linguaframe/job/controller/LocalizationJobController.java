@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.dto.NarrationDemoRenderPreflightRequestDto;
 import com.linguaframe.job.domain.dto.PreviewNarrationSegmentRequestDto;
 import com.linguaframe.job.domain.dto.RenderNarrationDemoDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationPlaybackReviewSegmentDto;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
 import com.linguaframe.job.domain.dto.PublishReviewedSubtitlesRequest;
@@ -50,6 +51,7 @@ import com.linguaframe.job.domain.vo.NarrationDemoPresetApplyVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderPreflightVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationPlaybackReviewVo;
 import com.linguaframe.job.domain.vo.NarrationRenderReviewVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
@@ -94,6 +96,7 @@ import com.linguaframe.job.service.NarrationDemoPresetApplyService;
 import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationPlaybackReviewService;
 import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
@@ -176,6 +179,7 @@ public class LocalizationJobController {
     private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
     private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationPlaybackReviewService narrationPlaybackReviewService;
     private final NarrationRenderReviewService narrationRenderReviewService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
@@ -223,6 +227,7 @@ public class LocalizationJobController {
             NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
             NarrationEvidenceService narrationEvidenceService,
+            NarrationPlaybackReviewService narrationPlaybackReviewService,
             NarrationRenderReviewService narrationRenderReviewService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
@@ -269,6 +274,7 @@ public class LocalizationJobController {
         this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
         this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationPlaybackReviewService = narrationPlaybackReviewService;
         this.narrationRenderReviewService = narrationRenderReviewService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
@@ -1421,6 +1427,27 @@ public class LocalizationJobController {
         return narrationRenderReviewService.getReview(jobId);
     }
 
+    @GetMapping("/{jobId}/narration-playback-review")
+    @Operation(summary = "Get metadata-only narration playback review workspace")
+    public NarrationPlaybackReviewVo narrationPlaybackReview(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationPlaybackReviewService.getReview(jobId);
+    }
+
+    @PutMapping("/{jobId}/narration-playback-review/segments/{segmentIndex}")
+    @Operation(summary = "Save metadata-only narration playback review decision for a segment")
+    public NarrationPlaybackReviewVo updateNarrationPlaybackReviewSegment(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @Parameter(in = ParameterIn.PATH, description = "Narration segment index.", required = true)
+            @PathVariable int segmentIndex,
+            @RequestBody UpdateNarrationPlaybackReviewSegmentDto request
+    ) {
+        return narrationPlaybackReviewService.updateSegmentReview(jobId, segmentIndex, request);
+    }
+
     @GetMapping("/{jobId}/narration-waveform")
     @Operation(summary = "Get decoded narration waveform buckets for a localization job")
     public NarrationWaveformVo narrationWaveform(
@@ -1459,6 +1486,22 @@ public class LocalizationJobController {
                 .contentType(MediaType.valueOf("text/markdown"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("linguaframe-job-" + jobId + "-narration-render-review.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-playback-review/markdown/download")
+    @Operation(summary = "Download metadata-only narration playback review Markdown")
+    public ResponseEntity<String> downloadNarrationPlaybackReviewMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationPlaybackReviewService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-playback-review.md")
                         .build()
                         .toString())
                 .body(markdown);

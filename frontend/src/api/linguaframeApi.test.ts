@@ -8,6 +8,7 @@ import {
   clearSubtitleDraft,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
+  downloadNarrationPlaybackReviewMarkdown,
   downloadNarrationRenderReviewMarkdown,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
@@ -15,6 +16,7 @@ import {
   getJob,
   getMediaUpload,
   getNarrationEvidence,
+  getNarrationPlaybackReview,
   getNarrationRenderReview,
   getNarrationScriptPackage,
   getNarrationWaveform,
@@ -105,6 +107,7 @@ import {
   subtitleDraftExportUrl,
   sourceMediaDownloadUrl,
   updateNarrationMixSettings,
+  updateNarrationPlaybackReviewSegment,
   updateSubtitleDraft,
   validateUpload,
   writeDemoToken,
@@ -559,6 +562,67 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-render-review/markdown/download');
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
+  });
+
+  test('loads updates and downloads narration playback review workspace', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
+        generatedAt: '2026-06-30T07:00:00Z',
+        status: 'ATTENTION',
+        nextAction: 'Review or revise narration segments before handoff.',
+        segmentCount: 2,
+        reviewedSegmentCount: 1,
+        acceptedSegmentCount: 0,
+        needsEditCount: 1,
+        needsRerenderCount: 0,
+        unreviewedSegmentCount: 1,
+        audioReady: true,
+        audioArtifactCount: 1,
+        videoReady: true,
+        narratedVideoArtifactCount: 1,
+        decisionCounts: [],
+        issueCategoryCounts: [],
+        segments: [
+          {
+            segmentIndex: 0,
+            startSeconds: 15,
+            endSeconds: 28,
+            durationSeconds: 13,
+            decision: 'NEEDS_EDIT',
+            issueCategories: ['TEXT'],
+            reviewerNotePresent: true,
+            reviewedAt: '2026-06-30T07:01:00Z'
+          }
+        ],
+        safeLinks: [],
+        safetyNotes: []
+      })
+    );
+
+    const review = await getNarrationPlaybackReview('job narration/review');
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ...review, status: 'READY' }));
+    await updateNarrationPlaybackReviewSegment('job narration/review', 0, {
+      decision: 'ACCEPTED',
+      issueCategories: ['TEXT', 'VOICE'],
+      reviewerNote: 'Reviewed locally.'
+    });
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['markdown'])));
+    await downloadNarrationPlaybackReviewMarkdown('job narration/review');
+
+    expect(review.status).toBe('ATTENTION');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review/segments/0');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'PUT' });
+    expect(fetchMock.mock.calls[1]?.[1]?.body).toBe(JSON.stringify({
+      decision: 'ACCEPTED',
+      issueCategories: ['TEXT', 'VOICE'],
+      reviewerNote: 'Reviewed locally.'
+    }));
+    expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review/markdown/download');
+    expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'GET' });
   });
 
   test('previews one narration segment as a transient audio blob', async () => {
