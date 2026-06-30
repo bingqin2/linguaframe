@@ -80,6 +80,7 @@ import type {
   DemoRunLauncher,
   DemoReplayCard,
   DemoSampleMediaCatalog,
+  DemoSessionRecoveryBoard,
   DemoSessionCommandCenter,
   DemoSessionCommandCenterStatus,
   DeliveryManifest,
@@ -474,6 +475,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoSessionCommandCenter, setDemoSessionCommandCenter] = useState<DemoSessionCommandCenter | null>(null);
   const [demoSessionCommandCenterError, setDemoSessionCommandCenterError] = useState<string | null>(null);
   const [isLoadingDemoSessionCommandCenter, setIsLoadingDemoSessionCommandCenter] = useState(false);
+  const [demoSessionRecoveryBoard, setDemoSessionRecoveryBoard] = useState<DemoSessionRecoveryBoard | null>(null);
+  const [demoSessionRecoveryBoardError, setDemoSessionRecoveryBoardError] = useState<string | null>(null);
+  const [isLoadingDemoSessionRecoveryBoard, setIsLoadingDemoSessionRecoveryBoard] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -1075,6 +1079,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoSessionRecoveryBoard = useCallback(async (limit = 20) => {
+    setIsLoadingDemoSessionRecoveryBoard(true);
+    try {
+      const board = await linguaFrameApi.getDemoSessionRecoveryBoard(limit);
+      setDemoSessionRecoveryBoard(board);
+      setDemoSessionRecoveryBoardError(null);
+      return board;
+    } catch (boardLoadError) {
+      setDemoSessionRecoveryBoard(null);
+      setDemoSessionRecoveryBoardError(toErrorMessage(boardLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoSessionRecoveryBoard(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult, openAiReadinessResult] = await Promise.allSettled([
@@ -1333,6 +1353,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadDemoSessionCommandCenter]);
 
   useEffect(() => {
+    void loadDemoSessionRecoveryBoard();
+  }, [loadDemoSessionRecoveryBoard]);
+
+  useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
 
@@ -1428,6 +1452,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadDemoSessionRecoveryBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
         void loadDemoHandoffPortal(nextJob.jobId);
@@ -1435,7 +1460,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadJob, loadOpenAiSmokeProof, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1453,6 +1478,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadDemoSessionRecoveryBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
         void loadDemoHandoffPortal(nextJob.jobId);
@@ -1479,7 +1505,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia, loadStuckJobRecovery]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia, loadStuckJobRecovery]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -2865,6 +2891,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={demoSessionCommandCenterError}
             isLoading={isLoadingDemoSessionCommandCenter}
             onRefresh={() => void loadDemoSessionCommandCenter(job?.jobId)}
+          />
+
+          <DemoSessionRecoveryBoardPanel
+            board={demoSessionRecoveryBoard}
+            error={demoSessionRecoveryBoardError}
+            isLoading={isLoadingDemoSessionRecoveryBoard}
+            onRefresh={() => void loadDemoSessionRecoveryBoard()}
           />
 
           <DemoPresentationCockpitPanel
@@ -4803,6 +4836,148 @@ function DemoSessionCommandCenterPanel({
             </button>
           </div>
           {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoSessionRecoveryBoardPanel({
+  board,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  board: DemoSessionRecoveryBoard | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const primaryAction = board?.primaryAction ?? board?.jobs.flatMap((job) => job.actions ?? [])[0] ?? null;
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadDemoSessionRecoveryBoardMarkdown(20);
+      downloadBlob(blob, 'linguaframe-demo-session-recovery-board.md');
+      setStatus('Recovery board Markdown downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Demo session recovery board">
+      <div className="panel-heading">
+        <h2>Demo session recovery board</h2>
+        {board ? <span className={demoSessionStatusClassName(board.overallStatus)}>{board.overallStatus}</span> : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Demo session recovery board unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !board ? <p className="muted">Loading demo session recovery board...</p> : null}
+      {board ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Recover now</dt>
+              <dd>{board.recoverNowCount === 1 ? '1 job' : `${board.recoverNowCount} jobs`}</dd>
+            </div>
+            <div>
+              <dt>Watch</dt>
+              <dd>{board.watchCount} active</dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{board.readyCount} ready</dd>
+            </div>
+            <div>
+              <dt>Needs review</dt>
+              <dd>{board.needsReviewCount} review</dd>
+            </div>
+            <div>
+              <dt>No action</dt>
+              <dd>{board.noActionCount} audit</dd>
+            </div>
+          </dl>
+          <p className={board.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {board.recommendedNextAction}
+          </p>
+          {primaryAction ? (
+            <div className="command-highlight">
+              <h3>Primary recovery action</h3>
+              <strong>{primaryAction.label}</strong>
+              <small>{primaryAction.description}</small>
+              {primaryAction.href ? <a href={primaryAction.href}>Open action evidence</a> : null}
+            </div>
+          ) : null}
+          <ul className="operations-section-list" aria-label="Demo session recovery jobs">
+            {board.jobs.map((recoveryJob) => {
+              const checks = recoveryJob.checks ?? [];
+              const links = recoveryJob.links ?? [];
+              return (
+                <li key={recoveryJob.jobId}>
+                  <div className="operations-section-heading">
+                    <strong>{recoveryJob.jobId}</strong>
+                    <span className={demoSessionStatusClassName(recoveryJob.classification)}>
+                      {recoveryJob.classification}
+                    </span>
+                  </div>
+                  <p>
+                    {recoveryJob.status} · {recoveryJob.demoProfileId ?? 'No profile'} ·{' '}
+                    {recoveryJob.currentStage ?? 'No active stage'}
+                  </p>
+                  <small>{recoveryJob.recommendedNextAction}</small>
+                  {checks.length > 0 ? (
+                    <ul className="inline-evidence-list">
+                      {checks.slice(0, 5).map((check) => (
+                        <li key={`${recoveryJob.jobId}-${check.label}`}>
+                          {check.label}: {check.status}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {links.length > 0 ? (
+                    <ul className="link-list">
+                      {links.slice(0, 6).map((link) => (
+                        <li key={`${recoveryJob.jobId}-${link.label}-${link.href}`}>
+                          <a href={link.href}>{link.label}</a>
+                          <small>{link.contentType} · {link.description}</small>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+          <h3>Session links</h3>
+          <ul className="link-list">
+            {(board.links ?? []).map((link) => (
+              <li key={`${link.label}-${link.href}`}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.contentType} · {link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Safety</h3>
+          <ul className="compact-list">
+            {(board.safetyNotes ?? []).map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download recovery board
+            </button>
+          </div>
           {status ? <p className="muted">{status}</p> : null}
         </>
       ) : null}

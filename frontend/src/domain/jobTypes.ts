@@ -737,6 +737,71 @@ export interface DemoSessionCommandCenterEvidence {
   description: string;
 }
 
+export type DemoSessionRecoveryBoardStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
+
+export interface DemoSessionRecoveryBoard {
+  generatedAt: string;
+  overallStatus: DemoSessionRecoveryBoardStatus;
+  headline: string;
+  recommendedNextAction: string;
+  recoverNowCount: number;
+  watchCount: number;
+  readyCount: number;
+  needsReviewCount: number;
+  noActionCount: number;
+  primaryAction: DemoSessionRecoveryBoardAction | null;
+  jobs: DemoSessionRecoveryBoardJob[];
+  checks: DemoSessionRecoveryBoardCheck[];
+  links: DemoSessionRecoveryBoardLink[];
+  safetyNotes: string[];
+  markdown: string;
+}
+
+export interface DemoSessionRecoveryBoardJob {
+  jobId: string;
+  videoId: string;
+  filename: string | null;
+  demoProfileId: string | null;
+  status: LocalizationJobStatus;
+  currentStage: string | null;
+  elapsedMs: number | null;
+  createdAt: string;
+  updatedAt: string | null;
+  classification: string;
+  attentionLevel: DemoSessionRecoveryBoardStatus;
+  recoveryClassification: string | null;
+  acceptanceStatus: string | null;
+  recommendedNextAction: string;
+  checks: DemoSessionRecoveryBoardCheck[];
+  actions: DemoSessionRecoveryBoardAction[];
+  links: DemoSessionRecoveryBoardLink[];
+}
+
+export interface DemoSessionRecoveryBoardAction {
+  id: string;
+  label: string;
+  href: string;
+  description: string;
+  primary: boolean;
+}
+
+export interface DemoSessionRecoveryBoardCheck {
+  id: string;
+  label: string;
+  status: DemoSessionRecoveryBoardStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoSessionRecoveryBoardLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export type ModelUsageLedgerStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
 
 export interface ModelUsageLedger {

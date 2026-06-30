@@ -217,6 +217,40 @@ download_job_detail() {
   demo_curl -fsS "$base_url/api/jobs/$job_id" -o "$output_path"
 }
 
+demo_session_recovery_board_query() {
+  local limit="$1"
+
+  python3 - "$limit" <<'PY'
+import sys
+from urllib.parse import urlencode
+
+limit = sys.argv[1].strip()
+print("?" + urlencode({"limit": limit}))
+PY
+}
+
+download_demo_session_recovery_board_json() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(demo_session_recovery_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-session-recovery-board$query" -o "$output_path"
+}
+
+download_demo_session_recovery_board_markdown() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(demo_session_recovery_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-session-recovery-board/markdown/download$query" -o "$output_path"
+}
+
 download_reviewed_subtitle_workflow_json() {
   local base_url="$1"
   local job_id="$2"
@@ -1300,6 +1334,61 @@ for link in cockpit.get("links", []):
     )
 for note in cockpit.get("safetyNotes", []):
     print("demoPresentationCockpitSafetyNote=" + text(note))
+PY
+}
+
+print_demo_session_recovery_board_summary_file() {
+  local board_json_path="$1"
+
+  python3 - "$board_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    board = json.load(handle)
+
+combined = json.dumps(board, ensure_ascii=False)
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+]
+for value in forbidden:
+    if value in combined:
+        raise SystemExit("Demo session recovery board contains forbidden sensitive string: " + value)
+
+jobs = board.get("jobs") or []
+primary_action = board.get("primaryAction") or {}
+first_recoverable = next((job for job in jobs if job.get("classification") == "RECOVER_NOW"), {})
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+print("demoSessionRecoveryBoardStatus=" + text(board.get("overallStatus", "")))
+print("demoSessionRecoveryBoardHeadline=" + text(board.get("headline", "")))
+print("demoSessionRecoveryBoardNextAction=" + text(board.get("recommendedNextAction", "")))
+print("demoSessionRecoveryBoardRecoverNowCount=" + text(board.get("recoverNowCount", 0)))
+print("demoSessionRecoveryBoardWatchCount=" + text(board.get("watchCount", 0)))
+print("demoSessionRecoveryBoardReadyCount=" + text(board.get("readyCount", 0)))
+print("demoSessionRecoveryBoardNeedsReviewCount=" + text(board.get("needsReviewCount", 0)))
+print("demoSessionRecoveryBoardNoActionCount=" + text(board.get("noActionCount", 0)))
+print("demoSessionRecoveryBoardFirstRecoverableJobId=" + text(first_recoverable.get("jobId", "")))
+print("demoSessionRecoveryBoardPrimaryAction=" + text(primary_action.get("id", "")))
+print("demoSessionRecoveryBoardJobCount=" + text(len(jobs)))
+print("demoSessionRecoveryBoardJsonPath=" + text(sys.argv[1]))
 PY
 }
 

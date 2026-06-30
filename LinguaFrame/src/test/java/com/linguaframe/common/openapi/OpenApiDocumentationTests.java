@@ -139,6 +139,8 @@ class OpenApiDocumentationTests {
                         "/api/operator/private-demo/evidence-gallery",
                         "/api/operator/demo-sample-media-catalog",
                         "/api/operator/demo-run-launcher",
+                        "/api/operator/demo-session-recovery-board",
+                        "/api/operator/demo-session-recovery-board/markdown/download",
                         "/api/retention/cleanup/preview",
                         "/api/retention/cleanup/run"
                 );

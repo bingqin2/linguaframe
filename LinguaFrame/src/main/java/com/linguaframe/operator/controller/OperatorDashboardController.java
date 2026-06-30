@@ -5,6 +5,7 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
 import com.linguaframe.operator.domain.vo.OpenAiReadinessEvidenceVo;
 import com.linguaframe.operator.domain.vo.OperatorDashboardVo;
@@ -17,6 +18,7 @@ import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.DemoSessionEvidencePackageService;
+import com.linguaframe.operator.service.DemoSessionRecoveryBoardService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
 import com.linguaframe.operator.service.OpenAiReadinessEvidenceService;
 import com.linguaframe.operator.service.OperatorDashboardService;
@@ -53,6 +55,7 @@ public class OperatorDashboardController {
     private final ModelUsageLedgerService modelUsageLedgerService;
     private final DemoSessionCommandCenterService demoSessionCommandCenterService;
     private final DemoSessionEvidencePackageService demoSessionEvidencePackageService;
+    private final DemoSessionRecoveryBoardService demoSessionRecoveryBoardService;
     private final OpenAiReadinessEvidenceService openAiReadinessEvidenceService;
 
     public OperatorDashboardController(
@@ -67,6 +70,7 @@ public class OperatorDashboardController {
             ModelUsageLedgerService modelUsageLedgerService,
             DemoSessionCommandCenterService demoSessionCommandCenterService,
             DemoSessionEvidencePackageService demoSessionEvidencePackageService,
+            DemoSessionRecoveryBoardService demoSessionRecoveryBoardService,
             OpenAiReadinessEvidenceService openAiReadinessEvidenceService
     ) {
         this.dashboardService = dashboardService;
@@ -80,6 +84,7 @@ public class OperatorDashboardController {
         this.modelUsageLedgerService = modelUsageLedgerService;
         this.demoSessionCommandCenterService = demoSessionCommandCenterService;
         this.demoSessionEvidencePackageService = demoSessionEvidencePackageService;
+        this.demoSessionRecoveryBoardService = demoSessionRecoveryBoardService;
         this.openAiReadinessEvidenceService = openAiReadinessEvidenceService;
     }
 
@@ -215,6 +220,29 @@ public class OperatorDashboardController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-command-center.md\"")
                 .contentType(MediaType.TEXT_MARKDOWN)
                 .body(demoSessionCommandCenterService.commandCenterMarkdown(jobId));
+    }
+
+    @GetMapping("/demo-session-recovery-board")
+    @Operation(summary = "Get demo session recovery board")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session recovery board was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoSessionRecoveryBoardVo demoSessionRecoveryBoard(@RequestParam(required = false) Integer limit) {
+        return demoSessionRecoveryBoardService.board(limit);
+    }
+
+    @GetMapping(value = "/demo-session-recovery-board/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download demo session recovery board markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session recovery board markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> demoSessionRecoveryBoardMarkdown(@RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-recovery-board.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(demoSessionRecoveryBoardService.boardMarkdown(limit));
     }
 
     @GetMapping(value = "/demo-session-evidence-package/download", produces = "application/zip")

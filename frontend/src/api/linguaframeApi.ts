@@ -5,6 +5,7 @@ import type {
   DemoPresentationCockpit,
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
+  DemoSessionRecoveryBoard,
   DemoCompletionCertificate,
   DemoRunLauncher,
   DemoHandoffPortal,
@@ -706,6 +707,28 @@ export async function downloadDemoSessionEvidencePackageZip(jobId?: string): Pro
   }
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return requestBlob(`/api/operator/demo-session-evidence-package/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoSessionRecoveryBoard(limit?: number): Promise<DemoSessionRecoveryBoard> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoSessionRecoveryBoard>(`/api/operator/demo-session-recovery-board${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoSessionRecoveryBoardMarkdown(limit?: number): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/demo-session-recovery-board/markdown/download${suffix}`, {
     method: 'GET'
   });
 }
@@ -1431,6 +1454,8 @@ export const linguaFrameApi = {
   getDemoSessionCommandCenter,
   downloadDemoSessionCommandCenterMarkdown,
   downloadDemoSessionEvidencePackageZip,
+  getDemoSessionRecoveryBoard,
+  downloadDemoSessionRecoveryBoardMarkdown,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,
