@@ -263,6 +263,9 @@ Expected:
 - Browser selected-job narration workspace shows `Playback resolution` with handoff status, unresolved count, text revision count, rerender count, safe next action, and `Focus narration row` actions.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-playback-review-resolution.sh` writes JSON/Markdown under `/tmp/linguaframe-demo/narration-playback-resolution/`; use `LINGUAFRAME_NARRATION_PLAYBACK_RESOLUTION_REPORT_ONLY=true` for blocked resolution export without failing.
 - Narration playback resolution must not call OpenAI, call TTS providers, run FFmpeg, save narration rows, create artifacts, print narration text, print reviewer note bodies, expose object keys, or include media bytes.
+- Browser selected-job `Demo acceptance gate` shows required `Narration playback resolved`; unresolved narration playback resolution changes the final gate to `BLOCKED`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-acceptance-gate.sh` prints `NARRATION_PLAYBACK_RESOLVED`, `NARRATION_PLAYBACK_RESOLUTION_STATUS`, and unresolved/text-revision/rerender/unreviewed counts when narration resolution evidence exists.
+- Demo acceptance gate narration resolution evidence must not print narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.
 

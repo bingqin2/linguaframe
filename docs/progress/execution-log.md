@@ -4878,3 +4878,21 @@ Validation so far:
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 302 passed`; jsdom printed expected navigation warnings from blob downloads.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 534.42 kB bundle.
 - `git diff --check` passed.
+
+Work:
+
+- Started the narration resolution acceptance gate feature slice from `docs/plans/160-narration-resolution-acceptance-gate.md`.
+- Added narration playback resolution as a required `Demo acceptance gate` check so unresolved narration review rows block final demo readiness.
+- Added acceptance evidence and links for narration resolution status, unresolved rows, text revision rows, rerender rows, and unreviewed rows without exposing narration text or reviewer note bodies.
+- Updated the browser acceptance gate fixture/tests, terminal demo summary filtering/tests, README, Docker demo guidance, smoke checklist, roadmap, and target-state docs.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,LocalizationJobControllerTests#returnsDemoAcceptanceGateForSelectedCompletedJob test` passed with `Tests run: 7, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "acceptance gate"` passed with `Tests 2 passed | 145 skipped`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/demo-acceptance-gate.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 818, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 303 passed`; jsdom printed expected navigation warnings from blob downloads.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 534.42 kB bundle.
+- `git diff --check` passed.

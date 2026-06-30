@@ -353,13 +353,13 @@ LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-run-snapshot.sh
 
 The script writes `demo-run-snapshot.json` and `demo-run-snapshot.zip` under `/tmp/linguaframe-demo/demo-run-snapshot/` by default. Use this snapshot when a reviewer needs one folder with `index.html`, Markdown notes, JSON manifests, and live safe links; use the share sheet for a one-page note, the evidence bundle for compact proof files, the demo run package for detailed safe evidence, and the handoff package for reviewed deliverables.
 
-For the final pre-presentation gate, open `Demo acceptance gate`. It calls `GET /api/jobs/{jobId}/demo-acceptance-gate`, combines job completion, source media, subtitle/media outputs, quality evaluation, completion certificate, presenter pack, replay card, snapshot, and run matrix evidence into `READY`, `ATTENTION`, or `BLOCKED`. Terminal export is available with:
+For the final pre-presentation gate, open `Demo acceptance gate`. It calls `GET /api/jobs/{jobId}/demo-acceptance-gate`, combines job completion, source media, subtitle/media outputs, quality evaluation, completion certificate, presenter pack, replay card, snapshot, run matrix, and narration playback resolution evidence into `READY`, `ATTENTION`, or `BLOCKED`. If narration rows exist and playback resolution still has unreviewed, text-revision, or rerender rows, the gate fails the required `Narration playback resolved` check. Terminal export is available with:
 
 ```bash
 LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> scripts/demo/demo-acceptance-gate.sh
 ```
 
-The script writes `demo-acceptance-gate.json` under `/tmp/linguaframe-demo/demo-acceptance-gate/` by default. Use this gate when you need one final readiness answer; use the completion certificate for proof details, the replay card for rerun settings, and the snapshot for offline review.
+The script writes `demo-acceptance-gate.json` under `/tmp/linguaframe-demo/demo-acceptance-gate/` by default and prints narration resolution status/count evidence when present. Use this gate when you need one final readiness answer; use the completion certificate for proof details, the replay card for rerun settings, and the snapshot for offline review.
 
 The browser demo also shows a `Demo session command center` panel backed by `GET /api/operator/demo-session-command-center`. Use it as the run-day entry point when you want one status, focused job, primary command, phase gates, model-call cost summary, and safe evidence links before moving into the more detailed presentation cockpit or per-job evidence panels.
 

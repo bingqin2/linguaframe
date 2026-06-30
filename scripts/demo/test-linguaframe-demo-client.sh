@@ -1613,6 +1613,13 @@ test_print_demo_acceptance_gate_summary_is_metadata_only() {
       "required": false
     },
     {
+      "key": "NARRATION_PLAYBACK_RESOLVED",
+      "label": "Narration playback resolved",
+      "status": "FAIL",
+      "detail": "Narration playback resolution status=ATTENTION; unresolved=2; textRevision=1; rerender=1; unreviewed=0. Do not leak this playback resolution note.",
+      "required": true
+    },
+    {
       "key": "UNSAFE_FIXTURE",
       "label": "Unsafe fixture",
       "status": "WARN",
@@ -1628,6 +1635,18 @@ test_print_demo_acceptance_gate_summary_is_metadata_only() {
       "status": "READY"
     },
     {
+      "key": "NARRATION_PLAYBACK_RESOLUTION_STATUS",
+      "label": "Narration playback resolution",
+      "value": "ATTENTION",
+      "status": "BLOCKED"
+    },
+    {
+      "key": "NARRATION_PLAYBACK_UNRESOLVED_COUNT",
+      "label": "Narration unresolved rows",
+      "value": "2",
+      "status": "BLOCKED"
+    },
+    {
       "key": "UNSAFE_EVIDENCE",
       "label": "Unsafe evidence",
       "value": "raw transcript text /Users/example/private.mov sk-test provider payload",
@@ -1639,6 +1658,11 @@ test_print_demo_acceptance_gate_summary_is_metadata_only() {
       "kind": "ACCEPTANCE_GATE_JSON",
       "label": "Demo acceptance gate JSON",
       "url": "/api/jobs/showcase-job/demo-acceptance-gate"
+    },
+    {
+      "kind": "NARRATION_PLAYBACK_RESOLUTION_JSON",
+      "label": "Narration playback resolution",
+      "url": "/api/jobs/showcase-job/narration-playback-review/resolution"
     },
     {
       "kind": "UNSAFE_LINK",
@@ -1664,10 +1688,15 @@ JSON
   [[ "$output" == *"demoAcceptanceGateNextAction=Present this run using the completion certificate, demo run package, and snapshot."* ]] || fail "acceptance gate summary missed next action"
   [[ "$output" == *"demoAcceptanceGateCheck=JOB_COMPLETED:PASS:required=true"* ]] || fail "acceptance gate summary missed required check"
   [[ "$output" == *"demoAcceptanceGateCheck=BASELINE_RECOMMENDED:WARN:required=false"* ]] || fail "acceptance gate summary missed warning check"
+  [[ "$output" == *"demoAcceptanceGateCheck=NARRATION_PLAYBACK_RESOLVED:FAIL:required=true"* ]] || fail "acceptance gate summary missed narration resolution check"
   [[ "$output" == *"demoAcceptanceGateEvidence=MEDIA_OUTPUT_COUNT:1:READY"* ]] || fail "acceptance gate summary missed evidence"
+  [[ "$output" == *"demoAcceptanceGateEvidence=NARRATION_PLAYBACK_RESOLUTION_STATUS:ATTENTION:BLOCKED"* ]] || fail "acceptance gate summary missed narration resolution status"
+  [[ "$output" == *"demoAcceptanceGateEvidence=NARRATION_PLAYBACK_UNRESOLVED_COUNT:2:BLOCKED"* ]] || fail "acceptance gate summary missed narration unresolved count"
   [[ "$output" == *"demoAcceptanceGateLink=ACCEPTANCE_GATE_JSON:/api/jobs/showcase-job/demo-acceptance-gate"* ]] || fail "acceptance gate summary missed link"
+  [[ "$output" == *"demoAcceptanceGateLink=NARRATION_PLAYBACK_RESOLUTION_JSON:/api/jobs/showcase-job/narration-playback-review/resolution"* ]] || fail "acceptance gate summary missed narration resolution link"
   [[ "$output" == *"demoAcceptanceGateSafetyNote=Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included."* ]] || fail "acceptance gate summary missed safety note"
   [[ "$output" != *"raw transcript text"* ]] || fail "acceptance gate summary exposed transcript"
+  [[ "$output" != *"Do not leak this playback resolution note"* ]] || fail "acceptance gate summary exposed reviewer note"
   [[ "$output" != *"/Users/example"* ]] || fail "acceptance gate summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "acceptance gate summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "acceptance gate summary exposed provider payload"

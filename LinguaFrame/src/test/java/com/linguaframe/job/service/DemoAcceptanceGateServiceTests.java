@@ -30,6 +30,8 @@ import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.JobCacheSummaryVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionSegmentVo;
+import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.service.impl.DemoAcceptanceGateServiceImpl;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
@@ -133,12 +135,97 @@ class DemoAcceptanceGateServiceTests {
                 });
     }
 
+    @Test
+    void blocksGateWhenNarrationPlaybackResolutionHasUnresolvedRows() {
+        LocalizationJobVo job = job("job-narration-blocked", LocalizationJobStatus.COMPLETED, 91, "GOOD", "0.00007800", 2);
+        DemoAcceptanceGateService service = service(
+                job,
+                artifacts(true, true, true),
+                true,
+                "READY",
+                matrix(job, "job-baseline"),
+                unresolvedNarrationResolution(job)
+        );
+
+        DemoAcceptanceGateVo gate = service.buildGate("job-narration-blocked");
+
+        assertThat(gate.gateStatus()).isEqualTo("BLOCKED");
+        assertThat(gate.checks())
+                .anySatisfy(check -> {
+                    assertThat(check.key()).isEqualTo("NARRATION_PLAYBACK_RESOLVED");
+                    assertThat(check.status()).isEqualTo("FAIL");
+                    assertThat(check.required()).isTrue();
+                    assertThat(check.detail())
+                            .contains("status=ATTENTION")
+                            .contains("unresolved=2")
+                            .contains("textRevision=1")
+                            .contains("rerender=1")
+                            .contains("unreviewed=0");
+                });
+        assertThat(gate.evidence())
+                .anySatisfy(evidence -> {
+                    assertThat(evidence.key()).isEqualTo("NARRATION_PLAYBACK_RESOLUTION_STATUS");
+                    assertThat(evidence.value()).isEqualTo("ATTENTION");
+                    assertThat(evidence.status()).isEqualTo("BLOCKED");
+                })
+                .anySatisfy(evidence -> {
+                    assertThat(evidence.key()).isEqualTo("NARRATION_PLAYBACK_UNRESOLVED_COUNT");
+                    assertThat(evidence.value()).isEqualTo("2");
+                    assertThat(evidence.status()).isEqualTo("BLOCKED");
+                });
+        assertThat(gate.links()).extracting("kind")
+                .contains("NARRATION_PLAYBACK_RESOLUTION_JSON", "NARRATION_PLAYBACK_RESOLUTION_MARKDOWN");
+        assertThat(gate.safetyNotes())
+                .contains("Narration playback resolution is included as metadata-only counts and safe routes; narration text and reviewer note bodies are excluded.");
+        assertThat(gate.toString())
+                .doesNotContain("Explain the first scene")
+                .doesNotContain("Do not leak this playback resolution note")
+                .doesNotContain("sk-test")
+                .doesNotContain("/Users/example")
+                .doesNotContain("provider payload");
+    }
+
+    @Test
+    void doesNotBlockGateWhenNarrationRowsAreAbsent() {
+        LocalizationJobVo job = job("job-no-narration", LocalizationJobStatus.COMPLETED, 91, "GOOD", "0.00007800", 2);
+        DemoAcceptanceGateService service = service(
+                job,
+                artifacts(true, true, true),
+                true,
+                "READY",
+                matrix(job, "job-baseline"),
+                noNarrationResolution(job)
+        );
+
+        DemoAcceptanceGateVo gate = service.buildGate("job-no-narration");
+
+        assertThat(gate.gateStatus()).isEqualTo("READY");
+        assertThat(gate.checks())
+                .anySatisfy(check -> {
+                    assertThat(check.key()).isEqualTo("NARRATION_PLAYBACK_RESOLVED");
+                    assertThat(check.status()).isEqualTo("PASS");
+                    assertThat(check.required()).isTrue();
+                    assertThat(check.detail()).contains("No narration rows are saved");
+                });
+    }
+
     private static DemoAcceptanceGateService service(
             LocalizationJobVo job,
             List<JobArtifactVo> artifacts,
             boolean handoffReady,
             String certificateStatus,
             DemoRunMatrixVo matrix
+    ) {
+        return service(job, artifacts, handoffReady, certificateStatus, matrix, readyNarrationResolution(job));
+    }
+
+    private static DemoAcceptanceGateService service(
+            LocalizationJobVo job,
+            List<JobArtifactVo> artifacts,
+            boolean handoffReady,
+            String certificateStatus,
+            DemoRunMatrixVo matrix,
+            NarrationPlaybackReviewResolutionVo narrationResolution
     ) {
         return new DemoAcceptanceGateServiceImpl(
                 new StaticQueryService(job),
@@ -150,6 +237,7 @@ class DemoAcceptanceGateServiceTests {
                 new StaticReplayCardService(replayCard(job, matrix)),
                 new StaticSnapshotService(snapshot(job)),
                 new StaticMatrixService(matrix),
+                new StaticNarrationPlaybackReviewResolutionService(narrationResolution),
                 CLOCK
         );
     }
@@ -397,6 +485,97 @@ class DemoAcceptanceGateServiceTests {
         );
     }
 
+    private static NarrationPlaybackReviewResolutionVo readyNarrationResolution(LocalizationJobVo job) {
+        return new NarrationPlaybackReviewResolutionVo(
+                job.jobId(),
+                NOW,
+                "READY",
+                "Playback review is resolved and narrated video is ready for demo handoff.",
+                2,
+                2,
+                0,
+                0,
+                0,
+                0,
+                true,
+                1,
+                true,
+                1,
+                List.of(),
+                List.of(),
+                List.of("Resolution is metadata-only.")
+        );
+    }
+
+    private static NarrationPlaybackReviewResolutionVo unresolvedNarrationResolution(LocalizationJobVo job) {
+        return new NarrationPlaybackReviewResolutionVo(
+                job.jobId(),
+                NOW,
+                "ATTENTION",
+                "Resolve playback review issues, save narration edits, and regenerate narration media before handoff.",
+                3,
+                1,
+                2,
+                1,
+                1,
+                0,
+                true,
+                1,
+                false,
+                0,
+                List.of(
+                        new NarrationPlaybackReviewResolutionSegmentVo(
+                                0,
+                                new BigDecimal("15"),
+                                new BigDecimal("28"),
+                                new BigDecimal("13"),
+                                "NEEDS_EDIT",
+                                "TEXT_REVISION_REQUIRED",
+                                List.of("TEXT"),
+                                "Focus this row in the narration editor, revise the saved script or voice choice, save narration, then regenerate audio/video.",
+                                true,
+                                NOW.minusSeconds(60)
+                        ),
+                        new NarrationPlaybackReviewResolutionSegmentVo(
+                                1,
+                                new BigDecimal("55"),
+                                new BigDecimal("70"),
+                                new BigDecimal("15"),
+                                "NEEDS_RERENDER",
+                                "RERENDER_REQUIRED",
+                                List.of("MIX", "VIDEO"),
+                                "Regenerate narration audio/video after confirming mix, timing, and media artifacts.",
+                                true,
+                                NOW.minusSeconds(30)
+                        )
+                ),
+                List.of(),
+                List.of("Resolution is metadata-only.")
+        );
+    }
+
+    private static NarrationPlaybackReviewResolutionVo noNarrationResolution(LocalizationJobVo job) {
+        return new NarrationPlaybackReviewResolutionVo(
+                job.jobId(),
+                NOW,
+                "BLOCKED",
+                "Save narration segments before resolving playback review.",
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                false,
+                0,
+                false,
+                0,
+                List.of(),
+                List.of(),
+                List.of("Resolution is metadata-only.")
+        );
+    }
+
     private record StaticQueryService(LocalizationJobVo job) implements LocalizationJobQueryService {
         @Override
         public com.linguaframe.job.domain.vo.LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset) {
@@ -507,6 +686,20 @@ class DemoAcceptanceGateServiceTests {
         @Override
         public DemoRunMatrixVo buildMatrix(String anchorJobId, Integer limit) {
             return matrix;
+        }
+    }
+
+    private record StaticNarrationPlaybackReviewResolutionService(
+            NarrationPlaybackReviewResolutionVo resolution
+    ) implements NarrationPlaybackReviewResolutionService {
+        @Override
+        public NarrationPlaybackReviewResolutionVo getResolution(String jobId) {
+            return resolution;
+        }
+
+        @Override
+        public String renderMarkdown(String jobId) {
+            throw new UnsupportedOperationException();
         }
     }
 }

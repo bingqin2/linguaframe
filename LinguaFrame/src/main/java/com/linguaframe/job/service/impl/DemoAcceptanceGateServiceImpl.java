@@ -15,6 +15,7 @@ import com.linguaframe.job.domain.vo.DemoRunMatrixVo;
 import com.linguaframe.job.domain.vo.DemoRunSnapshotVo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
@@ -25,6 +26,7 @@ import com.linguaframe.job.service.DemoRunMatrixService;
 import com.linguaframe.job.service.DemoRunSnapshotService;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.NarrationPlaybackReviewResolutionService;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.service.MediaUploadService;
 import org.springframework.stereotype.Service;
@@ -72,6 +74,7 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
     private final DemoReplayCardService replayCardService;
     private final DemoRunSnapshotService snapshotService;
     private final DemoRunMatrixService matrixService;
+    private final NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService;
     private final Clock clock;
 
     public DemoAcceptanceGateServiceImpl(
@@ -84,6 +87,7 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoReplayCardService replayCardService,
             DemoRunSnapshotService snapshotService,
             DemoRunMatrixService matrixService,
+            NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService,
             Clock clock
     ) {
         this.queryService = queryService;
@@ -95,6 +99,7 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         this.replayCardService = replayCardService;
         this.snapshotService = snapshotService;
         this.matrixService = matrixService;
+        this.narrationPlaybackReviewResolutionService = narrationPlaybackReviewResolutionService;
         this.clock = clock;
     }
 
@@ -109,8 +114,9 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         DemoReplayCardVo replayCard = replayCardService.buildReplayCard(jobId);
         DemoRunSnapshotVo snapshot = snapshotService.buildSnapshot(jobId);
         DemoRunMatrixVo matrix = matrixService.buildMatrix(jobId, 8);
+        NarrationPlaybackReviewResolutionVo narrationResolution = narrationPlaybackReviewResolutionService.getResolution(jobId);
 
-        List<DemoAcceptanceGateCheckVo> checks = checks(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix);
+        List<DemoAcceptanceGateCheckVo> checks = checks(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution);
         String status = status(checks);
 
         return new DemoAcceptanceGateVo(
@@ -125,8 +131,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
                 summary(job, status, checks),
                 recommendedNextAction(status),
                 checks,
-                evidence(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix),
-                links(jobId, certificate, presenterPack, replayCard, snapshot),
+                evidence(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution),
+                links(jobId, certificate, presenterPack, replayCard, snapshot, narrationResolution),
                 safetyNotes(job)
         );
     }
@@ -140,7 +146,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoPresenterPackVo presenterPack,
             DemoReplayCardVo replayCard,
             DemoRunSnapshotVo snapshot,
-            DemoRunMatrixVo matrix
+            DemoRunMatrixVo matrix,
+            NarrationPlaybackReviewResolutionVo narrationResolution
     ) {
         List<DemoAcceptanceGateCheckVo> checks = new ArrayList<>();
         checks.add(check("JOB_COMPLETED", "Job completed", job.status() == LocalizationJobStatus.COMPLETED ? "PASS" : "FAIL",
@@ -187,7 +194,26 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
                 cost != null && cost.compareTo(COST_ATTENTION_THRESHOLD_USD) > 0 ? "WARN" : "PASS",
                 "Estimated cost USD is " + money(cost) + ".", false));
 
+        checks.add(narrationResolutionCheck(narrationResolution));
+
         return List.copyOf(checks);
+    }
+
+    private DemoAcceptanceGateCheckVo narrationResolutionCheck(NarrationPlaybackReviewResolutionVo resolution) {
+        if (resolution.segmentCount() == 0) {
+            return check("NARRATION_PLAYBACK_RESOLVED", "Narration playback resolved", "PASS",
+                    "No narration rows are saved; narration playback resolution does not apply.", true);
+        }
+        boolean ready = "READY".equals(resolution.status());
+        String detail = "Narration playback resolution status=%s; unresolved=%d; textRevision=%d; rerender=%d; unreviewed=%d."
+                .formatted(
+                        resolution.status(),
+                        resolution.unresolvedSegmentCount(),
+                        resolution.textRevisionRequiredCount(),
+                        resolution.rerenderRequiredCount(),
+                        resolution.unreviewedSegmentCount()
+                );
+        return check("NARRATION_PLAYBACK_RESOLVED", "Narration playback resolved", ready ? "PASS" : "FAIL", detail, true);
     }
 
     private boolean hasCoreEvidenceLinks(
@@ -220,14 +246,15 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoPresenterPackVo presenterPack,
             DemoReplayCardVo replayCard,
             DemoRunSnapshotVo snapshot,
-            DemoRunMatrixVo matrix
+            DemoRunMatrixVo matrix,
+            NarrationPlaybackReviewResolutionVo narrationResolution
     ) {
         long subtitleCount = artifacts.stream().filter(artifact -> SUBTITLE_TYPES.contains(artifact.type())).count();
         long mediaOutputCount = artifacts.stream().filter(artifact -> MEDIA_OUTPUT_TYPES.contains(artifact.type())).count();
         long reviewedCount = artifacts.stream().filter(artifact -> REVIEWED_SUBTITLE_TYPES.contains(artifact.type())).count();
         QualityEvaluationVo quality = job.qualityEvaluation();
 
-        return List.of(
+        List<DemoAcceptanceGateEvidenceVo> evidence = new ArrayList<>(List.of(
                 evidence("SOURCE_DURATION", "Source duration seconds", source == null ? "N/A" : display(source.durationSeconds()), source == null ? "BLOCKED" : "READY"),
                 evidence("SUBTITLE_OUTPUT_COUNT", "Subtitle outputs", String.valueOf(subtitleCount), subtitleCount > 0 ? "READY" : "BLOCKED"),
                 evidence("MEDIA_OUTPUT_COUNT", "Playable media outputs", String.valueOf(mediaOutputCount), mediaOutputCount > 0 ? "READY" : "BLOCKED"),
@@ -241,6 +268,19 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
                 evidence("REPLAY_CARD_STATUS", "Replay card", replayCard.readiness(), "READY".equals(replayCard.readiness()) ? "READY" : "ATTENTION"),
                 evidence("SNAPSHOT_STATUS", "Static snapshot", snapshot.readiness(), "READY".equals(snapshot.readiness()) ? "READY" : "ATTENTION"),
                 evidence("SAME_SOURCE_RUN_COUNT", "Same-source runs", String.valueOf(matrix.jobs().size()), matrix.jobs().isEmpty() ? "ATTENTION" : "READY")
+        ));
+        evidence.addAll(narrationResolutionEvidence(narrationResolution));
+        return List.copyOf(evidence);
+    }
+
+    private List<DemoAcceptanceGateEvidenceVo> narrationResolutionEvidence(NarrationPlaybackReviewResolutionVo resolution) {
+        String status = resolution.segmentCount() == 0 || "READY".equals(resolution.status()) ? "READY" : "BLOCKED";
+        return List.of(
+                evidence("NARRATION_PLAYBACK_RESOLUTION_STATUS", "Narration playback resolution", resolution.status(), status),
+                evidence("NARRATION_PLAYBACK_UNRESOLVED_COUNT", "Narration unresolved rows", String.valueOf(resolution.unresolvedSegmentCount()), resolution.unresolvedSegmentCount() == 0 ? "READY" : "BLOCKED"),
+                evidence("NARRATION_PLAYBACK_TEXT_REVISION_COUNT", "Narration text revisions", String.valueOf(resolution.textRevisionRequiredCount()), resolution.textRevisionRequiredCount() == 0 ? "READY" : "BLOCKED"),
+                evidence("NARRATION_PLAYBACK_RERENDER_COUNT", "Narration rerenders", String.valueOf(resolution.rerenderRequiredCount()), resolution.rerenderRequiredCount() == 0 ? "READY" : "BLOCKED"),
+                evidence("NARRATION_PLAYBACK_UNREVIEWED_COUNT", "Narration unreviewed rows", String.valueOf(resolution.unreviewedSegmentCount()), resolution.unreviewedSegmentCount() == 0 ? "READY" : "BLOCKED")
         );
     }
 
@@ -249,7 +289,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoCompletionCertificateVo certificate,
             DemoPresenterPackVo presenterPack,
             DemoReplayCardVo replayCard,
-            DemoRunSnapshotVo snapshot
+            DemoRunSnapshotVo snapshot,
+            NarrationPlaybackReviewResolutionVo narrationResolution
     ) {
         Map<String, DemoAcceptanceGateLinkVo> links = new LinkedHashMap<>();
         add(links, link("ACCEPTANCE_GATE_JSON", "Demo acceptance gate JSON", "/api/jobs/%s/demo-acceptance-gate".formatted(jobId)));
@@ -258,6 +299,10 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         add(links, link("DEMO_RUN_SNAPSHOT", "Static snapshot ZIP", "/api/jobs/%s/demo-run-snapshot/download".formatted(jobId)));
         add(links, link("DEMO_REPLAY_CARD", "Demo replay card", "/api/jobs/%s/demo-replay-card".formatted(jobId)));
         add(links, link("DEMO_PRESENTER_PACK", "Demo presenter pack", "/api/jobs/%s/demo-presenter-pack".formatted(jobId)));
+        if (narrationResolution.segmentCount() > 0) {
+            add(links, link("NARRATION_PLAYBACK_RESOLUTION_JSON", "Narration playback resolution", "/api/jobs/%s/narration-playback-review/resolution".formatted(jobId)));
+            add(links, link("NARRATION_PLAYBACK_RESOLUTION_MARKDOWN", "Narration playback resolution Markdown", "/api/jobs/%s/narration-playback-review/resolution/markdown/download".formatted(jobId)));
+        }
         for (var certificateLink : certificate.links()) {
             add(links, link(certificateLink.kind(), certificateLink.label(), certificateLink.url()));
         }
@@ -281,6 +326,7 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         List<String> notes = new ArrayList<>();
         notes.add("Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included.");
         notes.add("The gate is generated on demand from existing safe evidence surfaces and does not create artifacts or call providers.");
+        notes.add("Narration playback resolution is included as metadata-only counts and safe routes; narration text and reviewer note bodies are excluded.");
         if (job.status() != LocalizationJobStatus.COMPLETED) {
             notes.add("Incomplete jobs are blocked from demo acceptance until processing reaches COMPLETED.");
         }
