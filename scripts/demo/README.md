@@ -11,6 +11,16 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/private-demo-delivery-receipt.sh
 
 The script writes `private-demo-delivery-receipt.json`, `.md`, and `.zip` to `/tmp/linguaframe-demo/private-demo-delivery-receipt/`, prints status, recommended job, evidence link counts, package entry counts, and the primary export command, and exits non-zero only when the receipt is `BLOCKED`. Set `LINGUAFRAME_PRIVATE_DEMO_DELIVERY_RECEIPT_REPORT_ONLY=true` to export a blocked receipt without failing the command.
 
+## Narration Scene Board
+
+Export the metadata-only scene-board summary for a saved narration workspace:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh
+```
+
+The script writes `narration-scene-board.json` and `.md` to `/tmp/linguaframe-demo/narration-scene-board/`, prints status, segment count, coverage, gaps, overlap state, voice count, mix keyframe count, audio/video readiness, blocked checks, and the recommended next action. It does not call OpenAI, call TTS providers, run FFmpeg, save rows, print narration text, expose object keys, expose local paths, or include media bytes. Set `LINGUAFRAME_NARRATION_SCENE_BOARD_REPORT_ONLY=true` to export a `BLOCKED` board without failing the command.
+
 ## Narration Render Review
 
 Export the metadata-only narration cue sheet after saving narration or running the demo render:

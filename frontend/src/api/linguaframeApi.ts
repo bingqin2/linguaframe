@@ -41,6 +41,7 @@ import type {
   NarrationPlaybackReview,
   NarrationPlaybackReviewResolution,
   NarrationRecoveryHandoff,
+  NarrationSceneBoard,
   NarrationScriptPackage,
   NarrationScriptPackageImportResult,
   NarrationRenderReview,
@@ -997,6 +998,24 @@ export async function getNarrationWorkspace(jobId: string): Promise<NarrationWor
   );
 }
 
+export async function getNarrationSceneBoard(jobId: string): Promise<NarrationSceneBoard> {
+  return requestJson<NarrationSceneBoard>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-scene-board`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationSceneBoardMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-scene-board/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function saveNarrationWorkspace(
   jobId: string,
   request: SaveNarrationWorkspaceRequest
@@ -1567,6 +1586,8 @@ export const linguaFrameApi = {
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
+  getNarrationSceneBoard,
+  downloadNarrationSceneBoardMarkdown,
   getNarrationRenderReview,
   downloadNarrationRenderReviewMarkdown,
   getNarrationPlaybackReview,

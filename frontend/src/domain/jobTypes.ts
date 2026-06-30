@@ -1803,6 +1803,63 @@ export interface NarrationMixAutomation {
   safetyNotes: string[];
 }
 
+export interface NarrationSceneBoard {
+  jobId: string;
+  generatedAt: string;
+  status: string;
+  segmentCount: number;
+  totalNarrationSeconds: number;
+  totalSpanSeconds: number;
+  coveragePercent: number;
+  gapCount: number;
+  gapSeconds: number;
+  hasOverlap: boolean;
+  voiceCount: number;
+  mixOverrideCount: number;
+  mixKeyframeCount: number;
+  audioReady: boolean;
+  videoReady: boolean;
+  segments: NarrationSceneBoardSegment[];
+  checks: NarrationSceneBoardCheck[];
+  recommendedActions: NarrationSceneBoardAction[];
+  safeLinks: NarrationSceneBoardLink[];
+  safetyNotes: string[];
+}
+
+export interface NarrationSceneBoardSegment {
+  index: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  windowLabel: string;
+  voiceState: string;
+  characterCount: number;
+  readingDensity: number;
+  timingStatus: string;
+  mixState: string;
+  readiness: string;
+}
+
+export interface NarrationSceneBoardCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface NarrationSceneBoardAction {
+  key: string;
+  label: string;
+  detail: string;
+  target: string;
+}
+
+export interface NarrationSceneBoardLink {
+  kind: string;
+  href: string;
+  label: string;
+}
+
 export interface SaveNarrationSegment {
   index: number;
   startSeconds: number;

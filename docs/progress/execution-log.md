@@ -22,6 +22,20 @@ Validation so far:
 - `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
 - `git diff --check` passed.
 
+Work:
+
+- Started the narration scene board workbench feature slice from `docs/plans/171-narration-scene-board-workbench.md`.
+- Added backend narration scene-board VO/service/controller routes for JSON and metadata-only Markdown export.
+- Added a browser `Narration scene board` inside `Narration workspace` with saved metadata, local draft text, segment rail, timeline board, selected-row inspector, readiness checks, and focus/seek/TTS/save/preflight actions.
+- Added terminal `scripts/demo/narration-scene-board.sh` for safe JSON/Markdown export and metadata-only summary output.
+- Updated README, demo script docs, smoke checklist, roadmap, and target-state docs with scene-board usage.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationSceneBoardServiceTests,LocalizationJobControllerTests#returnsNarrationSceneBoardJsonAndMetadataOnlyMarkdown test` first failed because scene-board types/service/routes did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration scene board|loads and downloads narration scene board"` first failed because `getNarrationSceneBoard` did not exist, then passed with `Tests 2 passed | 262 skipped`.
+- `bash -n scripts/demo/narration-scene-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+
 ## 2026-06-30
 
 Work:
@@ -5034,6 +5048,25 @@ Validation so far:
 - `mvn -pl LinguaFrame test` passed with `Tests run: 834, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 315 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
 - `npm --prefix frontend run build` first failed because the frontend recovery board job type omitted `checks`, then passed; Vite reported the existing chunk-size warning for a 550.99 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
+- Started the narration scene board workbench feature slice from `docs/plans/171-narration-scene-board-workbench.md`.
+- Added backend narration scene-board JSON and metadata-only Markdown export endpoints for saved narration rows, timing coverage, gaps, overlap, voice, mix automation, audio readiness, video readiness, checks, actions, and safe links.
+- Added a React `Narration scene board` workbench with dense metrics, segment rail, timeline map, selected-row inspector, local draft preview, save/seek/TTS/preflight actions, and loading/attention/blocked states.
+- Added typed frontend API helpers, a terminal `scripts/demo/narration-scene-board.sh` reporter, demo documentation, smoke-test expectations, roadmap updates, and target-state updates.
+- Kept exports metadata-only: no narration text, raw provider payloads, object keys, local media paths, or media bytes are emitted by the backend Markdown export or CLI summary.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationSceneBoardServiceTests,LocalizationJobControllerTests#returnsNarrationSceneBoardJsonAndMetadataOnlyMarkdown test` first failed because scene-board service/types/routes did not exist, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration scene board|loads and downloads narration scene board"` first failed because `getNarrationSceneBoard` was missing, then passed with `Tests 2 passed | 262 skipped`.
+- `bash -n scripts/demo/narration-scene-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 850, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 321 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 565.94 kB bundle.
 - `git diff --check` passed.
 
 Work:

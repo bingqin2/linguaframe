@@ -41,6 +41,7 @@ import type {
   NarrationPlaybackReviewResolution,
   NarrationRecoveryHandoff,
   NarrationRenderReview,
+  NarrationSceneBoard,
   NarrationScriptPackage,
   NarrationWaveform,
   NarratedVideoGeneration,
@@ -2515,6 +2516,45 @@ describe('App', () => {
     expect(within(mediaDelivery).getByText('fedcba987654')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('789abcdef012')).toBeInTheDocument();
     expect(within(mediaDelivery).getByText('1234567890ab')).toBeInTheDocument();
+  });
+
+  test('renders narration scene board with segment focus and local draft state', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-scene-board-job', videoId: 'narration-scene-board-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({ jobId: 'narration-scene-board-job' })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationSceneBoard').mockResolvedValue(
+      narrationSceneBoardFixture({ jobId: 'narration-scene-board-job' })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-scene-board-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const sceneBoard = within(narrationPanel).getByRole('region', { name: /narration scene board/i });
+
+    expect(within(sceneBoard).getByText('Narration scene board')).toBeInTheDocument();
+    expect(within(sceneBoard).getAllByText('ATTENTION').length).toBeGreaterThan(0);
+    expect(within(sceneBoard).getByText((_content, element) => element?.textContent === 'Coverage51.35%')).toBeInTheDocument();
+    expect(within(sceneBoard).getByText((_content, element) => element?.textContent === 'Segments2')).toBeInTheDocument();
+    expect(within(sceneBoard).getAllByText('00:15.000-00:28.000').length).toBeGreaterThan(0);
+    expect(within(sceneBoard).getByText('Narrated video')).toBeInTheDocument();
+    expect(within(sceneBoard).getByRole('button', { name: /run render preflight/i })).toBeInTheDocument();
+    expect(within(sceneBoard).getByText(/Previewing saved metadata with local draft text/i)).toBeInTheDocument();
+
+    await userEvent.click(within(sceneBoard).getByRole('button', { name: /focus segment 2/i }));
+
+    expect(within(sceneBoard).getByText('Explain the second scene.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '55 s - 70.5 s')).toBeInTheDocument();
   });
 
   test('shows timed narration audio bed and ducked narrated video status', async () => {
@@ -8702,6 +8742,85 @@ function narrationWorkspaceFixture(overrides: Partial<NarrationWorkspace> = {}):
       }
     ],
     safetyNotes: ['Narration scripts stay in the workspace only.'],
+    ...overrides
+  };
+}
+
+function narrationSceneBoardFixture(overrides: Partial<NarrationSceneBoard> = {}): NarrationSceneBoard {
+  return {
+    jobId: 'narration-mix-job',
+    generatedAt: '2026-06-30T08:00:00Z',
+    status: 'ATTENTION',
+    segmentCount: 2,
+    totalNarrationSeconds: 28.5,
+    totalSpanSeconds: 55.5,
+    coveragePercent: 51.35,
+    gapCount: 1,
+    gapSeconds: 27,
+    hasOverlap: false,
+    voiceCount: 2,
+    mixOverrideCount: 1,
+    mixKeyframeCount: 2,
+    audioReady: true,
+    videoReady: false,
+    segments: [
+      {
+        index: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        windowLabel: '00:15.000-00:28.000',
+        voiceState: 'alloy',
+        characterCount: 24,
+        readingDensity: 1.846,
+        timingStatus: 'READY',
+        mixState: 'OVERRIDE',
+        readiness: 'READY'
+      },
+      {
+        index: 1,
+        startSeconds: 55,
+        endSeconds: 70.5,
+        durationSeconds: 15.5,
+        windowLabel: '00:55.000-01:10.500',
+        voiceState: 'verse',
+        characterCount: 25,
+        readingDensity: 1.613,
+        timingStatus: 'READY',
+        mixState: 'INHERIT',
+        readiness: 'READY'
+      }
+    ],
+    checks: [
+      {
+        key: 'audio',
+        label: 'Narration audio',
+        status: 'READY',
+        detail: 'Narration audio artifact exists.'
+      },
+      {
+        key: 'video',
+        label: 'Narrated video',
+        status: 'ATTENTION',
+        detail: 'Generate narrated video when the demo needs playable output.'
+      }
+    ],
+    recommendedActions: [
+      {
+        key: 'render-preflight',
+        label: 'Run render preflight',
+        detail: 'Check provider and media readiness before narrated-video render.',
+        target: '#narration-workspace'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'scene-board-markdown',
+        href: '/api/jobs/narration-mix-job/narration-scene-board/markdown/download',
+        label: 'Scene board Markdown'
+      }
+    ],
+    safetyNotes: ['Metadata only.'],
     ...overrides
   };
 }

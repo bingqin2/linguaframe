@@ -12,6 +12,7 @@ import com.linguaframe.job.domain.entity.JobDispatchEventRecord;
 import com.linguaframe.job.domain.entity.JobArtifactRecord;
 import com.linguaframe.job.domain.entity.JobTimelineEventRecord;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
+import com.linguaframe.job.domain.entity.NarrationSegmentRecord;
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
@@ -25,6 +26,7 @@ import com.linguaframe.job.repository.JobArtifactRepository;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.JobTimelineEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
+import com.linguaframe.job.repository.NarrationSegmentRepository;
 import com.linguaframe.job.repository.QualityEvaluationRepository;
 import com.linguaframe.job.domain.entity.QualityEvaluationRecord;
 import com.linguaframe.job.service.ModelCallAuditService;
@@ -113,6 +115,9 @@ class LocalizationJobControllerTests {
 
     @Autowired
     private QualityEvaluationRepository qualityEvaluationRepository;
+
+    @Autowired
+    private NarrationSegmentRepository narrationSegmentRepository;
 
     @Autowired
     private JdbcClient jdbcClient;
@@ -2316,6 +2321,77 @@ class LocalizationJobControllerTests {
                 .andExpect(jsonPath("$.generationReady").value(false))
                 .andExpect(jsonPath("$.mixAutomation.keyframeCount").value(0))
                 .andExpect(jsonPath("$.mixSettings.duckingVolume").value(0.125));
+    }
+
+    @Test
+    void returnsNarrationSceneBoardJsonAndMetadataOnlyMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-30T08:30:00Z");
+        createJob(
+                "job-controller-video-scene-board",
+                "job-controller-scene-board",
+                "scene-board.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+        narrationSegmentRepository.replaceSegments("job-controller-scene-board", List.of(new NarrationSegmentRecord(
+                "scene-board-segment-1",
+                "job-controller-scene-board",
+                0,
+                new BigDecimal("15.000"),
+                new BigDecimal("28.000"),
+                "Private browser-only narration text.",
+                "demo-voice",
+                new BigDecimal("0.250"),
+                null,
+                null,
+                createdAt,
+                createdAt
+        )));
+        artifactRepository.save(new JobArtifactRecord(
+                "scene-board-audio",
+                "job-controller-scene-board",
+                JobArtifactType.NARRATION_AUDIO,
+                "job-artifacts/job-controller-scene-board/private-audio-key",
+                "narration-audio.mp3",
+                "audio/mpeg",
+                100L,
+                "scene-board-audio-sha",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-scene-board", "job-controller-scene-board"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-scene-board"))
+                .andExpect(jsonPath("$.status").value("ATTENTION"))
+                .andExpect(jsonPath("$.segmentCount").value(1))
+                .andExpect(jsonPath("$.segments[0].windowLabel").value("00:15.000-00:28.000"))
+                .andExpect(jsonPath("$.segments[0].characterCount").value(36))
+                .andExpect(jsonPath("$.audioReady").value(true))
+                .andExpect(jsonPath("$.videoReady").value(false));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-scene-board/markdown/download",
+                        "job-controller-scene-board"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-controller-scene-board-narration-scene-board.md\""
+                ))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# Narration Scene Board")
+                .contains("- Job: job-controller-scene-board")
+                .contains("- Status: ATTENTION")
+                .contains("00:15.000-00:28.000")
+                .doesNotContain("Private browser-only narration text")
+                .doesNotContain("private-audio-key");
     }
 
     @Test

@@ -115,6 +115,7 @@ import type {
   NarrationPlaybackReviewResolution,
   NarrationRecoveryHandoff,
   NarrationRenderReview,
+  NarrationSceneBoard,
   NarrationMixKeyframe,
   NarrationMixLane,
   NarrationWaveform,
@@ -504,6 +505,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isClearingSubtitleDraft, setIsClearingSubtitleDraft] = useState(false);
   const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
+  const [narrationSceneBoard, setNarrationSceneBoard] = useState<NarrationSceneBoard | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
   const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
   const [narrationDeliveryPackage, setNarrationDeliveryPackage] = useState<NarrationDeliveryPackage | null>(null);
@@ -1211,6 +1213,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       evidenceResult,
       draftResult,
       narrationWorkspaceResult,
+      narrationSceneBoardResult,
       narrationEvidenceResult,
       narrationScriptPackageResult,
       narrationDeliveryPackageResult
@@ -1224,6 +1227,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getSubtitleReviewEvidence(jobId),
       linguaFrameApi.getSubtitleDraft(jobId, language),
       linguaFrameApi.getNarrationWorkspace(jobId),
+      linguaFrameApi.getNarrationSceneBoard(jobId),
       linguaFrameApi.getNarrationEvidence(jobId),
       linguaFrameApi.getNarrationScriptPackage(jobId),
       linguaFrameApi.getNarrationDeliveryPackage(jobId)
@@ -1304,6 +1308,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setNarrationWorkspace(null);
       setNarrationError(toErrorMessage(narrationWorkspaceResult.reason));
       errors.push(`Narration workspace: ${toErrorMessage(narrationWorkspaceResult.reason)}`);
+    }
+
+    if (narrationSceneBoardResult.status === 'fulfilled') {
+      setNarrationSceneBoard(narrationSceneBoardResult.value);
+    } else {
+      setNarrationSceneBoard(null);
+      errors.push(`Narration scene board: ${toErrorMessage(narrationSceneBoardResult.reason)}`);
     }
 
     if (narrationEvidenceResult.status === 'fulfilled') {
@@ -3142,6 +3153,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               narrationDemoRenderResult={narrationDemoRenderResult}
               narrationEvidence={narrationEvidence}
               narrationDeliveryPackage={narrationDeliveryPackage}
+              narrationSceneBoard={narrationSceneBoard}
               narrationScriptPackage={narrationScriptPackage}
               narrationDemoPresets={narrationDemoPresets}
               narrationStatus={narrationStatus}
@@ -6369,6 +6381,7 @@ function JobDetail({
   narrationEvidence,
   narrationDeliveryPackage,
   narrationDemoPresets,
+  narrationSceneBoard,
   narrationScriptPackage,
   narrationStatus,
   narrationWorkspace,
@@ -6506,6 +6519,7 @@ function JobDetail({
   narrationEvidence: NarrationEvidence | null;
   narrationDeliveryPackage: NarrationDeliveryPackage | null;
   narrationDemoPresets: NarrationDemoPreset[];
+  narrationSceneBoard: NarrationSceneBoard | null;
   narrationScriptPackage: NarrationScriptPackage | null;
   narrationStatus: string | null;
   narrationWorkspace: NarrationWorkspace | null;
@@ -6832,6 +6846,7 @@ function JobDetail({
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
         scriptPackage={narrationScriptPackage}
+        sceneBoard={narrationSceneBoard}
         demoPresets={narrationDemoPresets}
         renderPreflight={narrationDemoRenderPreflight}
         renderResult={narrationDemoRenderResult}
@@ -9874,6 +9889,7 @@ function NarrationWorkspacePanel({
   renderResult,
   renderPreflight,
   scriptPackage,
+  sceneBoard,
   status,
   workspace
 }: {
@@ -9905,6 +9921,7 @@ function NarrationWorkspacePanel({
   renderResult: NarrationDemoRenderResult | null;
   renderPreflight: NarrationDemoRenderPreflight | null;
   scriptPackage: NarrationScriptPackage | null;
+  sceneBoard: NarrationSceneBoard | null;
   status: string | null;
   workspace: NarrationWorkspace | null;
 }) {
@@ -10600,6 +10617,24 @@ function NarrationWorkspacePanel({
       ) : null}
       <div className="narration-workbench">
         <div className="narration-table-wrap">
+          <NarrationSceneBoardPanel
+            board={sceneBoard}
+            canRunPreflight={demoPresets.length > 0}
+            dirty={draftSummary.dirty}
+            selectedIndex={selectedIndex}
+            selectedSegment={selectedSegment}
+            segments={segments}
+            onFocusSegment={setSelectedIndex}
+            onPreviewSelectedTts={() => void previewSelectedNarrationSegmentTts()}
+            onRunPreflight={() => {
+              const presetId = demoPresets[0]?.id;
+              if (presetId) {
+                onPreflightDemoRender(presetId, false, true);
+              }
+            }}
+            onSave={saveDraftChanges}
+            onSeek={seekPreviewTo}
+          />
           {workspace?.timeline ? (
           <NarrationTimelineWorkbench
             playheadSeconds={previewCurrentSeconds}
@@ -10799,6 +10834,182 @@ function NarrationWorkspacePanel({
           onRender={onRenderDemo}
         />
       </div>
+    </section>
+  );
+}
+
+function NarrationSceneBoardPanel({
+  board,
+  canRunPreflight,
+  dirty,
+  onFocusSegment,
+  onPreviewSelectedTts,
+  onRunPreflight,
+  onSave,
+  onSeek,
+  selectedIndex,
+  selectedSegment,
+  segments
+}: {
+  board: NarrationSceneBoard | null;
+  canRunPreflight: boolean;
+  dirty: boolean;
+  onFocusSegment: (index: number) => void;
+  onPreviewSelectedTts: () => void;
+  onRunPreflight: () => void;
+  onSave: () => void;
+  onSeek: (seconds: number) => void;
+  selectedIndex: number;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+  segments: NarrationWorkspace['segments'];
+}) {
+  const boardSegments = board?.segments ?? [];
+  const selectedBoardSegment = boardSegments.find((segment) => segment.index === selectedIndex) ?? boardSegments[0] ?? null;
+  const selectedLocalSegment = selectedSegment ?? (selectedBoardSegment ? segments[selectedBoardSegment.index] : null) ?? null;
+  const statusClass = board?.status === 'READY'
+    ? 'ready'
+    : board?.status === 'BLOCKED' || board?.status === 'EMPTY'
+      ? 'blocked'
+      : 'attention';
+
+  return (
+    <section className="narration-scene-board" aria-label="Narration scene board">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration scene board</h4>
+          <p className="muted">
+            {board ? 'Previewing saved metadata with local draft text.' : 'Scene-board metadata is loading.'}
+          </p>
+        </div>
+        <span className={`status-pill ${statusClass}`}>{board?.status ?? 'LOADING'}</span>
+      </div>
+      {dirty ? <p className="narration-command-status">Local draft has unsaved changes; save narration to refresh saved metadata.</p> : null}
+      <dl className="compact-metrics narration-scene-board-metrics">
+        <div>
+          <dt>Segments</dt>
+          <dd>{board?.segmentCount ?? segments.length}</dd>
+        </div>
+        <div>
+          <dt>Coverage</dt>
+          <dd>{formatPercent(board?.coveragePercent ?? 0)}</dd>
+        </div>
+        <div>
+          <dt>Gaps</dt>
+          <dd>{board?.gapCount ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Voices</dt>
+          <dd>{board?.voiceCount ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Mix</dt>
+          <dd>{board?.mixOverrideCount ?? 0} overrides</dd>
+        </div>
+        <div>
+          <dt>Audio</dt>
+          <dd>{board?.audioReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+        <div>
+          <dt>Video</dt>
+          <dd>{board?.videoReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+      </dl>
+      <div className="narration-scene-board-grid">
+        <div className="narration-scene-rail" aria-label="Scene segment rail">
+          {boardSegments.length === 0 ? (
+            <p className="muted">No saved narration rows yet.</p>
+          ) : boardSegments.map((segment) => (
+            <button
+              key={`${segment.index}-${segment.windowLabel}`}
+              type="button"
+              className={segment.index === selectedIndex ? 'scene-rail-row selected-row' : 'scene-rail-row'}
+              aria-label={`Focus segment ${segment.index + 1}`}
+              onClick={() => {
+                onFocusSegment(segment.index);
+                onSeek(segment.startSeconds);
+              }}
+            >
+              <span>{segment.windowLabel}</span>
+              <span className={`status-pill ${segment.readiness === 'READY' ? 'ready' : segment.readiness === 'BLOCKED' ? 'blocked' : 'attention'}`}>
+                {segment.readiness}
+              </span>
+              <small>{segment.voiceState} · {segment.characterCount} chars · {segment.mixState}</small>
+            </button>
+          ))}
+        </div>
+        <div className="narration-scene-timeline" aria-label="Scene board timeline">
+          {boardSegments.map((segment) => (
+            <button
+              key={`${segment.index}-timeline`}
+              type="button"
+              className={segment.index === selectedIndex ? 'timeline-segment selected-row' : 'timeline-segment'}
+              aria-label={`Scene timeline segment ${segment.index + 1}`}
+              style={sceneTimelineStyle(segment, board)}
+              onClick={() => {
+                onFocusSegment(segment.index);
+                onSeek(segment.startSeconds);
+              }}
+            >
+              {segment.index + 1}
+            </button>
+          ))}
+        </div>
+        <aside className="narration-scene-inspector" aria-label="Scene board selected segment">
+          {selectedBoardSegment && selectedLocalSegment ? (
+            <>
+              <h5>Selected narration {selectedBoardSegment.index + 1}</h5>
+              <dl className="compact-metrics">
+                <div>
+                  <dt>Window</dt>
+                  <dd>{selectedBoardSegment.windowLabel}</dd>
+                </div>
+                <div>
+                  <dt>Density</dt>
+                  <dd>{selectedBoardSegment.readingDensity}/s</dd>
+                </div>
+                <div>
+                  <dt>Timing</dt>
+                  <dd>{selectedBoardSegment.timingStatus}</dd>
+                </div>
+                <div>
+                  <dt>Mix</dt>
+                  <dd>{selectedBoardSegment.mixState}</dd>
+                </div>
+              </dl>
+              <p className="narration-scene-text">{selectedLocalSegment.text || 'No local draft text.'}</p>
+              <div className="narration-command-buttons">
+                <button type="button" onClick={() => onFocusSegment(selectedBoardSegment.index)}>Focus row</button>
+                <button type="button" onClick={() => onSeek(selectedBoardSegment.startSeconds)}>Seek start</button>
+                <button type="button" onClick={onPreviewSelectedTts}>Preview selected TTS</button>
+                <button type="button" onClick={onSave}>Save narration</button>
+                <button type="button" onClick={onRunPreflight} disabled={!canRunPreflight}>Run render preflight</button>
+              </div>
+            </>
+          ) : (
+            <p className="muted">Select a narration segment to inspect the local draft text.</p>
+          )}
+        </aside>
+      </div>
+      {board?.checks.length ? (
+        <div className="evidence-check-list">
+          {board.checks.map((check) => (
+            <div key={check.key} className={`evidence-check evidence-check-${check.status.toLowerCase()}`}>
+              <strong>{check.label}</strong>
+              <span>{check.status}</span>
+              <p>{check.detail}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {board?.recommendedActions.length ? (
+        <ul className="safe-link-list">
+          {board.recommendedActions.map((action) => (
+            <li key={action.key}>
+              <code>{action.label}</code> {action.detail}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }
@@ -13652,6 +13863,20 @@ function formatSeconds(value: number | null | undefined) {
 
 function formatPercent(value: number) {
   return `${Number(value.toFixed(4))}%`;
+}
+
+function sceneTimelineStyle(segment: NarrationSceneBoard['segments'][number], board: NarrationSceneBoard | null) {
+  const span = board?.totalSpanSeconds ?? 0;
+  if (!board || span <= 0) {
+    return { left: '0%', width: '100%' };
+  }
+  const timelineStart = Math.min(...board.segments.map((candidate) => candidate.startSeconds));
+  const left = ((segment.startSeconds - timelineStart) / span) * 100;
+  const width = (segment.durationSeconds / span) * 100;
+  return {
+    left: `${clampNumber(left, 0, 100)}%`,
+    width: `${clampNumber(width, 1, 100)}%`
+  };
 }
 
 function clampNumber(value: number, min: number, max: number) {

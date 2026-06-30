@@ -13,6 +13,7 @@ import {
   downloadNarrationRenderReviewMarkdown,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
+  downloadNarrationSceneBoardMarkdown,
   getNarrationDeliveryPackage,
   downloadNarrationDeliveryPackageMarkdown,
   downloadNarrationDeliveryPackageZip,
@@ -23,6 +24,7 @@ import {
   getNarrationPlaybackReview,
   getNarrationPlaybackReviewResolution,
   getNarrationRenderReview,
+  getNarrationSceneBoard,
   getNarrationScriptPackage,
   getNarrationWaveform,
   getNarrationWorkspace,
@@ -578,6 +580,44 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-render-review');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-render-review/markdown/download');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
+  });
+
+  test('loads and downloads narration scene board', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
+        generatedAt: '2026-06-30T08:00:00Z',
+        status: 'ATTENTION',
+        segmentCount: 1,
+        totalNarrationSeconds: 13,
+        totalSpanSeconds: 13,
+        coveragePercent: 100,
+        gapCount: 0,
+        gapSeconds: 0,
+        hasOverlap: false,
+        voiceCount: 1,
+        mixOverrideCount: 1,
+        mixKeyframeCount: 0,
+        audioReady: true,
+        videoReady: false,
+        segments: [],
+        checks: [],
+        recommendedActions: [],
+        safeLinks: [],
+        safetyNotes: []
+      })
+    );
+
+    const board = await getNarrationSceneBoard('job narration/scene');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['markdown'])));
+    await downloadNarrationSceneBoardMarkdown('job narration/scene');
+
+    expect(board.status).toBe('ATTENTION');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Fscene/narration-scene-board');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Fscene/narration-scene-board/markdown/download');
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
   });
 

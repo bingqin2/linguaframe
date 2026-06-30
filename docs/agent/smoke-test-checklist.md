@@ -241,6 +241,8 @@ bash -n scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-
 
 Expected:
 
+- Browser selected-job narration workspace shows a `Narration scene board` panel before the detailed timeline. Verify the status, coverage, gaps, voice count, mix count, audio/video readiness, segment rail, timeline board, selected-row inspector, and checks render from saved metadata while the inspector uses local draft text.
+- `Focus segment`, `Seek start`, `Preview selected TTS`, `Save narration`, and `Run render preflight` in `Narration scene board` reuse existing workspace actions. Focus/seek must stay local; preview may call the configured TTS provider; save/preflight must only run when clicked.
 - Browser selected-job narration workspace shows `Demo narration preset` next to script package import/export.
 - Browser selected-job narration workspace shows a `Narration preview` panel after the timeline workbench.
 - Browser selected-job narration workspace shows a `Narration waveform overview` panel between the timeline and preview panels.
@@ -263,6 +265,7 @@ Expected:
 - `Undo`, `Redo`, and `Revert to saved` update the browser draft only; they must not save rows, call providers, create artifacts, or mutate object storage.
 - Draft history is in-memory only and resets after a successful `Save narration` response or workspace reload.
 - `Split at playhead` requires the preview playhead to be inside the selected row with at least 0.25 seconds on each side.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh` writes JSON and Markdown under `/tmp/linguaframe-demo/narration-scene-board/`, prints metadata-only status, coverage, gap, voice/mix, audio/video readiness, blocked checks, and next action, and does not print narration text, object keys, local paths, provider payloads, tokens, or media bytes.
 - `Merge next` is disabled on the final row, and inserted blank rows block save until required text, voice, and timing validation passes.
 - Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.
 - Selecting a narration row and clicking `Jump to narration N` seeks the preview player to the selected start time and moves the timeline playhead.
