@@ -196,6 +196,12 @@ PY
   echo "Downloaded narration evidence to $OUTPUT_DIR/narration-evidence.json, $OUTPUT_DIR/narration-evidence.md, and $OUTPUT_DIR/narration-evidence.zip"
 fi
 
+echo "Narration render review:"
+LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+  LINGUAFRAME_NARRATION_RENDER_REVIEW_OUTPUT_DIR="$OUTPUT_DIR/narration-render-review" \
+  LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY="${LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY:-true}" \
+  "$SCRIPT_DIR/narration-render-review.sh"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

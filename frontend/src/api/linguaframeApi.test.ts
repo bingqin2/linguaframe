@@ -8,12 +8,14 @@ import {
   clearSubtitleDraft,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
+  downloadNarrationRenderReviewMarkdown,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
   applyNarrationDemoPreset,
   getJob,
   getMediaUpload,
   getNarrationEvidence,
+  getNarrationRenderReview,
   getNarrationScriptPackage,
   getNarrationWaveform,
   getNarrationWorkspace,
@@ -514,6 +516,49 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
+  });
+
+  test('loads and downloads narration render review cue sheet', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
+        status: 'READY',
+        nextAction: 'Review narrated video and export handoff evidence.',
+        segmentCount: 2,
+        totalNarrationDurationSeconds: 28.5,
+        coveredSpanSeconds: 55.5,
+        gapCount: 1,
+        gapSeconds: 27,
+        timelineHasOverlap: false,
+        voiceSummary: 'PRESET:demo-voice',
+        segmentMixOverrideCount: 0,
+        segmentMixOverrideSummary: 'none',
+        mixKeyframeCount: 1,
+        mixKeyframeLaneSummary: 'DUCKING_VOLUME=1',
+        audioReady: true,
+        audioArtifactCount: 1,
+        videoReady: true,
+        narratedVideoArtifactCount: 1,
+        waveformReady: true,
+        waveformArtifactId: 'waveform-1',
+        waveformCacheHit: true,
+        metrics: [],
+        checks: [],
+        safeLinks: [],
+        safetyNotes: []
+      })
+    );
+
+    const review = await getNarrationRenderReview('job narration/review');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['markdown'])));
+    await downloadNarrationRenderReviewMarkdown('job narration/review');
+
+    expect(review.status).toBe('READY');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-render-review');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-render-review/markdown/download');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
   });
 
   test('previews one narration segment as a transient audio blob', async () => {

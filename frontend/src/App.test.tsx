@@ -35,6 +35,7 @@ import type {
   NarrationDemoRenderResult,
   NarrationEvidence,
   NarrationGeneration,
+  NarrationRenderReview,
   NarrationScriptPackage,
   NarrationWaveform,
   NarratedVideoGeneration,
@@ -128,6 +129,7 @@ describe('App', () => {
       buckets: [],
       fallbackReason: 'No decoded audio source is available for this job.'
     });
+    vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -3639,6 +3641,41 @@ describe('App', () => {
     expect(within(waveformPanel).getByText((_content, element) => element?.textContent === 'Hashwaveformhash')).toBeInTheDocument();
     expect(within(waveformPanel).getAllByLabelText(/^Waveform bucket/i)).toHaveLength(96);
     expect(within(waveformPanel).getByLabelText('Waveform bucket 1: decoded, peak 75%, rms 50%')).toBeInTheDocument();
+  });
+
+  test('renders narration render review cue sheet metadata and downloads markdown', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-render-review-job', videoId: 'narration-render-review-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-render-review-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue(narrationWaveformFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture({
+      jobId: 'narration-render-review-job'
+    }));
+    const downloadReview = vi.spyOn(linguaFrameApi, 'downloadNarrationRenderReviewMarkdown')
+      .mockResolvedValue(new Blob(['# Narration Render Review'], { type: 'text/markdown' }));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-render-review-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const reviewPanel = within(narrationPanel).getByRole('region', { name: /narration render review/i });
+
+    expect(within(reviewPanel).getByText('Render review')).toBeInTheDocument();
+    expect(within(reviewPanel).getByText((_content, element) => element?.textContent === 'StatusREADY')).toBeInTheDocument();
+    expect(within(reviewPanel).getByText('Review narrated video and export handoff evidence.')).toBeInTheDocument();
+    expect(within(reviewPanel).getByText((_content, element) => element?.textContent === 'Waveformwaveform-artifact-1')).toBeInTheDocument();
+
+    await userEvent.click(within(reviewPanel).getByRole('button', { name: /download review markdown/i }));
+
+    expect(downloadReview).toHaveBeenCalledWith('narration-render-review-job');
   });
 
   test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
@@ -7738,6 +7775,51 @@ function narrationWaveformFixture(overrides: Partial<NarrationWaveform> = {}): N
     cacheHit: true,
     contentSha256: 'waveformhash1234567890',
     generatedAt: '2026-06-30T01:10:00Z',
+    ...overrides
+  };
+}
+
+function narrationRenderReviewFixture(overrides: Partial<NarrationRenderReview> = {}): NarrationRenderReview {
+  return {
+    jobId: 'narration-review-job',
+    status: 'READY',
+    nextAction: 'Review narrated video and export handoff evidence.',
+    segmentCount: 2,
+    totalNarrationDurationSeconds: 28.5,
+    coveredSpanSeconds: 55.5,
+    gapCount: 1,
+    gapSeconds: 27,
+    timelineHasOverlap: false,
+    voiceSummary: 'PRESET:demo-voice',
+    segmentMixOverrideCount: 1,
+    segmentMixOverrideSummary: '1 segment override',
+    mixKeyframeCount: 3,
+    mixKeyframeLaneSummary: 'DUCKING_VOLUME=3',
+    audioReady: true,
+    audioArtifactCount: 1,
+    videoReady: true,
+    narratedVideoArtifactCount: 1,
+    waveformReady: true,
+    waveformArtifactId: 'waveform-artifact-1',
+    waveformCacheHit: true,
+    metrics: [
+      { key: 'segments', label: 'Segments', value: '2' },
+      { key: 'audioArtifacts', label: 'Narration audio artifacts', value: '1' },
+      { key: 'narratedVideoArtifacts', label: 'Narrated video artifacts', value: '1' }
+    ],
+    checks: [
+      { key: 'SEGMENTS', label: 'Segments', status: 'PASS', detail: '2 narration windows saved.' },
+      { key: 'NARRATION_AUDIO', label: 'Narration audio', status: 'PASS', detail: 'Narration audio artifact is available.' }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_RENDER_REVIEW_MARKDOWN',
+        label: 'Narration render review Markdown',
+        href: '/api/jobs/narration-review-job/narration-render-review/markdown/download',
+        contentType: 'text/markdown'
+      }
+    ],
+    safetyNotes: ['Narration render review is metadata-only.'],
     ...overrides
   };
 }
