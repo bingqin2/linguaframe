@@ -92,25 +92,25 @@
   - `export interface PreviewNarrationSegmentRequest { text: string; voice: string | null; }`
   - A compact `Narration TTS preview` panel with `Preview selected TTS`, effective voice copy, provider cost warning, status/error text, and an `<audio controls>` player.
 
-- [ ] Write failing API tests proving `previewNarrationSegment('job-narration', { text: 'Hello', voice: 'alloy' })` posts JSON to `/api/jobs/job-narration/narration-workspace/segment-preview` and returns a blob.
-- [ ] Write failing App tests proving the narration workspace renders `Narration TTS preview` for a completed job.
-- [ ] Write failing App tests proving `Preview selected TTS` sends the selected draft row text and explicit voice, then renders an audio player using a blob URL.
-- [ ] Write failing App tests proving unsaved text edits are included in the preview request without calling `saveNarrationWorkspace`.
-- [ ] Write failing App tests proving blank selected text disables preview and shows the same validation guidance without calling the API.
-- [ ] Write failing App tests proving a rejected preview shows an error message and keeps save/generate controls usable.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify the new tests fail.
-- [ ] Add `PreviewNarrationSegmentRequest` to `frontend/src/domain/jobTypes.ts`.
-- [ ] Add `previewNarrationSegment(...)` to `frontend/src/api/linguaframeApi.ts` using existing `requestBlob`.
-- [ ] Export `previewNarrationSegment` from `linguaFrameApi`.
-- [ ] Add `NarrationTtsPreviewPanel` inside `NarrationWorkspacePanel`, placed after `NarrationDraftHistoryPanel` and before `NarrationPreviewPanel`.
-- [ ] Keep panel state local: `isPreviewingSegment`, `segmentPreviewUrl`, `segmentPreviewStatus`, `segmentPreviewError`.
-- [ ] Revoke old object URLs with `URL.revokeObjectURL` when replacing preview audio and when workspace/selected row changes.
-- [ ] Disable preview when no selected row, blank selected text, unknown selected voice, or a preview request is in flight.
-- [ ] On preview click, call `previewNarrationSegment(jobId, { text: selectedSegment.text, voice: selectedSegment.voice ?? null })`, create an object URL, and render `<audio controls src={segmentPreviewUrl} aria-label="Narration TTS preview player" />`.
-- [ ] Display cost warning text: `Preview calls the configured TTS provider and may consume credits; it does not save rows or create artifacts.`
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify it passes.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Write failing API tests proving `previewNarrationSegment('job-narration', { text: 'Hello', voice: 'alloy' })` posts JSON to `/api/jobs/job-narration/narration-workspace/segment-preview` and returns a blob.
+- [x] Write failing App tests proving the narration workspace renders `Narration TTS preview` for a completed job.
+- [x] Write failing App tests proving `Preview selected TTS` sends the selected draft row text and explicit voice, then renders an audio player using a blob URL.
+- [x] Write failing App tests proving unsaved text edits are included in the preview request without calling `saveNarrationWorkspace`.
+- [x] Write failing App tests proving blank selected text disables preview and shows the same validation guidance without calling the API.
+- [x] Write failing App tests proving a rejected preview shows an error message and keeps save/generate controls usable.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify the new tests fail.
+- [x] Add `PreviewNarrationSegmentRequest` to `frontend/src/domain/jobTypes.ts`.
+- [x] Add `previewNarrationSegment(...)` to `frontend/src/api/linguaframeApi.ts` using existing `requestBlob`.
+- [x] Export `previewNarrationSegment` from `linguaFrameApi`.
+- [x] Add `NarrationTtsPreviewPanel` inside `NarrationWorkspacePanel`, placed after `NarrationDraftHistoryPanel` and before `NarrationPreviewPanel`.
+- [x] Keep panel state local: `isPreviewingSegment`, `segmentPreviewUrl`, `segmentPreviewStatus`, `segmentPreviewError`.
+- [x] Revoke old object URLs with `URL.revokeObjectURL` when replacing preview audio and when workspace/selected row changes.
+- [x] Disable preview when no selected row, blank selected text, unknown selected voice, or a preview request is in flight.
+- [x] On preview click, call `previewNarrationSegment(jobId, { text: selectedSegment.text, voice: selectedSegment.voice ?? null })`, create an object URL, and render `<audio controls src={segmentPreviewUrl} aria-label="Narration TTS preview player" />`.
+- [x] Display cost warning text: `Preview calls the configured TTS provider and may consume credits; it does not save rows or create artifacts.`
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration TTS preview"` and verify it passes.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration TTS preview workbench`.
 
 ## Task 3: Terminal Segment Preview Script

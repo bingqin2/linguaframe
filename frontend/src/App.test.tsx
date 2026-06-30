@@ -2411,6 +2411,143 @@ describe('App', () => {
     expect(getNarrationEvidence).toHaveBeenCalledTimes(4);
   });
 
+  test('previews selected narration segment TTS without saving the workspace', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-tts-preview-job', videoId: 'narration-tts-preview-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-tts-preview-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment')
+      .mockResolvedValue(new Blob(['mp3-preview'], { type: 'audio/mpeg' }));
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const createObjectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:narration-preview');
+    const revokeObjectUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-tts-preview-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const ttsPreviewPanel = within(narrationPanel).getByRole('region', { name: /narration tts preview/i });
+
+    expect(within(ttsPreviewPanel).getByText('Narration TTS preview')).toBeInTheDocument();
+    expect(within(ttsPreviewPanel).getByText(/may consume credits/i)).toBeInTheDocument();
+
+    await userEvent.click(within(ttsPreviewPanel).getByRole('button', { name: /preview selected tts/i }));
+
+    expect(previewNarrationSegment).toHaveBeenCalledWith('narration-tts-preview-job', {
+      text: 'Explain the first scene.',
+      voice: 'alloy'
+    });
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(await within(ttsPreviewPanel).findByText('Preview ready for narration 1.')).toBeInTheDocument();
+    expect(within(ttsPreviewPanel).getByLabelText('Narration TTS preview player')).toHaveAttribute('src', 'blob:narration-preview');
+    expect(within(ttsPreviewPanel).getByText((_content, element) =>
+      element?.textContent === 'Narration 1 · Explicit preset: alloy'
+    )).toBeInTheDocument();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /delete row/i }));
+
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:narration-preview');
+  });
+
+  test('previews unsaved narration text edits without saving the workspace', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-unsaved-tts-job', videoId: 'narration-unsaved-tts-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-unsaved-tts-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment')
+      .mockResolvedValue(new Blob(['mp3-preview'], { type: 'audio/mpeg' }));
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:unsaved-narration-preview');
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-unsaved-tts-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const ttsPreviewPanel = within(narrationPanel).getByRole('region', { name: /narration tts preview/i });
+    const textArea = within(narrationPanel).getByLabelText(/segment text/i);
+
+    await userEvent.clear(textArea);
+    await userEvent.type(textArea, 'Unsaved local narration preview.');
+    await userEvent.click(within(ttsPreviewPanel).getByRole('button', { name: /preview selected tts/i }));
+
+    expect(previewNarrationSegment).toHaveBeenCalledWith('narration-unsaved-tts-job', {
+      text: 'Unsaved local narration preview.',
+      voice: 'alloy'
+    });
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('disables narration TTS preview for blank selected text without calling the API', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-blank-tts-job', videoId: 'narration-blank-tts-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-blank-tts-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-blank-tts-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const ttsPreviewPanel = within(narrationPanel).getByRole('region', { name: /narration tts preview/i });
+
+    await userEvent.clear(within(narrationPanel).getByLabelText(/segment text/i));
+
+    expect(within(ttsPreviewPanel).getByText('Selected narration text is required.')).toBeInTheDocument();
+    expect(within(ttsPreviewPanel).getByRole('button', { name: /preview selected tts/i })).toBeDisabled();
+    expect(previewNarrationSegment).not.toHaveBeenCalled();
+  });
+
+  test('keeps narration save and generation usable when TTS preview is rejected', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-rejected-tts-job', videoId: 'narration-rejected-tts-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-rejected-tts-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'previewNarrationSegment').mockRejectedValue(new Error('TTS provider rejected preview.'));
+    vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-rejected-tts-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const ttsPreviewPanel = within(narrationPanel).getByRole('region', { name: /narration tts preview/i });
+
+    await userEvent.click(within(ttsPreviewPanel).getByRole('button', { name: /preview selected tts/i }));
+
+    expect(await within(ttsPreviewPanel).findByText('TTS provider rejected preview.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByRole('button', { name: /save narration/i })).toBeEnabled();
+    expect(within(narrationPanel).getByRole('button', { name: /generate narration audio/i })).toBeEnabled();
+  });
+
   test('blocks narration save and generation when a saved voice is not in the preset catalog', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-unknown-voice-job', videoId: 'narration-unknown-video', targetLanguage: 'zh-CN' })

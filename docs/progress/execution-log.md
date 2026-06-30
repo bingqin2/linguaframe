@@ -6,6 +6,22 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Continued the narration segment TTS preview workbench feature slice from `docs/plans/147-narration-segment-tts-preview-workbench.md`.
+- Added the frontend transient preview request type and `linguaFrameApi.previewNarrationSegment(...)` blob client for `POST /api/jobs/{jobId}/narration-workspace/segment-preview`.
+- Added a compact `Narration TTS preview` panel between draft history and video preview, using the selected local draft row text/voice, showing the provider credit warning, rendering an audio player from a browser object URL, and revoking old object URLs when previews are replaced or local drafts change.
+- Added App coverage for selected-row preview, unsaved text preview without saving, blank-text disabled state, rejected-preview error handling, and keeping save/generate controls usable after preview errors.
+
+Validation:
+
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "previews one narration segment|previews selected narration segment"` first failed because the `Narration TTS preview` region did not exist.
+- After adding the panel and API wiring, the same command passed with `Test Files 2 passed` and `Tests 2 passed | 212 skipped`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "TTS preview|transient audio blob"` passed with `Test Files 2 passed` and `Tests 3 passed | 214 skipped`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration"` passed with `Test Files 2 passed` and `Tests 38 passed | 179 skipped`; jsdom printed expected navigation warnings from download actions.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration draft history workbench feature slice from `docs/plans/146-narration-draft-history-workbench.md`.
 - Added pure frontend narration draft history helpers for saved/present snapshots, apply, undo, redo, revert-to-saved, mark-saved, and unsaved-change summaries.
 - Draft history helpers clone segment snapshots, keep history in memory only, and summarize added, removed, timing, text, and voice changes without mutating caller-owned rows.

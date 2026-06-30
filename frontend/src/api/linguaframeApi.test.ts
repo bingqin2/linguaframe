@@ -59,6 +59,7 @@ import {
   generateNarrationAudio,
   generateNarratedVideo,
   preflightNarrationDemoRender,
+  previewNarrationSegment,
   renderNarrationDemo,
   importNarrationScriptPackage,
   getDemoSession,
@@ -452,6 +453,37 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job-narration/narration-evidence');
     expect(fetchMock.mock.calls[3]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/markdown/download');
     expect(fetchMock.mock.calls[4]?.[0]).toBe('/api/jobs/job-narration/narration-evidence/download');
+  });
+
+  test('previews one narration segment as a transient audio blob', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(new Blob(['mp3-preview'], { type: 'audio/mpeg' }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'audio/mpeg'
+        }
+      })
+    );
+
+    const blob = await previewNarrationSegment('job narration/1', {
+      text: 'Preview this narration line.',
+      voice: 'alloy'
+    });
+
+    expect(blob.type).toBe('audio/mpeg');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20narration%2F1/narration-workspace/segment-preview',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify({
+          text: 'Preview this narration line.',
+          voice: 'alloy'
+        })
+      })
+    );
   });
 
   test('renders narration demo with encoded route and explicit render options', async () => {

@@ -9368,7 +9368,26 @@ function NarrationWorkspacePanel({
   const [previewCurrentSeconds, setPreviewCurrentSeconds] = useState(0);
   const [previewWindowEndSeconds, setPreviewWindowEndSeconds] = useState<number | null>(null);
   const [editCommandStatus, setEditCommandStatus] = useState<string | null>(null);
+  const [ttsPreviewUrl, setTtsPreviewUrl] = useState<string | null>(null);
+  const [ttsPreviewStatus, setTtsPreviewStatus] = useState<string | null>(null);
+  const [ttsPreviewError, setTtsPreviewError] = useState<string | null>(null);
+  const [isPreviewingTts, setIsPreviewingTts] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const ttsPreviewUrlRef = useRef<string | null>(null);
+
+  function replaceTtsPreviewUrl(nextUrl: string | null) {
+    if (ttsPreviewUrlRef.current) {
+      URL.revokeObjectURL(ttsPreviewUrlRef.current);
+    }
+    ttsPreviewUrlRef.current = nextUrl;
+    setTtsPreviewUrl(nextUrl);
+  }
+
+  function clearTtsPreview(message: string | null = null) {
+    replaceTtsPreviewUrl(null);
+    setTtsPreviewStatus(message);
+    setTtsPreviewError(null);
+  }
 
   useEffect(() => {
     setDraftHistory(createNarrationDraftHistory(workspace?.segments ?? []));
@@ -9377,7 +9396,15 @@ function NarrationWorkspacePanel({
     setPreviewCurrentSeconds(0);
     setPreviewWindowEndSeconds(null);
     setEditCommandStatus(null);
+    clearTtsPreview(null);
   }, [workspace]);
+
+  useEffect(() => () => {
+    if (ttsPreviewUrlRef.current) {
+      URL.revokeObjectURL(ttsPreviewUrlRef.current);
+      ttsPreviewUrlRef.current = null;
+    }
+  }, []);
 
   const segments = draftHistory.present;
   const selectedSegment = segments[selectedIndex] ?? null;
@@ -9422,6 +9449,7 @@ function NarrationWorkspacePanel({
     setDraftHistory((current) => applyNarrationDraftChange(current, nextSegments, actionLabel));
     setSelectedIndex(clampSelectedIndex(nextSelectedIndex, nextSegments));
     setEditCommandStatus(actionLabel);
+    clearTtsPreview('TTS preview cleared because the narration draft changed.');
   }
 
   function updateSegment(index: number, patch: Partial<NarrationWorkspace['segments'][number]>) {
@@ -9530,6 +9558,43 @@ function NarrationWorkspacePanel({
     setPreviewWindowEndSeconds(null);
   }
 
+  async function previewSelectedNarrationSegmentTts() {
+    if (!selectedSegment) {
+      setTtsPreviewError('Select a narration row before previewing TTS.');
+      setTtsPreviewStatus(null);
+      return;
+    }
+    const text = selectedSegment.text.trim();
+    if (!text) {
+      setTtsPreviewError('Selected narration text is required.');
+      setTtsPreviewStatus(null);
+      return;
+    }
+    if (selectedSegment.voice && workspace?.voiceCatalog && !workspace.voiceCatalog.presets.some((preset) => preset.voice === selectedSegment.voice)) {
+      setTtsPreviewError('Selected narration voice must be one of the configured presets.');
+      setTtsPreviewStatus(null);
+      return;
+    }
+    setIsPreviewingTts(true);
+    setTtsPreviewError(null);
+    setTtsPreviewStatus('Previewing selected narration TTS...');
+    try {
+      const blob = await linguaFrameApi.previewNarrationSegment(jobId, {
+        text,
+        voice: selectedSegment.voice || null
+      });
+      const objectUrl = URL.createObjectURL(blob);
+      replaceTtsPreviewUrl(objectUrl);
+      setTtsPreviewStatus(`Preview ready for narration ${selectedIndex + 1}.`);
+    } catch (previewError) {
+      replaceTtsPreviewUrl(null);
+      setTtsPreviewStatus(null);
+      setTtsPreviewError(toErrorMessage(previewError));
+    } finally {
+      setIsPreviewingTts(false);
+    }
+  }
+
   return (
     <section id="narration-workspace" className="panel narration-workspace-panel" aria-label="Narration workspace">
       <div className="panel-heading">
@@ -9603,6 +9668,16 @@ function NarrationWorkspacePanel({
             onRedo={redoDraftChange}
             onRevert={revertDraftChanges}
             onUndo={undoDraftChange}
+          />
+          <NarrationTtsPreviewPanel
+            error={ttsPreviewError}
+            isPreviewing={isPreviewingTts}
+            previewUrl={ttsPreviewUrl}
+            selectedIndex={selectedIndex}
+            selectedSegment={selectedSegment}
+            status={ttsPreviewStatus}
+            voiceCatalog={workspace?.voiceCatalog ?? null}
+            onPreview={() => void previewSelectedNarrationSegmentTts()}
           />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
@@ -9729,6 +9804,72 @@ function NarrationDraftHistoryPanel({
       <ul className="narration-draft-history-rows">
         {changedRows.map((rowLabel) => <li key={rowLabel}>{rowLabel}</li>)}
       </ul>
+    </section>
+  );
+}
+
+function NarrationTtsPreviewPanel({
+  error,
+  isPreviewing,
+  onPreview,
+  previewUrl,
+  selectedIndex,
+  selectedSegment,
+  status,
+  voiceCatalog
+}: {
+  error: string | null;
+  isPreviewing: boolean;
+  onPreview: () => void;
+  previewUrl: string | null;
+  selectedIndex: number;
+  selectedSegment: NarrationWorkspace['segments'][number] | null;
+  status: string | null;
+  voiceCatalog: NarrationWorkspace['voiceCatalog'] | null;
+}) {
+  const selectedText = selectedSegment?.text.trim() ?? '';
+  const selectedVoiceInvalid = Boolean(
+    selectedSegment?.voice
+    && voiceCatalog
+    && !voiceCatalog.presets.some((preset) => preset.voice === selectedSegment.voice)
+  );
+  const previewDisabled = isPreviewing || !selectedSegment || !selectedText || selectedVoiceInvalid;
+  const selectedLabel = selectedSegment ? `Narration ${selectedIndex + 1}` : 'No row selected';
+
+  return (
+    <section className="narration-tts-preview" aria-label="Narration TTS preview">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration TTS preview</h4>
+          <p className="muted">
+            {selectedLabel} · {formatNarrationVoiceState(selectedSegment?.voice, voiceCatalog)}
+          </p>
+        </div>
+        <span className={previewUrl ? 'status-pill ready' : 'status-pill attention'}>
+          {previewUrl ? 'Audio ready' : 'Needs preview'}
+        </span>
+      </div>
+      <p className="muted">
+        Preview calls the configured TTS provider and may consume credits; it does not save rows or create artifacts.
+      </p>
+      <div className="narration-command-buttons">
+        <button type="button" disabled={previewDisabled} onClick={onPreview}>
+          {isPreviewing ? 'Previewing...' : 'Preview selected TTS'}
+        </button>
+      </div>
+      {selectedVoiceInvalid ? (
+        <p className="error-text">Selected narration voice must be one of the configured presets.</p>
+      ) : null}
+      {!selectedText && selectedSegment ? (
+        <p className="error-text">Selected narration text is required.</p>
+      ) : null}
+      {previewUrl ? (
+        <audio aria-label="Narration TTS preview player" controls src={previewUrl} />
+      ) : (
+        <p className="muted">No segment preview audio generated yet.</p>
+      )}
+      {status ? <p className="narration-command-status">{status}</p> : null}
+      {error ? <p className="error-text">{error}</p> : null}
     </section>
   );
 }
