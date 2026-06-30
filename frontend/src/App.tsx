@@ -107,6 +107,7 @@ import type {
   NarrationDemoPreset,
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
+  NarrationDeliveryPackage,
   NarrationEvidence,
   NarrationPlaybackIssueCategory,
   NarrationPlaybackReview,
@@ -504,6 +505,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
   const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
+  const [narrationDeliveryPackage, setNarrationDeliveryPackage] = useState<NarrationDeliveryPackage | null>(null);
   const [narrationDemoRenderPreflight, setNarrationDemoRenderPreflight] = useState<NarrationDemoRenderPreflight | null>(null);
   const [narrationDemoRenderResult, setNarrationDemoRenderResult] = useState<NarrationDemoRenderResult | null>(null);
   const [narrationError, setNarrationError] = useState<string | null>(null);
@@ -1189,7 +1191,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       draftResult,
       narrationWorkspaceResult,
       narrationEvidenceResult,
-      narrationScriptPackageResult
+      narrationScriptPackageResult,
+      narrationDeliveryPackageResult
     ] = await Promise.allSettled([
       linguaFrameApi.listArtifacts(jobId),
       linguaFrameApi.getDeliveryManifest(jobId),
@@ -1201,7 +1204,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getSubtitleDraft(jobId, language),
       linguaFrameApi.getNarrationWorkspace(jobId),
       linguaFrameApi.getNarrationEvidence(jobId),
-      linguaFrameApi.getNarrationScriptPackage(jobId)
+      linguaFrameApi.getNarrationScriptPackage(jobId),
+      linguaFrameApi.getNarrationDeliveryPackage(jobId)
     ]);
 
     if (artifactResult.status === 'fulfilled') {
@@ -1295,6 +1299,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setNarrationScriptPackage(null);
       setNarrationError(toErrorMessage(narrationScriptPackageResult.reason));
       errors.push(`Narration script package: ${toErrorMessage(narrationScriptPackageResult.reason)}`);
+    }
+
+    if (narrationDeliveryPackageResult.status === 'fulfilled') {
+      setNarrationDeliveryPackage(narrationDeliveryPackageResult.value);
+    } else {
+      setNarrationDeliveryPackage(null);
+      setNarrationError(toErrorMessage(narrationDeliveryPackageResult.reason));
+      errors.push(`Narration delivery package: ${toErrorMessage(narrationDeliveryPackageResult.reason)}`);
     }
 
     setPreviewErrors(errors);
@@ -3088,6 +3100,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               narrationDemoRenderPreflight={narrationDemoRenderPreflight}
               narrationDemoRenderResult={narrationDemoRenderResult}
               narrationEvidence={narrationEvidence}
+              narrationDeliveryPackage={narrationDeliveryPackage}
               narrationScriptPackage={narrationScriptPackage}
               narrationDemoPresets={narrationDemoPresets}
               narrationStatus={narrationStatus}
@@ -6178,6 +6191,7 @@ function JobDetail({
   narrationDemoRenderPreflight,
   narrationDemoRenderResult,
   narrationEvidence,
+  narrationDeliveryPackage,
   narrationDemoPresets,
   narrationScriptPackage,
   narrationStatus,
@@ -6314,6 +6328,7 @@ function JobDetail({
   narrationDemoRenderPreflight: NarrationDemoRenderPreflight | null;
   narrationDemoRenderResult: NarrationDemoRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
+  narrationDeliveryPackage: NarrationDeliveryPackage | null;
   narrationDemoPresets: NarrationDemoPreset[];
   narrationScriptPackage: NarrationScriptPackage | null;
   narrationStatus: string | null;
@@ -6620,6 +6635,7 @@ function JobDetail({
         demoAcceptanceGate={demoAcceptanceGate}
         error={narrationError}
         evidence={narrationEvidence}
+        deliveryPackage={narrationDeliveryPackage}
         isClearing={isClearingNarration}
         isGenerating={isGeneratingNarration}
         isGeneratingVideo={isGeneratingNarratedVideo}
@@ -9656,6 +9672,7 @@ function ReviewedSubtitleWorkflowPanel({
 function NarrationWorkspacePanel({
   artifacts,
   demoAcceptanceGate,
+  deliveryPackage,
   error,
   evidence,
   isClearing,
@@ -9686,6 +9703,7 @@ function NarrationWorkspacePanel({
 }: {
   artifacts: JobArtifact[];
   demoAcceptanceGate: DemoAcceptanceGate | null;
+  deliveryPackage: NarrationDeliveryPackage | null;
   error: string | null;
   evidence: NarrationEvidence | null;
   isClearing: boolean;
@@ -10583,6 +10601,10 @@ function NarrationWorkspacePanel({
           scriptPackage={scriptPackage}
           workspace={workspace}
           onImportScriptPackage={onImportScriptPackage}
+        />
+        <NarrationDeliveryPackagePanel
+          deliveryPackage={deliveryPackage}
+          jobId={jobId}
         />
         <NarrationDemoPresetPanel
           isApplying={isSaving}
@@ -11814,6 +11836,83 @@ function NarrationScriptPackagePanel({
       >
         {isImporting ? 'Importing...' : 'Import package'}
       </button>
+    </section>
+  );
+}
+
+function NarrationDeliveryPackagePanel({
+  deliveryPackage,
+  jobId
+}: {
+  deliveryPackage: NarrationDeliveryPackage | null;
+  jobId: string;
+}) {
+  const ready = deliveryPackage?.status === 'READY';
+  const visibleChecks = deliveryPackage?.checks.slice(0, 6) ?? [];
+  return (
+    <section className="script-package-panel" aria-label="Narration delivery package">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration delivery package</h4>
+          <p className="muted">
+            {deliveryPackage
+              ? `${deliveryPackage.artifacts.length} artifacts · ${deliveryPackage.unresolvedPlaybackCount} unresolved`
+              : 'No delivery package loaded.'}
+          </p>
+        </div>
+        <span className={ready ? 'status-pill ready' : 'status-pill attention'}>
+          {deliveryPackage?.status ?? 'Missing'}
+        </span>
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Phase</dt>
+          <dd>{deliveryPackage?.phase ?? 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Audio</dt>
+          <dd>{deliveryPackage?.audioReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+        <div>
+          <dt>Video</dt>
+          <dd>{deliveryPackage?.videoReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+        <div>
+          <dt>Entries</dt>
+          <dd>{deliveryPackage?.packageEntries.length ?? 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Playback</dt>
+          <dd>{deliveryPackage?.playbackResolutionStatus ?? 'N/A'}</dd>
+        </div>
+      </dl>
+      {deliveryPackage?.recommendedNextAction ? (
+        <p className="muted">{deliveryPackage.recommendedNextAction}</p>
+      ) : null}
+      {deliveryPackage?.artifacts.length ? (
+        <ul className="script-package-checks">
+          {deliveryPackage.artifacts.map((artifact) => (
+            <li key={artifact.artifactId}>
+              {artifact.artifactType}: {artifact.filename}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {visibleChecks.length ? (
+        <ul className="script-package-checks">
+          {visibleChecks.map((check) => (
+            <li key={check.key}>{check.key}: {check.status}</li>
+          ))}
+        </ul>
+      ) : null}
+      <div className="panel-actions">
+        <button type="button" onClick={() => void downloadNarrationDeliveryPackageFile(jobId, 'markdown')}>
+          Download delivery Markdown
+        </button>
+        <button type="button" onClick={() => void downloadNarrationDeliveryPackageFile(jobId, 'zip')}>
+          Download delivery ZIP
+        </button>
+      </div>
     </section>
   );
 }
@@ -13484,6 +13583,13 @@ async function downloadNarrationScriptPackageFile(jobId: string, format: 'markdo
     ? await linguaFrameApi.downloadNarrationScriptPackageMarkdown(jobId)
     : await linguaFrameApi.downloadNarrationScriptPackageZip(jobId);
   downloadBlob(blob, `narration-script-package-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
+async function downloadNarrationDeliveryPackageFile(jobId: string, format: 'markdown' | 'zip') {
+  const blob = format === 'markdown'
+    ? await linguaFrameApi.downloadNarrationDeliveryPackageMarkdown(jobId)
+    : await linguaFrameApi.downloadNarrationDeliveryPackageZip(jobId);
+  downloadBlob(blob, `narration-delivery-package-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
 }
 
 async function downloadNarrationRenderReviewFile(jobId: string) {

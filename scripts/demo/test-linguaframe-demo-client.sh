@@ -2090,6 +2090,96 @@ PY
   [[ "$output" != *"provider payload"* ]] || fail "recovery handoff summary exposed provider payload"
 }
 
+test_print_narration_delivery_package_summary_is_metadata_only() {
+  cat >"$TMPDIR/narration-delivery-package.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "status": "READY",
+  "phase": "NARRATION_DELIVERY_READY",
+  "recommendedNextAction": "Download the narration delivery package.",
+  "audioReady": true,
+  "videoReady": true,
+  "unresolvedPlaybackCount": 0,
+  "checks": [
+    { "key": "NARRATION_AUDIO", "status": "READY" },
+    { "key": "NARRATION_PLAYBACK_RESOLUTION", "status": "READY" }
+  ],
+  "artifacts": [
+    { "artifactType": "NARRATION_AUDIO", "filename": "narration-audio.mp3" },
+    { "artifactType": "NARRATED_VIDEO", "filename": "narrated-video.mp4" }
+  ],
+  "packageEntries": [
+    "manifest.json",
+    "README.md",
+    "narration-delivery-package.json",
+    "narration-delivery-package.md",
+    "narration-evidence.json",
+    "narration-evidence.md",
+    "narration-script-package.json",
+    "narration-render-review.json",
+    "narration-render-review.md",
+    "narration-playback-review.json",
+    "narration-playback-review.md",
+    "narration-playback-resolution.json",
+    "narration-playback-resolution.md",
+    "narration-recovery-handoff.json",
+    "narration-recovery-handoff.md"
+  ],
+  "safetyNotes": [
+    "Metadata only."
+  ]
+}
+JSON
+  cat >"$TMPDIR/narration-delivery-package.md" <<'MD'
+# LinguaFrame Narration Delivery Package
+
+- Status: READY
+MD
+  python3 - "$TMPDIR/narration-delivery-package.zip" <<'PY'
+import sys
+import zipfile
+
+zip_path = sys.argv[1]
+entries = {
+    "manifest.json": "{\"embedsMediaBytes\":false}",
+    "README.md": "metadata-only package\n",
+    "narration-delivery-package.json": "{}",
+    "narration-delivery-package.md": "# LinguaFrame Narration Delivery Package\n",
+    "narration-evidence.json": "{}",
+    "narration-evidence.md": "# Narration Evidence\n",
+    "narration-script-package.json": "{}",
+    "narration-render-review.json": "{}",
+    "narration-render-review.md": "# Narration Render Review\n",
+    "narration-playback-review.json": "{}",
+    "narration-playback-review.md": "# Narration Playback Review\n",
+    "narration-playback-resolution.json": "{}",
+    "narration-playback-resolution.md": "# Narration Playback Resolution\n",
+    "narration-recovery-handoff.json": "{}",
+    "narration-recovery-handoff.md": "# LinguaFrame Narration Recovery Handoff\n",
+}
+with zipfile.ZipFile(zip_path, "w") as archive:
+    for name, content in entries.items():
+        archive.writestr(name, content)
+PY
+
+  print_narration_delivery_package_summary_file \
+    "$TMPDIR/narration-delivery-package.json" \
+    "$TMPDIR/narration-delivery-package.md" \
+    "$TMPDIR/narration-delivery-package.zip" >"$TMPDIR/narration-delivery-package.out"
+  local output
+  output="$(cat "$TMPDIR/narration-delivery-package.out")"
+
+  [[ "$output" == *"narrationDeliveryPackageJobId=showcase-job"* ]] || fail "delivery package summary missed job"
+  [[ "$output" == *"narrationDeliveryPackageStatus=READY"* ]] || fail "delivery package summary missed status"
+  [[ "$output" == *"narrationDeliveryPackageArtifact=NARRATION_AUDIO:narration-audio.mp3"* ]] || fail "delivery package summary missed audio artifact"
+  [[ "$output" == *"narrationDeliveryPackageEntry=narration-delivery-package.json"* ]] || fail "delivery package summary missed package entry"
+  [[ "$output" != *"raw transcript text"* ]] || fail "delivery package summary exposed transcript"
+  [[ "$output" != *"Do not leak"* ]] || fail "delivery package summary exposed reviewer note marker"
+  [[ "$output" != *"/Users/example"* ]] || fail "delivery package summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "delivery package summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "delivery package summary exposed provider payload"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -3418,6 +3508,7 @@ test_print_demo_completion_certificate_summary_is_metadata_only
 test_print_demo_acceptance_gate_summary_is_metadata_only
 test_demo_acceptance_gate_script_requires_job_id
 test_print_narration_recovery_handoff_summary_is_metadata_only
+test_print_narration_delivery_package_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only

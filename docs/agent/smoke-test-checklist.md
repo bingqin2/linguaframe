@@ -219,7 +219,7 @@ Focused handoff portal checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/narration-recovery-handoff.sh scripts/demo/narration-demo-preset.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/narration-recovery-handoff.sh scripts/demo/narration-delivery-package.sh scripts/demo/narration-demo-preset.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -316,6 +316,9 @@ Expected:
 - Browser selected-job narration workspace shows `Recovery handoff` inside `Acceptance recovery`, with status, recommended next action, package inventory, safe links, `Download recovery Markdown`, and `Download recovery ZIP`.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-recovery-handoff.sh` writes JSON/Markdown/ZIP under `/tmp/linguaframe-demo/narration-recovery-handoff/`; use `LINGUAFRAME_NARRATION_RECOVERY_HANDOFF_REPORT_ONLY=true` for blocked handoff export without failing.
 - The recovery ZIP includes `narration-recovery-handoff.json`, `narration-recovery-handoff.md`, `acceptance-gate.json`, `playback-resolution.json`, `README.md`, and `manifest.json`.
+- The browser `Narration delivery package` panel shows final narration delivery status, audio/video readiness, package entries, checks, artifact rows, and Markdown/ZIP download actions after render review and playback resolution.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-delivery-package.sh` writes JSON/Markdown/ZIP under `/tmp/linguaframe-demo/narration-delivery-package/`; use `LINGUAFRAME_NARRATION_DELIVERY_PACKAGE_REPORT_ONLY=true` for non-ready delivery export without failing.
+- The delivery ZIP includes `manifest.json`, `README.md`, `narration-delivery-package.json`, `narration-delivery-package.md`, narration evidence, script package, render review, playback review, playback resolution, and recovery handoff metadata entries, and it must not embed media bytes or unsafe operational details.
 - Demo acceptance gate narration resolution evidence must not print narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.

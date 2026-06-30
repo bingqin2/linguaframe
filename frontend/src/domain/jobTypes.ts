@@ -2060,6 +2060,55 @@ export interface NarrationScriptPackage {
   safetyNotes: string[];
 }
 
+export interface NarrationDeliveryPackageArtifact {
+  artifactId: string;
+  artifactType: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  cacheHit: boolean;
+  downloadHref: string;
+}
+
+export interface NarrationDeliveryPackageCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  nextAction: string;
+  required: boolean;
+}
+
+export interface NarrationDeliveryPackageLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface NarrationDeliveryPackage {
+  jobId: string;
+  generatedAt: string;
+  status: string;
+  phase: string;
+  recommendedNextAction: string;
+  audioReady: boolean;
+  videoReady: boolean;
+  unresolvedPlaybackCount: number;
+  evidenceStatus: string;
+  scriptPackageStatus: string;
+  renderReviewStatus: string;
+  playbackReviewStatus: string;
+  playbackResolutionStatus: string;
+  recoveryHandoffStatus: string;
+  artifacts: NarrationDeliveryPackageArtifact[];
+  checks: NarrationDeliveryPackageCheck[];
+  safeLinks: NarrationDeliveryPackageLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
+}
+
 export interface ImportNarrationScriptPackageSegmentRequest {
   index: number;
   startSeconds: number;

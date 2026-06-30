@@ -1130,6 +1130,135 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationDeliveryPackageJsonMarkdownAndZip() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:13:00Z");
+        createJobWithDuration("job-controller-video-delivery", "job-controller-delivery-package", 120, createdAt);
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-delivery-package")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "demo-voice",
+                                      "reviewCategory": "ACCEPTED"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "demo-voice",
+                                      "reviewCategory": "ACCEPTED"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+        saveSmokeProofArtifact("delivery-audio", "job-controller-delivery-package", JobArtifactType.NARRATION_AUDIO);
+        saveSmokeProofArtifact("delivery-video", "job-controller-delivery-package", JobArtifactType.NARRATED_VIDEO);
+        saveSmokeProofArtifact("delivery-waveform", "job-controller-delivery-package", JobArtifactType.NARRATION_WAVEFORM);
+        mockMvc.perform(put(
+                        "/api/jobs/{jobId}/narration-playback-review/segments/{segmentIndex}",
+                        "job-controller-delivery-package",
+                        0
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "decision": "ACCEPTED",
+                                  "issueCategories": [],
+                                  "reviewerNote": "Do not leak delivery reviewer note."
+                                }
+                                """))
+                .andExpect(status().isOk());
+        mockMvc.perform(put(
+                        "/api/jobs/{jobId}/narration-playback-review/segments/{segmentIndex}",
+                        "job-controller-delivery-package",
+                        1
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "decision": "ACCEPTED",
+                                  "issueCategories": [],
+                                  "reviewerNote": "Do not leak second delivery reviewer note."
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-delivery-package",
+                        "job-controller-delivery-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-delivery-package"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.phase").value("NARRATION_DELIVERY_READY"))
+                .andExpect(jsonPath("$.audioReady").value(true))
+                .andExpect(jsonPath("$.videoReady").value(true))
+                .andExpect(jsonPath("$.artifacts[?(@.artifactType == 'NARRATION_AUDIO')].downloadHref").value("/api/jobs/job-controller-delivery-package/artifacts/delivery-audio/download"))
+                .andExpect(jsonPath("$.packageEntries[?(@ == 'narration-delivery-package.json')]").exists())
+                .andExpect(jsonPath("$.safeLinks[?(@.href == '/api/jobs/job-controller-delivery-package/narration-delivery-package/download')].label").value("Narration delivery ZIP"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Explain the first scene."))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-"))));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-delivery-package/markdown/download",
+                        "job-controller-delivery-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-delivery-package-narration-delivery-package.md\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(markdown)
+                .contains("# LinguaFrame Narration Delivery Package")
+                .contains("- Status: READY")
+                .contains("Narration audio")
+                .doesNotContain("Explain the first scene.")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-");
+
+        byte[] zip = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-delivery-package/download",
+                        "job-controller-delivery-package"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-delivery-package-narration-delivery-package.zip\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(zip);
+        assertThat(entries).containsKeys(
+                "manifest.json",
+                "README.md",
+                "narration-delivery-package.json",
+                "narration-delivery-package.md",
+                "narration-evidence.json",
+                "narration-script-package.json",
+                "narration-render-review.json",
+                "narration-playback-review.json",
+                "narration-playback-resolution.json",
+                "narration-recovery-handoff.json"
+        );
+        assertThat(entries.get("manifest.json")).contains("\"embedsMediaBytes\":false");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("source-videos/")
+                .doesNotContain("provider payload")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-")
+                .doesNotContain("OPENAI_API_KEY");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(

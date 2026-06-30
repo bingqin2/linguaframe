@@ -31,6 +31,7 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  NarrationDeliveryPackage,
   NarrationDemoPreset,
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
@@ -137,6 +138,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationDeliveryPackage').mockResolvedValue(narrationDeliveryPackageFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -4608,8 +4610,11 @@ describe('App', () => {
       }));
     vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationDeliveryPackage').mockResolvedValue(narrationDeliveryPackageFixture());
     vi.spyOn(linguaFrameApi, 'downloadNarrationScriptPackageMarkdown').mockResolvedValue(new Blob(['# Package']));
     vi.spyOn(linguaFrameApi, 'downloadNarrationScriptPackageZip').mockResolvedValue(new Blob(['zip']));
+    vi.spyOn(linguaFrameApi, 'downloadNarrationDeliveryPackageMarkdown').mockResolvedValue(new Blob(['# Delivery']));
+    vi.spyOn(linguaFrameApi, 'downloadNarrationDeliveryPackageZip').mockResolvedValue(new Blob(['delivery zip']));
     const importNarrationScriptPackage = vi.spyOn(linguaFrameApi, 'importNarrationScriptPackage')
       .mockResolvedValue({
         jobId: 'narration-package-job',
@@ -4645,6 +4650,15 @@ describe('App', () => {
     expect(linguaFrameApi.downloadNarrationScriptPackageMarkdown).toHaveBeenCalledWith('narration-package-job');
     await userEvent.click(within(packagePanel).getByRole('button', { name: /download package zip/i }));
     expect(linguaFrameApi.downloadNarrationScriptPackageZip).toHaveBeenCalledWith('narration-package-job');
+
+    const deliveryPanel = within(narrationPanel).getByRole('region', { name: /narration delivery package/i });
+    expect(within(deliveryPanel).getByText('NARRATION_DELIVERY_READY')).toBeInTheDocument();
+    expect(within(deliveryPanel).getByText('NARRATION_AUDIO: narration-audio.mp3')).toBeInTheDocument();
+    expect(within(deliveryPanel).getByText('NARRATION_PLAYBACK_RESOLUTION: READY')).toBeInTheDocument();
+    await userEvent.click(within(deliveryPanel).getByRole('button', { name: /download delivery markdown/i }));
+    expect(linguaFrameApi.downloadNarrationDeliveryPackageMarkdown).toHaveBeenCalledWith('narration-package-job');
+    await userEvent.click(within(deliveryPanel).getByRole('button', { name: /download delivery zip/i }));
+    expect(linguaFrameApi.downloadNarrationDeliveryPackageZip).toHaveBeenCalledWith('narration-package-job');
 
     await userEvent.click(within(packagePanel).getByLabelText(/script package json/i));
     await userEvent.paste('{not valid json');
@@ -8536,6 +8550,75 @@ function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage
     ],
     packageEntries: ['manifest.json', 'narration-script-package.json', 'narration-script-package.md', 'README.md'],
     safetyNotes: ['This explicit package includes operator-authored narration text.'],
+    ...overrides
+  };
+}
+
+function narrationDeliveryPackageFixture(overrides: Partial<NarrationDeliveryPackage> = {}): NarrationDeliveryPackage {
+  return {
+    jobId: 'narration-package-job',
+    generatedAt: '2026-06-30T12:00:00Z',
+    status: 'READY',
+    phase: 'NARRATION_DELIVERY_READY',
+    recommendedNextAction: 'Download the narration delivery package and continue with final handoff.',
+    audioReady: true,
+    videoReady: true,
+    unresolvedPlaybackCount: 0,
+    evidenceStatus: 'READY',
+    scriptPackageStatus: 'READY',
+    renderReviewStatus: 'READY',
+    playbackReviewStatus: 'READY',
+    playbackResolutionStatus: 'READY',
+    recoveryHandoffStatus: 'READY',
+    artifacts: [
+      {
+        artifactId: 'narration-audio-artifact',
+        artifactType: 'NARRATION_AUDIO',
+        filename: 'narration-audio.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 128,
+        cacheHit: false,
+        downloadHref: '/api/jobs/narration-package-job/artifacts/narration-audio-artifact/download'
+      },
+      {
+        artifactId: 'narrated-video-artifact',
+        artifactType: 'NARRATED_VIDEO',
+        filename: 'narrated-video.mp4',
+        contentType: 'video/mp4',
+        sizeBytes: 256,
+        cacheHit: false,
+        downloadHref: '/api/jobs/narration-package-job/artifacts/narrated-video-artifact/download'
+      }
+    ],
+    checks: [
+      {
+        key: 'NARRATION_AUDIO',
+        label: 'Narration audio',
+        status: 'READY',
+        detail: 'Narration audio artifact is available.',
+        nextAction: 'Generate narration audio only through the explicit render action.',
+        required: false
+      },
+      {
+        key: 'NARRATION_PLAYBACK_RESOLUTION',
+        label: 'Narration playback resolution',
+        status: 'READY',
+        detail: 'Playback review is resolved.',
+        nextAction: 'Continue with final handoff.',
+        required: true
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_DELIVERY_ZIP',
+        label: 'Narration delivery ZIP',
+        href: '/api/jobs/narration-package-job/narration-delivery-package/download',
+        contentType: 'application/zip',
+        description: 'Offline narration delivery package.'
+      }
+    ],
+    packageEntries: ['manifest.json', 'narration-delivery-package.json', 'narration-delivery-package.md'],
+    safetyNotes: ['Narration delivery package is read-only and metadata-only.'],
     ...overrides
   };
 }

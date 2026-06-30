@@ -6,6 +6,29 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started and implemented the narration delivery package feature slice from `docs/plans/167-narration-delivery-package.md`.
+- Added backend delivery package VO/BO/service/controller endpoints for JSON, Markdown, and ZIP export at `/api/jobs/{jobId}/narration-delivery-package`.
+- The delivery package aggregates existing narration evidence, explicit script package, render review, playback review, playback resolution, recovery handoff, and generated narration media links without creating media, running FFmpeg, calling providers, or embedding media bytes.
+- Added a browser `Narration delivery package` panel inside the narration workspace with readiness status, checks, artifact rows, and Markdown/ZIP download actions.
+- Added `scripts/demo/narration-delivery-package.sh`, shared demo download/summary helpers, metadata-only ZIP entry checks, and documentation for terminal export.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationDeliveryPackageServiceTests test` first failed because package safety notes repeated a forbidden operational marker; after tightening the text and redaction path, it passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsNarrationDeliveryPackageJsonMarkdownAndZip test` first failed with `404` because the new controller routes did not exist, then failed until the fixture completed playback review and waveform readiness, then passed through the combined focused backend run.
+- `mvn -pl LinguaFrame -Dtest=NarrationDeliveryPackageServiceTests,LocalizationJobControllerTests#returnsNarrationDeliveryPackageJsonMarkdownAndZip test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "loads and downloads narration delivery package|exports and imports narration script packages"` passed with `Test Files 2 passed` and `Tests 2 passed | 257 skipped`.
+- `bash -n scripts/demo/narration-delivery-package.sh scripts/demo/narration-recovery-handoff.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 838, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 316 passed`.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Planned and implemented the session recovery command center integration from `docs/plans/166-session-recovery-command-center-integration.md`.
 - Extended the demo session command center with recovery-board status, recover-now/watch/review/ready counts, primary recovery action, recovery evidence links, and a `recovery-board` phase that blocks top-level readiness when recover-now rows exist.
 - Added `recovery-board.json` and `recovery-board.md` to the session evidence package ZIP and package README/manifest coverage.

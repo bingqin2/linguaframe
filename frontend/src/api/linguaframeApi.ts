@@ -35,6 +35,7 @@ import type {
   ImportNarrationScriptPackageRequest,
   NarrationDemoPreset,
   NarrationDemoPresetApplyResult,
+  NarrationDeliveryPackage,
   NarrationEvidence,
   NarrationGeneration,
   NarrationPlaybackReview,
@@ -1200,6 +1201,33 @@ export async function downloadNarrationScriptPackageZip(jobId: string): Promise<
   );
 }
 
+export async function getNarrationDeliveryPackage(jobId: string): Promise<NarrationDeliveryPackage> {
+  return requestJson<NarrationDeliveryPackage>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-delivery-package`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationDeliveryPackageMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-delivery-package/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadNarrationDeliveryPackageZip(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-delivery-package/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function importNarrationScriptPackage(
   jobId: string,
   request: ImportNarrationScriptPackageRequest
@@ -1509,6 +1537,9 @@ export const linguaFrameApi = {
   getNarrationScriptPackage,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
+  getNarrationDeliveryPackage,
+  downloadNarrationDeliveryPackageMarkdown,
+  downloadNarrationDeliveryPackageZip,
   importNarrationScriptPackage,
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,

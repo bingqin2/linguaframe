@@ -13,6 +13,9 @@ import {
   downloadNarrationRenderReviewMarkdown,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
+  getNarrationDeliveryPackage,
+  downloadNarrationDeliveryPackageMarkdown,
+  downloadNarrationDeliveryPackageZip,
   applyNarrationDemoPreset,
   getJob,
   getMediaUpload,
@@ -2328,6 +2331,61 @@ describe('linguaframeApi', () => {
         }
       }
     );
+  });
+
+  test('loads and downloads narration delivery package with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job with spaces/slash',
+        generatedAt: '2026-06-30T12:00:00Z',
+        status: 'READY',
+        phase: 'NARRATION_DELIVERY_READY',
+        recommendedNextAction: 'Download the narration delivery package.',
+        audioReady: true,
+        videoReady: true,
+        unresolvedPlaybackCount: 0,
+        evidenceStatus: 'READY',
+        scriptPackageStatus: 'READY',
+        renderReviewStatus: 'READY',
+        playbackReviewStatus: 'READY',
+        playbackResolutionStatus: 'READY',
+        recoveryHandoffStatus: 'READY',
+        artifacts: [],
+        checks: [],
+        safeLinks: [],
+        packageEntries: ['narration-delivery-package.json'],
+        safetyNotes: []
+      })
+    );
+
+    const deliveryPackage = await getNarrationDeliveryPackage('job with spaces/slash');
+    fetchMock.mockResolvedValueOnce(new Response('# Delivery', { status: 200, headers: { 'Content-Type': 'text/markdown' } }));
+    const markdown = await downloadNarrationDeliveryPackageMarkdown('job with spaces/slash');
+    fetchMock.mockResolvedValueOnce(new Response('delivery-zip-bytes', { status: 200, headers: { 'Content-Type': 'application/zip' } }));
+    const zip = await downloadNarrationDeliveryPackageZip('job with spaces/slash');
+
+    expect(deliveryPackage.status).toBe('READY');
+    expect(await markdown.text()).toContain('Delivery');
+    expect(await zip.text()).toContain('delivery-zip-bytes');
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/jobs/job%20with%20spaces%2Fslash/narration-delivery-package', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/jobs/job%20with%20spaces%2Fslash/narration-delivery-package/markdown/download', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/jobs/job%20with%20spaces%2Fslash/narration-delivery-package/download', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
   });
 
   test('fetches demo session command center with selected job id and demo token header', async () => {

@@ -1003,6 +1003,39 @@ download_narration_recovery_handoff_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-recovery-handoff/download" -o "$output_path"
 }
 
+download_narration_delivery_package_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-delivery-package" -o "$output_path"
+}
+
+download_narration_delivery_package_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-delivery-package/markdown/download" -o "$output_path"
+}
+
+download_narration_delivery_package_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-delivery-package/download" -o "$output_path"
+}
+
 download_narration_script_package_json() {
   local base_url="$1"
   local job_id="$2"
@@ -4103,6 +4136,101 @@ for entry in handoff.get("packageEntries") or []:
 print("narrationRecoveryHandoffJsonPath=" + str(json_path))
 print("narrationRecoveryHandoffMarkdownPath=" + str(markdown_path))
 print("narrationRecoveryHandoffZipPath=" + str(zip_path))
+PY
+}
+
+print_narration_delivery_package_summary_file() {
+  local delivery_json_path="$1"
+  local delivery_markdown_path="$2"
+  local delivery_zip_path="$3"
+
+  python3 - "$delivery_json_path" "$delivery_markdown_path" "$delivery_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+delivery = json.loads(json_path.read_text(encoding="utf-8"))
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(delivery, ensure_ascii=False) + "\n" + markdown
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "Do not leak",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration delivery package contains forbidden sensitive string: " + marker)
+
+required_entries = {
+    "manifest.json",
+    "README.md",
+    "narration-delivery-package.json",
+    "narration-delivery-package.md",
+    "narration-evidence.json",
+    "narration-evidence.md",
+    "narration-script-package.json",
+    "narration-render-review.json",
+    "narration-render-review.md",
+    "narration-playback-review.json",
+    "narration-playback-review.md",
+    "narration-playback-resolution.json",
+    "narration-playback-resolution.md",
+    "narration-recovery-handoff.json",
+    "narration-recovery-handoff.md",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Narration delivery package ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration delivery package ZIP contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+checks = delivery.get("checks") or []
+artifacts = delivery.get("artifacts") or []
+print("narrationDeliveryPackageJobId=" + text(delivery.get("jobId")))
+print("narrationDeliveryPackageStatus=" + text(delivery.get("status")))
+print("narrationDeliveryPackagePhase=" + text(delivery.get("phase")))
+print("narrationDeliveryPackageNextAction=" + text(delivery.get("recommendedNextAction")))
+print("narrationDeliveryPackageAudioReady=" + str(delivery.get("audioReady", False)).lower())
+print("narrationDeliveryPackageVideoReady=" + str(delivery.get("videoReady", False)).lower())
+print("narrationDeliveryPackageUnresolvedPlaybackCount=" + text(delivery.get("unresolvedPlaybackCount", 0)))
+print("narrationDeliveryPackageCheckCount=" + str(len(checks)))
+print("narrationDeliveryPackageArtifactCount=" + str(len(artifacts)))
+print("narrationDeliveryPackageEntryCount=" + str(len(delivery.get("packageEntries") or [])))
+for check in checks:
+    print("narrationDeliveryPackageCheck=" + text(check.get("key")) + ":" + text(check.get("status")))
+for artifact in artifacts:
+    print("narrationDeliveryPackageArtifact=" + text(artifact.get("artifactType")) + ":" + text(artifact.get("filename")))
+for entry in delivery.get("packageEntries") or []:
+    print("narrationDeliveryPackageEntry=" + str(entry))
+print("narrationDeliveryPackageJsonPath=" + str(json_path))
+print("narrationDeliveryPackageMarkdownPath=" + str(markdown_path))
+print("narrationDeliveryPackageZipPath=" + str(zip_path))
 PY
 }
 
