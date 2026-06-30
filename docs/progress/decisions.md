@@ -844,6 +844,14 @@ Impact: `POST /api/jobs/{jobId}/narration-demo/render`, the browser `Render narr
 
 ## 2026-06-30
 
+Decision: Add local quick script copy/download before backend quick-script files or timeline templates.
+
+Reason: After quick script paste import, operators need a lightweight way to preserve and revise the current unsaved narration draft without creating persisted artifacts, expanding script package semantics, or adding another backend file format. Copy/download keeps the loop fast for demo narration drafting while still relying on the existing save, script package, TTS preview, audio generation, video render, and evidence paths when the operator is ready.
+
+Impact: The React `Narration workspace` now includes `Quick script export` after quick import. It formats the current local draft as `START-END | VOICE | TEXT`, uses `||` for inherited/default voice rows, updates from unsaved edits, copies to the clipboard, and downloads a local `.txt` blob. It does not save rows, call providers, create artifacts, update evidence, generate video, write object storage, add backend routes, or add database schema. Backend quick-script file endpoints, timeline templates, decoded waveform rendering, and multitrack automation remain later slices.
+
+## 2026-06-30
+
 Decision: Add quick script paste import before file upload import, voice browsing, or full timeline templates.
 
 Reason: Operators need a faster way to enter multiple explanatory narration rows for demos without spending TTS credits or introducing another persisted import format. A compact `START-END | VOICE | TEXT` paste surface covers the immediate narration-editor workflow while reusing existing draft validation, save, script package, TTS preview, audio generation, video render, and evidence paths.

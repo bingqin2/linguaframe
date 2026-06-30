@@ -642,7 +642,8 @@ td {
   min-height: 40px;
 }
 
-.narration-quick-script-import {
+.narration-quick-script-import,
+.narration-quick-script-export {
   display: grid;
   gap: 0.65rem;
   min-width: 560px;
@@ -653,22 +654,26 @@ td {
   background: #fbfcfd;
 }
 
-.narration-quick-script-import h4 {
+.narration-quick-script-import h4,
+.narration-quick-script-export h4 {
   margin: 0;
 }
 
-.narration-quick-script-import .compact-panel-heading {
+.narration-quick-script-import .compact-panel-heading,
+.narration-quick-script-export .compact-panel-heading {
   display: flex;
   justify-content: space-between;
   gap: 12px;
   align-items: start;
 }
 
-.narration-quick-script-import .muted {
+.narration-quick-script-import .muted,
+.narration-quick-script-export .muted {
   margin: 0;
 }
 
-.narration-quick-script-import textarea {
+.narration-quick-script-import textarea,
+.narration-quick-script-export textarea {
   width: 100%;
   min-height: 112px;
   resize: vertical;
@@ -678,6 +683,10 @@ td {
   color: #1f2933;
   font: inherit;
   line-height: 1.45;
+}
+
+.narration-quick-script-export textarea {
+  background: #f8fafc;
 }
 
 .narration-import-mode {

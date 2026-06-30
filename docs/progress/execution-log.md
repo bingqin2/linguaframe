@@ -4477,6 +4477,49 @@ Validation:
 
 Work:
 
+- Started the narration quick script export workbench feature slice.
+- Added formatter tests and `formatNarrationQuickScript` / `formatQuickScriptTimestamp` so the current local narration draft can be represented as pasteable quick script text.
+- Formatter output uses `START-END | VOICE | TEXT` for explicit voices and `START-END || TEXT` for inherited/default voice rows, preserving compact decimal timestamps and round-tripping through the existing parser.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` first failed because `formatNarrationQuickScript` and `formatQuickScriptTimestamp` were missing.
+- After adding the formatter, the same command first exposed the inherited voice separator as `|  |`; after changing inherited voice output to `||`, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` passed with `Test Files 1 passed` and `Tests 8 passed`.
+
+Work:
+
+- Added a browser `Quick script export` panel to the narration workspace after quick import.
+- The panel renders the current local draft as paste-ready quick script text, updates immediately after unsaved row edits, supports inherited voice rows as `||`, copies to the clipboard, and downloads a `.txt` file through a local text blob.
+- Copy and download stay local-only; tests verify they do not call narration save, segment TTS preview, or narration audio generation.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` first failed because the `Quick script export` region did not exist.
+- After adding the panel, the same targeted command failed once because the unsaved-edit assertion used `toHaveValue` with an asymmetric matcher; after reading the textarea value directly, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` passed with `Test Files 1 passed | 1 skipped` and `Tests 4 passed | 134 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 153 passed`; jsdom printed expected navigation warnings.
+
+Work:
+
+- Documented quick script export in README, Docker E2E guidance, smoke-test checklist, roadmap, target state, and decisions.
+- The docs now show browser order: edit or import narration rows, inspect quick script export, copy or download the current local draft, paste it back into quick import when needed, save when ready, then run preview/generation/render actions explicitly.
+- The docs state that quick script export is local-only and does not save rows, call providers, create artifacts, update evidence, generate video, or write object storage.
+- Strengthened the download test to assert the generated `.txt` filename for the quick script export link.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` passed with `Test Files 1 passed | 1 skipped` and `Tests 4 passed | 134 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 153 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run` passed with `Test Files 9 passed` and `Tests 272 passed`; jsdom printed expected navigation warnings.
+- `npm run build` passed.
+- `mvn -pl LinguaFrame test -Dtest=NarrationWorkspaceServiceTests,LocalizationJobControllerTests,NarrationSegmentPreviewServiceTests,NarrationScriptPackageServiceTests` passed with `Tests run: 90, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Added the browser quick script import workbench to the narration workspace.
 - The panel accepts compact timed rows in `START-END | VOICE | TEXT` format, previews parsed row count, total duration, row text, and inherited/default voice state.
 - Replace and append actions now apply valid parsed rows to the local narration draft through the existing draft history path; no save call, provider call, artifact generation, or evidence update happens until the existing workflow actions run.

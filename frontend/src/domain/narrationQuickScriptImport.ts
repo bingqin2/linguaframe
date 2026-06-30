@@ -139,6 +139,30 @@ export function parseNarrationQuickScript(
   };
 }
 
+export function formatNarrationQuickScript(segments: NarrationWorkspace['segments']): string {
+  return segments
+    .slice()
+    .sort((left, right) => left.index - right.index)
+    .map((segment) => {
+      const voice = segment.voice?.trim() ?? '';
+      const separator = voice ? ` | ${voice} | ` : ' || ';
+      return `${formatQuickScriptTimestamp(segment.startSeconds)}-${formatQuickScriptTimestamp(segment.endSeconds)}${separator}${segment.text.trim()}`;
+    })
+    .join('\n');
+}
+
+export function formatQuickScriptTimestamp(seconds: number): string {
+  const safeSeconds = Number.isFinite(seconds) && seconds > 0 ? roundSeconds(seconds) : 0;
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds - hours * 3600) / 60);
+  const remainingSeconds = roundSeconds(safeSeconds - hours * 3600 - minutes * 60);
+  const secondsText = formatTimestampSecondsPart(remainingSeconds);
+  if (hours > 0) {
+    return `${pad2(hours)}:${pad2(minutes)}:${secondsText}`;
+  }
+  return `${pad2(minutes)}:${secondsText}`;
+}
+
 function parseTimingRange(value: string): { startSeconds: number; endSeconds: number } | null {
   const parts = value.split('-');
   if (parts.length !== 2) {
@@ -200,4 +224,13 @@ function cloneAndReindex(
 
 function roundSeconds(value: number): number {
   return Number(value.toFixed(3));
+}
+
+function formatTimestampSecondsPart(seconds: number): string {
+  const fixed = seconds.toFixed(3).replace(/\.?0+$/, '');
+  return Number(seconds) < 10 ? `0${fixed}` : fixed;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, '0');
 }
