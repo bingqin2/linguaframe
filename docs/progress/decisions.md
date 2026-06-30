@@ -897,3 +897,11 @@ Decision: Add decoded narration waveform buckets before persistent waveform arti
 Reason: Operators need to see whether generated narration audio or narrated video really contains usable audio before tuning automation. A read-only FFmpeg-derived bucket API proves the audio surface in the existing narration workbench while preserving the current metadata-derived waveform as a safe fallback.
 
 Impact: `GET /api/jobs/{jobId}/narration-waveform`, the browser `Narration waveform overview`, and `scripts/demo/narration-waveform.sh` read existing `NARRATION_AUDIO`, `NARRATED_VIDEO`, `BURNED_VIDEO`, or source media in priority order and return bounded peak/RMS buckets. The endpoint does not call providers, save narration rows, create artifacts, expose object keys, print local paths, or include transcript/subtitle/narration text. Persistent waveform artifacts, automation curves, uploaded reference audio, and full multitrack editing remain later slices.
+
+## 2026-06-30
+
+Decision: Add derived narration mix automation curves before persistent keyframes.
+
+Reason: Operators already have job-level mix settings and nullable segment overrides, but they need to understand the effective ducking, narration gain, and fade shape before saving or rendering. A derived workbench gives useful automation feedback and batch local actions without adding a new schema or turning the narration editor into a full multitrack editor.
+
+Impact: The browser `Mix automation` panel derives effective values from current local narration rows, shows inherited versus overridden windows, and lets operators apply the selected row's effective mix to all rows or clear selected/all row overrides locally. `scripts/demo/narration-mix-automation.sh` prints the same metadata-only summary from the workspace API. These actions do not call providers, save rows, create artifacts, update evidence, expose narration text, or mutate object storage until the existing save/generate controls are used.

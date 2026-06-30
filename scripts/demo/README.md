@@ -1,5 +1,15 @@
 # Demo Scripts
 
+## Narration Mix Automation
+
+Inspect effective narration mix automation values from an existing workspace:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-mix-automation.sh
+```
+
+The script downloads the narration workspace JSON, writes it to `/tmp/linguaframe-demo/narration-mix-automation/narration-workspace.json`, and prints segment count, override count, inherited count, minimum ducking volume, maximum narration volume, and maximum fade duration. It derives values from existing job mix settings plus segment overrides; it does not save narration rows, call providers, create artifacts, print narration text, expose object keys, or include media bytes.
+
 ## Narration Waveform
 
 Inspect the read-only decoded narration waveform for a completed or prepared job:

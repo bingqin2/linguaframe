@@ -268,6 +268,45 @@ print("narrationWaveformFallbackReason=" + text(waveform.get("fallbackReason")))
 PY
 }
 
+print_narration_mix_automation_summary_file() {
+  local workspace_json_path="$1"
+
+  python3 - "$workspace_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    workspace = json.load(handle)
+
+mix = workspace.get("mixSettings") or {}
+default_ducking = float(mix.get("duckingVolume") if mix.get("duckingVolume") is not None else 0.35)
+default_narration = float(mix.get("narrationVolume") if mix.get("narrationVolume") is not None else 1.0)
+default_fade = int(mix.get("fadeDurationMs") if mix.get("fadeDurationMs") is not None else 250)
+segments = workspace.get("segments") or []
+
+override_count = 0
+effective_ducking = []
+effective_narration = []
+effective_fade = []
+for segment in segments:
+    has_override = any(segment.get(key) is not None for key in ("duckingVolume", "narrationVolume", "fadeDurationMs"))
+    if has_override:
+        override_count += 1
+    effective_ducking.append(float(segment.get("duckingVolume") if segment.get("duckingVolume") is not None else default_ducking))
+    effective_narration.append(float(segment.get("narrationVolume") if segment.get("narrationVolume") is not None else default_narration))
+    effective_fade.append(int(segment.get("fadeDurationMs") if segment.get("fadeDurationMs") is not None else default_fade))
+
+segment_count = len(segments)
+inherited_count = segment_count - override_count
+print(f"narrationMixAutomationSegmentCount={segment_count}")
+print(f"narrationMixAutomationOverrideCount={override_count}")
+print(f"narrationMixAutomationInheritedCount={inherited_count}")
+print(f"narrationMixAutomationMinDuckingVolume={(min(effective_ducking) if effective_ducking else 0):.3f}")
+print(f"narrationMixAutomationMaxNarrationVolume={(max(effective_narration) if effective_narration else 0):.3f}")
+print(f"narrationMixAutomationMaxFadeDurationMs={max(effective_fade) if effective_fade else 0}")
+PY
+}
+
 download_demo_session_json() {
   local base_url="$1"
   local output_path="$2"

@@ -2389,7 +2389,7 @@ describe('App', () => {
     expect(within(narrationPanel).getByText('Explicit preset: alloy')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('PRESET:alloy')).toBeInTheDocument();
     expect(within(narrationPanel).getByText('Ducked original audio')).toBeInTheDocument();
-    expect(within(narrationPanel).getByText('0.35')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === 'Ducking volume0.35')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '2 windows')).toBeInTheDocument();
 
     await userEvent.clear(within(narrationPanel).getByLabelText(/ducking volume/i));
@@ -2406,9 +2406,9 @@ describe('App', () => {
       fadeDurationMs: 400
     });
     expect(await within(narrationPanel).findByText('Mix settings saved.')).toBeInTheDocument();
-    expect(within(narrationPanel).getByText('Saved')).toBeInTheDocument();
-    expect(within(narrationPanel).getByText('1.75')).toBeInTheDocument();
-    expect(within(narrationPanel).getByText('400 ms')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === 'Mix settingsSaved')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === 'Narration volume1.75')).toBeInTheDocument();
+    expect(within(narrationPanel).getByText((_content, element) => element?.textContent === 'Fade duration400 ms')).toBeInTheDocument();
 
     await userEvent.click(within(narrationPanel).getByRole('button', { name: /generate narration audio/i }));
     expect(await within(narrationPanel).findByText('Generated narration-audio.mp3 as TIMED_AUDIO_BED.')).toBeInTheDocument();
@@ -3186,6 +3186,90 @@ describe('App', () => {
         })
       ])
     }));
+  });
+
+  test('renders narration mix automation curves with effective inherited and override values', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-mix-automation-job', videoId: 'narration-mix-automation-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-mix-automation-job',
+        segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+          index === 1
+            ? { ...segment, duckingVolume: 0.2, narrationVolume: 1.45, fadeDurationMs: 125 }
+            : segment
+        )
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-mix-automation-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const automationPanel = within(narrationPanel).getByRole('region', { name: /mix automation/i });
+
+    expect(within(automationPanel).getByText('Mix automation')).toBeInTheDocument();
+    expect(within(automationPanel).getByText((_content, element) => element?.textContent === 'Overrides1')).toBeInTheDocument();
+    expect(within(automationPanel).getByLabelText('Mix automation row 1: inherited, ducking 0.35, narration 1, fade 250 ms')).toBeInTheDocument();
+    expect(within(automationPanel).getByLabelText('Mix automation row 2: override, ducking 0.2, narration 1.45, fade 125 ms')).toBeInTheDocument();
+  });
+
+  test('applies and clears narration mix automation locally without provider or save actions', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-mix-automation-actions-job', videoId: 'narration-mix-automation-actions-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-mix-automation-actions-job',
+        segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+          index === 0
+            ? { ...segment, duckingVolume: 0.25, narrationVolume: 1.5, fadeDurationMs: 125 }
+            : { ...segment, duckingVolume: null, narrationVolume: null, fadeDurationMs: null }
+        )
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+    const generateNarratedVideo = vi.spyOn(linguaFrameApi, 'generateNarratedVideo');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-mix-automation-actions-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const automationPanel = within(narrationPanel).getByRole('region', { name: /mix automation/i });
+
+    await userEvent.click(within(automationPanel).getByRole('button', { name: /apply selected mix to all rows/i }));
+
+    expect(await within(automationPanel).findByText('Applied selected mix to 2 rows locally.')).toBeInTheDocument();
+    expect(within(automationPanel).getAllByLabelText(/override, ducking 0.25, narration 1.5, fade 125 ms/i)).toHaveLength(2);
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+    expect(generateNarratedVideo).not.toHaveBeenCalled();
+
+    await userEvent.click(within(automationPanel).getByRole('button', { name: /clear selected row overrides/i }));
+
+    expect(await within(automationPanel).findByText('Cleared overrides for narration 1 locally.')).toBeInTheDocument();
+    expect(within(automationPanel).getByLabelText('Mix automation row 1: inherited, ducking 0.35, narration 1, fade 250 ms')).toBeInTheDocument();
+
+    await userEvent.click(within(automationPanel).getByRole('button', { name: /clear all row overrides/i }));
+
+    expect(await within(automationPanel).findByText('Cleared overrides for 2 rows locally.')).toBeInTheDocument();
+    expect(within(narrationPanel).getByDisplayValue('0.35')).toBeInTheDocument();
   });
 
   test('narration timing assistant resolves overlaps and keeps provider actions untouched', async () => {

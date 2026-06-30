@@ -4750,3 +4750,25 @@ Validation:
 - `npm --prefix frontend test -- --run` passed with `Test Files 10 passed` and `Tests 287 passed`; jsdom printed expected navigation warnings.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 511.76 kB bundle.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started and implemented the narration mix automation curves workbench feature slice.
+- Added a pure frontend `buildNarrationMixAutomation` helper that derives effective ducking, narration volume, and fade values from job-level mix settings plus nullable segment overrides.
+- Added the browser `Mix automation` panel with effective curve rows, override/inheritance state, summary metrics, and local-only batch actions for applying the selected row mix to all rows or clearing selected/all overrides.
+- Added `scripts/demo/narration-mix-automation.sh` and script-library summary logic for metadata-only terminal reporting.
+
+Validation:
+
+- `npm --prefix frontend test -- --run src/domain/narrationMixAutomation.test.ts` first failed because the helper module was missing; after implementation it passed with `Tests 3 passed`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "mix automation"` first failed because the `Mix automation` region did not exist; after implementation it passed with `Tests 2 passed | 140 skipped`.
+- `bash -n scripts/demo/narration-mix-automation.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `npm --prefix frontend test -- --run src/domain/narrationMixAutomation.test.ts` passed with `Tests 3 passed`.
+- `npm --prefix frontend test -- --run src/domain/narrationMixAutomation.test.ts src/App.test.tsx -t "mix automation"` passed with `Test Files 1 passed | 1 skipped` and `Tests 2 passed | 143 skipped`.
+- `npm --prefix frontend test -- --run` initially failed because existing broad text assertions for `0.35` and `1.75` became ambiguous after adding automation metrics; after narrowing those assertions to evidence metric text, it passed with `Test Files 11 passed` and `Tests 292 passed`.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 516.43 kB bundle.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 789, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-mix-automation.sh scripts/demo/narration-waveform.sh scripts/demo/narration-timing-assistant.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.

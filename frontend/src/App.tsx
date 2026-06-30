@@ -57,6 +57,10 @@ import {
   type NarrationQuickScriptImportMode,
   type NarrationQuickScriptImportResult
 } from './domain/narrationQuickScriptImport';
+import {
+  buildNarrationMixAutomation,
+  type NarrationMixAutomation
+} from './domain/narrationMixAutomation';
 import type {
   AuthSessionStatus,
   DemoAcceptanceGate,
@@ -9695,6 +9699,44 @@ function NarrationWorkspacePanel({
     setTimingAssistantStatus('Normalized narration timing order.');
   }
 
+  function applySelectedMixToAllRows() {
+    if (!selectedSegment || segments.length === 0) {
+      return;
+    }
+    const duckingVolume = selectedSegment.duckingVolume ?? mixSettings?.duckingVolume ?? 0.35;
+    const narrationVolume = selectedSegment.narrationVolume ?? mixSettings?.narrationVolume ?? 1;
+    const fadeDurationMs = selectedSegment.fadeDurationMs ?? mixSettings?.fadeDurationMs ?? 250;
+    const nextSegments = segments.map((segment) => ({
+      ...segment,
+      duckingVolume,
+      narrationVolume,
+      fadeDurationMs
+    }));
+    commitDraftChange(nextSegments, `Applied selected mix to ${nextSegments.length} rows locally.`, selectedIndex);
+  }
+
+  function clearSelectedMixOverrides() {
+    if (!selectedSegment) {
+      return;
+    }
+    updateSegment(selectedIndex, {
+      duckingVolume: null,
+      narrationVolume: null,
+      fadeDurationMs: null
+    });
+    setEditCommandStatus(`Cleared overrides for narration ${selectedIndex + 1} locally.`);
+  }
+
+  function clearAllMixOverrides() {
+    const nextSegments = segments.map((segment) => ({
+      ...segment,
+      duckingVolume: null,
+      narrationVolume: null,
+      fadeDurationMs: null
+    }));
+    commitDraftChange(nextSegments, `Cleared overrides for ${nextSegments.length} rows locally.`, selectedIndex);
+  }
+
   function updateQuickScriptText(nextText: string) {
     setQuickScriptText(nextText);
     setQuickScriptStatus(null);
@@ -9991,9 +10033,14 @@ function NarrationWorkspacePanel({
           jobId={jobId}
           mixSettings={mixSettings}
           mixValidation={mixValidation}
+          segments={segments}
           selectedIndex={selectedIndex}
           selectedSegment={selectedSegment}
           voiceCatalog={workspace?.voiceCatalog ?? null}
+          status={editCommandStatus}
+          onApplySelectedMixToAllRows={applySelectedMixToAllRows}
+          onClearAllMixOverrides={clearAllMixOverrides}
+          onClearSelectedMixOverrides={clearSelectedMixOverrides}
           onRefreshEvidence={onRefreshEvidence}
           onSaveMixSettings={onSaveMixSettings}
           onUpdateMixSettings={setMixSettings}
@@ -10480,12 +10527,17 @@ function NarrationInspector({
   jobId,
   mixSettings,
   mixValidation,
+  onApplySelectedMixToAllRows,
+  onClearAllMixOverrides,
+  onClearSelectedMixOverrides,
   onRefreshEvidence,
   onSaveMixSettings,
   onUpdateMixSettings,
   onUpdateSegment,
+  segments,
   selectedIndex,
   selectedSegment,
+  status,
   voiceCatalog
 }: {
   evidence: NarrationEvidence | null;
@@ -10493,14 +10545,20 @@ function NarrationInspector({
   jobId: string;
   mixSettings: NarrationWorkspace['mixSettings'] | null;
   mixValidation: string[];
+  onApplySelectedMixToAllRows: () => void;
+  onClearAllMixOverrides: () => void;
+  onClearSelectedMixOverrides: () => void;
   onRefreshEvidence: () => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onUpdateMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onUpdateSegment: (index: number, patch: Partial<NarrationWorkspace['segments'][number]>) => void;
+  segments: NarrationWorkspace['segments'];
   selectedIndex: number;
   selectedSegment: NarrationWorkspace['segments'][number] | null;
+  status: string | null;
   voiceCatalog: NarrationWorkspace['voiceCatalog'] | null;
 }) {
+  const automation = buildNarrationMixAutomation({ segments, mixSettings, selectedIndex });
   return (
     <aside className="narration-inspector" aria-label="Narration inspector">
       {selectedSegment ? (
@@ -10538,6 +10596,13 @@ function NarrationInspector({
             mixSettings={mixSettings}
             onUpdateSegment={(patch) => onUpdateSegment(selectedIndex, patch)}
             selectedSegment={selectedSegment}
+          />
+          <NarrationMixAutomationPanel
+            automation={automation}
+            status={status}
+            onApplySelectedMixToAllRows={onApplySelectedMixToAllRows}
+            onClearAllMixOverrides={onClearAllMixOverrides}
+            onClearSelectedMixOverrides={onClearSelectedMixOverrides}
           />
           <NarrationEvidenceMetrics evidence={evidence} />
           {mixSettings ? (
@@ -11116,6 +11181,85 @@ function SegmentMixOverridePanel({
           />
         </label>
       </div>
+    </section>
+  );
+}
+
+function NarrationMixAutomationPanel({
+  automation,
+  onApplySelectedMixToAllRows,
+  onClearAllMixOverrides,
+  onClearSelectedMixOverrides,
+  status
+}: {
+  automation: NarrationMixAutomation;
+  onApplySelectedMixToAllRows: () => void;
+  onClearAllMixOverrides: () => void;
+  onClearSelectedMixOverrides: () => void;
+  status: string | null;
+}) {
+  return (
+    <section className="narration-mix-automation" aria-label="Mix automation">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Mix automation</h4>
+          <p className="muted">Effective per-window mix values from job settings and row overrides.</p>
+        </div>
+        <span className={automation.overrideCount > 0 ? 'status-pill attention' : 'status-pill ready'}>
+          {automation.overrideCount} overrides
+        </span>
+      </div>
+      <dl className="compact-metrics narration-mix-automation-metrics">
+        <div>
+          <dt>Overrides</dt>
+          <dd>{automation.overrideCount}</dd>
+        </div>
+        <div>
+          <dt>Inherited</dt>
+          <dd>{automation.inheritedCount}</dd>
+        </div>
+        <div>
+          <dt>Min duck</dt>
+          <dd>{formatNullableNumber(automation.minDuckingVolume)}</dd>
+        </div>
+        <div>
+          <dt>Max narration</dt>
+          <dd>{formatNullableNumber(automation.maxNarrationVolume)}</dd>
+        </div>
+      </dl>
+      <div className="mix-automation-rows" aria-label="Mix automation rows">
+        {automation.points.map((point) => (
+          <div
+            aria-label={`Mix automation row ${point.index + 1}: ${point.hasOverride ? 'override' : 'inherited'}, ducking ${formatNullableNumber(point.duckingVolume)}, narration ${formatNullableNumber(point.narrationVolume)}, fade ${point.fadeDurationMs} ms`}
+            className={[
+              'mix-automation-row',
+              point.hasOverride ? 'override' : 'inherited',
+              point.selected ? 'selected' : ''
+            ].filter(Boolean).join(' ')}
+            key={point.index}
+          >
+            <span className="mix-automation-row-label">Row {point.index + 1}</span>
+            <span className="mix-automation-track" aria-hidden="true">
+              <span className="mix-automation-bar ducking" style={{ width: `${Math.max(point.duckingVolume * 100, 2)}%` }} />
+              <span className="mix-automation-bar narration" style={{ width: `${Math.max((point.narrationVolume / 2) * 100, 2)}%` }} />
+              <span className="mix-automation-bar fade" style={{ width: `${Math.max((point.fadeDurationMs / 5000) * 100, 2)}%` }} />
+            </span>
+            <span className="mix-automation-row-state">{point.hasOverride ? 'Override' : 'Inherited'}</span>
+          </div>
+        ))}
+      </div>
+      <div className="narration-command-buttons">
+        <button type="button" disabled={automation.points.length === 0} onClick={onApplySelectedMixToAllRows}>
+          Apply selected mix to all rows
+        </button>
+        <button type="button" disabled={automation.points.length === 0} onClick={onClearSelectedMixOverrides}>
+          Clear selected row overrides
+        </button>
+        <button type="button" disabled={automation.points.length === 0} onClick={onClearAllMixOverrides}>
+          Clear all row overrides
+        </button>
+      </div>
+      {status ? <p className="narration-command-status">{status}</p> : null}
     </section>
   );
 }
