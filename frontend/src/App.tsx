@@ -83,6 +83,7 @@ import type {
   DemoSessionRecoveryBoard,
   DemoSessionCommandCenter,
   DemoSessionCommandCenterStatus,
+  SessionNarrationProductionBoard,
   DeliveryManifest,
   DemoPresenterPack,
   DemoRunMatrix,
@@ -481,6 +482,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoSessionRecoveryBoard, setDemoSessionRecoveryBoard] = useState<DemoSessionRecoveryBoard | null>(null);
   const [demoSessionRecoveryBoardError, setDemoSessionRecoveryBoardError] = useState<string | null>(null);
   const [isLoadingDemoSessionRecoveryBoard, setIsLoadingDemoSessionRecoveryBoard] = useState(false);
+  const [sessionNarrationProductionBoard, setSessionNarrationProductionBoard] = useState<SessionNarrationProductionBoard | null>(null);
+  const [sessionNarrationProductionBoardError, setSessionNarrationProductionBoardError] = useState<string | null>(null);
+  const [isLoadingSessionNarrationProductionBoard, setIsLoadingSessionNarrationProductionBoard] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -1120,6 +1124,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadSessionNarrationProductionBoard = useCallback(async (limit = 25) => {
+    setIsLoadingSessionNarrationProductionBoard(true);
+    try {
+      const board = await linguaFrameApi.getSessionNarrationProductionBoard(limit);
+      setSessionNarrationProductionBoard(board);
+      setSessionNarrationProductionBoardError(null);
+      return board;
+    } catch (boardLoadError) {
+      setSessionNarrationProductionBoard(null);
+      setSessionNarrationProductionBoardError(toErrorMessage(boardLoadError));
+      return null;
+    } finally {
+      setIsLoadingSessionNarrationProductionBoard(false);
+    }
+  }, []);
+
   const loadRuntimeDependencies = useCallback(async () => {
     setIsLoadingRuntimeDependencies(true);
     const [dependenciesResult, liveChecksResult, openAiReadinessResult] = await Promise.allSettled([
@@ -1405,6 +1425,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadDemoSessionRecoveryBoard]);
 
   useEffect(() => {
+    void loadSessionNarrationProductionBoard();
+  }, [loadSessionNarrationProductionBoard]);
+
+  useEffect(() => {
     void loadRuntimeDependencies();
   }, [loadRuntimeDependencies]);
 
@@ -1502,6 +1526,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
+        void loadSessionNarrationProductionBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
         void loadDemoHandoffPortal(nextJob.jobId);
@@ -1509,7 +1534,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadPrivateDemoDeliveryReceipt, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1529,6 +1554,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
+        void loadSessionNarrationProductionBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
         void loadDemoHandoffPortal(nextJob.jobId);
@@ -1555,7 +1581,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadPrivateDemoDeliveryReceipt, loadSourceMedia, loadStuckJobRecovery]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -2955,6 +2981,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={demoSessionRecoveryBoardError}
             isLoading={isLoadingDemoSessionRecoveryBoard}
             onRefresh={() => void loadDemoSessionRecoveryBoard()}
+          />
+
+          <SessionNarrationProductionBoardPanel
+            board={sessionNarrationProductionBoard}
+            error={sessionNarrationProductionBoardError}
+            isLoading={isLoadingSessionNarrationProductionBoard}
+            onRefresh={() => void loadSessionNarrationProductionBoard()}
           />
 
           <DemoPresentationCockpitPanel
@@ -5080,6 +5113,187 @@ function DemoSessionRecoveryBoardPanel({
           <div className="panel-actions">
             <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
               Download recovery board
+            </button>
+          </div>
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function SessionNarrationProductionBoardPanel({
+  board,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  board: SessionNarrationProductionBoard | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const primaryAction = board?.primaryAction ?? board?.jobs.flatMap((job) => job.actions ?? [])[0] ?? null;
+  const selectedJob = board?.jobs[0] ?? null;
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadSessionNarrationProductionBoardMarkdown(25);
+      downloadBlob(blob, 'linguaframe-session-narration-production-board.md');
+      setStatus('Narration production board Markdown downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Session narration production board">
+      <div className="panel-heading">
+        <h2>Session narration production board</h2>
+        {board ? <span className={demoSessionStatusClassName(board.overallStatus)}>{board.overallStatus}</span> : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Session narration production board unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !board ? <p className="muted">Loading session narration production board...</p> : null}
+      {board ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Ready</dt>
+              <dd>{board.readyToDeliverCount} deliver</dd>
+            </div>
+            <div>
+              <dt>Needs review</dt>
+              <dd>{board.needsReviewCount} review</dd>
+            </div>
+            <div>
+              <dt>Needs render</dt>
+              <dd>{board.needsRenderCount} render</dd>
+            </div>
+            <div>
+              <dt>Needs authoring</dt>
+              <dd>{board.needsAuthoringCount} author</dd>
+            </div>
+            <div>
+              <dt>Blocked</dt>
+              <dd>{board.blockedCount} blocked</dd>
+            </div>
+            <div>
+              <dt>Not applicable</dt>
+              <dd>{board.notApplicableCount} waiting</dd>
+            </div>
+          </dl>
+          <p className={board.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {board.recommendedNextAction}
+          </p>
+          {primaryAction ? (
+            <div className="command-highlight">
+              <h3>Primary narration action</h3>
+              <strong>{primaryAction.label}</strong>
+              <small>{primaryAction.detail}</small>
+              {primaryAction.href ? <a href={primaryAction.href}>Open narration evidence</a> : null}
+            </div>
+          ) : null}
+          <div className="narration-scene-board-grid">
+            <ul className="operations-section-list" aria-label="Session narration production jobs">
+              {board.jobs.map((productionJob) => {
+                const links = productionJob.links ?? [];
+                return (
+                  <li key={productionJob.jobId}>
+                    <div className="operations-section-heading">
+                      <strong>{productionJob.jobId}</strong>
+                      <span className={demoSessionStatusClassName(productionJob.attentionLevel)}>
+                        {productionJob.classification}
+                      </span>
+                    </div>
+                    <p>
+                      {productionJob.jobStatus} · {productionJob.segmentCount} segments · {formatPercent(Number(productionJob.coveragePercent) || 0)}
+                    </p>
+                    <small>{productionJob.recommendedNextAction}</small>
+                    <ul className="inline-evidence-list">
+                      <li>Audio: {productionJob.audioReady ? 'Ready' : 'Missing'}</li>
+                      <li>Video: {productionJob.videoReady ? 'Ready' : 'Missing'}</li>
+                      <li>Playback: {productionJob.playbackResolved ? 'Resolved' : 'Open'}</li>
+                      <li>Delivery: {productionJob.deliveryReady ? 'Ready' : 'Missing'}</li>
+                    </ul>
+                    {links.length > 0 ? (
+                      <ul className="link-list">
+                        {links.slice(0, 6).map((link) => (
+                          <li key={`${productionJob.jobId}-${link.label}-${link.href}`}>
+                            <a href={link.href}>{link.label}</a>
+                            <small>{link.contentType} · {link.description}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+            <aside className="narration-scene-inspector" aria-label="Selected narration production job">
+              {selectedJob ? (
+                <>
+                  <h3>{selectedJob.jobId}</h3>
+                  <p>{selectedJob.primaryBlocker}</p>
+                  <dl className="compact-metrics">
+                    <div>
+                      <dt>Gaps</dt>
+                      <dd>{selectedJob.gapCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Overlap</dt>
+                      <dd>{selectedJob.hasOverlap ? 'Yes' : 'No'}</dd>
+                    </div>
+                    <div>
+                      <dt>Voices</dt>
+                      <dd>{selectedJob.voiceCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Mix keys</dt>
+                      <dd>{selectedJob.mixKeyframeCount}</dd>
+                    </div>
+                  </dl>
+                  {selectedJob.checks.length > 0 ? (
+                    <ul className="inline-evidence-list">
+                      {selectedJob.checks.slice(0, 7).map((check) => (
+                        <li key={`${selectedJob.jobId}-${check.key}`}>
+                          {check.label}: {check.status}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              ) : (
+                <p className="muted">No recent jobs are available for narration production.</p>
+              )}
+            </aside>
+          </div>
+          <h3>Session links</h3>
+          <ul className="link-list">
+            {(board.links ?? []).map((link) => (
+              <li key={`${link.label}-${link.href}`}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.contentType} · {link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Safety</h3>
+          <ul className="compact-list">
+            {(board.safetyNotes ?? []).map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download narration production board
             </button>
           </div>
           {status ? <p className="muted">{status}</p> : null}

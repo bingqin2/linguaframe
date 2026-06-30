@@ -6,6 +6,7 @@ import type {
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
   DemoSessionRecoveryBoard,
+  SessionNarrationProductionBoard,
   DemoCompletionCertificate,
   DemoRunLauncher,
   DemoHandoffPortal,
@@ -732,6 +733,28 @@ export async function downloadDemoSessionRecoveryBoardMarkdown(limit?: number): 
   }
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return requestBlob(`/api/operator/demo-session-recovery-board/markdown/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function getSessionNarrationProductionBoard(limit?: number): Promise<SessionNarrationProductionBoard> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<SessionNarrationProductionBoard>(`/api/operator/session-narration-production-board${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadSessionNarrationProductionBoardMarkdown(limit?: number): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/session-narration-production-board/markdown/download${suffix}`, {
     method: 'GET'
   });
 }
@@ -1540,6 +1563,8 @@ export const linguaFrameApi = {
   downloadDemoSessionEvidencePackageZip,
   getDemoSessionRecoveryBoard,
   downloadDemoSessionRecoveryBoardMarkdown,
+  getSessionNarrationProductionBoard,
+  downloadSessionNarrationProductionBoardMarkdown,
   getPrivateDemoOperations,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,

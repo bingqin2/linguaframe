@@ -266,6 +266,9 @@ Expected:
 - Draft history is in-memory only and resets after a successful `Save narration` response or workspace reload.
 - `Split at playhead` requires the preview playhead to be inside the selected row with at least 0.25 seconds on each side.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh` writes JSON and Markdown under `/tmp/linguaframe-demo/narration-scene-board/`, prints metadata-only status, coverage, gap, voice/mix, audio/video readiness, blocked checks, and next action, and does not print narration text, object keys, local paths, provider payloads, tokens, or media bytes.
+- Browser run-day view shows `Session narration production board` with ready/review/render/authoring/blocked/not-applicable counts, grouped recent jobs, selected-job checks, safe narration links, refresh, and Markdown download.
+- `scripts/demo/session-narration-production-board.sh` writes JSON and Markdown under `/tmp/linguaframe-demo/session-narration-production-board/`, prints metadata-only production counts and first blocked job id, and exits non-zero for blocked rows unless `LINGUAFRAME_SESSION_NARRATION_PRODUCTION_BOARD_REPORT_ONLY=true`.
+- Session narration production board exports must not call OpenAI, call TTS providers, run FFmpeg, upload media, save narration rows, print narration text, print reviewer notes, expose object keys, expose local paths, expose provider payloads, expose tokens or API keys, or include media bytes.
 - `Merge next` is disabled on the final row, and inserted blank rows block save until required text, voice, and timing validation passes.
 - Completed jobs with `NARRATED_VIDEO` preview that artifact; otherwise preview falls back to `BURNED_VIDEO`, then source video.
 - Selecting a narration row and clicking `Jump to narration N` seeks the preview player to the selected start time and moves the timeline playhead.

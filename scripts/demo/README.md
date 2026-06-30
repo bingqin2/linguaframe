@@ -21,6 +21,17 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh
 
 The script writes `narration-scene-board.json` and `.md` to `/tmp/linguaframe-demo/narration-scene-board/`, prints status, segment count, coverage, gaps, overlap state, voice count, mix keyframe count, audio/video readiness, blocked checks, and the recommended next action. It does not call OpenAI, call TTS providers, run FFmpeg, save rows, print narration text, expose object keys, expose local paths, or include media bytes. Set `LINGUAFRAME_NARRATION_SCENE_BOARD_REPORT_ONLY=true` to export a `BLOCKED` board without failing the command.
 
+## Session Narration Production Board
+
+Export the run-day production overview across recent narration jobs:
+
+```bash
+scripts/demo/session-narration-production-board.sh
+LINGUAFRAME_SESSION_NARRATION_PRODUCTION_BOARD_REPORT_ONLY=true scripts/demo/session-narration-production-board.sh
+```
+
+The script writes `session-narration-production-board.json` and `.md` to `/tmp/linguaframe-demo/session-narration-production-board/`, prints ready/review/render/authoring/blocked counts, first blocked job id, primary action, and the Markdown path. It is read-only and metadata-only: it does not call OpenAI, call TTS providers, run FFmpeg, upload media, save narration rows, or print narration text, reviewer notes, object keys, local paths, provider payloads, tokens, API keys, or media bytes. By default it exits non-zero when blocked rows exist; set report-only mode to export the board without failing.
+
 ## Narration Render Review
 
 Export the metadata-only narration cue sheet after saving narration or running the demo render:

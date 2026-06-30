@@ -5151,3 +5151,22 @@ Validation so far:
 - `npm --prefix frontend test -- --run` first exposed two broad cancel-button queries after the recovery panel added a distinct `Cancel job` action, then passed with `Test Files 12 passed` and `Tests 312 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 546.25 kB bundle.
 - `git diff --check` passed.
+
+Work:
+
+- Started the session narration production board feature slice from `docs/plans/172-session-narration-production-board.md`.
+- Added a metadata-only backend `SessionNarrationProductionBoardService`, VOs, JSON endpoint, and Markdown download endpoint that classify recent jobs into ready, review, render, authoring, blocked, and not-applicable narration production rows.
+- Added a browser `Session narration production board` panel with production counters, grouped jobs, selected-job checks, safe narration links, refresh, and Markdown download.
+- Added typed frontend API helpers plus terminal `scripts/demo/session-narration-production-board.sh`, shared Bash helper functions, route tests, summary output, and redaction checks.
+- Updated README, demo script guidance, smoke checklist, roadmap, and target-state docs with run-day narration production usage.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=SessionNarrationProductionBoardServiceTests,OperatorDashboardControllerTests#returnsSessionNarrationProductionBoard+downloadsSessionNarrationProductionBoardMarkdown test` first failed because the backend service and VOs did not exist, then the focused service tests passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx --testNamePattern "session narration production|Session narration production"` first failed because the frontend API helpers were missing and then because repeated status text needed broader assertions, then passed with `Test Files 2 passed` and `Tests 3 passed | 264 skipped`; jsdom printed the expected navigation warning from blob download fixtures.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because `download_session_narration_production_board_json` was missing, then passed after adding the route helpers, summary, and redaction checks.
+- `mvn -pl LinguaFrame -Dtest=SessionNarrationProductionBoardServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 30, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/session-narration-production-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 854, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 324 passed`; jsdom printed expected navigation warnings from blob downloads.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 572.17 kB bundle.
