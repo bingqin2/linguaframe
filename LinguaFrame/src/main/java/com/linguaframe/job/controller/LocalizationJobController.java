@@ -8,6 +8,7 @@ import com.linguaframe.job.domain.dto.NarrationDemoRenderPreflightRequestDto;
 import com.linguaframe.job.domain.dto.PreviewNarrationSegmentRequestDto;
 import com.linguaframe.job.domain.dto.RenderNarrationDemoDto;
 import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.StuckJobRecoveryActionRequest;
 import com.linguaframe.job.domain.dto.UpdateNarrationPlaybackReviewSegmentDto;
 import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
 import com.linguaframe.job.domain.dto.UpdateSubtitleDraftRequest;
@@ -64,6 +65,7 @@ import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitleWorkflowVo;
+import com.linguaframe.job.domain.vo.StuckJobRecoveryVo;
 import com.linguaframe.job.domain.vo.ReviewedSubtitlePublishVo;
 import com.linguaframe.job.domain.vo.SubtitleDraftSummaryVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewEvidenceVo;
@@ -116,6 +118,7 @@ import com.linguaframe.job.service.SubtitleService;
 import com.linguaframe.job.service.SubtitleDraftService;
 import com.linguaframe.job.service.SubtitleReviewEvidenceService;
 import com.linguaframe.job.service.SubtitleReviewService;
+import com.linguaframe.job.service.StuckJobRecoveryService;
 import com.linguaframe.job.service.TranscriptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -140,6 +143,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -149,6 +153,7 @@ public class LocalizationJobController {
     private final LocalizationJobQueryService queryService;
     private final LocalizationJobRetryService retryService;
     private final LocalizationJobCancellationService cancellationService;
+    private final StuckJobRecoveryService stuckJobRecoveryService;
     private final LocalizationJobProgressStreamService progressStreamService;
     private final JobArtifactService artifactService;
     private final DeliveryManifestService deliveryManifestService;
@@ -199,6 +204,7 @@ public class LocalizationJobController {
             LocalizationJobQueryService queryService,
             LocalizationJobRetryService retryService,
             LocalizationJobCancellationService cancellationService,
+            StuckJobRecoveryService stuckJobRecoveryService,
             LocalizationJobProgressStreamService progressStreamService,
             JobArtifactService artifactService,
             DeliveryManifestService deliveryManifestService,
@@ -248,6 +254,7 @@ public class LocalizationJobController {
         this.queryService = queryService;
         this.retryService = retryService;
         this.cancellationService = cancellationService;
+        this.stuckJobRecoveryService = stuckJobRecoveryService;
         this.progressStreamService = progressStreamService;
         this.artifactService = artifactService;
         this.deliveryManifestService = deliveryManifestService;
@@ -324,6 +331,59 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return queryService.getJob(jobId);
+    }
+
+    @GetMapping("/{jobId}/stuck-job-recovery")
+    @Operation(summary = "Build stuck job recovery diagnostics")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Stuck job recovery diagnostics were built."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public StuckJobRecoveryVo getStuckJobRecovery(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return stuckJobRecoveryService.recovery(jobId);
+    }
+
+    @GetMapping(value = "/{jobId}/stuck-job-recovery/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download stuck job recovery Markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Stuck job recovery Markdown was generated."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public ResponseEntity<String> downloadStuckJobRecoveryMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "markdown", StandardCharsets.UTF_8))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename("linguaframe-job-" + jobId + "-stuck-job-recovery.md")
+                                .build()
+                                .toString()
+                )
+                .body(stuckJobRecoveryService.recoveryMarkdown(jobId));
+    }
+
+    @PostMapping("/{jobId}/stuck-job-recovery/actions")
+    @Operation(summary = "Run a confirmed stuck job recovery action")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "The recovery action was applied and refreshed diagnostics were returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id."),
+            @ApiResponse(responseCode = "409", description = "The recovery action is not valid for the current job state.")
+    })
+    public StuckJobRecoveryVo runStuckJobRecoveryAction(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody StuckJobRecoveryActionRequest request
+    ) {
+        return stuckJobRecoveryService.runAction(jobId, request.actionId(), request.confirmation());
     }
 
     @GetMapping("/{jobId}/demo-run-matrix")

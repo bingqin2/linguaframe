@@ -59,6 +59,7 @@ import type {
   ReviewedSubtitleWorkflow,
   RuntimeDependencySummary,
   RuntimeLiveCheckSummary,
+  StuckJobRecovery,
   SubtitleDraftSummary,
   SubtitleReviewEvidence,
   SubtitleReviewSummary
@@ -177,6 +178,13 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDeliveryManifest').mockResolvedValue(deliveryManifestFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMatrix').mockResolvedValue(demoRunMatrixFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunMonitor').mockResolvedValue(demoRunMonitorFixture());
+    vi.spyOn(linguaFrameApi, 'getStuckJobRecovery').mockResolvedValue(stuckJobRecoveryFixture());
+    vi.spyOn(linguaFrameApi, 'downloadStuckJobRecoveryMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Stuck Job Recovery'], { type: 'text/markdown' })
+    );
+    vi.spyOn(linguaFrameApi, 'runStuckJobRecoveryAction').mockResolvedValue(
+      stuckJobRecoveryFixture({ classification: 'QUEUED_WAITING', attentionLevel: 'WATCH', status: 'WATCH' })
+    );
     vi.spyOn(linguaFrameApi, 'getDemoReplayCard').mockResolvedValue(demoReplayCardFixture());
     vi.spyOn(linguaFrameApi, 'getDemoCompletionCertificate').mockResolvedValue(demoCompletionCertificateFixture());
     vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(demoAcceptanceGateFixture());
@@ -1844,6 +1852,64 @@ describe('App', () => {
     expect(screen.queryByRole('region', { name: /failure triage/i })).not.toBeInTheDocument();
   });
 
+  test('renders stuck job recovery cockpit and runs confirmed recovery action', async () => {
+    const runRecoveryAction = vi.spyOn(linguaFrameApi, 'runStuckJobRecoveryAction').mockResolvedValue(
+      stuckJobRecoveryFixture({ classification: 'QUEUED_WAITING', attentionLevel: 'WATCH', status: 'WATCH' })
+    );
+    const downloadRecovery = vi.spyOn(linguaFrameApi, 'downloadStuckJobRecoveryMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Stuck Job Recovery'], { type: 'text/markdown' })
+    );
+    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('REQUEUE_DISPATCH');
+    vi.spyOn(linguaFrameApi, 'getJob')
+      .mockResolvedValueOnce(jobFixture({ status: 'QUEUED' }))
+      .mockResolvedValue(jobFixture({ status: 'QUEUED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const recoveryPanel = await screen.findByRole('region', { name: /stuck job recovery/i });
+    expect(within(recoveryPanel).getByText('QUEUED_STALE_DISPATCH')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Dispatch outbox')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('Requeue dispatch')).toBeEnabled();
+    expect(within(recoveryPanel).queryByText('raw transcript text')).not.toBeInTheDocument();
+    expect(within(recoveryPanel).queryByText('/Users/example')).not.toBeInTheDocument();
+    expect(within(recoveryPanel).queryByText('sk-test')).not.toBeInTheDocument();
+    expect(within(recoveryPanel).queryByText('provider payload')).not.toBeInTheDocument();
+
+    await userEvent.click(within(recoveryPanel).getByRole('button', { name: /requeue dispatch/i }));
+
+    await waitFor(() => expect(runRecoveryAction).toHaveBeenCalledWith('job-1', 'REQUEUE_DISPATCH', 'REQUEUE_DISPATCH'));
+    expect(promptSpy).toHaveBeenCalledWith('Type REQUEUE_DISPATCH to run this recovery action.');
+    await waitFor(() => expect(within(recoveryPanel).getByText('QUEUED_WAITING')).toBeInTheDocument());
+
+    await userEvent.click(within(recoveryPanel).getByRole('button', { name: /download recovery markdown/i }));
+    await waitFor(() => expect(downloadRecovery).toHaveBeenCalledWith('job-1'));
+  });
+
+  test('keeps selected job usable when stuck job recovery fails to load', async () => {
+    vi.spyOn(linguaFrameApi, 'getStuckJobRecovery').mockRejectedValue(new Error('Recovery endpoint unavailable'));
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'PROCESSING' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const selectedJob = await screen.findByRole('region', { name: /selected job/i });
+    expect(within(selectedJob).getByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
+    expect(within(selectedJob).getByText('PROCESSING')).toBeInTheDocument();
+    const recoveryPanel = within(selectedJob).getByRole('region', { name: /stuck job recovery/i });
+    expect(within(recoveryPanel).getByText('Recovery endpoint unavailable')).toBeInTheDocument();
+  });
+
   test('keeps selected failed job visible when retry is rejected by the backend', async () => {
     vi.spyOn(linguaFrameApi, 'retryJob').mockRejectedValue(
       new Error('Retry limit reached for this localization job.')
@@ -1888,7 +1954,8 @@ describe('App', () => {
     await userEvent.type(screen.getByLabelText(/open job id/i), 'job-1');
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
-    const cancelButton = await screen.findByRole('button', { name: /cancel/i });
+    const selectedJob = await screen.findByRole('region', { name: /selected job/i });
+    const cancelButton = await within(selectedJob).findByRole('button', { name: /^cancel$/i });
     await userEvent.click(cancelButton);
 
     await waitFor(() => expect(cancelJob).toHaveBeenCalledWith('job-1'));
@@ -2003,7 +2070,8 @@ describe('App', () => {
     await userEvent.click(screen.getByRole('button', { name: /open job/i }));
 
     expect(await screen.findByRole('heading', { name: /job job-1/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /cancel/i })).not.toBeInTheDocument();
+    const selectedJob = screen.getByRole('region', { name: /selected job/i });
+    expect(within(selectedJob).queryByRole('button', { name: /^cancel$/i })).not.toBeInTheDocument();
   });
 
   test('loads and opens recent jobs from local storage', async () => {
@@ -7963,6 +8031,76 @@ function demoRunMonitorFixture(overrides: Partial<DemoRunMonitor> = {}): DemoRun
       }
     ],
     markdown: '# LinguaFrame Demo Run Monitor\n',
+    ...overrides
+  };
+}
+
+function stuckJobRecoveryFixture(overrides: Partial<StuckJobRecovery> = {}): StuckJobRecovery {
+  return {
+    jobId: 'job-1',
+    videoId: 'video-1',
+    generatedAt: '2026-06-30T10:00:00Z',
+    status: 'BLOCKED',
+    attentionLevel: 'BLOCKED',
+    classification: 'QUEUED_STALE_DISPATCH',
+    headline: 'Job appears stuck before worker pickup and can be requeued after runtime checks.',
+    recommendedNextAction: 'Run live checks, confirm worker readiness, then requeue dispatch if appropriate.',
+    jobStatus: 'QUEUED',
+    dispatchStatus: 'PENDING',
+    dispatchAttempts: 0,
+    dispatchedAt: null,
+    lastTimelineAt: null,
+    ageSeconds: 1800,
+    staleSeconds: 1800,
+    checks: [
+      {
+        key: 'dispatch-outbox',
+        label: 'Dispatch outbox',
+        status: 'BLOCKED',
+        detail: 'Latest dispatch event is PENDING with 0 attempts.',
+        nextAction: 'Requeue dispatch after confirming worker readiness.',
+        blocking: true
+      },
+      {
+        key: 'safety',
+        label: 'Recovery safety',
+        status: 'READY',
+        detail: 'Actions require explicit confirmation.',
+        nextAction: 'Use existing job transitions.',
+        blocking: false
+      }
+    ],
+    actions: [
+      {
+        id: 'REQUEUE_DISPATCH',
+        label: 'Requeue dispatch',
+        method: 'POST',
+        href: '/api/jobs/job-1/stuck-job-recovery/actions',
+        enabled: true,
+        requiresConfirmation: true,
+        description: 'Create a fresh dispatch outbox event for a stale queued job.'
+      },
+      {
+        id: 'CANCEL_JOB',
+        label: 'Cancel job',
+        method: 'POST',
+        href: '/api/jobs/job-1/stuck-job-recovery/actions',
+        enabled: false,
+        requiresConfirmation: true,
+        description: 'Cancel an active job.'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'MARKDOWN',
+        label: 'Recovery Markdown',
+        href: '/api/jobs/job-1/stuck-job-recovery/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable recovery notes.'
+      }
+    ],
+    safetyNotes: ['Metadata-only recovery output.'],
+    markdown: '# LinguaFrame Stuck Job Recovery\n',
     ...overrides
   };
 }

@@ -80,6 +80,9 @@ import {
   getJobComparison,
   getDemoRunMatrix,
   getDemoRunMonitor,
+  getStuckJobRecovery,
+  downloadStuckJobRecoveryMarkdown,
+  runStuckJobRecoveryAction,
   getDemoPresenterPack,
   getDemoRunVariance,
   downloadDemoRunVarianceMarkdown,
@@ -100,6 +103,7 @@ import {
   logoutDemoSession,
   deliveryManifestMarkdownDownloadUrl,
   demoRunMonitorMarkdownDownloadUrl,
+  stuckJobRecoveryMarkdownDownloadUrl,
   demoShareSheetMarkdownDownloadUrl,
   jobComparisonMarkdownDownloadUrl,
   publishReviewedSubtitles,
@@ -2044,6 +2048,81 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches stuck job recovery with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(stuckJobRecoveryFixture())
+    );
+
+    const recovery = await getStuckJobRecovery('job with spaces/slash');
+
+    expect(recovery.classification).toBe('QUEUED_STALE_DISPATCH');
+    expect(recovery.actions[0]?.id).toBe('REQUEUE_DISPATCH');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/stuck-job-recovery', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads stuck job recovery markdown with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Stuck Job Recovery', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadStuckJobRecoveryMarkdown('job with spaces/slash');
+
+    expect(await result.text()).toContain('Stuck Job Recovery');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/stuck-job-recovery/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+    expect(stuckJobRecoveryMarkdownDownloadUrl('job with spaces/slash')).toBe(
+      '/api/jobs/job%20with%20spaces%2Fslash/stuck-job-recovery/markdown/download'
+    );
+  });
+
+  test('runs stuck job recovery action with confirmation body and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(stuckJobRecoveryFixture({ classification: 'QUEUED_WAITING', attentionLevel: 'WATCH', status: 'WATCH' }))
+    );
+
+    const recovery = await runStuckJobRecoveryAction(
+      'job with spaces/slash',
+      'REQUEUE_DISPATCH',
+      'REQUEUE_DISPATCH'
+    );
+
+    expect(recovery.classification).toBe('QUEUED_WAITING');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/stuck-job-recovery/actions',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        },
+        body: JSON.stringify({
+          actionId: 'REQUEUE_DISPATCH',
+          confirmation: 'REQUEUE_DISPATCH'
+        })
+      }
+    );
+  });
+
   test('fetches demo reviewer workspace with encoded job id and demo token header', async () => {
     writeDemoToken(window.localStorage, 'private-demo-token');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -3685,6 +3764,59 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
       'Content-Type': 'application/json'
     }
   });
+}
+
+function stuckJobRecoveryFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    jobId: 'stuck-job',
+    videoId: 'stuck-video',
+    generatedAt: '2026-06-30T10:00:00Z',
+    status: 'BLOCKED',
+    attentionLevel: 'BLOCKED',
+    classification: 'QUEUED_STALE_DISPATCH',
+    headline: 'Job appears stuck before worker pickup and can be requeued after runtime checks.',
+    recommendedNextAction: 'Run live checks, confirm worker readiness, then requeue dispatch if appropriate.',
+    jobStatus: 'QUEUED',
+    dispatchStatus: 'PENDING',
+    dispatchAttempts: 0,
+    dispatchedAt: null,
+    lastTimelineAt: null,
+    ageSeconds: 1800,
+    staleSeconds: 1800,
+    checks: [
+      {
+        key: 'dispatch-outbox',
+        label: 'Dispatch outbox',
+        status: 'BLOCKED',
+        detail: 'Latest dispatch event is PENDING with 0 attempts.',
+        nextAction: 'Requeue dispatch after confirming worker readiness.',
+        blocking: true
+      }
+    ],
+    actions: [
+      {
+        id: 'REQUEUE_DISPATCH',
+        label: 'Requeue dispatch',
+        method: 'POST',
+        href: '/api/jobs/stuck-job/stuck-job-recovery/actions',
+        enabled: true,
+        requiresConfirmation: true,
+        description: 'Create a fresh dispatch outbox event for a stale queued job.'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'MARKDOWN',
+        label: 'Recovery Markdown',
+        href: '/api/jobs/stuck-job/stuck-job-recovery/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable recovery notes.'
+      }
+    ],
+    safetyNotes: ['Metadata-only recovery output.'],
+    markdown: '# LinguaFrame Stuck Job Recovery\n',
+    ...overrides
+  };
 }
 
 function operatorDashboardFixture() {

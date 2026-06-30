@@ -113,7 +113,7 @@ Stage 3 requires:
 - Abuse controls.
 - Storage retention.
 - Background cleanup.
-- Stronger queue and worker recovery.
+- Stronger queue and worker recovery. Status: partially implemented with a selected-job stuck recovery cockpit for stale queued/retrying dispatch, stale processing-stage diagnosis, failed-job retry eligibility, confirmed requeue/cancel/retry actions, browser UI, terminal export, and metadata-only Markdown.
 - Clear privacy and data-handling policy.
 
 ## User Experience Target

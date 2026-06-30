@@ -487,6 +487,46 @@ download_demo_run_monitor_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-run-monitor/markdown/download" -o "$output_path"
 }
 
+download_stuck_job_recovery_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/stuck-job-recovery" -o "$output_path"
+}
+
+download_stuck_job_recovery_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/stuck-job-recovery/markdown/download" -o "$output_path"
+}
+
+run_stuck_job_recovery_action_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local action_id="$3"
+  local confirmation="$4"
+  local output_path="$5"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -X POST \
+    -H "Content-Type: application/json" \
+    -d "{\"actionId\":\"$action_id\",\"confirmation\":\"$confirmation\"}" \
+    "$base_url/api/jobs/$encoded_job_id/stuck-job-recovery/actions" \
+    -o "$output_path"
+}
+
 download_demo_replay_card_json() {
   local base_url="$1"
   local job_id="$2"
@@ -1715,6 +1755,50 @@ for stage in monitor.get("stages") or []:
     ]))
 for link in monitor.get("links") or []:
     print("demoRunMonitorLink=" + text(link.get("kind")) + ":" + text(link.get("url")))
+PY
+}
+
+print_stuck_job_recovery_summary_file() {
+  local recovery_path="$1"
+
+  python3 - "$recovery_path" <<'PY'
+import json
+import sys
+
+recovery = json.load(open(sys.argv[1], encoding="utf-8"))
+
+def text(value):
+    if value is None:
+        return "N/A"
+    return str(value)
+
+def safe(value):
+    value = text(value)
+    unsafe_markers = (
+        "raw transcript text",
+        "raw subtitle text",
+        "/Users/",
+        "sk-",
+        "provider payload",
+        "objectKey",
+        "sourceObjectKey",
+    )
+    if any(marker in value for marker in unsafe_markers):
+        return "REDACTED_UNSAFE_DETAIL"
+    return value
+
+print("stuckJobRecoveryStatus=" + text(recovery.get("status")))
+print("stuckJobRecoveryClassification=" + text(recovery.get("classification")))
+print("stuckJobRecoveryAttention=" + text(recovery.get("attentionLevel")))
+next_action = safe(recovery.get("recommendedNextAction"))
+if next_action != "REDACTED_UNSAFE_DETAIL":
+    print("stuckJobRecoveryRecommendedAction=" + next_action)
+for action in recovery.get("actions") or []:
+    print("stuckJobRecoveryAction=" + text(action.get("id")) + ":" + str(bool(action.get("enabled"))).lower())
+for check in recovery.get("checks") or []:
+    print("stuckJobRecoveryCheck=" + text(check.get("status")) + ":" + text(check.get("key")) + ":" + safe(check.get("label")))
+for link in recovery.get("safeLinks") or []:
+    print("stuckJobRecoveryLink=" + text(link.get("kind")) + ":" + text(link.get("href")))
 PY
 }
 

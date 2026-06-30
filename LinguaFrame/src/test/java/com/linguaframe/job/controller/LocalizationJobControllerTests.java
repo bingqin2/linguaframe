@@ -4165,6 +4165,87 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsStuckJobRecoveryForSelectedQueuedJobAndDownloadsMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T18:45:00Z");
+        createJob("job-controller-video-stuck-recovery", "job-controller-stuck-recovery", "stuck.mp4",
+                LocalizationJobStatus.QUEUED, createdAt);
+        dispatchEventRepository.save(new JobDispatchEventRecord(
+                "stuck-recovery-dispatch",
+                "job-controller-stuck-recovery",
+                JobDispatchEventType.LOCALIZATION_JOB_QUEUED,
+                "{}",
+                JobDispatchEventStatus.PENDING,
+                0,
+                createdAt,
+                null,
+                null,
+                createdAt,
+                createdAt
+        ));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/stuck-job-recovery",
+                        "job-controller-stuck-recovery"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-stuck-recovery"))
+                .andExpect(jsonPath("$.videoId").value("job-controller-video-stuck-recovery"))
+                .andExpect(jsonPath("$.classification").value("QUEUED_STALE_DISPATCH"))
+                .andExpect(jsonPath("$.attentionLevel").value("BLOCKED"))
+                .andExpect(jsonPath("$.actions[?(@.id == 'REQUEUE_DISPATCH')].enabled").value(true))
+                .andExpect(jsonPath("$.checks[?(@.key == 'dispatch-outbox')].status").value("BLOCKED"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))));
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/stuck-job-recovery/markdown/download",
+                        "job-controller-stuck-recovery"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-stuck-recovery-stuck-job-recovery.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame Stuck Job Recovery")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Classification: QUEUED_STALE_DISPATCH")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("provider payload"))));
+    }
+
+    @Test
+    void runsConfirmedStuckJobRecoveryAction() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T19:00:00Z");
+        createJob("job-controller-video-stuck-action", "job-controller-stuck-action", "stuck-action.mp4",
+                LocalizationJobStatus.QUEUED, createdAt);
+        dispatchEventRepository.save(new JobDispatchEventRecord(
+                "job-controller-stuck-action-dispatch",
+                "job-controller-stuck-action",
+                JobDispatchEventType.LOCALIZATION_JOB_QUEUED,
+                "{}",
+                JobDispatchEventStatus.PENDING,
+                0,
+                createdAt,
+                null,
+                null,
+                createdAt,
+                createdAt
+        ));
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/stuck-job-recovery/actions",
+                        "job-controller-stuck-action"
+                )
+                        .contentType("application/json")
+                        .content("{\"actionId\":\"REQUEUE_DISPATCH\",\"confirmation\":\"REQUEUE_DISPATCH\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-stuck-action"))
+                .andExpect(jsonPath("$.classification").value("QUEUED_WAITING"));
+
+        assertThat(dispatchEventRepository.findReadyToDispatch(Instant.now().plusSeconds(5), 10))
+                .extracting(JobDispatchEventRecord::jobId)
+                .contains("job-controller-stuck-action");
+    }
+
+    @Test
     void returnsDemoRunSnapshotForSelectedCompletedJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T18:45:00Z");
         createJob("job-controller-video-snapshot", "job-controller-snapshot", "snapshot.mp4",

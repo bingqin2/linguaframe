@@ -4963,3 +4963,27 @@ Validation so far:
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 303 passed`; jsdom printed expected navigation warnings from blob downloads.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 534.42 kB bundle.
 - `git diff --check` passed.
+
+Work:
+
+- Started the stuck job recovery cockpit feature slice from `docs/plans/164-stuck-job-recovery-cockpit.md`.
+- Added backend stuck-job recovery VOs, service, Markdown export, JSON endpoint, Markdown download endpoint, and confirmed action endpoint for stale dispatch requeue, active-job cancel, and retryable failed-job retry.
+- Reused existing cancellation/retry services and evicted cached job status after recovery requeue.
+- Added a browser `Stuck job recovery` panel beside the demo run monitor with classification, dispatch/timeline freshness, safe checks, confirmation-gated actions, refresh, and Markdown download.
+- Added typed frontend API helpers, terminal `scripts/demo/stuck-job-recovery.sh`, shared Bash helper functions, redaction checks, runtime dependency route registration, and OpenAPI route coverage.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with stuck-job recovery usage and testing notes.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=StuckJobRecoveryServiceTests test` first failed because the recovery service/types did not exist and later because Java time serialization/redaction/cache semantics needed implementation, then passed.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsStuckJobRecoveryForSelectedQueuedJobAndDownloadsMarkdown,LocalizationJobControllerTests#runsConfirmedStuckJobRecoveryAction test` first failed with 404 responses for the new routes, then passed.
+- `mvn -pl LinguaFrame -Dtest=StuckJobRecoveryServiceTests,LocalizationJobControllerTests#returnsStuckJobRecoveryForSelectedQueuedJobAndDownloadsMarkdown+Grouping,LocalizationJobControllerTests#runsConfirmedStuckJobRecoveryAction,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "stuck job recovery"` passed with `Tests 3 passed | 102 skipped`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "stuck job recovery"` passed with `Tests 2 passed | 148 skipped`; jsdom printed the expected navigation warning from a blob download fixture.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "stuck job recovery"` passed with `Test Files 2 passed` and `Tests 5 passed | 250 skipped`; jsdom printed the expected navigation warning from a blob download fixture.
+- `bash -n scripts/demo/stuck-job-recovery.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` first failed inside the sandbox because Spring Boot random-port tests could not start Tomcat (`java.net.SocketException: Operation not permitted`), then passed outside that sandbox restriction with `Tests run: 830, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` first exposed two broad cancel-button queries after the recovery panel added a distinct `Cancel job` action, then passed with `Test Files 12 passed` and `Tests 312 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 546.25 kB bundle.
+- `git diff --check` passed.

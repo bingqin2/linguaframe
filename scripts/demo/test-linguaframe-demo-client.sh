@@ -1173,6 +1173,31 @@ test_download_demo_run_monitor_helpers_use_backend_routes() {
   [[ "$markdown_output" == *"http://example.test/api/jobs/monitor%20job%2Fslash/demo-run-monitor/markdown/download"* ]] || fail "demo run monitor markdown helper used wrong route"
 }
 
+test_stuck_job_recovery_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_stuck_job_recovery_json "http://example.test" "stuck job/slash" "$TMPDIR/stuck-job-recovery.json" >"$TMPDIR/stuck-recovery-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_stuck_job_recovery_markdown "http://example.test" "stuck job/slash" "$TMPDIR/stuck-job-recovery.md" >"$TMPDIR/stuck-recovery-md-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    run_stuck_job_recovery_action_json "http://example.test" "stuck job/slash" "REQUEUE_DISPATCH" "REQUEUE_DISPATCH" "$TMPDIR/stuck-job-recovery-action.json" >"$TMPDIR/stuck-recovery-action-curl.out"
+
+  local json_output
+  json_output="$(cat "$TMPDIR/stuck-recovery-json-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/jobs/stuck%20job%2Fslash/stuck-job-recovery"* ]] || fail "stuck recovery json helper used wrong route"
+
+  local markdown_output
+  markdown_output="$(cat "$TMPDIR/stuck-recovery-md-curl.out")"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/stuck%20job%2Fslash/stuck-job-recovery/markdown/download"* ]] || fail "stuck recovery markdown helper used wrong route"
+
+  local action_output
+  action_output="$(cat "$TMPDIR/stuck-recovery-action-curl.out")"
+  [[ "$action_output" == *"http://example.test/api/jobs/stuck%20job%2Fslash/stuck-job-recovery/actions"* ]] || fail "stuck recovery action helper used wrong route"
+  [[ "$action_output" == *"{\"actionId\":\"REQUEUE_DISPATCH\",\"confirmation\":\"REQUEUE_DISPATCH\"}"* ]] || fail "stuck recovery action helper missed confirmation body"
+}
+
 test_download_demo_run_snapshot_helpers_use_backend_routes() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1255,6 +1280,56 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "run monitor summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "run monitor summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "run monitor summary exposed provider payload"
+}
+
+test_print_stuck_job_recovery_summary_is_metadata_only() {
+  cat >"$TMPDIR/stuck-job-recovery.json" <<'JSON'
+{
+  "jobId": "stuck-job",
+  "videoId": "video-demo",
+  "status": "BLOCKED",
+  "attentionLevel": "BLOCKED",
+  "classification": "QUEUED_STALE_DISPATCH",
+  "recommendedNextAction": "Run live checks, then requeue dispatch.",
+  "actions": [
+    { "id": "REQUEUE_DISPATCH", "enabled": true },
+    { "id": "CANCEL_JOB", "enabled": true },
+    { "id": "RETRY_FAILED_JOB", "enabled": false }
+  ],
+  "checks": [
+    {
+      "key": "dispatch-outbox",
+      "label": "Dispatch outbox",
+      "status": "BLOCKED",
+      "detail": "raw transcript text /Users/example/private.mov sk-test provider payload",
+      "nextAction": "Requeue dispatch."
+    }
+  ],
+  "safeLinks": [
+    {
+      "kind": "MARKDOWN",
+      "href": "/api/jobs/stuck-job/stuck-job-recovery/markdown/download"
+    }
+  ],
+  "markdown": "raw transcript text /Users/example/private.mov sk-test provider payload"
+}
+JSON
+
+  print_stuck_job_recovery_summary_file "$TMPDIR/stuck-job-recovery.json" >"$TMPDIR/stuck-job-recovery.out"
+  local output
+  output="$(cat "$TMPDIR/stuck-job-recovery.out")"
+
+  [[ "$output" == *"stuckJobRecoveryStatus=BLOCKED"* ]] || fail "stuck recovery summary missed status"
+  [[ "$output" == *"stuckJobRecoveryClassification=QUEUED_STALE_DISPATCH"* ]] || fail "stuck recovery summary missed classification"
+  [[ "$output" == *"stuckJobRecoveryAttention=BLOCKED"* ]] || fail "stuck recovery summary missed attention"
+  [[ "$output" == *"stuckJobRecoveryRecommendedAction=Run live checks, then requeue dispatch."* ]] || fail "stuck recovery summary missed recommendation"
+  [[ "$output" == *"stuckJobRecoveryAction=REQUEUE_DISPATCH:true"* ]] || fail "stuck recovery summary missed requeue action"
+  [[ "$output" == *"stuckJobRecoveryCheck=BLOCKED:dispatch-outbox:Dispatch outbox"* ]] || fail "stuck recovery summary missed check"
+  [[ "$output" == *"stuckJobRecoveryLink=MARKDOWN:/api/jobs/stuck-job/stuck-job-recovery/markdown/download"* ]] || fail "stuck recovery summary missed markdown link"
+  [[ "$output" != *"raw transcript text"* ]] || fail "stuck recovery summary exposed transcript"
+  [[ "$output" != *"/Users/example"* ]] || fail "stuck recovery summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "stuck recovery summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "stuck recovery summary exposed provider payload"
 }
 
 test_print_demo_run_snapshot_summary_is_metadata_only() {
@@ -3146,7 +3221,9 @@ test_download_demo_completion_certificate_helper_uses_backend_route
 test_download_demo_acceptance_gate_helper_uses_backend_route
 test_download_demo_share_sheet_helpers_use_backend_routes
 test_download_demo_run_monitor_helpers_use_backend_routes
+test_stuck_job_recovery_helpers_use_backend_routes
 test_print_demo_run_monitor_summary_is_metadata_only
+test_print_stuck_job_recovery_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_demo_replay_card_summary_is_metadata_only
