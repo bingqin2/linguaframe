@@ -1052,6 +1052,84 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationRecoveryHandoffForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:07:00Z");
+        createReviewerWorkspaceJob("job-controller-recovery", "job-video-recovery", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-recovery-handoff",
+                        "job-controller-recovery"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-recovery"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.phase").value("NARRATION_RECOVERY_READY"))
+                .andExpect(jsonPath("$.packageEntries[?(@ == 'narration-recovery-handoff.json')]").exists())
+                .andExpect(jsonPath("$.safeLinks[?(@.href == '/api/jobs/job-controller-recovery/narration-recovery-handoff/download')].label").value("Narration recovery handoff ZIP"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsNarrationRecoveryHandoffMarkdownForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:09:00Z");
+        createReviewerWorkspaceJob("job-controller-recovery-md", "job-video-recovery-md", createdAt);
+
+        mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-recovery-handoff/markdown/download",
+                        "job-controller-recovery-md"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment; filename=\"linguaframe-job-job-controller-recovery-md-narration-recovery-handoff.md\"")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# LinguaFrame Narration Recovery Handoff")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("- Status: READY")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("raw transcript text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/Users/example"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("sk-test"))));
+    }
+
+    @Test
+    void downloadsNarrationRecoveryHandoffZipForLocalizationJob() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T03:11:00Z");
+        createReviewerWorkspaceJob("job-controller-recovery-zip", "job-video-recovery-zip", createdAt);
+
+        byte[] body = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-recovery-handoff/download",
+                        "job-controller-recovery-zip"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("application/zip"))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"linguaframe-job-job-controller-recovery-zip-narration-recovery-handoff.zip\""))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        Map<String, String> entries = readZipEntries(body);
+        assertThat(entries).containsKeys(
+                "narration-recovery-handoff.json",
+                "narration-recovery-handoff.md",
+                "acceptance-gate.json",
+                "playback-resolution.json",
+                "README.md",
+                "manifest.json"
+        );
+        assertThat(entries.get("narration-recovery-handoff.md"))
+                .contains("# LinguaFrame Narration Recovery Handoff")
+                .contains("- Status: READY");
+        assertThat(String.join("\n", entries.values()))
+                .doesNotContain("raw transcript text")
+                .doesNotContain("raw subtitle text")
+                .doesNotContain("/Users/example")
+                .doesNotContain("job-artifacts/")
+                .doesNotContain("sk-test")
+                .doesNotContain("OPENAI_API_KEY")
+                .doesNotContain("private-demo-token")
+                .doesNotContain("bearer token");
+    }
+
+    @Test
     void returnsQueuedLocalizationJobWithoutDispatchEvent() throws Exception {
         Instant createdAt = Instant.parse("2026-06-25T16:00:00Z");
         videoRepository.save(new VideoRecord(

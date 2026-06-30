@@ -4881,6 +4881,32 @@ Validation so far:
 
 Work:
 
+- Started the narration recovery handoff package feature slice from `docs/plans/163-narration-recovery-handoff-package.md`.
+- Added a metadata-only backend recovery handoff service plus JSON, Markdown, and ZIP download endpoints that aggregate demo acceptance gate status, playback resolution counts, runbook steps, and safe package links.
+- Extended the browser `Acceptance recovery` panel with a `Recovery handoff` area, status, recommended action, package inventory, safe links, and Markdown/ZIP download actions.
+- Added `scripts/demo/narration-recovery-handoff.sh`, shared demo helper functions, terminal redaction checks, and full Tears demo integration after playback resolution export.
+- Linked the recovery ZIP from the demo handoff portal and updated runtime dependency/OpenAPI endpoint discovery.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with recovery handoff usage and safe-export rules.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationRecoveryHandoffServiceTests test` first failed because the recovery service and VOs did not exist, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#returnsNarrationRecoveryHandoffForLocalizationJob+downloadsNarrationRecoveryHandoffMarkdownForLocalizationJob+downloadsNarrationRecoveryHandoffZipForLocalizationJob test` first failed with 404 responses for the new routes, then passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoHandoffPortalServiceTests#buildsReadyPortalForCompletedReviewerEvidence+rendersSafeMarkdownAndPackageWithoutSecretsOrRawContent test` first failed because the portal did not link the recovery handoff, then passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "narration recovery handoff"` first failed because the API client functions were missing, then passed with `Tests 3 passed | 99 skipped`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "acceptance recovery"` first failed because the `Recovery handoff` UI was missing, then passed with `Tests 1 passed | 147 skipped`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration recovery handoff|acceptance recovery"` passed with `Test Files 2 passed` and `Tests 4 passed | 246 skipped`; jsdom printed expected navigation warnings from blob download fixtures.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/narration-recovery-handoff.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=NarrationRecoveryHandoffServiceTests,DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 91, Failures: 0, Errors: 0, Skipped: 0`.
+- `bash -n scripts/demo/narration-recovery-handoff.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/demo-handoff-portal.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 823, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 307 passed`; jsdom printed expected navigation warnings from blob download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 541.58 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
 - Started the narration acceptance recovery workflow feature slice from `docs/plans/162-narration-acceptance-recovery-workflow.md`.
 - Added a browser `Acceptance recovery` panel inside the narration workspace when the final demo acceptance gate is blocked by narration playback resolution.
 - Composed existing safe frontend data from acceptance gate, playback resolution, render review, playback review, and narration evidence instead of adding a new backend endpoint.

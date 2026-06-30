@@ -61,6 +61,9 @@ import {
   getDemoHandoffPortal,
   downloadDemoHandoffPortalMarkdown,
   downloadDemoHandoffPortalZip,
+  getNarrationRecoveryHandoff,
+  downloadNarrationRecoveryHandoffMarkdown,
+  downloadNarrationRecoveryHandoffZip,
   downloadSubtitleReviewEvidenceMarkdown,
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
@@ -2178,6 +2181,74 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches narration recovery handoff with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(narrationRecoveryHandoffFixture())
+    );
+
+    const handoff = await getNarrationRecoveryHandoff('job with spaces/slash');
+
+    expect(handoff.status).toBe('BLOCKED');
+    expect(handoff.packageEntries).toContain('narration-recovery-handoff.json');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/narration-recovery-handoff', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads narration recovery handoff markdown with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Narration Recovery Handoff', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadNarrationRecoveryHandoffMarkdown('job with spaces/slash');
+
+    expect(await result.text()).toContain('Narration Recovery Handoff');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/narration-recovery-handoff/markdown/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('downloads narration recovery handoff zip with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('recovery-zip-bytes', {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/zip'
+        }
+      })
+    );
+
+    const result = await downloadNarrationRecoveryHandoffZip('job with spaces/slash');
+
+    expect(await result.text()).toContain('recovery-zip-bytes');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/jobs/job%20with%20spaces%2Fslash/narration-recovery-handoff/download',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
   test('fetches demo session command center with selected job id and demo token header', async () => {
     writeDemoToken(window.localStorage, 'private-demo-token');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -4118,6 +4189,57 @@ function demoHandoffPortalFixture() {
       }
     ],
     packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md'],
+    safetyNotes: ['Metadata only.']
+  };
+}
+
+function narrationRecoveryHandoffFixture() {
+  return {
+    jobId: 'job-recovery',
+    videoId: 'video-recovery',
+    generatedAt: '2026-06-30T09:15:00Z',
+    status: 'BLOCKED',
+    phase: 'NARRATION_RECOVERY_BLOCKED',
+    headline: 'Narration recovery is blocked by unresolved playback rows.',
+    recommendedNextAction: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+    acceptanceGateStatus: 'BLOCKED',
+    playbackResolutionStatus: 'ATTENTION',
+    unresolvedSegmentCount: 2,
+    textRevisionRequiredCount: 1,
+    rerenderRequiredCount: 1,
+    unreviewedSegmentCount: 0,
+    audioReady: true,
+    videoReady: false,
+    checks: [
+      {
+        key: 'ACCEPTANCE_GATE',
+        label: 'Acceptance gate',
+        status: 'BLOCKED',
+        detail: 'Acceptance gate status is BLOCKED.',
+        nextAction: 'Resolve narration playback.',
+        required: true
+      }
+    ],
+    steps: [
+      {
+        key: 'NARRATION_PLAYBACK_RESOLVED',
+        label: 'Resolve narration playback',
+        status: 'BLOCKED',
+        action: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+        safeCommand: 'LINGUAFRAME_DEMO_JOB_ID=job-recovery scripts/demo/narration-playback-review-resolution.sh',
+        safeLink: '/api/jobs/job-recovery/narration-playback-review/resolution'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_RECOVERY_HANDOFF_ZIP',
+        label: 'Narration recovery handoff ZIP',
+        href: '/api/jobs/job-recovery/narration-recovery-handoff/download',
+        contentType: 'application/zip',
+        description: 'Offline recovery handoff package.'
+      }
+    ],
+    packageEntries: ['narration-recovery-handoff.json', 'narration-recovery-handoff.md'],
     safetyNotes: ['Metadata only.']
   };
 }

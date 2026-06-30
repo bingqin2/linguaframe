@@ -896,6 +896,39 @@ download_narration_playback_review_resolution_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-playback-review/resolution/markdown/download" -o "$output_path"
 }
 
+download_narration_recovery_handoff_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-recovery-handoff" -o "$output_path"
+}
+
+download_narration_recovery_handoff_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-recovery-handoff/markdown/download" -o "$output_path"
+}
+
+download_narration_recovery_handoff_zip() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-recovery-handoff/download" -o "$output_path"
+}
+
 download_narration_script_package_json() {
   local base_url="$1"
   local job_id="$2"
@@ -3726,6 +3759,94 @@ print("narrationPlaybackResolutionNarratedVideoArtifactCount=" + text(resolution
 print("narrationPlaybackResolutionUnresolvedStatuses=" + statuses)
 print("narrationPlaybackResolutionJsonPath=" + str(json_path))
 print("narrationPlaybackResolutionMarkdownPath=" + str(markdown_path))
+PY
+}
+
+print_narration_recovery_handoff_summary_file() {
+  local handoff_json_path="$1"
+  local handoff_markdown_path="$2"
+  local handoff_zip_path="$3"
+
+  python3 - "$handoff_json_path" "$handoff_markdown_path" "$handoff_zip_path" <<'PY'
+import json
+import sys
+import zipfile
+from pathlib import Path
+
+json_path = Path(sys.argv[1])
+markdown_path = Path(sys.argv[2])
+zip_path = Path(sys.argv[3])
+handoff = json.loads(json_path.read_text(encoding="utf-8"))
+markdown = markdown_path.read_text(encoding="utf-8")
+combined = json.dumps(handoff, ensure_ascii=False) + "\n" + markdown
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "Explain the first scene",
+    "Do not leak this playback resolution note",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration recovery handoff contains forbidden sensitive string: " + marker)
+
+required_entries = {
+    "narration-recovery-handoff.json",
+    "narration-recovery-handoff.md",
+    "acceptance-gate.json",
+    "playback-resolution.json",
+    "README.md",
+    "manifest.json",
+}
+with zipfile.ZipFile(zip_path) as archive:
+    names = set(archive.namelist())
+    missing = sorted(required_entries - names)
+    if missing:
+        raise SystemExit("Narration recovery handoff ZIP is missing entries: " + ", ".join(missing))
+    for name in required_entries:
+        combined += archive.read(name).decode("utf-8") + "\n"
+
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Narration recovery handoff ZIP contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+steps = handoff.get("steps") or []
+links = handoff.get("safeLinks") or []
+print("narrationRecoveryHandoffJobId=" + text(handoff.get("jobId")))
+print("narrationRecoveryHandoffStatus=" + text(handoff.get("status")))
+print("narrationRecoveryHandoffPhase=" + text(handoff.get("phase")))
+print("narrationRecoveryHandoffNextAction=" + text(handoff.get("recommendedNextAction")))
+print("narrationRecoveryHandoffAcceptanceGateStatus=" + text(handoff.get("acceptanceGateStatus")))
+print("narrationRecoveryHandoffPlaybackResolutionStatus=" + text(handoff.get("playbackResolutionStatus")))
+print("narrationRecoveryHandoffUnresolvedSegmentCount=" + text(handoff.get("unresolvedSegmentCount", 0)))
+print("narrationRecoveryHandoffTextRevisionRequiredCount=" + text(handoff.get("textRevisionRequiredCount", 0)))
+print("narrationRecoveryHandoffRerenderRequiredCount=" + text(handoff.get("rerenderRequiredCount", 0)))
+print("narrationRecoveryHandoffUnreviewedSegmentCount=" + text(handoff.get("unreviewedSegmentCount", 0)))
+print("narrationRecoveryHandoffAudioReady=" + str(handoff.get("audioReady", False)).lower())
+print("narrationRecoveryHandoffVideoReady=" + str(handoff.get("videoReady", False)).lower())
+print("narrationRecoveryHandoffStepCount=" + str(len(steps)))
+print("narrationRecoveryHandoffLinkCount=" + str(len(links)))
+print("narrationRecoveryHandoffPackageEntryCount=" + str(len(handoff.get("packageEntries") or [])))
+for entry in handoff.get("packageEntries") or []:
+    print("narrationRecoveryHandoffEntry=" + str(entry))
+print("narrationRecoveryHandoffJsonPath=" + str(json_path))
+print("narrationRecoveryHandoffMarkdownPath=" + str(markdown_path))
+print("narrationRecoveryHandoffZipPath=" + str(zip_path))
 PY
 }
 

@@ -104,6 +104,7 @@ class DemoHandoffPortalServiceTests {
                         "/api/jobs/job-portal/demo-reviewer-workspace/download",
                         "/api/jobs/job-portal/subtitle-review-evidence/download",
                         "/api/jobs/job-portal/narration-evidence/download",
+                        "/api/jobs/job-portal/narration-recovery-handoff/download",
                         "/api/jobs/job-portal/narration-workspace/generate-video",
                         "/api/jobs/job-portal/demo-run-snapshot/download",
                         "/api/jobs/job-portal/demo-run-package/download"
@@ -213,12 +214,14 @@ class DemoHandoffPortalServiceTests {
                 .contains(
                         "/api/jobs/job-portal/subtitle-review-evidence/download",
                         "/api/jobs/job-portal/narration-evidence/download",
+                        "/api/jobs/job-portal/narration-recovery-handoff/download",
                         "/api/jobs/job-portal/narration-workspace/generate-video"
                 );
         assertThat(portal.packageEntries())
                 .contains(
                         "Linked safe route: /api/jobs/job-portal/subtitle-review-evidence/download",
                         "Linked safe route: /api/jobs/job-portal/narration-evidence/download",
+                        "Linked safe route: /api/jobs/job-portal/narration-recovery-handoff/download",
                         "Linked safe route: /api/jobs/job-portal/narration-workspace/generate-video"
                 );
         assertThat(combined)

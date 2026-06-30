@@ -173,7 +173,7 @@ Focused handoff portal checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=DemoHandoffPortalServiceTests,LocalizationJobControllerTests,RuntimeDependencyControllerTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/narration-demo-preset.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/demo-handoff-portal.sh scripts/demo/narration-recovery-handoff.sh scripts/demo/narration-demo-preset.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-openai-smoke.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -267,6 +267,9 @@ Expected:
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/demo-acceptance-gate.sh` prints `NARRATION_PLAYBACK_RESOLVED`, `NARRATION_PLAYBACK_RESOLUTION_STATUS`, and unresolved/text-revision/rerender/unreviewed counts when narration resolution evidence exists.
 - Blocked or warning demo acceptance gates show a `Resolution runbook` in browser and terminal output, including safe action text, `demoAcceptanceGateRunbookCommand`, and `demoAcceptanceGateRunbookLink` lines for the next remediation surface.
 - Browser selected-job narration workspace shows `Acceptance recovery` when narration blocks final acceptance, with blocked gate status, unresolved/rerender counts, render/playback review status, audio/video readiness, `Focus unresolved row`, `Refresh recovery`, and `Refresh acceptance gate`.
+- Browser selected-job narration workspace shows `Recovery handoff` inside `Acceptance recovery`, with status, recommended next action, package inventory, safe links, `Download recovery Markdown`, and `Download recovery ZIP`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-recovery-handoff.sh` writes JSON/Markdown/ZIP under `/tmp/linguaframe-demo/narration-recovery-handoff/`; use `LINGUAFRAME_NARRATION_RECOVERY_HANDOFF_REPORT_ONLY=true` for blocked handoff export without failing.
+- The recovery ZIP includes `narration-recovery-handoff.json`, `narration-recovery-handoff.md`, `acceptance-gate.json`, `playback-resolution.json`, `README.md`, and `manifest.json`.
 - Demo acceptance gate narration resolution evidence must not print narration text, reviewer note bodies, provider payloads, object keys, local paths, tokens, API keys, or media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.

@@ -1728,6 +1728,109 @@ test_demo_acceptance_gate_script_requires_job_id() {
   [[ "$error_output" == *"Missing LINGUAFRAME_DEMO_JOB_ID."* ]] || fail "demo acceptance gate script missed missing job message"
 }
 
+test_print_narration_recovery_handoff_summary_is_metadata_only() {
+  cat >"$TMPDIR/narration-recovery-handoff.json" <<'JSON'
+{
+  "jobId": "showcase-job",
+  "videoId": "video-demo",
+  "generatedAt": "2026-06-30T09:15:00Z",
+  "status": "BLOCKED",
+  "phase": "NARRATION_RECOVERY_BLOCKED",
+  "headline": "Narration recovery is blocked by unresolved playback rows.",
+  "recommendedNextAction": "Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.",
+  "acceptanceGateStatus": "BLOCKED",
+  "playbackResolutionStatus": "ATTENTION",
+  "unresolvedSegmentCount": 2,
+  "textRevisionRequiredCount": 1,
+  "rerenderRequiredCount": 1,
+  "unreviewedSegmentCount": 0,
+  "audioReady": true,
+  "videoReady": false,
+  "checks": [
+    {
+      "key": "ACCEPTANCE_GATE",
+      "label": "Acceptance gate",
+      "status": "BLOCKED",
+      "detail": "Acceptance gate status is BLOCKED.",
+      "nextAction": "Resolve narration playback.",
+      "required": true
+    }
+  ],
+  "steps": [
+    {
+      "key": "NARRATION_PLAYBACK_RESOLVED",
+      "label": "Resolve narration playback",
+      "status": "BLOCKED",
+      "action": "Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.",
+      "safeCommand": "LINGUAFRAME_DEMO_JOB_ID=showcase-job scripts/demo/narration-playback-review-resolution.sh",
+      "safeLink": "/api/jobs/showcase-job/narration-playback-review/resolution"
+    }
+  ],
+  "safeLinks": [
+    {
+      "kind": "NARRATION_RECOVERY_HANDOFF_ZIP",
+      "label": "Narration recovery handoff ZIP",
+      "href": "/api/jobs/showcase-job/narration-recovery-handoff/download",
+      "contentType": "application/zip",
+      "description": "Offline recovery handoff package."
+    }
+  ],
+  "packageEntries": [
+    "narration-recovery-handoff.json",
+    "narration-recovery-handoff.md",
+    "acceptance-gate.json",
+    "playback-resolution.json",
+    "README.md",
+    "manifest.json"
+  ],
+  "safetyNotes": [
+    "Metadata only."
+  ]
+}
+JSON
+  cat >"$TMPDIR/narration-recovery-handoff.md" <<'MD'
+# LinguaFrame Narration Recovery Handoff
+
+- Status: BLOCKED
+- Unresolved segments: 2
+MD
+  python3 - "$TMPDIR/narration-recovery-handoff.zip" <<'PY'
+import sys
+import zipfile
+
+zip_path = sys.argv[1]
+entries = {
+    "narration-recovery-handoff.json": "{}",
+    "narration-recovery-handoff.md": "# LinguaFrame Narration Recovery Handoff\n",
+    "acceptance-gate.json": "{}",
+    "playback-resolution.json": "{}",
+    "README.md": "metadata-only package\n",
+    "manifest.json": "{}",
+}
+with zipfile.ZipFile(zip_path, "w") as archive:
+    for name, content in entries.items():
+        archive.writestr(name, content)
+PY
+
+  print_narration_recovery_handoff_summary_file \
+    "$TMPDIR/narration-recovery-handoff.json" \
+    "$TMPDIR/narration-recovery-handoff.md" \
+    "$TMPDIR/narration-recovery-handoff.zip" >"$TMPDIR/narration-recovery-handoff.out"
+  local output
+  output="$(cat "$TMPDIR/narration-recovery-handoff.out")"
+
+  [[ "$output" == *"narrationRecoveryHandoffJobId=showcase-job"* ]] || fail "recovery handoff summary missed job"
+  [[ "$output" == *"narrationRecoveryHandoffStatus=BLOCKED"* ]] || fail "recovery handoff summary missed status"
+  [[ "$output" == *"narrationRecoveryHandoffUnresolvedSegmentCount=2"* ]] || fail "recovery handoff summary missed unresolved count"
+  [[ "$output" == *"narrationRecoveryHandoffRerenderRequiredCount=1"* ]] || fail "recovery handoff summary missed rerender count"
+  [[ "$output" == *"narrationRecoveryHandoffEntry=narration-recovery-handoff.json"* ]] || fail "recovery handoff summary missed package entry"
+  [[ "$output" != *"raw transcript text"* ]] || fail "recovery handoff summary exposed transcript"
+  [[ "$output" != *"Do not leak this playback resolution note"* ]] || fail "recovery handoff summary exposed reviewer note"
+  [[ "$output" != *"/Users/example"* ]] || fail "recovery handoff summary exposed local path"
+  [[ "$output" != *"sk-test"* ]] || fail "recovery handoff summary exposed token"
+  [[ "$output" != *"provider payload"* ]] || fail "recovery handoff summary exposed provider payload"
+}
+
 test_print_job_summary_includes_failure_triage() {
   cat >"$TMPDIR/job-triage.json" <<'JSON'
 {
@@ -3050,6 +3153,7 @@ test_print_demo_replay_card_summary_is_metadata_only
 test_print_demo_completion_certificate_summary_is_metadata_only
 test_print_demo_acceptance_gate_summary_is_metadata_only
 test_demo_acceptance_gate_script_requires_job_id
+test_print_narration_recovery_handoff_summary_is_metadata_only
 test_print_job_summary_includes_failure_triage
 test_print_diagnostics_summary_includes_failure_triage
 test_quality_evaluation_evidence_helpers_are_metadata_only
