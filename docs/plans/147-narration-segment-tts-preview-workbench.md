@@ -130,19 +130,19 @@
   - `/tmp/linguaframe-demo/narration-segment-preview/narration-segment-preview-request.json`
   - Safe terminal summary lines: `narrationSegmentPreviewJobId`, `narrationSegmentPreviewVoice`, `narrationSegmentPreviewCharacters`, `narrationSegmentPreviewOutputPath`, `narrationSegmentPreviewProviderCostWarning`.
 
-- [ ] Write failing shell syntax validation entry by adding `scripts/demo/narration-segment-preview.sh` to the planned `bash -n` command before the file exists.
-- [ ] Implement script arguments and env:
+- [x] Write failing shell syntax validation entry by adding `scripts/demo/narration-segment-preview.sh` to the planned `bash -n` command before the file exists.
+- [x] Implement script arguments and env:
   - `LINGUAFRAME_DEMO_JOB_ID` is required.
   - `LINGUAFRAME_NARRATION_PREVIEW_TEXT` is required unless `LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE` points to a readable file.
   - `LINGUAFRAME_NARRATION_PREVIEW_VOICE` is optional and may be blank to inherit default/job voice.
   - `LINGUAFRAME_NARRATION_PREVIEW_OUTPUT_DIR` defaults to `/tmp/linguaframe-demo/narration-segment-preview`.
-- [ ] Build request JSON with structured escaping rather than shell string concatenation.
-- [ ] Call the preview route with existing demo-token header support from `linguaframe-demo.sh`.
-- [ ] Save MP3 output and request JSON under the output directory.
-- [ ] Print safe metadata only; do not print raw local env values, API keys, bearer tokens, provider payloads, or object keys.
-- [ ] Make failed HTTP responses print a concise error and exit non-zero without leaving partial MP3 output as success.
-- [ ] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
-- [ ] Update execution log with script validation evidence.
+- [x] Build request JSON with structured escaping rather than shell string concatenation.
+- [x] Call the preview route with existing demo-token header support from `linguaframe-demo.sh`.
+- [x] Save MP3 output and request JSON under the output directory.
+- [x] Print safe metadata only; do not print raw local env values, API keys, bearer tokens, provider payloads, or object keys.
+- [x] Make failed HTTP responses print a concise error and exit non-zero without leaving partial MP3 output as success.
+- [x] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` and verify it passes.
+- [x] Update execution log with script validation evidence.
 - [ ] Commit with message `Add narration segment preview demo script`.
 
 ## Task 4: Docs, Final Verification, And Merge

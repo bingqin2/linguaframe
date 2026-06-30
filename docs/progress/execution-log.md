@@ -6,6 +6,20 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Added the terminal narration segment preview script for the same transient TTS preview route.
+- Added `download_narration_segment_preview_audio` to the demo helper library so scripts reuse existing base URL, job-id encoding, and demo-token header behavior.
+- `scripts/demo/narration-segment-preview.sh` accepts `LINGUAFRAME_DEMO_JOB_ID`, `LINGUAFRAME_NARRATION_PREVIEW_TEXT` or `LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE`, optional `LINGUAFRAME_NARRATION_PREVIEW_VOICE`, writes structured request JSON, saves a local MP3 atomically, and prints only safe metadata plus the provider credit warning.
+
+Validation:
+
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` first failed because `scripts/demo/narration-segment-preview.sh` did not exist.
+- After adding the helper and script, `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `LINGUAFRAME_DEMO_JOB_ID=job-demo scripts/demo/narration-segment-preview.sh` exited `2` with `Set LINGUAFRAME_NARRATION_PREVIEW_TEXT or LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE.`, proving the script rejects missing text before calling the API.
+
+## 2026-06-30
+
+Work:
+
 - Continued the narration segment TTS preview workbench feature slice from `docs/plans/147-narration-segment-tts-preview-workbench.md`.
 - Added the frontend transient preview request type and `linguaFrameApi.previewNarrationSegment(...)` blob client for `POST /api/jobs/{jobId}/narration-workspace/segment-preview`.
 - Added a compact `Narration TTS preview` panel between draft history and video preview, using the selected local draft row text/voice, showing the provider credit warning, rendering an audio player from a browser object URL, and revoking old object URLs when previews are replaced or local drafts change.
