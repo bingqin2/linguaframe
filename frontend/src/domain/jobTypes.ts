@@ -1746,6 +1746,60 @@ export interface NarrationRenderReview {
   safetyNotes: string[];
 }
 
+export type NarrationPlaybackReviewDecision = 'UNREVIEWED' | 'ACCEPTED' | 'NEEDS_EDIT' | 'NEEDS_RERENDER';
+export type NarrationPlaybackIssueCategory = 'TIMING' | 'VOICE' | 'TEXT' | 'MIX' | 'VIDEO' | 'OTHER';
+
+export interface NarrationPlaybackReviewCategoryCount {
+  category: string;
+  count: number;
+}
+
+export interface NarrationPlaybackReviewLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+}
+
+export interface NarrationPlaybackReviewSegment {
+  segmentIndex: number;
+  startSeconds: number;
+  endSeconds: number;
+  durationSeconds: number;
+  decision: NarrationPlaybackReviewDecision;
+  issueCategories: NarrationPlaybackIssueCategory[];
+  reviewerNotePresent: boolean;
+  reviewedAt: string | null;
+}
+
+export interface NarrationPlaybackReview {
+  jobId: string;
+  generatedAt: string;
+  status: string;
+  nextAction: string;
+  segmentCount: number;
+  reviewedSegmentCount: number;
+  acceptedSegmentCount: number;
+  needsEditCount: number;
+  needsRerenderCount: number;
+  unreviewedSegmentCount: number;
+  audioReady: boolean;
+  audioArtifactCount: number;
+  videoReady: boolean;
+  narratedVideoArtifactCount: number;
+  decisionCounts: NarrationPlaybackReviewCategoryCount[];
+  issueCategoryCounts: NarrationPlaybackReviewCategoryCount[];
+  segments: NarrationPlaybackReviewSegment[];
+  safeLinks: NarrationPlaybackReviewLink[];
+  safetyNotes: string[];
+}
+
+export interface UpdateNarrationPlaybackReviewSegmentRequest {
+  decision: NarrationPlaybackReviewDecision;
+  issueCategories: NarrationPlaybackIssueCategory[];
+  reviewerNote: string;
+}
+
 export interface NarrationScriptPackageSegment {
   index: number;
   startSeconds: number;

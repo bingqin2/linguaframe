@@ -36,6 +36,7 @@ import type {
   NarrationDemoPresetApplyResult,
   NarrationEvidence,
   NarrationGeneration,
+  NarrationPlaybackReview,
   NarrationScriptPackage,
   NarrationScriptPackageImportResult,
   NarrationRenderReview,
@@ -69,6 +70,7 @@ import type {
   SubtitleSegment,
   TranscriptSegment,
   UpdateNarrationMixSettingsRequest,
+  UpdateNarrationPlaybackReviewSegmentRequest,
   UpdateSubtitleDraftRequest,
   UploadCostEstimate,
   UploadExecutionPlan
@@ -1045,6 +1047,41 @@ export async function downloadNarrationRenderReviewMarkdown(jobId: string): Prom
   );
 }
 
+export async function getNarrationPlaybackReview(jobId: string): Promise<NarrationPlaybackReview> {
+  return requestJson<NarrationPlaybackReview>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-playback-review`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function updateNarrationPlaybackReviewSegment(
+  jobId: string,
+  segmentIndex: number,
+  request: UpdateNarrationPlaybackReviewSegmentRequest
+): Promise<NarrationPlaybackReview> {
+  return requestJson<NarrationPlaybackReview>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-playback-review/segments/${segmentIndex}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
+export async function downloadNarrationPlaybackReviewMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-playback-review/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function getNarrationScriptPackage(jobId: string): Promise<NarrationScriptPackage> {
   return requestJson<NarrationScriptPackage>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-script-package`,
@@ -1361,6 +1398,9 @@ export const linguaFrameApi = {
   downloadNarrationEvidenceZip,
   getNarrationRenderReview,
   downloadNarrationRenderReviewMarkdown,
+  getNarrationPlaybackReview,
+  updateNarrationPlaybackReviewSegment,
+  downloadNarrationPlaybackReviewMarkdown,
   getNarrationScriptPackage,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,

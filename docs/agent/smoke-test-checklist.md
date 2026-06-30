@@ -256,6 +256,10 @@ Expected:
 - Browser selected-job narration workspace shows `Render review` with `READY`, `ATTENTION`, or `BLOCKED`, next action, readiness metrics, check rows, safe links, and `Download review Markdown`.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-render-review.sh` writes read-only review JSON/Markdown under `/tmp/linguaframe-demo/narration-render-review/`; use `LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY=true` for blocked review export without failing.
 - Narration render review must not call OpenAI, call TTS providers, run FFmpeg, save narration rows, create artifacts, print narration text, expose object keys, or include media bytes.
+- Browser selected-job narration workspace shows `Playback review` with segment decisions, issue category checkboxes, private reviewer note input, summary counts, and `Download playback review Markdown`.
+- Saving a playback review row calls `PUT /api/jobs/{jobId}/narration-playback-review/segments/{segmentIndex}` and refreshes the review without displaying saved note bodies.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-playback-review.sh` writes JSON/Markdown under `/tmp/linguaframe-demo/narration-playback-review/`; use `LINGUAFRAME_NARRATION_PLAYBACK_REVIEW_REPORT_ONLY=true` for blocked review export without failing.
+- Narration playback review must not call OpenAI, call TTS providers, run FFmpeg, save narration rows, create artifacts, print narration text, print reviewer note bodies, expose object keys, or include media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.
 

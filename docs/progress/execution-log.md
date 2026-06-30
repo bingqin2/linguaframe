@@ -4825,6 +4825,24 @@ Validation so far:
 
 Work:
 
+- Started the narration playback review workspace feature slice from `docs/plans/158-narration-playback-review-workspace.md`.
+- Added backend persistence, repository, service, JSON endpoint, segment update endpoint, and safe Markdown download for playback review decisions.
+- Added frontend API/types plus a browser `Playback review` panel with segment decisions, issue categories, private reviewer note input, summary counts, and Markdown download.
+- Added `scripts/demo/narration-playback-review.sh`, shared demo helper functions, and full Tears demo integration after narration render review export.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, target state, and this execution log with playback review usage and safe-export rules.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationPlaybackReviewServiceTests,NarrationPlaybackReviewRepositoryTests,LocalizationJobControllerTests#savesAndReturnsNarrationPlaybackReviewJsonAndMarkdown test` passed with `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration playback review"` first failed because the playback review panel was not rendered, then passed with `Tests 2 passed | 241 skipped`; jsdom printed the expected navigation warning from blob download.
+- `bash -n scripts/demo/narration-playback-review.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 300 passed`; jsdom printed expected navigation warnings.
+- `mvn -pl LinguaFrame test` first failed because `RuntimeDependencyControllerTests` expected latest migration version 31; after updating it to 32, the full suite passed with `Tests run: 810, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 530.57 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
 - Started the narration render review cue sheet feature slice from `docs/plans/157-narration-render-review-cue-sheet.md`.
 - Added a metadata-only backend render review service plus JSON and Markdown download endpoints for narration readiness.
 - Kept render review read-only by deriving waveform readiness from existing `NARRATION_WAVEFORM` artifacts instead of invoking waveform generation.
