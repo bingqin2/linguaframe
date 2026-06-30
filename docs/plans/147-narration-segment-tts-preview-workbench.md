@@ -157,19 +157,19 @@
 - Modify: `docs/progress/execution-log.md`
 - Modify: `docs/plans/147-narration-segment-tts-preview-workbench.md`
 
-- [ ] Document the browser order: edit/select a narration row, preview TTS for that row, adjust text/voice locally, save only when ready, then generate full narration audio/video through explicit actions.
-- [ ] Document the terminal order: set `LINGUAFRAME_DEMO_JOB_ID`, provide preview text or text file, optionally provide voice, run `scripts/demo/narration-segment-preview.sh`, then listen to the local MP3 before saving/generating full narration.
-- [ ] State that segment preview calls the configured TTS provider and can consume OpenAI credits.
-- [ ] State that segment preview is transient and never creates artifacts, evidence packages, object-storage files, saved rows, or narrated videos.
-- [ ] Add a decision record explaining why this slice adds segment-level TTS preview before voice cloning, uploaded reference audio, persistent preview cache, or provider voice browsing.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification.
+- [x] Document the browser order: edit/select a narration row, preview TTS for that row, adjust text/voice locally, save only when ready, then generate full narration audio/video through explicit actions.
+- [x] Document the terminal order: set `LINGUAFRAME_DEMO_JOB_ID`, provide preview text or text file, optionally provide voice, run `scripts/demo/narration-segment-preview.sh`, then listen to the local MP3 before saving/generating full narration.
+- [x] State that segment preview calls the configured TTS provider and can consume OpenAI credits.
+- [x] State that segment preview is transient and never creates artifacts, evidence packages, object-storage files, saved rows, or narrated videos.
+- [x] Add a decision record explaining why this slice adds segment-level TTS preview before voice cloning, uploaded reference audio, persistent preview cache, or provider voice browsing.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification.
 - [ ] Commit with message `Document narration TTS preview workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

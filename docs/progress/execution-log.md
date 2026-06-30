@@ -6,6 +6,24 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Documented the completed narration segment TTS preview workflow in README, Docker E2E guidance, smoke checklist, roadmap, target state, and decision log.
+- Clarified the browser order: edit/select a row, preview transient TTS, adjust text/voice locally, save only when ready, then generate full narration audio/video explicitly.
+- Clarified the terminal order for `scripts/demo/narration-segment-preview.sh`, including text/file input, optional voice, local MP3 output, provider credit warning, and no artifact/evidence/object-storage side effects.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationAudioServiceTests` passed with `Tests run: 85, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 778, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts src/domain/narrationDraftHistory.test.ts src/App.test.tsx` passed with `Test Files 3 passed` and `Tests 225 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm test -- --run` passed with `Test Files 8 passed` and `Tests 256 passed`; jsdom printed expected navigation warnings from download actions.
+- `npm run build` passed.
+- `bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Added the terminal narration segment preview script for the same transient TTS preview route.
 - Added `download_narration_segment_preview_audio` to the demo helper library so scripts reuse existing base URL, job-id encoding, and demo-token header behavior.
 - `scripts/demo/narration-segment-preview.sh` accepts `LINGUAFRAME_DEMO_JOB_ID`, `LINGUAFRAME_NARRATION_PREVIEW_TEXT` or `LINGUAFRAME_NARRATION_PREVIEW_TEXT_FILE`, optional `LINGUAFRAME_NARRATION_PREVIEW_VOICE`, writes structured request JSON, saves a local MP3 atomically, and prints only safe metadata plus the provider credit warning.

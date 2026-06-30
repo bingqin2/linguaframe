@@ -190,7 +190,7 @@ Focused narration preset checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -203,6 +203,10 @@ Expected:
 - Browser selected-job narration workspace shows a `Narration editing commands` panel after the waveform overview.
 - `Duplicate`, `Split at playhead`, `Merge next`, and `Insert after` update only local draft rows until `Save narration`.
 - Browser selected-job narration workspace shows a `Narration draft history` panel after editing commands.
+- Browser selected-job narration workspace shows a `Narration TTS preview` panel after draft history.
+- `Preview selected TTS` sends the selected draft row text and voice, renders `Narration TTS preview player`, and shows that provider credits may be consumed.
+- Segment TTS preview uses unsaved local text but must not save narration rows, create artifacts, update evidence, write object storage, or generate video.
+- Blank selected narration text disables segment TTS preview, and rejected preview errors do not disable separate save/generate controls.
 - `Narration draft history` starts as `Clean draft`, then tracks added, removed, timing, text, and voice change counts after local edits.
 - `Undo`, `Redo`, and `Revert to saved` update the browser draft only; they must not save rows, call providers, create artifacts, or mutate object storage.
 - Draft history is in-memory only and resets after a successful `Save narration` response or workspace reload.
@@ -215,6 +219,7 @@ Expected:
 - Applying `tears-showcase-narration` refreshes narration workspace, script package, narration evidence, and artifact metadata without generating audio or video.
 - `LINGUAFRAME_NARRATION_DEMO_PRESET_REPORT_ONLY=true scripts/demo/narration-demo-preset.sh` writes preset catalog metadata without a job id or mutation.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh` writes preset apply evidence plus refreshed script/evidence files under `/tmp/linguaframe-demo/narration-demo-preset/`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_NARRATION_PREVIEW_TEXT="Preview this line." scripts/demo/narration-segment-preview.sh` writes request JSON and `narration-segment-preview.mp3` under `/tmp/linguaframe-demo/narration-segment-preview/`.
 - `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true scripts/demo/docker-e2e-tears-of-steel-full.sh` applies the preset before narration evidence export.
 - Preset summaries exclude transcript text, subtitle text, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 
