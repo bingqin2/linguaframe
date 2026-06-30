@@ -1463,7 +1463,18 @@ def text(value):
 
 def safe(value):
     value = text(value)
-    unsafe_markers = ("raw transcript text", "/Users/", "sk-", "provider payload", "OPENAI_API_KEY")
+    unsafe_markers = (
+        "raw transcript text",
+        "raw narration text",
+        "reviewer note body",
+        "Do not leak this playback resolution note",
+        "Explain the first scene",
+        "/Users/",
+        "sk-",
+        "provider payload",
+        "OPENAI_API_KEY",
+        "objectKey",
+    )
     if any(marker in value for marker in unsafe_markers):
         return "REDACTED_UNSAFE_DETAIL"
     return value

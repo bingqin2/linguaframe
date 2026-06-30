@@ -5638,15 +5638,94 @@ describe('App', () => {
     expect(within(gate).getByText(/Present this run/i)).toBeInTheDocument();
     expect(within(gate).getByText('Playable media outputs')).toBeInTheDocument();
     expect(within(gate).getByText('1 (READY)')).toBeInTheDocument();
+    expect(within(gate).getByText('Narration playback resolved')).toBeInTheDocument();
+    expect(within(gate).getAllByText('Narration playback resolution').length).toBeGreaterThan(0);
+    expect(within(gate).getAllByText('READY (READY)').length).toBeGreaterThan(0);
     expect(within(gate).getByRole('link', { name: /demo acceptance gate json/i })).toHaveAttribute(
       'href',
       '/api/jobs/acceptance-showcase-job/demo-acceptance-gate'
+    );
+    expect(within(gate).getByRole('link', { name: /narration playback resolution/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/acceptance-showcase-job/narration-playback-review/resolution'
     );
     expect(within(gate).getByRole('link', { name: /demo run package/i })).toHaveAttribute(
       'href',
       '/api/jobs/acceptance-showcase-job/demo-run-package/download'
     );
     expect(linguaFrameApi.getDemoAcceptanceGate).toHaveBeenCalledWith('acceptance-showcase-job');
+  });
+
+  test('shows blocking narration playback resolution in demo acceptance gate', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({
+        jobId: 'acceptance-narration-blocked-job',
+        videoId: 'acceptance-narration-video',
+        status: 'COMPLETED',
+        demoProfileId: 'tears-showcase'
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(
+      demoAcceptanceGateFixture({
+        jobId: 'acceptance-narration-blocked-job',
+        videoId: 'acceptance-narration-video',
+        gateStatus: 'BLOCKED',
+        headline: 'tears-showcase acceptance gate for zh-CN (BLOCKED)',
+        summary: 'Job acceptance-narration-blocked-job is COMPLETED with gateStatus=BLOCKED, failedChecks=1, warningChecks=0.',
+        recommendedNextAction: 'Resolve failed required checks before using this run for the demo.',
+        checks: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLVED',
+            label: 'Narration playback resolved',
+            status: 'FAIL',
+            detail: 'Narration playback resolution status=ATTENTION; unresolved=2; textRevision=1; rerender=1; unreviewed=0.',
+            required: true
+          }
+        ],
+        evidence: [
+          {
+            key: 'NARRATION_PLAYBACK_RESOLUTION_STATUS',
+            label: 'Narration playback resolution',
+            value: 'ATTENTION',
+            status: 'BLOCKED'
+          },
+          {
+            key: 'NARRATION_PLAYBACK_UNRESOLVED_COUNT',
+            label: 'Narration unresolved rows',
+            value: '2',
+            status: 'BLOCKED'
+          }
+        ],
+        links: [
+          {
+            kind: 'NARRATION_PLAYBACK_RESOLUTION_JSON',
+            label: 'Narration playback resolution',
+            url: '/api/jobs/acceptance-narration-blocked-job/narration-playback-review/resolution'
+          }
+        ],
+        safetyNotes: [
+          'Narration playback resolution is included as metadata-only counts and safe routes; narration text and reviewer note bodies are excluded.'
+        ]
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'acceptance-narration-blocked-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const gate = await screen.findByRole('region', { name: /demo acceptance gate/i });
+
+    expect(within(gate).getByText('tears-showcase acceptance gate for zh-CN (BLOCKED)')).toBeInTheDocument();
+    expect(within(gate).getByText(/Resolve failed required checks/i)).toBeInTheDocument();
+    expect(within(gate).getByText('Narration playback resolved: FAIL')).toBeInTheDocument();
+    expect(within(gate).getByText(/unresolved=2; textRevision=1; rerender=1; unreviewed=0/i)).toBeInTheDocument();
+    expect(within(gate).getByText('ATTENTION (BLOCKED)')).toBeInTheDocument();
+    expect(within(gate).queryByText('Explain the first scene')).not.toBeInTheDocument();
+    expect(within(gate).queryByText('Do not leak this playback resolution note')).not.toBeInTheDocument();
   });
 
   test('shows a demo share sheet for selected jobs', async () => {
@@ -7520,9 +7599,28 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
         status: 'PASS',
         detail: 'Completion certificate status is READY.',
         required: true
+      },
+      {
+        key: 'NARRATION_PLAYBACK_RESOLVED',
+        label: 'Narration playback resolved',
+        status: 'PASS',
+        detail: 'Narration playback resolution status=READY; unresolved=0; textRevision=0; rerender=0; unreviewed=0.',
+        required: true
       }
     ],
     evidence: [
+      {
+        key: 'NARRATION_PLAYBACK_RESOLUTION_STATUS',
+        label: 'Narration playback resolution',
+        value: 'READY',
+        status: 'READY'
+      },
+      {
+        key: 'NARRATION_PLAYBACK_UNRESOLVED_COUNT',
+        label: 'Narration unresolved rows',
+        value: '0',
+        status: 'READY'
+      },
       {
         key: 'MEDIA_OUTPUT_COUNT',
         label: 'Playable media outputs',
@@ -7552,11 +7650,17 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
         kind: 'DEMO_RUN_PACKAGE',
         label: 'Demo run package',
         url: `/api/jobs/${jobId}/demo-run-package/download`
+      },
+      {
+        kind: 'NARRATION_PLAYBACK_RESOLUTION_JSON',
+        label: 'Narration playback resolution',
+        url: `/api/jobs/${jobId}/narration-playback-review/resolution`
       }
     ],
     safetyNotes: [
       'Metadata-only gate: only IDs, status, counts, scores, costs, safe routes, and readiness labels are included.',
-      'The gate is generated on demand from existing safe evidence surfaces and does not create artifacts or call providers.'
+      'The gate is generated on demand from existing safe evidence surfaces and does not create artifacts or call providers.',
+      'Narration playback resolution is included as metadata-only counts and safe routes; narration text and reviewer note bodies are excluded.'
     ],
     ...overrides
   };
