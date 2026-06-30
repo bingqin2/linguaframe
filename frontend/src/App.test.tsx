@@ -36,6 +36,7 @@ import type {
   NarrationEvidence,
   NarrationGeneration,
   NarrationPlaybackReview,
+  NarrationPlaybackReviewResolution,
   NarrationRenderReview,
   NarrationScriptPackage,
   NarrationWaveform,
@@ -132,6 +133,7 @@ describe('App', () => {
     });
     vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture());
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -3761,6 +3763,54 @@ describe('App', () => {
     await userEvent.click(within(playbackPanel).getByRole('button', { name: /download playback review markdown/i }));
 
     expect(downloadPlaybackReview).toHaveBeenCalledWith('narration-playback-review-job');
+  });
+
+  test('renders playback resolution and focuses unresolved narration rows', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-playback-resolution-job', videoId: 'narration-playback-resolution-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-playback-resolution-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationWaveform').mockResolvedValue(narrationWaveformFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationRenderReview').mockResolvedValue(narrationRenderReviewFixture({
+      jobId: 'narration-playback-resolution-job'
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture({
+      jobId: 'narration-playback-resolution-job'
+    }));
+    vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture({
+      jobId: 'narration-playback-resolution-job'
+    }));
+    const downloadResolution = vi.spyOn(linguaFrameApi, 'downloadNarrationPlaybackReviewResolutionMarkdown')
+      .mockResolvedValue(new Blob(['# Narration Playback Resolution'], { type: 'text/markdown' }));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-playback-resolution-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const resolutionPanel = await within(narrationPanel).findByRole('region', { name: /narration playback resolution/i });
+
+    expect(within(resolutionPanel).getByText('Playback resolution')).toBeInTheDocument();
+    expect(within(resolutionPanel).getByText((_content, element) => element?.textContent === 'StatusATTENTION')).toBeInTheDocument();
+    expect(within(resolutionPanel).getByText((_content, element) => element?.textContent === 'Unresolved1')).toBeInTheDocument();
+    expect(within(resolutionPanel).getByText('Segment 1')).toBeInTheDocument();
+    expect(within(resolutionPanel).getByText('Regenerate narration audio/video after confirming mix, timing, and media artifacts.')).toBeInTheDocument();
+    expect(within(resolutionPanel).queryByText('Do not leak this playback resolution note.')).not.toBeInTheDocument();
+    expect(within(resolutionPanel).queryByText('Explain the first scene.')).not.toBeInTheDocument();
+
+    await userEvent.click(within(resolutionPanel).getByRole('button', { name: /focus narration row 1/i }));
+
+    expect(within(resolutionPanel).getByText('Focused narration row 1 for playback resolution.')).toBeInTheDocument();
+
+    await userEvent.click(within(resolutionPanel).getByRole('button', { name: /download playback resolution markdown/i }));
+
+    expect(downloadResolution).toHaveBeenCalledWith('narration-playback-resolution-job');
   });
 
   test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
@@ -7963,6 +8013,51 @@ function narrationPlaybackReviewFixture(overrides: Partial<NarrationPlaybackRevi
       }
     ],
     safetyNotes: ['Playback review excludes narration text and reviewer notes from safe exports.'],
+    ...overrides
+  };
+}
+
+function narrationPlaybackReviewResolutionFixture(
+  overrides: Partial<NarrationPlaybackReviewResolution> = {}
+): NarrationPlaybackReviewResolution {
+  return {
+    jobId: 'narration-playback-resolution-job',
+    generatedAt: '2026-06-30T07:05:00Z',
+    status: 'ATTENTION',
+    nextAction: 'Resolve playback review issues before demo handoff.',
+    segmentCount: 2,
+    readySegmentCount: 1,
+    unresolvedSegmentCount: 1,
+    textRevisionRequiredCount: 0,
+    rerenderRequiredCount: 1,
+    unreviewedSegmentCount: 0,
+    audioReady: true,
+    audioArtifactCount: 1,
+    videoReady: false,
+    narratedVideoArtifactCount: 0,
+    unresolvedSegments: [
+      {
+        segmentIndex: 0,
+        startSeconds: 15,
+        endSeconds: 28,
+        durationSeconds: 13,
+        decision: 'NEEDS_RERENDER',
+        resolutionStatus: 'RERENDER_REQUIRED',
+        issueCategories: ['MIX', 'VIDEO'],
+        nextAction: 'Regenerate narration audio/video after confirming mix, timing, and media artifacts.',
+        reviewerNotePresent: true,
+        reviewedAt: '2026-06-30T07:02:00Z'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_PLAYBACK_RESOLUTION_MARKDOWN',
+        label: 'Narration playback resolution Markdown',
+        href: '/api/jobs/narration-playback-resolution-job/narration-playback-review/resolution/markdown/download',
+        contentType: 'text/markdown'
+      }
+    ],
+    safetyNotes: ['Playback resolution excludes narration text and reviewer note bodies.'],
     ...overrides
   };
 }

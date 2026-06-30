@@ -9,6 +9,7 @@ import {
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,
   downloadNarrationPlaybackReviewMarkdown,
+  downloadNarrationPlaybackReviewResolutionMarkdown,
   downloadNarrationRenderReviewMarkdown,
   downloadNarrationScriptPackageMarkdown,
   downloadNarrationScriptPackageZip,
@@ -17,6 +18,7 @@ import {
   getMediaUpload,
   getNarrationEvidence,
   getNarrationPlaybackReview,
+  getNarrationPlaybackReviewResolution,
   getNarrationRenderReview,
   getNarrationScriptPackage,
   getNarrationWaveform,
@@ -623,6 +625,55 @@ describe('linguaframeApi', () => {
     }));
     expect(fetchMock.mock.calls[2]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review/markdown/download');
     expect(fetchMock.mock.calls[2]?.[1]).toMatchObject({ method: 'GET' });
+  });
+
+  test('loads and downloads narration playback resolution gate', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job-narration',
+        generatedAt: '2026-06-30T07:05:00Z',
+        status: 'ATTENTION',
+        nextAction: 'Resolve playback review issues before handoff.',
+        segmentCount: 2,
+        readySegmentCount: 1,
+        unresolvedSegmentCount: 1,
+        textRevisionRequiredCount: 0,
+        rerenderRequiredCount: 1,
+        unreviewedSegmentCount: 0,
+        audioReady: true,
+        audioArtifactCount: 1,
+        videoReady: false,
+        narratedVideoArtifactCount: 0,
+        unresolvedSegments: [
+          {
+            segmentIndex: 0,
+            startSeconds: 15,
+            endSeconds: 28,
+            durationSeconds: 13,
+            decision: 'NEEDS_RERENDER',
+            resolutionStatus: 'RERENDER_REQUIRED',
+            issueCategories: ['MIX'],
+            nextAction: 'Regenerate narration audio/video.',
+            reviewerNotePresent: true,
+            reviewedAt: '2026-06-30T07:02:00Z'
+          }
+        ],
+        safeLinks: [],
+        safetyNotes: []
+      })
+    );
+
+    const resolution = await getNarrationPlaybackReviewResolution('job narration/review');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['markdown'])));
+    await downloadNarrationPlaybackReviewResolutionMarkdown('job narration/review');
+
+    expect(resolution.status).toBe('ATTENTION');
+    expect(resolution.unresolvedSegments[0]?.resolutionStatus).toBe('RERENDER_REQUIRED');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review/resolution');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Freview/narration-playback-review/resolution/markdown/download');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
   });
 
   test('previews one narration segment as a transient audio blob', async () => {

@@ -110,6 +110,7 @@ import type {
   NarrationPlaybackIssueCategory,
   NarrationPlaybackReview,
   NarrationPlaybackReviewDecision,
+  NarrationPlaybackReviewResolution,
   NarrationRenderReview,
   NarrationMixKeyframe,
   NarrationMixLane,
@@ -9420,7 +9421,9 @@ function NarrationWorkspacePanel({
   const [decodedWaveform, setDecodedWaveform] = useState<NarrationWaveform | null>(null);
   const [renderReview, setRenderReview] = useState<NarrationRenderReview | null>(null);
   const [playbackReview, setPlaybackReview] = useState<NarrationPlaybackReview | null>(null);
+  const [playbackResolution, setPlaybackResolution] = useState<NarrationPlaybackReviewResolution | null>(null);
   const [playbackReviewStatus, setPlaybackReviewStatus] = useState<string | null>(null);
+  const [playbackResolutionStatus, setPlaybackResolutionStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
   const auditionPreviewUrlRef = useRef<string | null>(null);
@@ -9553,6 +9556,36 @@ function NarrationWorkspacePanel({
       active = false;
     };
   }, [artifactSignature, jobId, workspace?.segmentCount, workspace?.totalDurationSeconds]);
+
+  useEffect(() => {
+    let active = true;
+    setPlaybackResolution(null);
+    setPlaybackResolutionStatus(null);
+    linguaFrameApi.getNarrationPlaybackReviewResolution(jobId)
+      .then((resolution) => {
+        if (active) {
+          setPlaybackResolution(resolution);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setPlaybackResolution(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    artifactSignature,
+    jobId,
+    playbackReview?.acceptedSegmentCount,
+    playbackReview?.needsEditCount,
+    playbackReview?.needsRerenderCount,
+    playbackReview?.reviewedSegmentCount,
+    playbackReview?.unreviewedSegmentCount,
+    workspace?.segmentCount,
+    workspace?.totalDurationSeconds
+  ]);
 
   const segments = draftHistory.present;
   const selectedSegment = segments[selectedIndex] ?? null;
@@ -9962,13 +9995,22 @@ function NarrationWorkspacePanel({
     }
   ) {
     setPlaybackReviewStatus(null);
+    setPlaybackResolutionStatus(null);
     try {
       const review = await linguaFrameApi.updateNarrationPlaybackReviewSegment(jobId, segmentIndex, request);
       setPlaybackReview(review);
       setPlaybackReviewStatus(`Playback review saved for segment ${segmentIndex + 1}.`);
+      const resolution = await linguaFrameApi.getNarrationPlaybackReviewResolution(jobId);
+      setPlaybackResolution(resolution);
     } catch (playbackError) {
       setPlaybackReviewStatus(toErrorMessage(playbackError));
     }
+  }
+
+  function focusPlaybackResolutionSegment(segmentIndex: number) {
+    const nextIndex = clampSelectedIndex(segmentIndex, segments);
+    setSelectedIndex(nextIndex);
+    setPlaybackResolutionStatus(`Focused narration row ${nextIndex + 1} for playback resolution.`);
   }
 
   return (
@@ -10165,6 +10207,12 @@ function NarrationWorkspacePanel({
           review={playbackReview}
           status={playbackReviewStatus}
           onSaveSegment={(segmentIndex, request) => void savePlaybackReviewSegment(segmentIndex, request)}
+        />
+        <NarrationPlaybackReviewResolutionPanel
+          jobId={jobId}
+          resolution={playbackResolution}
+          status={playbackResolutionStatus}
+          onFocusSegment={focusPlaybackResolutionSegment}
         />
         <NarrationScriptPackagePanel
           isImporting={isSaving}
@@ -11030,6 +11078,104 @@ function NarrationPlaybackReviewSegmentRow({
       >
         Save playback review for segment {segment.segmentIndex + 1}
       </button>
+    </section>
+  );
+}
+
+function NarrationPlaybackReviewResolutionPanel({
+  jobId,
+  onFocusSegment,
+  resolution,
+  status
+}: {
+  jobId: string;
+  onFocusSegment: (segmentIndex: number) => void;
+  resolution: NarrationPlaybackReviewResolution | null;
+  status: string | null;
+}) {
+  return (
+    <section className="script-package-panel" aria-label="Narration playback resolution">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Playback resolution</h4>
+          <p className="muted">{resolution ? resolution.nextAction : 'Playback resolution gate is loading.'}</p>
+        </div>
+        <button type="button" onClick={() => void downloadNarrationPlaybackReviewResolutionFile(jobId)} disabled={!resolution}>
+          Download playback resolution Markdown
+        </button>
+      </div>
+      {resolution ? (
+        <>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Status</dt>
+              <dd>{resolution.status}</dd>
+            </div>
+            <div>
+              <dt>Ready</dt>
+              <dd>{resolution.readySegmentCount} / {resolution.segmentCount}</dd>
+            </div>
+            <div>
+              <dt>Unresolved</dt>
+              <dd>{resolution.unresolvedSegmentCount}</dd>
+            </div>
+            <div>
+              <dt>Text revisions</dt>
+              <dd>{resolution.textRevisionRequiredCount}</dd>
+            </div>
+            <div>
+              <dt>Rerenders</dt>
+              <dd>{resolution.rerenderRequiredCount}</dd>
+            </div>
+            <div>
+              <dt>Video ready</dt>
+              <dd>{resolution.videoReady ? 'Yes' : 'No'}</dd>
+            </div>
+          </dl>
+          {status ? <p className="narration-command-status">{status}</p> : null}
+          {resolution.unresolvedSegments.length > 0 ? (
+            <div className="playback-review-segments">
+              {resolution.unresolvedSegments.map((segment) => (
+                <section
+                  key={segment.segmentIndex}
+                  className="playback-review-segment"
+                  aria-label={`Playback resolution segment ${segment.segmentIndex + 1}`}
+                >
+                  <div className="compact-panel-heading">
+                    <div>
+                      <h5>Segment {segment.segmentIndex + 1}</h5>
+                      <p className="muted">
+                        {formatSeconds(segment.startSeconds)}-{formatSeconds(segment.endSeconds)}
+                        {' '}· {segment.decision}
+                        {segment.reviewerNotePresent ? ' · reviewer note saved' : ''}
+                      </p>
+                    </div>
+                    <span className="status-pill attention">{segment.resolutionStatus}</span>
+                  </div>
+                  <p>{segment.nextAction}</p>
+                  {segment.issueCategories.length > 0 ? (
+                    <p className="muted">Issues: {segment.issueCategories.join(', ')}</p>
+                  ) : null}
+                  <button type="button" onClick={() => onFocusSegment(segment.segmentIndex)}>
+                    Focus narration row {segment.segmentIndex + 1}
+                  </button>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <p className="success-text">All saved playback review decisions are resolved.</p>
+          )}
+          <ul className="safe-link-list">
+            {resolution.safeLinks.map((link) => (
+              <li key={link.kind}>
+                <code>{link.kind}</code> {link.href}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">Open a job with playback review metadata to resolve demo handoff readiness.</p>
+      )}
     </section>
   );
 }
@@ -12699,6 +12845,11 @@ async function downloadNarrationRenderReviewFile(jobId: string) {
 async function downloadNarrationPlaybackReviewFile(jobId: string) {
   const blob = await linguaFrameApi.downloadNarrationPlaybackReviewMarkdown(jobId);
   downloadBlob(blob, `narration-playback-review-${jobId}.md`);
+}
+
+async function downloadNarrationPlaybackReviewResolutionFile(jobId: string) {
+  const blob = await linguaFrameApi.downloadNarrationPlaybackReviewResolutionMarkdown(jobId);
+  downloadBlob(blob, `narration-playback-resolution-${jobId}.md`);
 }
 
 function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {
