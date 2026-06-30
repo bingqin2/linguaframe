@@ -52,7 +52,7 @@
 - [x] Implement replace and append indexing without mutating caller-owned segment objects.
 - [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
 - [x] Update execution log with RED/GREEN parser evidence.
-- [ ] Commit with message `Add narration quick script parser`.
+- [x] Commit with message `Add narration quick script parser`.
 
 ## Task 2: Browser Import Workbench
 
@@ -71,23 +71,23 @@
   - A compact `Quick script import` panel in the narration workspace.
   - Local `Replace draft` and `Append to draft` import actions.
 
-- [ ] Write failing App tests proving `Quick script import` renders for a completed job with example placeholder text.
-- [ ] Write failing App tests proving valid pasted rows show parsed row count, total duration, and a preview list before apply.
-- [ ] Write failing App tests proving `Replace draft` replaces the local draft rows, updates table/timeline/inspector, and does not call `saveNarrationWorkspace`.
-- [ ] Write failing App tests proving `Append to draft` preserves existing rows, appends parsed rows with reindexed indices, and keeps save payload aligned.
-- [ ] Write failing App tests proving invalid input displays row-level errors and disables both apply buttons.
-- [ ] Write failing App tests proving unknown voice presets are blocked using the current voice catalog.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` and verify App tests fail because the panel does not exist.
-- [ ] Add `NarrationQuickScriptImportPanel` after `NarrationTtsPreviewPanel` and before `NarrationPreviewPanel`.
-- [ ] Add local state for pasted script text, mode, parse result, and status.
-- [ ] Recompute parse result with `useMemo` from text, mode, current draft rows, and voice catalog.
-- [ ] Disable apply when parse result has errors or no parsed rows.
-- [ ] On apply, call `commitDraftChange(parsedSegments, 'Imported narration quick script.', nextSelectedIndex)` and keep changes local until existing `Save narration`.
-- [ ] Show concise guidance: `Format: 00:15-00:28 | alloy | Explain this moment. Leave voice blank to inherit default.`
-- [ ] Style the panel using existing compact narration panel patterns; do not add landing-page or marketing copy.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN UI evidence.
+- [x] Write failing App tests proving `Quick script import` renders for a completed job with example placeholder text.
+- [x] Write failing App tests proving valid pasted rows show parsed row count, total duration, and a preview list before apply.
+- [x] Write failing App tests proving `Replace draft` replaces the local draft rows, updates table/timeline/inspector, and does not call `saveNarrationWorkspace`.
+- [x] Write failing App tests proving `Append to draft` preserves existing rows, appends parsed rows with reindexed indices, and keeps save payload aligned.
+- [x] Write failing App tests proving invalid input displays row-level errors and disables both apply buttons.
+- [x] Write failing App tests proving unknown voice presets are blocked using the current voice catalog.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` and verify App tests fail because the panel does not exist.
+- [x] Add `NarrationQuickScriptImportPanel` after `NarrationTtsPreviewPanel` and before `NarrationPreviewPanel`.
+- [x] Add local state for pasted script text, mode, parse result, and status.
+- [x] Recompute parse result with `useMemo` from text, mode, current draft rows, and voice catalog.
+- [x] Disable apply when parse result has errors or no parsed rows.
+- [x] On apply, call `commitDraftChange(parsedSegments, 'Imported narration quick script.', nextSelectedIndex)` and keep changes local until existing `Save narration`.
+- [x] Show concise guidance: `Format: 00:15-00:28 | alloy | Explain this moment. Leave voice blank to inherit default.`
+- [x] Style the panel using existing compact narration panel patterns; do not add landing-page or marketing copy.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN UI evidence.
 - [ ] Commit with message `Add narration quick script import workbench`.
 
 ## Task 3: Documentation, Validation, And Merge

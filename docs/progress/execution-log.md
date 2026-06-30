@@ -4477,6 +4477,22 @@ Validation:
 
 Work:
 
+- Added the browser quick script import workbench to the narration workspace.
+- The panel accepts compact timed rows in `START-END | VOICE | TEXT` format, previews parsed row count, total duration, row text, and inherited/default voice state.
+- Replace and append actions now apply valid parsed rows to the local narration draft through the existing draft history path; no save call, provider call, artifact generation, or evidence update happens until the existing workflow actions run.
+- Invalid rows show parser row-level errors and keep both import actions disabled.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script import"` first failed because the `Quick script import` region did not exist.
+- After adding the panel, local state, parser wiring, replace/append actions, and compact styles, the same targeted command passed with `Test Files 1 passed | 1 skipped` and `Tests 2 passed | 129 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx` passed with `Test Files 2 passed` and `Tests 131 passed`; jsdom printed expected navigation warnings.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 146 passed`; jsdom printed expected navigation warnings.
+
+## 2026-06-30
+
+Work:
+
 - Started the narration preview playhead workbench feature slice.
 - Added frontend narration preview helper tests and a pure `narrationPreview` helper for source selection and playhead percentage calculation.
 - Preview source selection prefers `NARRATED_VIDEO`, then `BURNED_VIDEO`, then source video through existing safe download URL builders.
