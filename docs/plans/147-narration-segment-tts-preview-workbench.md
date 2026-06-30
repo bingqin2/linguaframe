@@ -49,27 +49,27 @@
   - `NarrationSegmentPreviewService.previewSegment(String jobId, PreviewNarrationSegmentRequestDto request)`
   - `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returning audio bytes with `Content-Type` and `Content-Disposition`.
 
-- [ ] Write failing service tests proving blank text is rejected before `TtsProvider` is called.
-- [ ] Write failing service tests proving explicit valid voice is passed to `TtsProvider` with job target language and trimmed text.
-- [ ] Write failing service tests proving blank voice inherits the job `ttsVoice`, then falls back to the voice catalog default.
-- [ ] Write failing service tests proving unknown voice presets and voices longer than 64 characters are rejected before provider calls.
-- [ ] Write failing service tests proving the returned preview uses provider audio bytes, content type, filename `narration-segment-preview.mp3`, character count, and a cost warning safety note.
-- [ ] Write failing controller tests proving `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returns `audio/mpeg`, `Content-Disposition: inline; filename="narration-segment-preview.mp3"`, and provider bytes.
-- [ ] Write failing controller tests proving validation failures return `400` and do not create job artifacts.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify the new tests fail because preview classes/routes do not exist.
-- [ ] Implement `PreviewNarrationSegmentRequestDto` with `text` and `voice` fields.
-- [ ] Implement `NarrationSegmentPreviewVo` as a record carrying preview bytes and safe metadata.
-- [ ] Implement `NarrationSegmentPreviewServiceImpl` validation:
+- [x] Write failing service tests proving blank text is rejected before `TtsProvider` is called.
+- [x] Write failing service tests proving explicit valid voice is passed to `TtsProvider` with job target language and trimmed text.
+- [x] Write failing service tests proving blank voice inherits the job `ttsVoice`, then falls back to the voice catalog default.
+- [x] Write failing service tests proving unknown voice presets and voices longer than 64 characters are rejected before provider calls.
+- [x] Write failing service tests proving the returned preview uses provider audio bytes, content type, filename `narration-segment-preview.mp3`, character count, and a cost warning safety note.
+- [x] Write failing controller tests proving `POST /api/jobs/{jobId}/narration-workspace/segment-preview` returns `audio/mpeg`, `Content-Disposition: inline; filename="narration-segment-preview.mp3"`, and provider bytes.
+- [x] Write failing controller tests proving validation failures return `400` and do not create job artifacts.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify the new tests fail because preview classes/routes do not exist.
+- [x] Implement `PreviewNarrationSegmentRequestDto` with `text` and `voice` fields.
+- [x] Implement `NarrationSegmentPreviewVo` as a record carrying preview bytes and safe metadata.
+- [x] Implement `NarrationSegmentPreviewServiceImpl` validation:
   - Trim `text`; reject blank with `Narration preview text is required.`
   - Trim `voice`; reject length greater than 64 with `Narration preview voice must be 64 characters or fewer.`
   - Reject unknown explicit voice when not present in `voiceCatalog().presets()`.
   - Resolve effective voice from explicit voice, job `ttsVoice`, or `defaultVoice()`.
   - Call `ttsProvider.synthesize(new TtsRequestBo(jobId, job.targetLanguage(), effectiveVoice, trimmedText))`.
   - Return provider bytes, provider content type or `audio/mpeg`, filename `narration-segment-preview.mp3`, effective voice, text length, and safety note `Preview calls the configured TTS provider but does not create artifacts.`
-- [ ] Add controller route with OpenAPI summary `Preview TTS audio for one unsaved narration segment`.
-- [ ] Return `ResponseEntity<byte[]>` with inline content disposition, content type from preview result, and no persistence side effects.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify it passes.
-- [ ] Update execution log with RED/GREEN evidence.
+- [x] Add controller route with OpenAPI summary `Preview TTS audio for one unsaved narration segment`.
+- [x] Return `ResponseEntity<byte[]>` with inline content disposition, content type from preview result, and no persistence side effects.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` and verify it passes.
+- [x] Update execution log with RED/GREEN evidence.
 - [ ] Commit with message `Add narration segment TTS preview API`.
 
 ## Task 2: Frontend Preview Client And Workbench

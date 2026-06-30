@@ -4367,6 +4367,20 @@ Validation:
 
 Work:
 
+- Started the narration segment TTS preview workbench feature slice.
+- Added transient backend segment-preview DTO/VO/service/controller support for synthesizing one selected narration row through the configured `TtsProvider`.
+- Added service and controller coverage for blank text, inherited/default voice selection, explicit voice selection, unknown voice rejection, voice length rejection, inline audio response headers, and no artifact creation.
+
+Validation:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` first failed at test compile because `PreviewNarrationSegmentRequestDto`, `NarrationSegmentPreviewVo`, `NarrationSegmentPreviewService`, and `NarrationSegmentPreviewServiceImpl` did not exist.
+- After implementing the preview contract, the same command failed twice because new controller test fixture ids exceeded the 36-character schema limit.
+- After shortening the test fixture ids, `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests` passed with `Tests run: 78, Failures: 0, Errors: 0, Skipped: 0`.
+
+## 2026-06-30
+
+Work:
+
 - Documented narration draft history workflow, local-only semantics, in-memory reset behavior, and validation checklist coverage across README, Docker E2E guide, smoke checklist, roadmap, target state, and decisions.
 - Completed final verification for the narration draft history workbench feature slice.
 

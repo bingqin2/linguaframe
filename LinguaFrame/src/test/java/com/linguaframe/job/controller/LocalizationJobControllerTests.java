@@ -2085,6 +2085,57 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void previewsNarrationSegmentTtsWithoutCreatingArtifacts() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:12:30Z");
+        createJob("video-narration-preview", "job-controller-job-narration-preview", createdAt);
+
+        byte[] audio = mockMvc.perform(post(
+                        "/api/jobs/{jobId}/narration-workspace/segment-preview",
+                        "job-controller-job-narration-preview"
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "text": "  Preview this line before saving.  ",
+                                  "voice": "demo-voice"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"narration-segment-preview.mp3\""
+                ))
+                .andExpect(content().contentType("audio/mpeg"))
+                .andReturn()
+                .getResponse()
+                .getContentAsByteArray();
+
+        assertThat(audio).isNotEmpty();
+        assertThat(artifactRepository.findByJobId("job-controller-job-narration-preview")).isEmpty();
+    }
+
+    @Test
+    void rejectsInvalidNarrationSegmentPreviewWithoutCreatingArtifacts() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:12:45Z");
+        createJob("video-narration-preview-invalid", "job-narration-preview-invalid", createdAt);
+
+        mockMvc.perform(post(
+                        "/api/jobs/{jobId}/narration-workspace/segment-preview",
+                        "job-narration-preview-invalid"
+                )
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "text": "Preview this line.",
+                                  "voice": "unknown"
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        assertThat(artifactRepository.findByJobId("job-narration-preview-invalid")).isEmpty();
+    }
+
+    @Test
     void generatesNarratedVideoForLocalizationJobWithoutReplacingDeliveryArtifacts() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:14:00Z");
         createJob("job-controller-video-narrated", "job-controller-job-narrated", createdAt);
