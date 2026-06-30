@@ -6319,6 +6319,7 @@ function JobDetail({
 
       <NarrationWorkspacePanel
         artifacts={artifacts}
+        demoAcceptanceGate={demoAcceptanceGate}
         error={narrationError}
         evidence={narrationEvidence}
         isClearing={isClearingNarration}
@@ -6335,6 +6336,7 @@ function JobDetail({
         onApplyDemoPreset={onApplyNarrationDemoPreset}
         onImportScriptPackage={onImportNarrationScriptPackage}
         onPreflightDemoRender={onPreflightNarrationDemoRender}
+        onRefreshAcceptanceGate={onRefreshDemoAcceptanceGate}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onRenderDemo={onRenderNarrationDemo}
         onSave={onSaveNarrationWorkspace}
@@ -9355,6 +9357,7 @@ function ReviewedSubtitleWorkflowPanel({
 
 function NarrationWorkspacePanel({
   artifacts,
+  demoAcceptanceGate,
   error,
   evidence,
   isClearing,
@@ -9372,6 +9375,7 @@ function NarrationWorkspacePanel({
   onGenerateVideo,
   onImportScriptPackage,
   onPreflightDemoRender,
+  onRefreshAcceptanceGate,
   onRefreshEvidence,
   onRenderDemo,
   onSave,
@@ -9383,6 +9387,7 @@ function NarrationWorkspacePanel({
   workspace
 }: {
   artifacts: JobArtifact[];
+  demoAcceptanceGate: DemoAcceptanceGate | null;
   error: string | null;
   evidence: NarrationEvidence | null;
   isClearing: boolean;
@@ -9400,6 +9405,7 @@ function NarrationWorkspacePanel({
   onGenerateVideo: () => void;
   onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onPreflightDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
+  onRefreshAcceptanceGate: () => void;
   onRefreshEvidence: () => void;
   onRenderDemo: (presetId: string, generateNarratedVideo: boolean) => void;
   onSave: (segments: NarrationWorkspace['segments'], mixKeyframes: NarrationMixKeyframe[]) => void;
@@ -10229,6 +10235,17 @@ function NarrationWorkspacePanel({
           resolution={playbackResolution}
           status={playbackResolutionStatus}
           onFocusSegment={focusPlaybackResolutionSegment}
+        />
+        <NarrationAcceptanceRecoveryPanel
+          acceptanceGate={demoAcceptanceGate}
+          evidence={evidence}
+          playbackReview={playbackReview}
+          playbackResolution={playbackResolution}
+          renderReview={renderReview}
+          status={playbackResolutionStatus}
+          onFocusSegment={focusPlaybackResolutionSegment}
+          onRefreshAcceptanceGate={onRefreshAcceptanceGate}
+          onRefreshEvidence={onRefreshEvidence}
         />
         <NarrationScriptPackagePanel
           isImporting={isSaving}
@@ -11192,6 +11209,133 @@ function NarrationPlaybackReviewResolutionPanel({
       ) : (
         <p className="muted">Open a job with playback review metadata to resolve demo handoff readiness.</p>
       )}
+    </section>
+  );
+}
+
+function NarrationAcceptanceRecoveryPanel({
+  acceptanceGate,
+  evidence,
+  onFocusSegment,
+  onRefreshAcceptanceGate,
+  onRefreshEvidence,
+  playbackResolution,
+  playbackReview,
+  renderReview,
+  status
+}: {
+  acceptanceGate: DemoAcceptanceGate | null;
+  evidence: NarrationEvidence | null;
+  onFocusSegment: (segmentIndex: number) => void;
+  onRefreshAcceptanceGate: () => void;
+  onRefreshEvidence: () => void;
+  playbackResolution: NarrationPlaybackReviewResolution | null;
+  playbackReview: NarrationPlaybackReview | null;
+  renderReview: NarrationRenderReview | null;
+  status: string | null;
+}) {
+  const runbookSteps = acceptanceGate?.runbookSteps ?? [];
+  const hasNarrationBlocker = runbookSteps.some((step) => step.key === 'NARRATION_PLAYBACK_RESOLVED')
+    || acceptanceGate?.checks.some((check) => check.key === 'NARRATION_PLAYBACK_RESOLVED' && check.status !== 'PASS');
+  const unresolvedSegments = playbackResolution?.unresolvedSegments ?? [];
+
+  if (!acceptanceGate || (!hasNarrationBlocker && runbookSteps.length === 0 && unresolvedSegments.length === 0)) {
+    return null;
+  }
+
+  const firstNarrationStep = runbookSteps.find((step) => step.key === 'NARRATION_PLAYBACK_RESOLVED') ?? runbookSteps[0] ?? null;
+  const playbackResolutionUrl = firstNarrationStep?.safeLink || `/api/jobs/${acceptanceGate.jobId}/narration-playback-review/resolution`;
+  const recoveryStatus = acceptanceGate.gateStatus === 'READY' ? 'READY' : acceptanceGate.gateStatus;
+
+  return (
+    <section className="script-package-panel" aria-label="Acceptance recovery">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Acceptance recovery</h4>
+          <p className="muted">
+            {firstNarrationStep?.primaryAction ?? acceptanceGate.recommendedNextAction}
+          </p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" onClick={onRefreshEvidence}>Refresh recovery</button>
+          <button type="button" onClick={onRefreshAcceptanceGate}>Refresh acceptance gate</button>
+        </div>
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Gate</dt>
+          <dd>{recoveryStatus}</dd>
+        </div>
+        <div>
+          <dt>Unresolved</dt>
+          <dd>{playbackResolution ? `${playbackResolution.unresolvedSegmentCount} unresolved` : 'Loading'}</dd>
+        </div>
+        <div>
+          <dt>Rerenders</dt>
+          <dd>{playbackResolution ? `${playbackResolution.rerenderRequiredCount} rerender` : 'Loading'}</dd>
+        </div>
+        <div>
+          <dt>Render review</dt>
+          <dd>Render review: {renderReview?.status ?? 'Loading'}</dd>
+        </div>
+        <div>
+          <dt>Playback review</dt>
+          <dd>Playback review: {playbackReview?.status ?? 'Loading'}</dd>
+        </div>
+        <div>
+          <dt>Narration audio</dt>
+          <dd>Narration audio: {evidence?.narrationAudioReady ? 'ready' : 'missing'}</dd>
+        </div>
+        <div>
+          <dt>Narrated video</dt>
+          <dd>Narrated video: {evidence?.narratedVideoReady ? 'ready' : 'missing'}</dd>
+        </div>
+      </dl>
+      <ol className="compact-list">
+        <li>Focus unresolved rows from playback resolution.</li>
+        <li>Save narration after text, timing, voice, or mix edits.</li>
+        <li>Generate narration audio or narrated video only with the existing explicit buttons.</li>
+        <li>Refresh render review, playback review, playback resolution, and acceptance gate.</li>
+      </ol>
+      {firstNarrationStep ? (
+        <div className="evidence-check evidence-check-fail">
+          <strong>{firstNarrationStep.label}: {firstNarrationStep.status}</strong>
+          <p>{firstNarrationStep.primaryAction}</p>
+          <code>{firstNarrationStep.safeCommand}</code>
+        </div>
+      ) : null}
+      {unresolvedSegments.length > 0 ? (
+        <div className="playback-review-segments">
+          {unresolvedSegments.map((segment) => (
+            <section
+              key={segment.segmentIndex}
+              className="playback-review-segment"
+              aria-label={`Recovery unresolved row ${segment.segmentIndex + 1}`}
+            >
+              <div className="compact-panel-heading">
+                <div>
+                  <h5>Unresolved row {segment.segmentIndex + 1}</h5>
+                  <p className="muted">
+                    {formatSeconds(segment.startSeconds)}-{formatSeconds(segment.endSeconds)}
+                    {' '}· {segment.resolutionStatus}
+                  </p>
+                </div>
+                <button type="button" onClick={() => onFocusSegment(segment.segmentIndex)}>
+                  Focus unresolved row {segment.segmentIndex + 1}
+                </button>
+              </div>
+              <p>{segment.nextAction}</p>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">No unresolved narration rows are currently reported.</p>
+      )}
+      {status ? <p className="narration-command-status">{status}</p> : null}
+      <div className="link-list">
+        <a href={playbackResolutionUrl}>Open playback resolution</a>
+        <a href={`/api/jobs/${acceptanceGate.jobId}/demo-acceptance-gate`}>Open acceptance gate JSON</a>
+      </div>
     </section>
   );
 }

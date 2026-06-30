@@ -4881,6 +4881,27 @@ Validation so far:
 
 Work:
 
+- Started the narration acceptance recovery workflow feature slice from `docs/plans/162-narration-acceptance-recovery-workflow.md`.
+- Added a browser `Acceptance recovery` panel inside the narration workspace when the final demo acceptance gate is blocked by narration playback resolution.
+- Composed existing safe frontend data from acceptance gate, playback resolution, render review, playback review, and narration evidence instead of adding a new backend endpoint.
+- Added recovery metrics, an ordered checklist, safe links, refresh actions, and `Focus unresolved row` controls that reuse the existing playback-resolution focus handler.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with the browser recovery path.
+
+Validation so far:
+
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "acceptance recovery"` first failed because the `Acceptance recovery` region did not exist, then passed with `Tests 1 passed | 147 skipped`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "playback resolution|acceptance recovery|acceptance gate"` passed with `Tests 4 passed | 144 skipped`; jsdom printed the expected navigation warning from a safe-link click fixture.
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,NarrationPlaybackReviewResolutionServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 88, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "acceptance recovery"` passed with `Tests 1 passed | 147 skipped`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/demo-acceptance-gate.sh scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 818, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 304 passed`; jsdom printed expected navigation warnings from blob downloads.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 539.17 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
 - Started the acceptance resolution runbook feature slice from `docs/plans/161-acceptance-resolution-runbook.md`.
 - Added `DemoAcceptanceGateRunbookStepVo` and `runbookSteps` so failed required checks and warning checks produce metadata-only remediation steps.
 - Added narration-specific remediation for unresolved playback resolution: open playback resolution, focus unresolved rows, save revisions, regenerate narration media, then re-run the acceptance gate.
