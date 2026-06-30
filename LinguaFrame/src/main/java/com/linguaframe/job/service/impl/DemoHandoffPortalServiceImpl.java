@@ -14,6 +14,7 @@ import com.linguaframe.job.domain.vo.DemoRunMonitorVo;
 import com.linguaframe.job.domain.vo.DemoRunSnapshotVo;
 import com.linguaframe.job.domain.vo.DemoShareSheetVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
 import com.linguaframe.job.repository.NarrationMixSettingsRepository;
 import com.linguaframe.job.service.DeliveryManifestService;
@@ -25,6 +26,7 @@ import com.linguaframe.job.service.DemoRunMonitorService;
 import com.linguaframe.job.service.DemoRunSnapshotService;
 import com.linguaframe.job.service.DemoShareSheetService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
+import com.linguaframe.job.service.NarrationDeliveryPackageService;
 import com.linguaframe.job.service.OpenAiSmokeProofService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -54,6 +56,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
     private final DemoShareSheetService shareSheetService;
     private final DemoRunMonitorService runMonitorService;
     private final OpenAiSmokeProofService openAiSmokeProofService;
+    private final NarrationDeliveryPackageService narrationDeliveryPackageService;
     private final NarrationMixSettingsRepository mixSettingsRepository;
     private final Clock clock;
 
@@ -68,11 +71,12 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoShareSheetService shareSheetService,
             DemoRunMonitorService runMonitorService,
             OpenAiSmokeProofService openAiSmokeProofService,
+            NarrationDeliveryPackageService narrationDeliveryPackageService,
             NarrationMixSettingsRepository mixSettingsRepository
     ) {
         this(queryService, reviewerWorkspaceService, acceptanceGateService, completionCertificateService,
                 deliveryManifestService, runSnapshotService, shareSheetService, runMonitorService,
-                openAiSmokeProofService, mixSettingsRepository, Clock.systemUTC());
+                openAiSmokeProofService, narrationDeliveryPackageService, mixSettingsRepository, Clock.systemUTC());
     }
 
     public DemoHandoffPortalServiceImpl(
@@ -85,6 +89,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoShareSheetService shareSheetService,
             DemoRunMonitorService runMonitorService,
             OpenAiSmokeProofService openAiSmokeProofService,
+            NarrationDeliveryPackageService narrationDeliveryPackageService,
             NarrationMixSettingsRepository mixSettingsRepository,
             Clock clock
     ) {
@@ -97,6 +102,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         this.shareSheetService = shareSheetService;
         this.runMonitorService = runMonitorService;
         this.openAiSmokeProofService = openAiSmokeProofService;
+        this.narrationDeliveryPackageService = narrationDeliveryPackageService;
         this.mixSettingsRepository = mixSettingsRepository;
         this.clock = clock;
     }
@@ -112,7 +118,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         DemoShareSheetVo shareSheet = shareSheetService.buildShareSheet(jobId);
         DemoRunMonitorVo monitor = runMonitorService.buildMonitor(jobId);
         OpenAiSmokeProofVo openAiProof = openAiSmokeProofService.getProof(jobId);
-        List<DemoHandoffPortalCheckVo> checks = checks(job, reviewerWorkspace, acceptance, certificate, manifest, snapshot, shareSheet, monitor, openAiProof);
+        NarrationDeliveryPackageVo narrationDelivery = narrationDeliveryPackageService.getSummary(jobId);
+        List<DemoHandoffPortalCheckVo> checks = checks(job, reviewerWorkspace, acceptance, certificate, manifest, snapshot, shareSheet, monitor, openAiProof, narrationDelivery);
         String status = overallStatus(checks);
         return new DemoHandoffPortalVo(
                 job.jobId(),
@@ -126,8 +133,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 job.targetLanguage(),
                 job.demoProfileId(),
                 checks,
-                sections(job, reviewerWorkspace, acceptance, certificate, manifest, snapshot, shareSheet, monitor, openAiProof),
-                safeLinks(job.jobId()),
+                sections(job, reviewerWorkspace, acceptance, certificate, manifest, snapshot, shareSheet, monitor, openAiProof, narrationDelivery),
+                safeLinks(job.jobId(), narrationDelivery),
                 packageEntries(job.jobId()),
                 safetyNotes()
         );
@@ -206,7 +213,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoRunSnapshotVo snapshot,
             DemoShareSheetVo shareSheet,
             DemoRunMonitorVo monitor,
-            OpenAiSmokeProofVo openAiProof
+            OpenAiSmokeProofVo openAiProof,
+            NarrationDeliveryPackageVo narrationDelivery
     ) {
         List<DemoHandoffPortalCheckVo> checks = new ArrayList<>();
         checks.add(job.status() == LocalizationJobStatus.COMPLETED
@@ -237,6 +245,11 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         checks.add(statusCheck("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", openAiProof.overallStatus(), false,
                 "OpenAI smoke proof status is " + openAiProof.overallStatus() + ".",
                 openAiProof.recommendedNextAction()));
+        checks.add(statusCheck("NARRATION_DELIVERY_PACKAGE", "Narration delivery package", narrationDelivery.status(), false,
+                "Narration delivery package status is " + narrationDelivery.status()
+                        + "; audioReady=" + narrationDelivery.audioReady()
+                        + "; videoReady=" + narrationDelivery.videoReady() + ".",
+                narrationDelivery.recommendedNextAction()));
         return List.copyOf(checks);
     }
 
@@ -249,7 +262,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             DemoRunSnapshotVo snapshot,
             DemoShareSheetVo shareSheet,
             DemoRunMonitorVo monitor,
-            OpenAiSmokeProofVo openAiProof
+            OpenAiSmokeProofVo openAiProof,
+            NarrationDeliveryPackageVo narrationDelivery
     ) {
         NarrationMixSettingsSupport.ResolvedNarrationMixSettings mixSettings =
                 NarrationMixSettingsSupport.resolve(mixSettingsRepository, job.jobId());
@@ -273,6 +287,13 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                         "Fade duration ms: " + mixSettings.fadeDurationMs(),
                         "Mix settings source: " + mixSettings.source(),
                         "Narration evidence package link is available."
+                )),
+                section("NARRATION_DELIVERY", "Narration delivery", narrationDelivery.status(), List.of(
+                        "Narration delivery package: " + narrationDelivery.status(),
+                        "Narration audio ready: " + narrationDelivery.audioReady(),
+                        "Narrated video ready: " + narrationDelivery.videoReady(),
+                        "Delivery package entries: " + narrationDelivery.packageEntries().size(),
+                        "Narration delivery package link is available."
                 )),
                 section("PRESENTATION_EVIDENCE", "Presentation evidence", shareSheet.readiness(), List.of(
                         "Share sheet: " + value(shareSheet.headline()),
@@ -305,6 +326,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
             writeEntry(zipOutputStream, "completion-certificate.json", snapshotJson(portal, "completion-certificate"));
             writeEntry(zipOutputStream, "share-sheet.json", snapshotJson(portal, "share-sheet"));
             writeEntry(zipOutputStream, "run-monitor.json", snapshotJson(portal, "run-monitor"));
+            writeEntry(zipOutputStream, "narration-delivery-package.json", narrationDeliveryJson(portal));
+            writeEntry(zipOutputStream, "narration-delivery-package.md", narrationDeliveryMarkdown(portal));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to build demo handoff portal package", ex);
         }
@@ -362,7 +385,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
 
     private String manifest(DemoHandoffPortalVo portal) {
         return """
-                {"jobId":"%s","videoId":"%s","overallStatus":"%s","phase":"%s","entries":["index.html","manifest.json","handoff-portal.md","reviewer-workspace.json","README.md"],"safeLinks":%d}
+                {"jobId":"%s","videoId":"%s","overallStatus":"%s","phase":"%s","entries":["index.html","manifest.json","handoff-portal.md","reviewer-workspace.json","README.md","acceptance-gate.json","completion-certificate.json","share-sheet.json","run-monitor.json","narration-delivery-package.json","narration-delivery-package.md"],"safeLinks":%d}
                 """.formatted(
                 json(portal.jobId()),
                 json(portal.videoId()),
@@ -382,6 +405,27 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         return """
                 {"jobId":"%s","kind":"%s","source":"safe-%s","generatedAt":"%s"}
                 """.formatted(json(portal.jobId()), json(kind), json(kind), json(portal.generatedAt()));
+    }
+
+    private String narrationDeliveryJson(DemoHandoffPortalVo portal) {
+        String status = portal.sections().stream()
+                .filter(section -> "NARRATION_DELIVERY".equals(section.key()))
+                .findFirst()
+                .map(DemoHandoffPortalSectionVo::status)
+                .orElse("UNKNOWN");
+        return """
+                {"jobId":"%s","status":"%s","source":"narration-delivery-package","href":"/api/jobs/%s/narration-delivery-package"}
+                """.formatted(json(portal.jobId()), json(status), json(portal.jobId()));
+    }
+
+    private String narrationDeliveryMarkdown(DemoHandoffPortalVo portal) {
+        return """
+                # Narration delivery package
+
+                Job: %s
+                Source route: /api/jobs/%s/narration-delivery-package
+                Safety: metadata-only; media bytes and narration text are not embedded here.
+                """.formatted(value(portal.jobId()), value(portal.jobId()));
     }
 
     private String readme(DemoHandoffPortalVo portal) {
@@ -450,8 +494,8 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
         };
     }
 
-    private static List<DemoHandoffPortalLinkVo> safeLinks(String jobId) {
-        return List.of(
+    private static List<DemoHandoffPortalLinkVo> safeLinks(String jobId, NarrationDeliveryPackageVo narrationDelivery) {
+        List<DemoHandoffPortalLinkVo> links = new ArrayList<>(List.of(
                 link("PORTAL_JSON", "Demo handoff portal", "/api/jobs/" + jobId + "/demo-handoff-portal", "application/json", "Portal metadata."),
                 link("PORTAL_MARKDOWN", "Demo handoff portal Markdown", "/api/jobs/" + jobId + "/demo-handoff-portal/markdown/download", "text/markdown", "Portal Markdown."),
                 link("PORTAL_ZIP", "Demo handoff portal ZIP", "/api/jobs/" + jobId + "/demo-handoff-portal/download", "application/zip", "Static portal package."),
@@ -469,7 +513,11 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 link("DIAGNOSTICS", "Diagnostics", "/api/jobs/" + jobId + "/diagnostics/download", "application/json", "Safe diagnostics report."),
                 link("EVIDENCE_MARKDOWN", "Evidence Markdown", "/api/jobs/" + jobId + "/evidence/markdown/download", "text/markdown", "Backend evidence report."),
                 link("OPENAI_SMOKE_PROOF", "OpenAI smoke proof", "/api/jobs/" + jobId + "/openai-smoke-proof", "application/json", "Provider-backed proof when available.")
-        );
+        ));
+        for (var deliveryLink : narrationDelivery.safeLinks()) {
+            links.add(link(deliveryLink.kind(), deliveryLink.label(), deliveryLink.href(), deliveryLink.contentType(), deliveryLink.description()));
+        }
+        return List.copyOf(links);
     }
 
     private static List<String> packageEntries(String jobId) {
@@ -483,9 +531,12 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 "completion-certificate.json",
                 "share-sheet.json",
                 "run-monitor.json",
+                "narration-delivery-package.json",
+                "narration-delivery-package.md",
                 "Linked safe route: /api/jobs/" + jobId + "/subtitle-review-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-recovery-handoff/download",
+                "Linked safe route: /api/jobs/" + jobId + "/narration-delivery-package/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-workspace/generate-video",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-reviewer-workspace/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download"
@@ -523,6 +574,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
 
     private static boolean isReadyStatus(String status) {
         return "READY".equals(status)
+                || "EMPTY".equals(status)
                 || "PASS".equals(status)
                 || "COMPLETED".equals(status)
                 || "OPENAI_SMOKE_PROVEN".equals(status);

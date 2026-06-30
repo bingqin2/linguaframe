@@ -33,6 +33,10 @@ import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionSegmentVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageArtifactVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageCheckVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageLinkVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
 import com.linguaframe.job.service.impl.DemoAcceptanceGateServiceImpl;
 import com.linguaframe.media.domain.enums.MediaUploadStatus;
@@ -68,9 +72,34 @@ class DemoAcceptanceGateServiceTests {
         assertThat(gate.gateStatus()).isEqualTo("READY");
         assertThat(gate.checks()).extracting("status").containsOnly("PASS");
         assertThat(gate.evidence()).extracting("key")
-                .contains("SOURCE_DURATION", "SUBTITLE_OUTPUT_COUNT", "MEDIA_OUTPUT_COUNT", "QUALITY_SCORE", "CERTIFICATE_STATUS");
+                .contains(
+                        "SOURCE_DURATION",
+                        "SUBTITLE_OUTPUT_COUNT",
+                        "MEDIA_OUTPUT_COUNT",
+                        "QUALITY_SCORE",
+                        "CERTIFICATE_STATUS",
+                        "NARRATION_DELIVERY_PACKAGE_STATUS",
+                        "NARRATION_DELIVERY_AUDIO_READY",
+                        "NARRATION_DELIVERY_VIDEO_READY",
+                        "NARRATION_DELIVERY_PACKAGE_ENTRY_COUNT"
+                );
         assertThat(gate.links()).extracting("kind")
-                .contains("ACCEPTANCE_GATE_JSON", "COMPLETION_CERTIFICATE_JSON", "DEMO_RUN_PACKAGE", "SNAPSHOT_DOWNLOAD");
+                .contains(
+                        "ACCEPTANCE_GATE_JSON",
+                        "COMPLETION_CERTIFICATE_JSON",
+                        "DEMO_RUN_PACKAGE",
+                        "SNAPSHOT_DOWNLOAD",
+                        "NARRATION_DELIVERY_PACKAGE_JSON",
+                        "NARRATION_DELIVERY_PACKAGE_MARKDOWN",
+                        "NARRATION_DELIVERY_PACKAGE_ZIP"
+                );
+        assertThat(gate.checks())
+                .anySatisfy(check -> {
+                    assertThat(check.key()).isEqualTo("NARRATION_DELIVERY_PACKAGE_READY");
+                    assertThat(check.status()).isEqualTo("PASS");
+                    assertThat(check.required()).isFalse();
+                    assertThat(check.detail()).contains("status=READY").contains("audioReady=true").contains("videoReady=true");
+                });
         assertThat(gate.recommendedNextAction()).contains("Present this run");
         assertThat(gate.runbookSteps()).isEmpty();
         assertThat(gate.toString())
@@ -184,7 +213,13 @@ class DemoAcceptanceGateServiceTests {
                     assertThat(evidence.status()).isEqualTo("BLOCKED");
                 });
         assertThat(gate.links()).extracting("kind")
-                .contains("NARRATION_PLAYBACK_RESOLUTION_JSON", "NARRATION_PLAYBACK_RESOLUTION_MARKDOWN");
+                .contains(
+                        "NARRATION_PLAYBACK_RESOLUTION_JSON",
+                        "NARRATION_PLAYBACK_RESOLUTION_MARKDOWN",
+                        "NARRATION_DELIVERY_PACKAGE_JSON",
+                        "NARRATION_DELIVERY_PACKAGE_MARKDOWN",
+                        "NARRATION_DELIVERY_PACKAGE_ZIP"
+                );
         assertThat(gate.runbookSteps())
                 .anySatisfy(step -> {
                     assertThat(step).isEqualTo(new DemoAcceptanceGateRunbookStepVo(
@@ -260,6 +295,7 @@ class DemoAcceptanceGateServiceTests {
                 new StaticSnapshotService(snapshot(job)),
                 new StaticMatrixService(matrix),
                 new StaticNarrationPlaybackReviewResolutionService(narrationResolution),
+                new StaticNarrationDeliveryPackageService(deliveryPackage(job, narrationResolution)),
                 CLOCK
         );
     }
@@ -598,6 +634,39 @@ class DemoAcceptanceGateServiceTests {
         );
     }
 
+    private static NarrationDeliveryPackageVo deliveryPackage(
+            LocalizationJobVo job,
+            NarrationPlaybackReviewResolutionVo resolution
+    ) {
+        String status = resolution.segmentCount() == 0 ? "EMPTY" : resolution.unresolvedSegmentCount() == 0 ? "READY" : "BLOCKED";
+        boolean ready = "READY".equals(status);
+        return new NarrationDeliveryPackageVo(
+                job.jobId(),
+                NOW,
+                status,
+                ready ? "NARRATION_DELIVERY_READY" : "EMPTY".equals(status) ? "NARRATION_DELIVERY_EMPTY" : "NARRATION_DELIVERY_BLOCKED",
+                ready ? "Download the narration delivery package and continue with final handoff." : "Resolve narration playback before final handoff.",
+                ready,
+                ready,
+                resolution.unresolvedSegmentCount(),
+                ready ? "READY" : "ATTENTION",
+                "READY",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "ATTENTION",
+                resolution.status(),
+                ready ? "READY" : "BLOCKED",
+                ready ? List.of(new NarrationDeliveryPackageArtifactVo("audio-artifact", "NARRATION_AUDIO", "narration-audio.mp3", "audio/mpeg", 1024, false, "/api/jobs/" + job.jobId() + "/artifacts/audio-artifact/download")) : List.of(),
+                List.of(new NarrationDeliveryPackageCheckVo("NARRATION_PLAYBACK_RESOLUTION", "Playback resolution", ready ? "READY" : "BLOCKED", "Resolution status is " + resolution.status() + ".", "Re-run playback resolution.", true)),
+                List.of(
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_JSON", "Narration delivery package JSON", "/api/jobs/" + job.jobId() + "/narration-delivery-package", "application/json", "Delivery metadata."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_MARKDOWN", "Narration delivery package Markdown", "/api/jobs/" + job.jobId() + "/narration-delivery-package/markdown/download", "text/markdown", "Delivery Markdown."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_ZIP", "Narration delivery package ZIP", "/api/jobs/" + job.jobId() + "/narration-delivery-package/download", "application/zip", "Delivery ZIP.")
+                ),
+                List.of("manifest.json", "narration-delivery-package.json", "narration-delivery-package.md", "README.md"),
+                List.of("Narration delivery package is metadata-only.")
+        );
+    }
+
     private record StaticQueryService(LocalizationJobVo job) implements LocalizationJobQueryService {
         @Override
         public com.linguaframe.job.domain.vo.LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset) {
@@ -721,6 +790,30 @@ class DemoAcceptanceGateServiceTests {
 
         @Override
         public String renderMarkdown(String jobId) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    private record StaticNarrationDeliveryPackageService(
+            NarrationDeliveryPackageVo deliveryPackage
+    ) implements NarrationDeliveryPackageService {
+        @Override
+        public NarrationDeliveryPackageVo getSummary(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public NarrationDeliveryPackageVo getPackage(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public String renderMarkdown(String jobId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public com.linguaframe.job.domain.bo.StoredNarrationDeliveryPackageBo openPackage(String jobId) {
             throw new UnsupportedOperationException();
         }
     }

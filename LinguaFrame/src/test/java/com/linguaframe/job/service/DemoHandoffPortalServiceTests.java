@@ -32,6 +32,10 @@ import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageArtifactVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageCheckVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageLinkVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofCheckVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofLinkVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
@@ -71,7 +75,8 @@ class DemoHandoffPortalServiceTests {
                 snapshot("READY"),
                 shareSheet("READY"),
                 monitor("READY"),
-                openAiProof("READY")
+                openAiProof("READY"),
+                deliveryPackage("READY")
         );
 
         DemoHandoffPortalVo portal = service.getPortal("job-portal");
@@ -83,8 +88,10 @@ class DemoHandoffPortalServiceTests {
         assertThat(portal.phase()).isEqualTo("HANDOFF_PORTAL_READY");
         assertThat(portal.headline()).contains("ready");
         assertThat(portal.checks()).extracting("status").containsOnly("READY");
+        assertThat(portal.checks()).extracting("key")
+                .contains("NARRATION_DELIVERY_PACKAGE");
         assertThat(portal.sections()).extracting("title")
-                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Presentation evidence", "Safe packages");
+                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Narration delivery", "Presentation evidence", "Safe packages");
         assertThat(portal.sections())
                 .filteredOn(section -> section.key().equals("NARRATION_AUDIO_MIX"))
                 .singleElement()
@@ -105,6 +112,9 @@ class DemoHandoffPortalServiceTests {
                         "/api/jobs/job-portal/subtitle-review-evidence/download",
                         "/api/jobs/job-portal/narration-evidence/download",
                         "/api/jobs/job-portal/narration-recovery-handoff/download",
+                        "/api/jobs/job-portal/narration-delivery-package",
+                        "/api/jobs/job-portal/narration-delivery-package/markdown/download",
+                        "/api/jobs/job-portal/narration-delivery-package/download",
                         "/api/jobs/job-portal/narration-workspace/generate-video",
                         "/api/jobs/job-portal/demo-run-snapshot/download",
                         "/api/jobs/job-portal/demo-run-package/download"
@@ -121,7 +131,9 @@ class DemoHandoffPortalServiceTests {
                 "acceptance-gate.json",
                 "completion-certificate.json",
                 "share-sheet.json",
-                "run-monitor.json"
+                "run-monitor.json",
+                "narration-delivery-package.json",
+                "narration-delivery-package.md"
         );
         assertThat(entries.get("index.html"))
                 .contains("<!doctype html>")
@@ -129,7 +141,10 @@ class DemoHandoffPortalServiceTests {
                 .contains("HANDOFF_PORTAL_READY")
                 .contains("DUCKED_ORIGINAL_AUDIO")
                 .contains("Narration volume: 1.750")
-                .contains("Fade duration ms: 400");
+                .contains("Fade duration ms: 400")
+                .contains("Narration delivery package")
+                .contains("/api/jobs/job-portal/narration-delivery-package/download");
+        assertThat(entries.keySet()).doesNotContain("narration-delivery-package.zip");
     }
 
     @Test
@@ -143,7 +158,8 @@ class DemoHandoffPortalServiceTests {
                 snapshot("READY"),
                 shareSheet("READY"),
                 monitor("READY"),
-                openAiProof("ATTENTION")
+                openAiProof("ATTENTION"),
+                deliveryPackage("READY")
         );
 
         DemoHandoffPortalVo portal = service.getPortal("job-portal");
@@ -169,7 +185,8 @@ class DemoHandoffPortalServiceTests {
                 snapshot("ATTENTION"),
                 shareSheet("ATTENTION"),
                 monitor("ATTENTION"),
-                openAiProof("ATTENTION")
+                openAiProof("ATTENTION"),
+                deliveryPackage("BLOCKED")
         );
 
         DemoHandoffPortalVo portal = service.getPortal("job-portal");
@@ -195,7 +212,8 @@ class DemoHandoffPortalServiceTests {
                 snapshot("READY"),
                 shareSheet("READY"),
                 monitor("READY"),
-                openAiProof("READY")
+                openAiProof("READY"),
+                deliveryPackage("READY")
         );
 
         DemoHandoffPortalVo portal = service.getPortal("job-portal");
@@ -215,6 +233,7 @@ class DemoHandoffPortalServiceTests {
                         "/api/jobs/job-portal/subtitle-review-evidence/download",
                         "/api/jobs/job-portal/narration-evidence/download",
                         "/api/jobs/job-portal/narration-recovery-handoff/download",
+                        "/api/jobs/job-portal/narration-delivery-package/download",
                         "/api/jobs/job-portal/narration-workspace/generate-video"
                 );
         assertThat(portal.packageEntries())
@@ -222,8 +241,15 @@ class DemoHandoffPortalServiceTests {
                         "Linked safe route: /api/jobs/job-portal/subtitle-review-evidence/download",
                         "Linked safe route: /api/jobs/job-portal/narration-evidence/download",
                         "Linked safe route: /api/jobs/job-portal/narration-recovery-handoff/download",
+                        "Linked safe route: /api/jobs/job-portal/narration-delivery-package/download",
                         "Linked safe route: /api/jobs/job-portal/narration-workspace/generate-video"
                 );
+        assertThat(entries.get("narration-delivery-package.json"))
+                .contains("\"jobId\":\"job-portal\"")
+                .contains("\"status\":\"READY\"");
+        assertThat(entries.get("narration-delivery-package.md"))
+                .contains("Narration delivery package")
+                .contains("metadata-only");
         assertThat(combined)
                 .doesNotContain("sk-test")
                 .doesNotContain("OPENAI_API_KEY")
@@ -247,7 +273,8 @@ class DemoHandoffPortalServiceTests {
             DemoRunSnapshotVo snapshot,
             DemoShareSheetVo shareSheet,
             DemoRunMonitorVo monitor,
-            OpenAiSmokeProofVo openAiProof
+            OpenAiSmokeProofVo openAiProof,
+            NarrationDeliveryPackageVo deliveryPackage
     ) {
         return new DemoHandoffPortalServiceImpl(
                 new StaticLocalizationJobQueryService(job),
@@ -259,6 +286,7 @@ class DemoHandoffPortalServiceTests {
                 new StaticShareSheetService(shareSheet),
                 new StaticRunMonitorService(monitor),
                 new StaticOpenAiSmokeProofService(openAiProof),
+                new StaticNarrationDeliveryPackageService(deliveryPackage),
                 new StaticNarrationMixSettingsRepository(new NarrationMixSettingsRecord(
                         "job-portal",
                         new BigDecimal("0.125"),
@@ -335,8 +363,11 @@ class DemoHandoffPortalServiceTests {
                 "tears-showcase",
                 List.of(new DemoReviewerWorkspaceSectionVo("RUN", "Run summary", status, List.of("Safe reviewer facts."))),
                 List.of(new DemoReviewerWorkspaceCheckVo("JOB_COMPLETED", "Job completed", status, "Completion check.", "Review job state.", true)),
-                List.of(new DemoReviewerWorkspaceLinkVo("package", "Demo reviewer workspace", "/api/jobs/job-portal/demo-reviewer-workspace/download", "application/zip", "Reviewer package.")),
-                List.of("manifest.json", "reviewer-workspace.md", "README.md"),
+                List.of(
+                        new DemoReviewerWorkspaceLinkVo("package", "Demo reviewer workspace", "/api/jobs/job-portal/demo-reviewer-workspace/download", "application/zip", "Reviewer package."),
+                        new DemoReviewerWorkspaceLinkVo("NARRATION_DELIVERY_PACKAGE_ZIP", "Narration delivery package ZIP", "/api/jobs/job-portal/narration-delivery-package/download", "application/zip", "Narration delivery package.")
+                ),
+                List.of("manifest.json", "reviewer-workspace.md", "README.md", "narration-delivery-package.json", "narration-delivery-package.md"),
                 List.of("Reviewer workspace excludes raw content.")
         );
     }
@@ -479,6 +510,35 @@ class DemoHandoffPortalServiceTests {
         );
     }
 
+    private static NarrationDeliveryPackageVo deliveryPackage(String status) {
+        boolean ready = "READY".equals(status);
+        return new NarrationDeliveryPackageVo(
+                "job-portal",
+                NOW,
+                status,
+                ready ? "NARRATION_DELIVERY_READY" : "NARRATION_DELIVERY_BLOCKED",
+                ready ? "Download the narration delivery package." : "Resolve narration delivery blockers.",
+                ready,
+                ready,
+                ready ? 0 : 2,
+                ready ? "READY" : "ATTENTION",
+                "READY",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "BLOCKED",
+                ready ? List.of(new NarrationDeliveryPackageArtifactVo("audio-artifact", "NARRATION_AUDIO", "narration-audio.mp3", "audio/mpeg", 1024, false, "/api/jobs/job-portal/artifacts/audio-artifact/download")) : List.of(),
+                List.of(new NarrationDeliveryPackageCheckVo("NARRATION_PLAYBACK_RESOLUTION", "Playback resolution", ready ? "READY" : "BLOCKED", "Playback resolution status.", "Review playback resolution.", true)),
+                List.of(
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_JSON", "Narration delivery package JSON", "/api/jobs/job-portal/narration-delivery-package", "application/json", "Delivery metadata."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_MARKDOWN", "Narration delivery package Markdown", "/api/jobs/job-portal/narration-delivery-package/markdown/download", "text/markdown", "Delivery Markdown."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_ZIP", "Narration delivery package ZIP", "/api/jobs/job-portal/narration-delivery-package/download", "application/zip", "Delivery ZIP.")
+                ),
+                List.of("manifest.json", "narration-delivery-package.json", "narration-delivery-package.md", "README.md"),
+                List.of("Narration delivery package is metadata-only.")
+        );
+    }
+
     private static Map<String, String> zipEntries(InputStream inputStream) throws IOException {
         try (ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
             java.util.LinkedHashMap<String, String> entries = new java.util.LinkedHashMap<>();
@@ -597,6 +657,30 @@ class DemoHandoffPortalServiceTests {
         @Override
         public String renderMarkdown(String jobId) {
             return "safe openai proof";
+        }
+    }
+
+    private record StaticNarrationDeliveryPackageService(
+            NarrationDeliveryPackageVo deliveryPackage
+    ) implements NarrationDeliveryPackageService {
+        @Override
+        public NarrationDeliveryPackageVo getSummary(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public NarrationDeliveryPackageVo getPackage(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public String renderMarkdown(String jobId) {
+            return "# Narration delivery package\n\n- Status: " + deliveryPackage.status() + "\n- Safety: metadata-only\n";
+        }
+
+        @Override
+        public com.linguaframe.job.domain.bo.StoredNarrationDeliveryPackageBo openPackage(String jobId) {
+            throw new UnsupportedOperationException();
         }
     }
 

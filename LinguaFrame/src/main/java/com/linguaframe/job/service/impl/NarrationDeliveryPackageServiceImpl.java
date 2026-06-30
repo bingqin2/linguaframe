@@ -24,6 +24,7 @@ import com.linguaframe.job.service.NarrationPlaybackReviewService;
 import com.linguaframe.job.service.NarrationRecoveryHandoffService;
 import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -36,6 +37,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -53,7 +55,7 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
     private final NarrationRenderReviewService renderReviewService;
     private final NarrationPlaybackReviewService playbackReviewService;
     private final NarrationPlaybackReviewResolutionService playbackResolutionService;
-    private final NarrationRecoveryHandoffService recoveryHandoffService;
+    private final Supplier<NarrationRecoveryHandoffService> recoveryHandoffService;
     private final Clock clock;
 
     @Autowired
@@ -64,10 +66,23 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
             NarrationRenderReviewService renderReviewService,
             NarrationPlaybackReviewService playbackReviewService,
             NarrationPlaybackReviewResolutionService playbackResolutionService,
+            ObjectProvider<NarrationRecoveryHandoffService> recoveryHandoffService
+    ) {
+        this(new ObjectMapper().registerModule(new JavaTimeModule()), artifactService, evidenceService, scriptPackageService, renderReviewService,
+                playbackReviewService, playbackResolutionService, recoveryHandoffService::getObject, Clock.systemUTC());
+    }
+
+    public NarrationDeliveryPackageServiceImpl(
+            JobArtifactService artifactService,
+            NarrationEvidenceService evidenceService,
+            NarrationScriptPackageService scriptPackageService,
+            NarrationRenderReviewService renderReviewService,
+            NarrationPlaybackReviewService playbackReviewService,
+            NarrationPlaybackReviewResolutionService playbackResolutionService,
             NarrationRecoveryHandoffService recoveryHandoffService
     ) {
         this(new ObjectMapper().registerModule(new JavaTimeModule()), artifactService, evidenceService, scriptPackageService, renderReviewService,
-                playbackReviewService, playbackResolutionService, recoveryHandoffService, Clock.systemUTC());
+                playbackReviewService, playbackResolutionService, () -> recoveryHandoffService, Clock.systemUTC());
     }
 
     public NarrationDeliveryPackageServiceImpl(
@@ -79,6 +94,21 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
             NarrationPlaybackReviewService playbackReviewService,
             NarrationPlaybackReviewResolutionService playbackResolutionService,
             NarrationRecoveryHandoffService recoveryHandoffService,
+            Clock clock
+    ) {
+        this(objectMapper, artifactService, evidenceService, scriptPackageService, renderReviewService,
+                playbackReviewService, playbackResolutionService, () -> recoveryHandoffService, clock);
+    }
+
+    private NarrationDeliveryPackageServiceImpl(
+            ObjectMapper objectMapper,
+            JobArtifactService artifactService,
+            NarrationEvidenceService evidenceService,
+            NarrationScriptPackageService scriptPackageService,
+            NarrationRenderReviewService renderReviewService,
+            NarrationPlaybackReviewService playbackReviewService,
+            NarrationPlaybackReviewResolutionService playbackResolutionService,
+            Supplier<NarrationRecoveryHandoffService> recoveryHandoffService,
             Clock clock
     ) {
         this.objectMapper = objectMapper;
@@ -93,13 +123,47 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
     }
 
     @Override
+    public NarrationDeliveryPackageVo getSummary(String jobId) {
+        NarrationEvidenceVo evidence = evidenceService.getEvidence(jobId);
+        NarrationScriptPackageVo scriptPackage = scriptPackageService.getPackage(jobId);
+        NarrationRenderReviewVo renderReview = renderReviewService.getReview(jobId);
+        NarrationPlaybackReviewVo playbackReview = playbackReviewService.getReview(jobId);
+        NarrationPlaybackReviewResolutionVo resolution = playbackResolutionService.getResolution(jobId);
+        List<NarrationDeliveryPackageArtifactVo> artifacts = artifacts(jobId);
+        boolean audioReady = artifacts.stream().anyMatch(artifact -> "NARRATION_AUDIO".equals(artifact.artifactType()));
+        boolean videoReady = artifacts.stream().anyMatch(artifact -> "NARRATED_VIDEO".equals(artifact.artifactType()));
+        String status = summaryStatus(audioReady, videoReady, evidence, scriptPackage, renderReview, playbackReview, resolution);
+        return new NarrationDeliveryPackageVo(
+                jobId,
+                Instant.now(clock),
+                status,
+                phase(status),
+                nextAction(status, audioReady, videoReady, resolution),
+                audioReady,
+                videoReady,
+                resolution.unresolvedSegmentCount(),
+                safeStatus(evidence.status()),
+                safeStatus(scriptPackage.status()),
+                safeStatus(renderReview.status()),
+                safeStatus(playbackReview.status()),
+                safeStatus(resolution.status()),
+                "SUMMARY_ONLY",
+                artifacts,
+                summaryChecks(audioReady, videoReady, evidence, scriptPackage, renderReview, playbackReview, resolution),
+                safeLinks(jobId, artifacts),
+                packageEntries(),
+                safetyNotes()
+        );
+    }
+
+    @Override
     public NarrationDeliveryPackageVo getPackage(String jobId) {
         NarrationEvidenceVo evidence = evidenceService.getEvidence(jobId);
         NarrationScriptPackageVo scriptPackage = scriptPackageService.getPackage(jobId);
         NarrationRenderReviewVo renderReview = renderReviewService.getReview(jobId);
         NarrationPlaybackReviewVo playbackReview = playbackReviewService.getReview(jobId);
         NarrationPlaybackReviewResolutionVo resolution = playbackResolutionService.getResolution(jobId);
-        NarrationRecoveryHandoffVo handoff = recoveryHandoffService.getHandoff(jobId);
+        NarrationRecoveryHandoffVo handoff = recoveryHandoffService.get().getHandoff(jobId);
         List<NarrationDeliveryPackageArtifactVo> artifacts = artifacts(jobId);
         boolean audioReady = artifacts.stream().anyMatch(artifact -> "NARRATION_AUDIO".equals(artifact.artifactType()));
         boolean videoReady = artifacts.stream().anyMatch(artifact -> "NARRATED_VIDEO".equals(artifact.artifactType()));
@@ -240,6 +304,53 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
         );
     }
 
+    private List<NarrationDeliveryPackageCheckVo> summaryChecks(
+            boolean audioReady,
+            boolean videoReady,
+            NarrationEvidenceVo evidence,
+            NarrationScriptPackageVo scriptPackage,
+            NarrationRenderReviewVo renderReview,
+            NarrationPlaybackReviewVo playbackReview,
+            NarrationPlaybackReviewResolutionVo resolution
+    ) {
+        if (evidence.segmentCount() == 0) {
+            return List.of(
+                    check("NARRATION_DELIVERY_EMPTY", "Narration delivery empty", READY,
+                            "No narration rows are saved; narration delivery package does not apply.",
+                            "Continue with subtitle or standard demo handoff.", false),
+                    check("NARRATION_RECOVERY_HANDOFF", "Narration recovery handoff", "SUMMARY_ONLY",
+                            "Recovery handoff is linked but not loaded in final handoff summaries to avoid recursive acceptance-gate aggregation.",
+                            "Open narration recovery handoff only when playback resolution is blocked.", false)
+            );
+        }
+        return List.of(
+                check("NARRATION_AUDIO", "Narration audio", audioReady ? READY : ATTENTION,
+                        audioReady ? "Narration audio artifact is available." : "No narration audio artifact is available.",
+                        "Generate narration audio only through the explicit render action.", false),
+                check("NARRATED_VIDEO", "Narrated video", videoReady ? READY : ATTENTION,
+                        videoReady ? "Narrated video artifact is available." : "No narrated video artifact is available.",
+                        "Generate narrated video after narration audio and render review are ready.", false),
+                check("NARRATION_EVIDENCE", "Narration evidence", statusFrom(evidence.status()),
+                        "Narration evidence status is " + evidence.status() + ".",
+                        "Open narration evidence if counts or artifact readiness need review.", true),
+                check("NARRATION_SCRIPT_PACKAGE", "Narration script package", statusFrom(scriptPackage.status()),
+                        "Narration script package status is " + scriptPackage.status() + ".",
+                        "Export or import script package only through the explicit script package workflow.", true),
+                check("NARRATION_RENDER_REVIEW", "Narration render review", statusFrom(renderReview.status()),
+                        "Narration render review status is " + renderReview.status() + ".",
+                        renderReview.nextAction(), true),
+                check("NARRATION_PLAYBACK_REVIEW", "Narration playback review", statusFrom(playbackReview.status()),
+                        "Narration playback review status is " + playbackReview.status() + ".",
+                        playbackReview.nextAction(), true),
+                check("NARRATION_PLAYBACK_RESOLUTION", "Narration playback resolution", resolution.unresolvedSegmentCount() > 0 ? BLOCKED : statusFrom(resolution.status()),
+                        "Narration playback resolution status is " + resolution.status() + "; unresolved=" + resolution.unresolvedSegmentCount() + ".",
+                        resolution.nextAction(), true),
+                check("NARRATION_RECOVERY_HANDOFF", "Narration recovery handoff", "SUMMARY_ONLY",
+                        "Recovery handoff is linked but not loaded in final handoff summaries to avoid recursive acceptance-gate aggregation.",
+                        "Open narration recovery handoff only when playback resolution is blocked.", false)
+        );
+    }
+
     private byte[] zipBytes(String jobId, NarrationDeliveryPackageVo delivery) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, StandardCharsets.UTF_8)) {
@@ -256,8 +367,8 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
             writeEntry(zipOutputStream, "narration-playback-review.md", safe(playbackReviewService.renderMarkdown(jobId)));
             writeEntry(zipOutputStream, "narration-playback-resolution.json", safe(writeJson(playbackResolutionService.getResolution(jobId))));
             writeEntry(zipOutputStream, "narration-playback-resolution.md", safe(playbackResolutionService.renderMarkdown(jobId)));
-            writeEntry(zipOutputStream, "narration-recovery-handoff.json", safe(writeJson(recoveryHandoffService.getHandoff(jobId))));
-            writeEntry(zipOutputStream, "narration-recovery-handoff.md", safe(recoveryHandoffService.renderMarkdown(jobId)));
+            writeEntry(zipOutputStream, "narration-recovery-handoff.json", safe(writeJson(recoveryHandoffService.get().getHandoff(jobId))));
+            writeEntry(zipOutputStream, "narration-recovery-handoff.md", safe(recoveryHandoffService.get().renderMarkdown(jobId)));
         } catch (IOException ex) {
             throw new IllegalStateException("Failed to build narration delivery package", ex);
         }
@@ -351,15 +462,40 @@ public class NarrationDeliveryPackageServiceImpl implements NarrationDeliveryPac
         return ATTENTION;
     }
 
+    private String summaryStatus(
+            boolean audioReady,
+            boolean videoReady,
+            NarrationEvidenceVo evidence,
+            NarrationScriptPackageVo scriptPackage,
+            NarrationRenderReviewVo renderReview,
+            NarrationPlaybackReviewVo playbackReview,
+            NarrationPlaybackReviewResolutionVo resolution
+    ) {
+        if (evidence.segmentCount() == 0) {
+            return "EMPTY";
+        }
+        if (resolution.unresolvedSegmentCount() > 0 || BLOCKED.equals(evidence.status()) || BLOCKED.equals(scriptPackage.status())) {
+            return BLOCKED;
+        }
+        if (audioReady && videoReady && READY.equals(renderReview.status()) && READY.equals(playbackReview.status()) && READY.equals(resolution.status())) {
+            return READY;
+        }
+        return ATTENTION;
+    }
+
     private String phase(String status) {
         return switch (status) {
             case READY -> "NARRATION_DELIVERY_READY";
             case BLOCKED -> "NARRATION_DELIVERY_BLOCKED";
+            case "EMPTY" -> "NARRATION_DELIVERY_EMPTY";
             default -> "NARRATION_DELIVERY_NEEDS_REVIEW";
         };
     }
 
     private String nextAction(String status, boolean audioReady, boolean videoReady, NarrationPlaybackReviewResolutionVo resolution) {
+        if ("EMPTY".equals(status)) {
+            return "No narration rows are saved; continue with standard demo handoff.";
+        }
         if (BLOCKED.equals(status)) {
             return "Resolve narration playback rows, save revisions, regenerate narration media, then rerun delivery package.";
         }

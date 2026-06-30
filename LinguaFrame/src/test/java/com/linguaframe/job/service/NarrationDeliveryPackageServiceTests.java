@@ -160,6 +160,36 @@ class NarrationDeliveryPackageServiceTests {
                 .isEqualTo("BLOCKED");
     }
 
+    @Test
+    void buildsSummaryWithoutLoadingRecoveryHandoff() {
+        NarrationDeliveryPackageService service = new NarrationDeliveryPackageServiceImpl(
+                new StaticJobArtifactService(List.of(
+                        artifact("audio-artifact", "job-summary", JobArtifactType.NARRATION_AUDIO, "narration-audio.mp3", "audio/mpeg"),
+                        artifact("video-artifact", "job-summary", JobArtifactType.NARRATED_VIDEO, "narrated-video.mp4", "video/mp4")
+                )),
+                new StaticNarrationEvidenceService(evidence("job-summary", "READY", true, true)),
+                new StaticNarrationScriptPackageService(scriptPackage("job-summary", "READY")),
+                new StaticNarrationRenderReviewService(renderReview("job-summary", "READY", true, true)),
+                new StaticNarrationPlaybackReviewService(playbackReview("job-summary", "READY", true, true)),
+                new StaticNarrationPlaybackReviewResolutionService(resolution("job-summary", "READY", 0, true, true)),
+                new ThrowingNarrationRecoveryHandoffService()
+        );
+
+        NarrationDeliveryPackageVo summary = service.getSummary("job-summary");
+
+        assertThat(summary.status()).isEqualTo("READY");
+        assertThat(summary.recoveryHandoffStatus()).isEqualTo("SUMMARY_ONLY");
+        assertThat(summary.checks())
+                .filteredOn(check -> "NARRATION_RECOVERY_HANDOFF".equals(check.key()))
+                .singleElement()
+                .satisfies(check -> {
+                    assertThat(check.status()).isEqualTo("SUMMARY_ONLY");
+                    assertThat(check.required()).isFalse();
+                });
+        assertThat(summary.safeLinks()).extracting("href")
+                .contains("/api/jobs/job-summary/narration-recovery-handoff/download");
+    }
+
     private static NarrationDeliveryPackageService service(
             List<JobArtifactVo> artifacts,
             NarrationEvidenceVo evidence,
@@ -475,6 +505,23 @@ class NarrationDeliveryPackageServiceTests {
         @Override
         public StoredNarrationRecoveryHandoffPackageBo openPackage(String jobId) {
             return new StoredNarrationRecoveryHandoffPackageBo("unused.zip", "application/zip", 0, new ByteArrayInputStream(new byte[0]));
+        }
+    }
+
+    private static final class ThrowingNarrationRecoveryHandoffService implements NarrationRecoveryHandoffService {
+        @Override
+        public NarrationRecoveryHandoffVo getHandoff(String jobId) {
+            throw new AssertionError("getSummary must not load recovery handoff");
+        }
+
+        @Override
+        public String renderMarkdown(String jobId) {
+            throw new AssertionError("getSummary must not render recovery handoff");
+        }
+
+        @Override
+        public StoredNarrationRecoveryHandoffPackageBo openPackage(String jobId) {
+            throw new AssertionError("getSummary must not open recovery handoff");
         }
     }
 }

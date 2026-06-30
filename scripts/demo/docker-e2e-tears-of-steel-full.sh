@@ -220,6 +220,24 @@ LINGUAFRAME_DEMO_JOB_ID="$job_id" \
   LINGUAFRAME_NARRATION_RECOVERY_HANDOFF_REPORT_ONLY="${LINGUAFRAME_NARRATION_RECOVERY_HANDOFF_REPORT_ONLY:-true}" \
   "$SCRIPT_DIR/narration-recovery-handoff.sh"
 
+echo "Narration delivery package:"
+LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+  LINGUAFRAME_NARRATION_DELIVERY_PACKAGE_OUTPUT_DIR="$OUTPUT_DIR/narration-delivery-package" \
+  LINGUAFRAME_NARRATION_DELIVERY_PACKAGE_REPORT_ONLY="${LINGUAFRAME_NARRATION_DELIVERY_PACKAGE_REPORT_ONLY:-true}" \
+  "$SCRIPT_DIR/narration-delivery-package.sh"
+
+echo "Refreshing final demo handoff packages with narration delivery status:"
+download_demo_acceptance_gate_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-acceptance-gate.json"
+print_demo_acceptance_gate_summary_file "$OUTPUT_DIR/demo-acceptance-gate.json"
+download_demo_reviewer_workspace_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.json"
+download_demo_reviewer_workspace_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.md"
+download_demo_reviewer_workspace_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
+print_demo_reviewer_workspace_summary_file "$OUTPUT_DIR/demo-reviewer-workspace.json" "$OUTPUT_DIR/demo-reviewer-workspace.md" "$OUTPUT_DIR/demo-reviewer-workspace.zip"
+download_demo_handoff_portal_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.json"
+download_demo_handoff_portal_markdown "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.md"
+download_demo_handoff_portal_zip "$BASE_URL" "$job_id" "$OUTPUT_DIR/demo-handoff-portal.zip"
+print_demo_handoff_portal_summary_file "$OUTPUT_DIR/demo-handoff-portal.json" "$OUTPUT_DIR/demo-handoff-portal.md" "$OUTPUT_DIR/demo-handoff-portal.zip"
+
 if [[ -n "$COMPARISON_BASELINE_JOB_ID" ]]; then
   echo "Demo profile comparison against baseline $COMPARISON_BASELINE_JOB_ID:"
   download_job_comparison_json "$BASE_URL" "$COMPARISON_BASELINE_JOB_ID" "$job_id" "$OUTPUT_DIR/job-comparison.json"

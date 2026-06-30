@@ -1820,6 +1820,11 @@ describe('App', () => {
     const reviewerWorkspace = screen.getByRole('region', { name: /demo reviewer workspace/i });
     expect(within(reviewerWorkspace).getByText('REVIEW_PACKAGE_READY')).toBeInTheDocument();
     expect(within(reviewerWorkspace).getByText(/Job completed/)).toBeInTheDocument();
+    expect(within(reviewerWorkspace).getByRole('link', { name: /narration delivery package zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/narration-delivery-package/download'
+    );
+    expect(within(reviewerWorkspace).getByText('narration-delivery-package.json')).toBeInTheDocument();
     expect(within(reviewerWorkspace).getByText('Demo run package')).toBeInTheDocument();
     expect(within(reviewerWorkspace).queryByText('raw transcript text')).not.toBeInTheDocument();
     expect(within(reviewerWorkspace).queryByText('provider request payload')).not.toBeInTheDocument();
@@ -1831,6 +1836,11 @@ describe('App', () => {
     expect(within(handoffPortal).getByText('HANDOFF_PORTAL_READY')).toBeInTheDocument();
     expect(within(handoffPortal).getByText(/Static handoff portal ZIP/)).toBeInTheDocument();
     expect(within(handoffPortal).getByText('index.html')).toBeInTheDocument();
+    expect(within(handoffPortal).getByText('narration-delivery-package.md')).toBeInTheDocument();
+    expect(within(handoffPortal).getByRole('link', { name: /narration delivery package zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/job-1/narration-delivery-package/download'
+    );
     expect(within(handoffPortal).getByText('Demo reviewer workspace')).toBeInTheDocument();
     expect(within(handoffPortal).queryByText('raw transcript text')).not.toBeInTheDocument();
     expect(within(handoffPortal).queryByText('provider request payload')).not.toBeInTheDocument();
@@ -8097,6 +8107,13 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
         status: 'PASS',
         detail: 'Narration playback resolution status=READY; unresolved=0; textRevision=0; rerender=0; unreviewed=0.',
         required: true
+      },
+      {
+        key: 'NARRATION_DELIVERY_PACKAGE_READY',
+        label: 'Narration delivery package ready',
+        status: 'PASS',
+        detail: 'Narration delivery package status=READY; audioReady=true; videoReady=true; entries=4.',
+        required: false
       }
     ],
     evidence: [
@@ -8110,6 +8127,24 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
         key: 'NARRATION_PLAYBACK_UNRESOLVED_COUNT',
         label: 'Narration unresolved rows',
         value: '0',
+        status: 'READY'
+      },
+      {
+        key: 'NARRATION_DELIVERY_PACKAGE_STATUS',
+        label: 'Narration delivery package',
+        value: 'READY',
+        status: 'READY'
+      },
+      {
+        key: 'NARRATION_DELIVERY_AUDIO_READY',
+        label: 'Narration delivery audio ready',
+        value: 'true',
+        status: 'READY'
+      },
+      {
+        key: 'NARRATION_DELIVERY_VIDEO_READY',
+        label: 'Narration delivery video ready',
+        value: 'true',
         status: 'READY'
       },
       {
@@ -8146,6 +8181,11 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
         kind: 'NARRATION_PLAYBACK_RESOLUTION_JSON',
         label: 'Narration playback resolution',
         url: `/api/jobs/${jobId}/narration-playback-review/resolution`
+      },
+      {
+        kind: 'NARRATION_DELIVERY_PACKAGE_ZIP',
+        label: 'Narration delivery package ZIP',
+        url: `/api/jobs/${jobId}/narration-delivery-package/download`
       }
     ],
     safetyNotes: [
@@ -9495,6 +9535,16 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         title: 'Run summary',
         status: 'READY',
         facts: ['Completed job job-1.', 'Target language zh-CN.']
+      },
+      {
+        key: 'narration-delivery',
+        title: 'Narration delivery',
+        status: 'READY',
+        facts: [
+          'Narration delivery package: READY',
+          'Narration audio ready: true',
+          'Narrated video ready: true'
+        ]
       }
     ],
     checks: [
@@ -9513,6 +9563,14 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         detail: 'Provider-backed model calls are recorded.',
         nextAction: 'No action required.',
         required: false
+      },
+      {
+        key: 'narration-delivery-package',
+        label: 'Narration delivery package',
+        status: 'READY',
+        detail: 'Narration delivery package status is READY; audioReady=true; videoReady=true.',
+        nextAction: 'Download the narration delivery package.',
+        required: false
       }
     ],
     safeLinks: [
@@ -9522,9 +9580,16 @@ function demoReviewerWorkspaceFixture(): DemoReviewerWorkspace {
         href: '/api/jobs/job-1/demo-run-package/download',
         contentType: 'application/zip',
         description: 'Metadata and links for the completed demo run.'
+      },
+      {
+        kind: 'NARRATION_DELIVERY_PACKAGE_ZIP',
+        label: 'Narration delivery package ZIP',
+        href: '/api/jobs/job-1/narration-delivery-package/download',
+        contentType: 'application/zip',
+        description: 'Narration delivery package.'
       }
     ],
-    packageEntries: ['manifest.json', 'reviewer-workspace.md', 'README.md'],
+    packageEntries: ['manifest.json', 'reviewer-workspace.md', 'narration-delivery-package.json', 'narration-delivery-package.md', 'README.md'],
     safetyNotes: [
       'Metadata only: no media bytes, transcript bodies, subtitle bodies, local filesystem paths, object storage keys, provider request or response bodies, credentials, bearer tokens, or demo tokens are included.'
     ]
@@ -9559,6 +9624,14 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         detail: 'Reviewer workspace status is READY.',
         nextAction: 'Download reviewer workspace.',
         required: true
+      },
+      {
+        key: 'narration-delivery-package',
+        label: 'Narration delivery package',
+        status: 'READY',
+        detail: 'Narration delivery package status is READY; audioReady=true; videoReady=true.',
+        nextAction: 'Download the narration delivery package.',
+        required: false
       }
     ],
     sections: [
@@ -9567,6 +9640,12 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         title: 'Offline portal',
         status: 'READY',
         facts: ['Entry point: index.html', 'Static package excludes media bytes.']
+      },
+      {
+        key: 'narration-delivery',
+        title: 'Narration delivery',
+        status: 'READY',
+        facts: ['Narration delivery package: READY', 'Narration delivery package link is available.']
       }
     ],
     safeLinks: [
@@ -9583,9 +9662,16 @@ function demoHandoffPortalFixture(): DemoHandoffPortal {
         href: '/api/jobs/job-1/demo-reviewer-workspace/download',
         contentType: 'application/zip',
         description: 'Reviewer workspace package.'
+      },
+      {
+        kind: 'NARRATION_DELIVERY_PACKAGE_ZIP',
+        label: 'Narration delivery package ZIP',
+        href: '/api/jobs/job-1/narration-delivery-package/download',
+        contentType: 'application/zip',
+        description: 'Narration delivery package.'
       }
     ],
-    packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md'],
+    packageEntries: ['index.html', 'manifest.json', 'handoff-portal.md', 'narration-delivery-package.json', 'narration-delivery-package.md'],
     safetyNotes: ['Metadata only; sensitive content is excluded.']
   };
 }

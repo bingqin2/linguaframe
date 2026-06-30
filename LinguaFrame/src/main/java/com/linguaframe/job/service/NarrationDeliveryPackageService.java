@@ -5,6 +5,8 @@ import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 
 public interface NarrationDeliveryPackageService {
 
+    NarrationDeliveryPackageVo getSummary(String jobId);
+
     NarrationDeliveryPackageVo getPackage(String jobId);
 
     String renderMarkdown(String jobId);

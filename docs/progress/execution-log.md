@@ -6,6 +6,30 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration final handoff integration feature slice from `docs/plans/168-narration-final-handoff-integration.md`.
+- Added delivery package readiness, evidence, and safe links to the demo acceptance gate.
+- Added narration delivery package checks, package entries, safe links, and JSON/Markdown ZIP entries to the demo reviewer workspace.
+- Added narration delivery package checks, safe links, static portal entries, and `index.html` linkage to the demo handoff portal.
+- Updated the full Tears demo script to export `narration-delivery-package/` after narration playback resolution/recovery and then refresh final acceptance, reviewer workspace, and handoff portal outputs.
+- Updated frontend selected-job smoke coverage plus README, Docker demo guidance, smoke checklist, roadmap, and target state for the integrated final handoff flow.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,DemoReviewerWorkspaceServiceTests,DemoHandoffPortalServiceTests test` first failed at test compile because the three final handoff services did not yet accept `NarrationDeliveryPackageService`; after wiring the dependency and output fields, it passed with `Tests run: 15, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "renders timeline"` first failed because the new assertion matched multiple intended `Narration delivery package` labels; after narrowing to the delivery ZIP link, it passed with `Test Files 1 passed` and `Tests 1 passed | 150 skipped`.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/narration-delivery-package.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` first exposed a circular dependency between final acceptance, delivery package, and recovery handoff services. The delivery package now exposes a read-only summary path and lazily resolves the full recovery handoff only for full package export.
+- `mvn -pl LinguaFrame -Dtest=NarrationDeliveryPackageServiceTests,DemoAcceptanceGateServiceTests,DemoReviewerWorkspaceServiceTests,DemoHandoffPortalServiceTests,LocalizationJobControllerTests test` passed with `Tests run: 101, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 840, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 316 passed`.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
 - Started and implemented the narration delivery package feature slice from `docs/plans/167-narration-delivery-package.md`.
 - Added backend delivery package VO/BO/service/controller endpoints for JSON, Markdown, and ZIP export at `/api/jobs/{jobId}/narration-delivery-package`.
 - The delivery package aggregates existing narration evidence, explicit script package, render review, playback review, playback resolution, recovery handoff, and generated narration media links without creating media, running FFmpeg, calling providers, or embedding media bytes.

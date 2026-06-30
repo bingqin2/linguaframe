@@ -18,6 +18,10 @@ import com.linguaframe.job.domain.vo.JobDiagnosticsReportVo;
 import com.linguaframe.job.domain.vo.JobUsageSummaryVo;
 import com.linguaframe.job.domain.vo.LocalizationJobListVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageArtifactVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageCheckVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageLinkVo;
+import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofCheckVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofLinkVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
@@ -26,10 +30,16 @@ import com.linguaframe.job.service.impl.DemoReviewerWorkspaceServiceImpl;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -45,7 +55,8 @@ class DemoReviewerWorkspaceServiceTests {
                 acceptance("READY"),
                 certificate("READY"),
                 manifest(true),
-                openAiProof("READY")
+                openAiProof("READY"),
+                deliveryPackage("READY")
         );
 
         DemoReviewerWorkspaceVo workspace = service.getWorkspace("job-reviewer");
@@ -56,15 +67,26 @@ class DemoReviewerWorkspaceServiceTests {
         assertThat(workspace.overallStatus()).isEqualTo("READY");
         assertThat(workspace.phase()).isEqualTo("REVIEW_PACKAGE_READY");
         assertThat(workspace.checks()).extracting("status").containsOnly("READY");
+        assertThat(workspace.checks()).extracting("key")
+                .contains("NARRATION_DELIVERY_PACKAGE");
         assertThat(workspace.sections()).extracting("title")
-                .contains("Run summary", "Delivery", "OpenAI proof", "Packages");
+                .contains("Run summary", "Delivery", "OpenAI proof", "Narration delivery", "Packages");
         assertThat(workspace.safeLinks()).extracting("href")
                 .contains(
                         "/api/jobs/job-reviewer",
                         "/api/jobs/job-reviewer/demo-reviewer-workspace/markdown/download",
                         "/api/jobs/job-reviewer/demo-reviewer-workspace/download",
                         "/api/jobs/job-reviewer/demo-run-package/download",
-                        "/api/jobs/job-reviewer/ai-audit-package/download"
+                        "/api/jobs/job-reviewer/ai-audit-package/download",
+                        "/api/jobs/job-reviewer/narration-delivery-package",
+                        "/api/jobs/job-reviewer/narration-delivery-package/markdown/download",
+                        "/api/jobs/job-reviewer/narration-delivery-package/download"
+                );
+        assertThat(workspace.packageEntries())
+                .contains(
+                        "narration-delivery-package.json",
+                        "narration-delivery-package.md",
+                        "Linked safe route: /api/jobs/job-reviewer/narration-delivery-package/download"
                 );
         assertThat(workspace.recommendedNextAction()).contains("share");
     }
@@ -76,7 +98,8 @@ class DemoReviewerWorkspaceServiceTests {
                 acceptance("READY"),
                 certificate("READY"),
                 manifest(true),
-                openAiProof("ATTENTION")
+                openAiProof("ATTENTION"),
+                deliveryPackage("READY")
         );
 
         DemoReviewerWorkspaceVo workspace = service.getWorkspace("job-reviewer");
@@ -97,7 +120,8 @@ class DemoReviewerWorkspaceServiceTests {
                 acceptance("BLOCKED"),
                 certificate("BLOCKED"),
                 manifest(false),
-                openAiProof("ATTENTION")
+                openAiProof("ATTENTION"),
+                deliveryPackage("BLOCKED")
         );
 
         DemoReviewerWorkspaceVo workspace = service.getWorkspace("job-reviewer");
@@ -119,7 +143,8 @@ class DemoReviewerWorkspaceServiceTests {
                 acceptance("READY"),
                 certificate("READY"),
                 manifest(true),
-                openAiProof("READY")
+                openAiProof("READY"),
+                deliveryPackage("READY")
         );
 
         String markdown = service.renderMarkdown("job-reviewer");
@@ -129,7 +154,9 @@ class DemoReviewerWorkspaceServiceTests {
                 .contains("- Job: job-reviewer")
                 .contains("- Overall status: READY")
                 .contains("Demo run package")
-                .contains("OpenAI smoke proof");
+                .contains("OpenAI smoke proof")
+                .contains("Narration delivery package")
+                .contains("/api/jobs/job-reviewer/narration-delivery-package/download");
         assertThat(markdown)
                 .doesNotContain("sk-test")
                 .doesNotContain("OPENAI_API_KEY")
@@ -141,12 +168,37 @@ class DemoReviewerWorkspaceServiceTests {
                 .doesNotContain("raw subtitle text");
     }
 
+    @Test
+    void packageIncludesNarrationDeliverySummariesWithoutNestedZip() throws IOException {
+        DemoReviewerWorkspaceService service = service(
+                job(LocalizationJobStatus.COMPLETED, true),
+                acceptance("READY"),
+                certificate("READY"),
+                manifest(true),
+                openAiProof("READY"),
+                deliveryPackage("READY")
+        );
+
+        Map<String, String> entries = zipEntries(service.openPackage("job-reviewer").inputStream());
+
+        assertThat(entries.keySet())
+                .contains("narration-delivery-package.json", "narration-delivery-package.md")
+                .doesNotContain("narration-delivery-package.zip");
+        assertThat(entries.get("narration-delivery-package.json"))
+                .contains("\"jobId\":\"job-reviewer\"")
+                .contains("\"status\":\"READY\"");
+        assertThat(entries.get("narration-delivery-package.md"))
+                .contains("Narration delivery package")
+                .contains("metadata-only");
+    }
+
     private static DemoReviewerWorkspaceService service(
             LocalizationJobVo job,
             DemoAcceptanceGateVo acceptance,
             DemoCompletionCertificateVo certificate,
             DeliveryManifestVo manifest,
-            OpenAiSmokeProofVo openAiProof
+            OpenAiSmokeProofVo openAiProof,
+            NarrationDeliveryPackageVo deliveryPackage
     ) {
         return new DemoReviewerWorkspaceServiceImpl(
                 new StaticLocalizationJobQueryService(job),
@@ -154,6 +206,7 @@ class DemoReviewerWorkspaceServiceTests {
                 new StaticCompletionCertificateService(certificate),
                 new StaticDeliveryManifestService(manifest),
                 new StaticOpenAiSmokeProofService(openAiProof),
+                new StaticNarrationDeliveryPackageService(deliveryPackage),
                 CLOCK
         );
     }
@@ -292,6 +345,48 @@ class DemoReviewerWorkspaceServiceTests {
         );
     }
 
+    private static NarrationDeliveryPackageVo deliveryPackage(String status) {
+        boolean ready = "READY".equals(status);
+        return new NarrationDeliveryPackageVo(
+                "job-reviewer",
+                NOW,
+                status,
+                ready ? "NARRATION_DELIVERY_READY" : "NARRATION_DELIVERY_BLOCKED",
+                ready ? "Download the narration delivery package." : "Resolve narration delivery blockers.",
+                ready,
+                ready,
+                ready ? 0 : 2,
+                ready ? "READY" : "ATTENTION",
+                "READY",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "ATTENTION",
+                ready ? "READY" : "BLOCKED",
+                ready ? List.of(new NarrationDeliveryPackageArtifactVo("audio-artifact", "NARRATION_AUDIO", "narration-audio.mp3", "audio/mpeg", 1024, false, "/api/jobs/job-reviewer/artifacts/audio-artifact/download")) : List.of(),
+                List.of(new NarrationDeliveryPackageCheckVo("NARRATION_PLAYBACK_RESOLUTION", "Playback resolution", ready ? "READY" : "BLOCKED", "Playback resolution status.", "Review playback resolution.", true)),
+                List.of(
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_JSON", "Narration delivery package JSON", "/api/jobs/job-reviewer/narration-delivery-package", "application/json", "Delivery metadata."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_MARKDOWN", "Narration delivery package Markdown", "/api/jobs/job-reviewer/narration-delivery-package/markdown/download", "text/markdown", "Delivery Markdown."),
+                        new NarrationDeliveryPackageLinkVo("NARRATION_DELIVERY_PACKAGE_ZIP", "Narration delivery package ZIP", "/api/jobs/job-reviewer/narration-delivery-package/download", "application/zip", "Delivery ZIP.")
+                ),
+                List.of("manifest.json", "narration-delivery-package.json", "narration-delivery-package.md", "README.md"),
+                List.of("Narration delivery package is metadata-only.")
+        );
+    }
+
+    private static Map<String, String> zipEntries(InputStream inputStream) throws IOException {
+        java.util.LinkedHashMap<String, String> entries = new java.util.LinkedHashMap<>();
+        try (ZipInputStream zip = new ZipInputStream(inputStream)) {
+            java.util.zip.ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                ByteArrayOutputStream output = new ByteArrayOutputStream();
+                zip.transferTo(output);
+                entries.put(entry.getName(), output.toString(StandardCharsets.UTF_8));
+            }
+        }
+        return entries;
+    }
+
     private record StaticLocalizationJobQueryService(LocalizationJobVo job) implements LocalizationJobQueryService {
         @Override
         public LocalizationJobListVo listJobs(LocalizationJobStatus status, Integer limit, Integer offset) {
@@ -344,6 +439,30 @@ class DemoReviewerWorkspaceServiceTests {
         @Override
         public String renderMarkdown(String jobId) {
             return "safe openai proof";
+        }
+    }
+
+    private record StaticNarrationDeliveryPackageService(
+            NarrationDeliveryPackageVo deliveryPackage
+    ) implements NarrationDeliveryPackageService {
+        @Override
+        public NarrationDeliveryPackageVo getSummary(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public NarrationDeliveryPackageVo getPackage(String jobId) {
+            return deliveryPackage;
+        }
+
+        @Override
+        public String renderMarkdown(String jobId) {
+            return "# Narration delivery package\n\n- Status: " + deliveryPackage.status() + "\n- Safety: metadata-only\n";
+        }
+
+        @Override
+        public com.linguaframe.job.domain.bo.StoredNarrationDeliveryPackageBo openPackage(String jobId) {
+            throw new UnsupportedOperationException();
         }
     }
 }
