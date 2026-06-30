@@ -18,6 +18,13 @@ import {
   type NarrationTimelineEditMode
 } from './domain/narrationTimelineEditing';
 import {
+  buildNarrationTimingAssistantReport,
+  closeNarrationDraftGaps,
+  normalizeNarrationDraftOrder,
+  resolveNarrationDraftOverlaps,
+  type NarrationTimingAssistantReport
+} from './domain/narrationTimingAssistant';
+import {
   calculateNarrationPlayheadPercent,
   selectNarrationPreviewSource,
   type NarrationPreviewSource
@@ -9388,6 +9395,9 @@ function NarrationWorkspacePanel({
   const [quickScriptMode, setQuickScriptMode] = useState<NarrationQuickScriptImportMode>('replace');
   const [quickScriptStatus, setQuickScriptStatus] = useState<string | null>(null);
   const [quickScriptExportStatus, setQuickScriptExportStatus] = useState<string | null>(null);
+  const [timingTargetGapSeconds, setTimingTargetGapSeconds] = useState(0.25);
+  const [timingMinimumReportGapSeconds, setTimingMinimumReportGapSeconds] = useState(0.5);
+  const [timingAssistantStatus, setTimingAssistantStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
   const auditionPreviewUrlRef = useRef<string | null>(null);
@@ -9430,6 +9440,9 @@ function NarrationWorkspacePanel({
     setQuickScriptMode('replace');
     setQuickScriptStatus(null);
     setQuickScriptExportStatus(null);
+    setTimingTargetGapSeconds(0.25);
+    setTimingMinimumReportGapSeconds(0.5);
+    setTimingAssistantStatus(null);
     clearTtsPreview(null);
   }, [workspace]);
 
@@ -9480,6 +9493,13 @@ function NarrationWorkspacePanel({
     [quickScriptMode, quickScriptText, segments, workspace?.voiceCatalog]
   );
   const quickScriptExportText = useMemo(() => formatNarrationQuickScript(segments), [segments]);
+  const timingAssistantReport = useMemo(
+    () => buildNarrationTimingAssistantReport(segments, {
+      minimumReportGapSeconds: timingMinimumReportGapSeconds,
+      targetGapSeconds: timingTargetGapSeconds
+    }),
+    [segments, timingMinimumReportGapSeconds, timingTargetGapSeconds]
+  );
 
   function clampSelectedIndex(nextIndex: number, nextSegments: NarrationWorkspace['segments']) {
     if (nextSegments.length === 0) {
@@ -9497,6 +9517,7 @@ function NarrationWorkspacePanel({
     setSelectedIndex(clampSelectedIndex(nextSelectedIndex, nextSegments));
     setEditCommandStatus(actionLabel);
     setQuickScriptExportStatus(null);
+    setTimingAssistantStatus(null);
     clearTtsPreview('TTS preview cleared because the narration draft changed.');
   }
 
@@ -9620,6 +9641,34 @@ function NarrationWorkspacePanel({
   function insertSegmentAfterSelected() {
     const result = insertNarrationSegmentAfter(segments, selectedIndex);
     applyEditCommand(result, `Inserted narration ${result.selectedIndex + 1}.`);
+  }
+
+  function closeTimingGaps() {
+    const gapCount = timingAssistantReport.gapCount;
+    const nextSegments = closeNarrationDraftGaps(segments, { targetGapSeconds: timingTargetGapSeconds });
+    commitDraftChange(
+      nextSegments,
+      `Closed ${gapCount} narration timing ${gapCount === 1 ? 'gap' : 'gaps'}.`,
+      selectedIndex
+    );
+    setTimingAssistantStatus(`Closed ${gapCount} narration timing ${gapCount === 1 ? 'gap' : 'gaps'}.`);
+  }
+
+  function resolveTimingOverlaps() {
+    const overlapCount = timingAssistantReport.overlapCount;
+    const nextSegments = resolveNarrationDraftOverlaps(segments, { targetGapSeconds: timingTargetGapSeconds });
+    commitDraftChange(
+      nextSegments,
+      `Resolved ${overlapCount} narration timing ${overlapCount === 1 ? 'overlap' : 'overlaps'}.`,
+      selectedIndex
+    );
+    setTimingAssistantStatus(`Resolved ${overlapCount} narration timing ${overlapCount === 1 ? 'overlap' : 'overlaps'}.`);
+  }
+
+  function normalizeTimingOrder() {
+    const nextSegments = normalizeNarrationDraftOrder(segments, { targetGapSeconds: timingTargetGapSeconds });
+    commitDraftChange(nextSegments, 'Normalized narration timing order.', selectedIndex);
+    setTimingAssistantStatus('Normalized narration timing order.');
   }
 
   function updateQuickScriptText(nextText: string) {
@@ -9816,6 +9865,23 @@ function NarrationWorkspacePanel({
             onInsertAfter={insertSegmentAfterSelected}
             onMergeNext={mergeSelectedSegmentWithNext}
             onSplitAtPlayhead={splitSelectedSegmentAtPlayhead}
+          />
+          <NarrationTimingAssistantPanel
+            minimumReportGapSeconds={timingMinimumReportGapSeconds}
+            report={timingAssistantReport}
+            status={timingAssistantStatus}
+            targetGapSeconds={timingTargetGapSeconds}
+            onCloseGaps={closeTimingGaps}
+            onMinimumReportGapSecondsChange={(value) => {
+              setTimingMinimumReportGapSeconds(clampNumber(value, 0, 60));
+              setTimingAssistantStatus(null);
+            }}
+            onNormalizeOrder={normalizeTimingOrder}
+            onResolveOverlaps={resolveTimingOverlaps}
+            onTargetGapSecondsChange={(value) => {
+              setTimingTargetGapSeconds(clampNumber(value, 0, 10));
+              setTimingAssistantStatus(null);
+            }}
           />
           <NarrationDraftHistoryPanel
             canRedo={draftHistory.future.length > 0}
@@ -11294,6 +11360,115 @@ function NarrationEditingCommandsPanel({
   );
 }
 
+function NarrationTimingAssistantPanel({
+  minimumReportGapSeconds,
+  onCloseGaps,
+  onMinimumReportGapSecondsChange,
+  onNormalizeOrder,
+  onResolveOverlaps,
+  onTargetGapSecondsChange,
+  report,
+  status,
+  targetGapSeconds
+}: {
+  minimumReportGapSeconds: number;
+  onCloseGaps: () => void;
+  onMinimumReportGapSecondsChange: (value: number) => void;
+  onNormalizeOrder: () => void;
+  onResolveOverlaps: () => void;
+  onTargetGapSecondsChange: (value: number) => void;
+  report: NarrationTimingAssistantReport;
+  status: string | null;
+  targetGapSeconds: number;
+}) {
+  const issueLabel = report.overlapCount > 0
+    ? `${report.overlapCount} ${report.overlapCount === 1 ? 'overlap' : 'overlaps'}`
+    : report.gapCount > 0
+      ? `${report.gapCount} ${report.gapCount === 1 ? 'gap' : 'gaps'}`
+      : 'No timing issues';
+
+  return (
+    <section className="narration-timing-assistant" aria-label="Narration timing assistant">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration timing assistant</h4>
+          <p className="muted">Detect and locally repair draft timing before save or generation.</p>
+        </div>
+        <span className={report.overlapCount > 0 ? 'status-pill blocked' : report.gapCount > 0 ? 'status-pill attention' : 'status-pill ready'}>
+          {issueLabel}
+        </span>
+      </div>
+      <div className="timing-assistant-controls">
+        <label>
+          Target gap seconds
+          <input
+            aria-label="Timing assistant target gap seconds"
+            type="number"
+            min="0"
+            max="10"
+            step="0.25"
+            value={targetGapSeconds}
+            onChange={(event) => onTargetGapSecondsChange(event.currentTarget.valueAsNumber)}
+          />
+        </label>
+        <label>
+          Report gaps at least
+          <input
+            aria-label="Timing assistant minimum report gap seconds"
+            type="number"
+            min="0"
+            max="60"
+            step="0.25"
+            value={minimumReportGapSeconds}
+            onChange={(event) => onMinimumReportGapSecondsChange(event.currentTarget.valueAsNumber)}
+          />
+        </label>
+      </div>
+      <dl className="compact-metrics narration-timing-assistant-metrics">
+        <div>
+          <dt>Segments</dt>
+          <dd>{report.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Gaps</dt>
+          <dd>{report.gapCount === 0 ? '0 gaps' : `${report.gapCount} ${report.gapCount === 1 ? 'gap' : 'gaps'}`}</dd>
+        </div>
+        <div>
+          <dt>Gap seconds</dt>
+          <dd>{formatSeconds(report.totalGapSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Overlaps</dt>
+          <dd>{report.overlapCount === 0 ? '0 overlaps' : `${report.overlapCount} ${report.overlapCount === 1 ? 'overlap' : 'overlaps'}`}</dd>
+        </div>
+        <div>
+          <dt>Longest gap</dt>
+          <dd>{formatSeconds(report.longestGapSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Ready</dt>
+          <dd>{report.generationReady ? 'true' : 'false'}</dd>
+        </div>
+      </dl>
+      <div className="narration-command-buttons">
+        <button type="button" disabled={!report.canCloseGaps} onClick={onCloseGaps}>Close gaps</button>
+        <button type="button" disabled={!report.canResolveOverlaps} onClick={onResolveOverlaps}>Resolve overlaps</button>
+        <button type="button" disabled={!report.canNormalizeOrder} onClick={onNormalizeOrder}>Normalize order</button>
+      </div>
+      {report.issues.length > 0 ? (
+        <ul className="timing-assistant-issues" aria-label="Narration timing assistant issues">
+          {report.issues.slice(0, 5).map((issue) => (
+            <li key={`${issue.type}-${issue.rowIndex}-${issue.startSeconds}-${issue.endSeconds}`}>{issue.message}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="narration-command-status">No timing issues</p>
+      )}
+      {status ? <p className="narration-command-status">{status}</p> : null}
+    </section>
+  );
+}
+
 function NarrationTimelineWorkbench({
   onEditSegment,
   onSelectSegment,
@@ -11539,6 +11714,13 @@ function formatSeconds(value: number | null | undefined) {
 
 function formatPercent(value: number) {
   return `${Number(value.toFixed(4))}%`;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  if (!Number.isFinite(value)) {
+    return min;
+  }
+  return Math.min(Math.max(value, min), max);
 }
 
 function formatNarrationVoiceState(voice: string | null | undefined, catalog: NarrationWorkspace['voiceCatalog'] | null) {

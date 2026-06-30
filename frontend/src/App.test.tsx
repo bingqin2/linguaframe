@@ -3092,6 +3092,102 @@ describe('App', () => {
     expect(await within(narrationPanel).findByText('Narration saved.')).toBeInTheDocument();
   });
 
+  test('narration timing assistant closes gaps as a local draft without saving', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-timing-gap-job', videoId: 'narration-timing-gap-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-timing-gap-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-timing-gap-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const assistantPanel = within(narrationPanel).getByRole('region', { name: /narration timing assistant/i });
+
+    expect(within(assistantPanel).getAllByText('1 gap')).toHaveLength(2);
+    expect(within(assistantPanel).getAllByText('27 s')).toHaveLength(2);
+    expect(within(assistantPanel).getByText('Gap before row 2: 27 s.')).toBeInTheDocument();
+
+    await userEvent.click(within(assistantPanel).getByRole('button', { name: /close gaps/i }));
+
+    expect(await within(assistantPanel).findByText('Closed 1 narration timing gap.')).toBeInTheDocument();
+    expect(within(assistantPanel).getAllByText('No timing issues')).toHaveLength(2);
+    expect(within(narrationPanel).getByDisplayValue('28.25')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save narration/i })).toBeEnabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('narration timing assistant resolves overlaps and keeps provider actions untouched', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-timing-overlap-job', videoId: 'narration-timing-overlap-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-timing-overlap-job',
+        generationReady: false,
+        timeline: {
+          ...narrationWorkspaceFixture().timeline,
+          gapSeconds: 0,
+          gapCount: 0,
+          hasOverlap: true,
+          generationReady: false
+        },
+        segments: [
+          {
+            ...narrationWorkspaceFixture().segments[0],
+            startSeconds: 0,
+            endSeconds: 5,
+            durationSeconds: 5
+          },
+          {
+            ...narrationWorkspaceFixture().segments[1],
+            startSeconds: 4,
+            endSeconds: 9,
+            durationSeconds: 5
+          }
+        ]
+      })
+    );
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+    const generateNarratedVideo = vi.spyOn(linguaFrameApi, 'generateNarratedVideo');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-timing-overlap-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const assistantPanel = within(narrationPanel).getByRole('region', { name: /narration timing assistant/i });
+
+    expect(within(assistantPanel).getAllByText('1 overlap')).toHaveLength(2);
+    expect(within(assistantPanel).getByText('Row 2 overlaps the previous row by 1 s.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save narration/i })).toBeDisabled();
+
+    await userEvent.click(within(assistantPanel).getByRole('button', { name: /resolve overlaps/i }));
+
+    expect(await within(assistantPanel).findByText('Resolved 1 narration timing overlap.')).toBeInTheDocument();
+    expect(within(assistantPanel).getAllByText('No timing issues')).toHaveLength(2);
+    expect(within(narrationPanel).getByDisplayValue('5.25')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /save narration/i })).toBeEnabled();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+    expect(generateNarratedVideo).not.toHaveBeenCalled();
+  });
+
   test('blocks save and narration generation when timeline keyboard editing creates overlap', async () => {
     const overlappingWorkspace = narrationWorkspaceFixture({
       jobId: 'narration-overlap-edit-job',
