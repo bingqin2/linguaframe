@@ -1698,6 +1698,54 @@ export interface NarrationEvidence {
   safetyNotes: string[];
 }
 
+export interface NarrationRenderReviewMetric {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface NarrationRenderReviewCheck {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+}
+
+export interface NarrationRenderReviewLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+}
+
+export interface NarrationRenderReview {
+  jobId: string;
+  status: string;
+  nextAction: string;
+  segmentCount: number;
+  totalNarrationDurationSeconds: number;
+  coveredSpanSeconds: number;
+  gapCount: number;
+  gapSeconds: number;
+  timelineHasOverlap: boolean;
+  voiceSummary: string;
+  segmentMixOverrideCount: number;
+  segmentMixOverrideSummary: string;
+  mixKeyframeCount: number;
+  mixKeyframeLaneSummary: string;
+  audioReady: boolean;
+  audioArtifactCount: number;
+  videoReady: boolean;
+  narratedVideoArtifactCount: number;
+  waveformReady: boolean;
+  waveformArtifactId: string;
+  waveformCacheHit: boolean;
+  metrics: NarrationRenderReviewMetric[];
+  checks: NarrationRenderReviewCheck[];
+  safeLinks: NarrationRenderReviewLink[];
+  safetyNotes: string[];
+}
+
 export interface NarrationScriptPackageSegment {
   index: number;
   startSeconds: number;

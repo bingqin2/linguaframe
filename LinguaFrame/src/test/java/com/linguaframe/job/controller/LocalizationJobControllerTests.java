@@ -2293,6 +2293,119 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationRenderReviewJsonAndMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:15:00Z");
+        createJob("job-controller-video-render-review", "job-controller-job-render-review", createdAt);
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-job-render-review")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 15.000,
+                                      "endSeconds": 28.000,
+                                      "text": "Explain the first scene.",
+                                      "voice": "demo-voice"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 55.000,
+                                      "endSeconds": 70.500,
+                                      "text": "Explain the second scene.",
+                                      "voice": "demo-voice"
+                                    }
+                                  ],
+                                  "mixKeyframes": [
+                                    {
+                                      "lane": "DUCKING_VOLUME",
+                                      "timeSeconds": 15.000,
+                                      "value": 0.350
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-render-review-audio",
+                "job-controller-job-render-review",
+                JobArtifactType.NARRATION_AUDIO,
+                "job-artifacts/job-controller-job-render-review/job-controller-render-review-audio/narration-audio.mp3",
+                "narration-audio.mp3",
+                "audio/mpeg",
+                3L,
+                "narration-audio-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-render-review-video",
+                "job-controller-job-render-review",
+                JobArtifactType.NARRATED_VIDEO,
+                "job-artifacts/job-controller-job-render-review/job-controller-render-review-video/narrated-video.mp4",
+                "narrated-video.mp4",
+                "video/mp4",
+                3L,
+                "narrated-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(2)
+        ));
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-review-waveform",
+                "job-controller-job-render-review",
+                JobArtifactType.NARRATION_WAVEFORM,
+                "job-artifacts/job-controller-job-render-review/job-controller-review-waveform/narration-waveform.json",
+                "narration-waveform.json",
+                "application/json",
+                3L,
+                "narration-waveform-hash",
+                false,
+                null,
+                createdAt.plusSeconds(3)
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-render-review", "job-controller-job-render-review"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-job-render-review"))
+                .andExpect(jsonPath("$.status").value("READY"))
+                .andExpect(jsonPath("$.nextAction").value("Review narrated video and export handoff evidence."))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.audioReady").value(true))
+                .andExpect(jsonPath("$.videoReady").value(true))
+                .andExpect(jsonPath("$.waveformReady").value(true))
+                .andExpect(jsonPath("$.waveformArtifactId").value("job-controller-review-waveform"))
+                .andExpect(jsonPath("$.mixKeyframeCount").value(1))
+                .andExpect(jsonPath("$.safeLinks[1].href").value("/api/jobs/job-controller-job-render-review/narration-render-review/markdown/download"));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/narration-render-review/markdown/download",
+                        "job-controller-job-render-review"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-controller-job-render-review-narration-render-review.md\""
+                ))
+                .andExpect(content().contentType("text/markdown"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# Narration Render Review")
+                .contains("- Status: READY")
+                .contains("- Narration audio ready: true")
+                .contains("- Narrated video ready: true")
+                .doesNotContain("Explain the first scene.")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-");
+    }
+
+    @Test
     void returnsNarrationScriptPackageJsonMarkdownAndZip() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:16:00Z");
         createJob("job-controller-video-script-package", "job-controller-job-script-package", createdAt);

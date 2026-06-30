@@ -107,6 +107,7 @@ import type {
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
   NarrationEvidence,
+  NarrationRenderReview,
   NarrationMixKeyframe,
   NarrationMixLane,
   NarrationWaveform,
@@ -9414,6 +9415,7 @@ function NarrationWorkspacePanel({
   const [timingMinimumReportGapSeconds, setTimingMinimumReportGapSeconds] = useState(0.5);
   const [timingAssistantStatus, setTimingAssistantStatus] = useState<string | null>(null);
   const [decodedWaveform, setDecodedWaveform] = useState<NarrationWaveform | null>(null);
+  const [renderReview, setRenderReview] = useState<NarrationRenderReview | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
   const auditionPreviewUrlRef = useRef<string | null>(null);
@@ -9507,6 +9509,25 @@ function NarrationWorkspacePanel({
       active = false;
     };
   }, [artifactSignature, jobId]);
+
+  useEffect(() => {
+    let active = true;
+    setRenderReview(null);
+    linguaFrameApi.getNarrationRenderReview(jobId)
+      .then((review) => {
+        if (active) {
+          setRenderReview(review);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRenderReview(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [artifactSignature, jobId, workspace?.segmentCount, workspace?.totalDurationSeconds]);
 
   const segments = draftHistory.present;
   const selectedSegment = segments[selectedIndex] ?? null;
@@ -10095,6 +10116,7 @@ function NarrationWorkspacePanel({
           onUpdateMixSettings={setMixSettings}
           onUpdateSegment={updateSegment}
         />
+        <NarrationRenderReviewPanel jobId={jobId} review={renderReview} />
         <NarrationScriptPackagePanel
           isImporting={isSaving}
           jobId={jobId}
@@ -10696,6 +10718,76 @@ function NarrationInspector({
         <p className="muted">Select a row to edit narration text.</p>
       )}
     </aside>
+  );
+}
+
+function NarrationRenderReviewPanel({
+  jobId,
+  review
+}: {
+  jobId: string;
+  review: NarrationRenderReview | null;
+}) {
+  return (
+    <section className="script-package-panel" aria-label="Narration render review">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Render review</h4>
+          <p className="muted">{review ? review.nextAction : 'Review cue sheet is loading.'}</p>
+        </div>
+        <button type="button" onClick={() => void downloadNarrationRenderReviewFile(jobId)} disabled={!review}>
+          Download review Markdown
+        </button>
+      </div>
+      {review ? (
+        <>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Status</dt>
+              <dd>{review.status}</dd>
+            </div>
+            <div>
+              <dt>Segments</dt>
+              <dd>{review.segmentCount}</dd>
+            </div>
+            <div>
+              <dt>Audio</dt>
+              <dd>{review.audioReady ? `${review.audioArtifactCount} ready` : 'Missing'}</dd>
+            </div>
+            <div>
+              <dt>Video</dt>
+              <dd>{review.videoReady ? `${review.narratedVideoArtifactCount} ready` : 'Optional'}</dd>
+            </div>
+            <div>
+              <dt>Waveform</dt>
+              <dd>{review.waveformArtifactId || (review.waveformReady ? 'Ready' : 'Missing')}</dd>
+            </div>
+            <div>
+              <dt>Mix keyframes</dt>
+              <dd>{review.mixKeyframeCount}</dd>
+            </div>
+          </dl>
+          <div className="evidence-check-list">
+            {review.checks.map((check) => (
+              <div key={check.key} className={`evidence-check evidence-check-${check.status.toLowerCase()}`}>
+                <strong>{check.label}</strong>
+                <span>{check.status}</span>
+                <p>{check.detail}</p>
+              </div>
+            ))}
+          </div>
+          <ul className="safe-link-list">
+            {review.safeLinks.map((link) => (
+              <li key={link.kind}>
+                <code>{link.kind}</code> {link.href}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">Open a job with narration metadata to show render checks.</p>
+      )}
+    </section>
   );
 }
 
@@ -12354,6 +12446,11 @@ async function downloadNarrationScriptPackageFile(jobId: string, format: 'markdo
     ? await linguaFrameApi.downloadNarrationScriptPackageMarkdown(jobId)
     : await linguaFrameApi.downloadNarrationScriptPackageZip(jobId);
   downloadBlob(blob, `narration-script-package-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
+}
+
+async function downloadNarrationRenderReviewFile(jobId: string) {
+  const blob = await linguaFrameApi.downloadNarrationRenderReviewMarkdown(jobId);
+  downloadBlob(blob, `narration-render-review-${jobId}.md`);
 }
 
 function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {

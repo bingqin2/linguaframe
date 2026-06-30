@@ -233,10 +233,10 @@ Expected:
 Focused narration render checks:
 
 ```bash
-JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoRenderServiceTests,NarrationRenderReviewServiceTests,LocalizationJobControllerTests,NarrationDemoPresetApplyServiceTests,NarrationScriptPackageServiceTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-render-review.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -253,6 +253,9 @@ Expected:
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED=true scripts/demo/narration-demo-render.sh` refuses blocked render before calling TTS or video generation.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-render.sh` writes render JSON plus refreshed script/evidence files under `/tmp/linguaframe-demo/narration-demo-render/`.
 - `LINGUAFRAME_RENDER_NARRATION_DEMO=true scripts/demo/docker-e2e-tears-of-steel-full.sh` runs preflight and the one-click render flow before final narration evidence export; if the apply-only flag is also true, render wins.
+- Browser selected-job narration workspace shows `Render review` with `READY`, `ATTENTION`, or `BLOCKED`, next action, readiness metrics, check rows, safe links, and `Download review Markdown`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-render-review.sh` writes read-only review JSON/Markdown under `/tmp/linguaframe-demo/narration-render-review/`; use `LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY=true` for blocked review export without failing.
+- Narration render review must not call OpenAI, call TTS providers, run FFmpeg, save narration rows, create artifacts, print narration text, expose object keys, or include media bytes.
 - Render summaries exclude transcript text, subtitle text, raw narration text markers, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 - OpenAI-backed TTS render is treated as a paid-provider action and should be run only when `.env` and cost guard settings are intentional. Preflight estimates are advisory; provider-side OpenAI usage and billing remain the source of truth.
 
@@ -325,7 +328,7 @@ Expected browser behavior:
 - `Download evidence JSON` downloads a local metadata file and must not include raw transcript text, raw subtitle text, object keys, local paths, demo tokens, provider payloads, or media bytes.
 - `Download backend evidence` points to `/api/jobs/{jobId}/evidence/markdown/download`.
 - `Download evidence bundle` points to `/api/jobs/{jobId}/evidence/bundle/download` and returns a metadata-only ZIP with `manifest.json`, `evidence.md`, and `diagnostics.json`.
-- The `Narration workspace` panel can add rows, edit start/end/text, choose inherited/default or explicit provider voice presets from compact selects, drag or keyboard-edit `Timeline workbench` proportional bars, review selected-segment window/duration/voice/character diagnostics, save valid non-overlapping segments, tune ducking volume, narration volume, and fade duration, clear the workspace, generate a timed narration audio bed, generate a ducked narrated video, refresh evidence, and download narration evidence Markdown/ZIP.
+- The `Narration workspace` panel can add rows, edit start/end/text, choose inherited/default or explicit provider voice presets from compact selects, drag or keyboard-edit `Timeline workbench` proportional bars, review selected-segment window/duration/voice/character diagnostics, save valid non-overlapping segments, tune ducking volume, narration volume, and fade duration, clear the workspace, generate a timed narration audio bed, generate a ducked narrated video, refresh evidence, inspect render review, and download narration evidence Markdown/ZIP.
 - Selected narration timeline bars support ArrowLeft/Right move by 0.25 seconds, Shift+ArrowLeft/Right end resize, and Alt+ArrowLeft/Right start resize. Unsaved timeline edits should update the table and inspector immediately, but must not call OpenAI, create artifacts, or generate audio/video until the operator runs the explicit save/generate/render action.
 - The `Script package` panel inside `Narration workspace` shows package status, segment/character counts, voice summary, checks, Markdown/ZIP downloads, JSON paste import, invalid JSON blocking, and a required replace-current-workspace acknowledgement before import.
 - Unknown saved narration voices are shown for diagnosis but block save/generate until replaced by a configured preset. Evidence refresh and downloads stay available.

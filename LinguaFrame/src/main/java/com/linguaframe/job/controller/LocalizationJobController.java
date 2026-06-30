@@ -50,6 +50,7 @@ import com.linguaframe.job.domain.vo.NarrationDemoPresetApplyVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderPreflightVo;
 import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
+import com.linguaframe.job.domain.vo.NarrationRenderReviewVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
@@ -93,6 +94,7 @@ import com.linguaframe.job.service.NarrationDemoPresetApplyService;
 import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
+import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
 import com.linguaframe.job.service.NarrationWaveformService;
@@ -174,6 +176,7 @@ public class LocalizationJobController {
     private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
     private final NarrationEvidenceService narrationEvidenceService;
+    private final NarrationRenderReviewService narrationRenderReviewService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
     private final NarrationWaveformService narrationWaveformService;
@@ -220,6 +223,7 @@ public class LocalizationJobController {
             NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
             NarrationEvidenceService narrationEvidenceService,
+            NarrationRenderReviewService narrationRenderReviewService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
             NarrationWaveformService narrationWaveformService,
@@ -265,6 +269,7 @@ public class LocalizationJobController {
         this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
         this.narrationEvidenceService = narrationEvidenceService;
+        this.narrationRenderReviewService = narrationRenderReviewService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
         this.narrationWaveformService = narrationWaveformService;
@@ -1407,6 +1412,15 @@ public class LocalizationJobController {
         return narrationEvidenceService.getEvidence(jobId);
     }
 
+    @GetMapping("/{jobId}/narration-render-review")
+    @Operation(summary = "Get metadata-only narration render review cue sheet")
+    public NarrationRenderReviewVo narrationRenderReview(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationRenderReviewService.getReview(jobId);
+    }
+
     @GetMapping("/{jobId}/narration-waveform")
     @Operation(summary = "Get decoded narration waveform buckets for a localization job")
     public NarrationWaveformVo narrationWaveform(
@@ -1429,6 +1443,22 @@ public class LocalizationJobController {
                 .contentType(MediaType.valueOf("text/markdown"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("linguaframe-job-" + jobId + "-narration-evidence.md")
+                .build()
+                .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-render-review/markdown/download")
+    @Operation(summary = "Download metadata-only narration render review Markdown")
+    public ResponseEntity<String> downloadNarrationRenderReviewMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationRenderReviewService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-render-review.md")
                         .build()
                         .toString())
                 .body(markdown);

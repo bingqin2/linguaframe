@@ -4820,3 +4820,25 @@ Validation so far:
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 296 passed`; jsdom printed expected navigation warnings.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 522.93 kB bundle.
 - `git diff --check` passed.
+
+## 2026-06-30
+
+Work:
+
+- Started the narration render review cue sheet feature slice from `docs/plans/157-narration-render-review-cue-sheet.md`.
+- Added a metadata-only backend render review service plus JSON and Markdown download endpoints for narration readiness.
+- Kept render review read-only by deriving waveform readiness from existing `NARRATION_WAVEFORM` artifacts instead of invoking waveform generation.
+- Added frontend API types, client methods, and a browser `Render review` panel with status, next action, readiness metrics, check rows, safe links, and Markdown download.
+- Added `scripts/demo/narration-render-review.sh`, shared demo helper functions, and full Tears demo integration after narration evidence export.
+- Updated README, demo script docs, Docker demo guidance, smoke checklist, roadmap, and target-state docs.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -Dtest=NarrationRenderReviewServiceTests,LocalizationJobControllerTests#returnsNarrationRenderReviewJsonAndMarkdown` first failed because the controller test fixture used a 37-character artifact id; after shortening it, the focused backend tests passed with `Tests run: 6, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "narration render review"` passed with `Tests 1 passed | 143 skipped`; jsdom printed the expected navigation warning from blob download.
+- `bash -n scripts/demo/narration-render-review.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh` passed.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "narration render review"` passed with `Tests 1 passed | 96 skipped`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 802, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 298 passed`; jsdom printed expected navigation warnings.
+- `npm --prefix frontend run build` first failed because the UI referenced `videoArtifactCount` instead of `narratedVideoArtifactCount`; after fixing the field name, it passed with the existing chunk-size warning for a 525.50 kB bundle.
+- `git diff --check` passed.

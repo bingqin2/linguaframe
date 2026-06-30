@@ -1,5 +1,17 @@
 # Demo Scripts
 
+## Narration Render Review
+
+Export the metadata-only narration cue sheet after saving narration or running the demo render:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-render-review.sh
+```
+
+The script downloads `narration-render-review.json` and `narration-render-review.md` to `/tmp/linguaframe-demo/narration-render-review/`, prints status, next action, segment/gap/overlap counts, audio/video/waveform readiness, artifact counts, mix override/keyframe counts, and blocked or warning checks. It reads existing workspace, evidence, and artifacts only; it does not call OpenAI, call TTS providers, run FFmpeg, save narration rows, create artifacts, print narration text, expose object keys, or include media bytes.
+
+Use `LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY=true` when you want to export a `BLOCKED` review without failing the terminal command.
+
 ## Narration Mix Automation
 
 Inspect effective narration mix automation values from an existing workspace:
