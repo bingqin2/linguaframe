@@ -4486,6 +4486,18 @@ Validation:
 - `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` first failed because `formatNarrationQuickScript` and `formatQuickScriptTimestamp` were missing.
 - After adding the formatter, the same command first exposed the inherited voice separator as `|  |`; after changing inherited voice output to `||`, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` passed with `Test Files 1 passed` and `Tests 8 passed`.
 
+Work:
+
+- Added a browser `Quick script export` panel to the narration workspace after quick import.
+- The panel renders the current local draft as paste-ready quick script text, updates immediately after unsaved row edits, supports inherited voice rows as `||`, copies to the clipboard, and downloads a `.txt` file through a local text blob.
+- Copy and download stay local-only; tests verify they do not call narration save, segment TTS preview, or narration audio generation.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` first failed because the `Quick script export` region did not exist.
+- After adding the panel, the same targeted command failed once because the unsaved-edit assertion used `toHaveValue` with an asymmetric matcher; after reading the textarea value directly, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` passed with `Test Files 1 passed | 1 skipped` and `Tests 4 passed | 134 skipped`.
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx` passed with `Test Files 4 passed` and `Tests 153 passed`; jsdom printed expected navigation warnings.
+
 ## 2026-06-30
 
 Work:

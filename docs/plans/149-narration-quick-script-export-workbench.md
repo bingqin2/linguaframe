@@ -45,7 +45,7 @@
 - [x] Implement `formatNarrationQuickScript(segments)` in index order without mutating segments.
 - [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
 - [x] Update execution log with RED/GREEN formatter evidence.
-- [ ] Commit with message `Add narration quick script formatter`.
+- [x] Commit with message `Add narration quick script formatter`.
 
 ## Task 2: Browser Export Workbench
 
@@ -64,21 +64,21 @@
   - A compact `Quick script export` panel in the narration workspace.
   - `Copy quick script` and `Download quick script` local actions.
 
-- [ ] Write failing App tests proving `Quick script export` renders with the current draft text.
-- [ ] Write failing App tests proving local unsaved edits immediately update the exported quick script.
-- [ ] Write failing App tests proving inherited/default voice exports as a blank voice field.
-- [ ] Write failing App tests proving `Copy quick script` writes the current script to `navigator.clipboard.writeText` and does not call `saveNarrationWorkspace`.
-- [ ] Write failing App tests proving `Download quick script` creates a text blob link with a `.txt` filename and does not call providers or save rows.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` and verify App tests fail because the panel does not exist.
-- [ ] Add `NarrationQuickScriptExportPanel` after `NarrationQuickScriptImportPanel` and before `NarrationPreviewPanel`.
-- [ ] Compute exported script with `useMemo` from current draft `segments`.
-- [ ] Add copy status state and clear it when draft rows change.
-- [ ] Implement download with `Blob`, `URL.createObjectURL`, an ephemeral anchor, and immediate URL revocation.
-- [ ] Disable copy/download when the current draft has no rows.
-- [ ] Style the panel using existing compact narration panel patterns; do not add marketing copy.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` and verify it passes.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
-- [ ] Update execution log with RED/GREEN UI evidence.
+- [x] Write failing App tests proving `Quick script export` renders with the current draft text.
+- [x] Write failing App tests proving local unsaved edits immediately update the exported quick script.
+- [x] Write failing App tests proving inherited/default voice exports as a blank voice field.
+- [x] Write failing App tests proving `Copy quick script` writes the current script to `navigator.clipboard.writeText` and does not call `saveNarrationWorkspace`.
+- [x] Write failing App tests proving `Download quick script` creates a text blob link with a `.txt` filename and does not call providers or save rows.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` and verify App tests fail because the panel does not exist.
+- [x] Add `NarrationQuickScriptExportPanel` after `NarrationQuickScriptImportPanel` and before `NarrationPreviewPanel`.
+- [x] Compute exported script with `useMemo` from current draft `segments`.
+- [x] Add copy status state and clear it when draft rows change.
+- [x] Implement download with `Blob`, `URL.createObjectURL`, an ephemeral anchor, and immediate URL revocation.
+- [x] Disable copy/download when the current draft has no rows.
+- [x] Style the panel using existing compact narration panel patterns; do not add marketing copy.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/App.test.tsx -t "quick script export"` and verify it passes.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
+- [x] Update execution log with RED/GREEN UI evidence.
 - [ ] Commit with message `Add narration quick script export workbench`.
 
 ## Task 3: Documentation, Validation, And Merge

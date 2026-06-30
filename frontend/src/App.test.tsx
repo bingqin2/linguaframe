@@ -2681,6 +2681,143 @@ describe('App', () => {
     expect(saveNarrationWorkspace).not.toHaveBeenCalled();
   });
 
+  test('renders quick script export with the current draft text', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-export-job', videoId: 'narration-quick-export-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-export-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-export-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const exportPanel = within(narrationPanel).getByRole('region', { name: /quick script export/i });
+
+    expect(within(exportPanel).getByText('Quick script export')).toBeInTheDocument();
+    expect(within(exportPanel).getByLabelText(/quick script export text/i)).toHaveValue([
+      '00:15-00:28 | alloy | Explain the first scene.',
+      '00:55-01:10.5 | verse | Explain the second scene.'
+    ].join('\n'));
+  });
+
+  test('updates quick script export from unsaved local draft edits and inherited voice rows', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-export-unsaved-job', videoId: 'narration-quick-export-unsaved-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-export-unsaved-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-export-unsaved-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    await userEvent.selectOptions(within(narrationPanel).getByRole('combobox', { name: /narration 1 voice/i }), '');
+    await userEvent.clear(within(narrationPanel).getByLabelText(/narration 1 start/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/narration 1 start/i), '20');
+    await userEvent.clear(within(narrationPanel).getByLabelText(/narration 1 end/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/narration 1 end/i), '24');
+    await userEvent.clear(within(narrationPanel).getByLabelText(/segment text/i));
+    await userEvent.type(within(narrationPanel).getByLabelText(/segment text/i), 'Unsaved exported row.');
+
+    const exportPanel = within(narrationPanel).getByRole('region', { name: /quick script export/i });
+    const exportText = within(exportPanel).getByLabelText(/quick script export text/i) as HTMLTextAreaElement;
+
+    expect(exportText.value).toContain('00:20-00:24 || Unsaved exported row.');
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('copies quick script export without saving narration rows', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true
+    });
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-copy-job', videoId: 'narration-quick-copy-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-copy-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-copy-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const exportPanel = within(narrationPanel).getByRole('region', { name: /quick script export/i });
+
+    await userEvent.click(within(exportPanel).getByRole('button', { name: /copy quick script/i }));
+
+    expect(writeText).toHaveBeenCalledWith([
+      '00:15-00:28 | alloy | Explain the first scene.',
+      '00:55-01:10.5 | verse | Explain the second scene.'
+    ].join('\n'));
+    expect(await within(exportPanel).findByText('Quick script copied.')).toBeInTheDocument();
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+  });
+
+  test('downloads quick script export as text without provider calls', async () => {
+    const createObjectUrl = vi.fn().mockReturnValue('blob:quick-script-export');
+    const revokeObjectUrl = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', {
+      value: createObjectUrl,
+      configurable: true
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      value: revokeObjectUrl,
+      configurable: true
+    });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-quick-download-job', videoId: 'narration-quick-download-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(narrationWorkspaceFixture({ jobId: 'narration-quick-download-job' }));
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace');
+    const previewNarrationSegment = vi.spyOn(linguaFrameApi, 'previewNarrationSegment');
+    const generateNarrationAudio = vi.spyOn(linguaFrameApi, 'generateNarrationAudio');
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-quick-download-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const exportPanel = within(narrationPanel).getByRole('region', { name: /quick script export/i });
+
+    await userEvent.click(within(exportPanel).getByRole('button', { name: /download quick script/i }));
+
+    expect(createObjectUrl).toHaveBeenCalledWith(expect.any(Blob));
+    expect(anchorClick).toHaveBeenCalled();
+    expect(revokeObjectUrl).toHaveBeenCalledWith('blob:quick-script-export');
+    expect(saveNarrationWorkspace).not.toHaveBeenCalled();
+    expect(previewNarrationSegment).not.toHaveBeenCalled();
+    expect(generateNarrationAudio).not.toHaveBeenCalled();
+  });
+
   test('blocks narration save and generation when a saved voice is not in the preset catalog', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-unknown-voice-job', videoId: 'narration-unknown-video', targetLanguage: 'zh-CN' })

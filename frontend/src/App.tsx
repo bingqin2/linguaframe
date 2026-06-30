@@ -45,6 +45,7 @@ import {
   type NarrationDraftHistoryState
 } from './domain/narrationDraftHistory';
 import {
+  formatNarrationQuickScript,
   parseNarrationQuickScript,
   type NarrationQuickScriptImportMode,
   type NarrationQuickScriptImportResult
@@ -9380,6 +9381,7 @@ function NarrationWorkspacePanel({
   const [quickScriptText, setQuickScriptText] = useState('');
   const [quickScriptMode, setQuickScriptMode] = useState<NarrationQuickScriptImportMode>('replace');
   const [quickScriptStatus, setQuickScriptStatus] = useState<string | null>(null);
+  const [quickScriptExportStatus, setQuickScriptExportStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const ttsPreviewUrlRef = useRef<string | null>(null);
 
@@ -9407,6 +9409,7 @@ function NarrationWorkspacePanel({
     setQuickScriptText('');
     setQuickScriptMode('replace');
     setQuickScriptStatus(null);
+    setQuickScriptExportStatus(null);
     clearTtsPreview(null);
   }, [workspace]);
 
@@ -9452,6 +9455,7 @@ function NarrationWorkspacePanel({
     }),
     [quickScriptMode, quickScriptText, segments, workspace?.voiceCatalog]
   );
+  const quickScriptExportText = useMemo(() => formatNarrationQuickScript(segments), [segments]);
 
   function clampSelectedIndex(nextIndex: number, nextSegments: NarrationWorkspace['segments']) {
     if (nextSegments.length === 0) {
@@ -9468,6 +9472,7 @@ function NarrationWorkspacePanel({
     setDraftHistory((current) => applyNarrationDraftChange(current, nextSegments, actionLabel));
     setSelectedIndex(clampSelectedIndex(nextSelectedIndex, nextSegments));
     setEditCommandStatus(actionLabel);
+    setQuickScriptExportStatus(null);
     clearTtsPreview('TTS preview cleared because the narration draft changed.');
   }
 
@@ -9591,6 +9596,36 @@ function NarrationWorkspacePanel({
       mode === 'append' ? Math.max(0, result.segments.length - result.importedCount) : 0
     );
     setQuickScriptStatus(`Imported ${result.importedCount} narration ${result.importedCount === 1 ? 'row' : 'rows'} as local draft.`);
+  }
+
+  async function copyQuickScriptExport() {
+    if (!quickScriptExportText) {
+      setQuickScriptExportStatus('No narration rows to copy.');
+      return;
+    }
+    if (!navigator.clipboard?.writeText) {
+      setQuickScriptExportStatus('Clipboard is unavailable.');
+      return;
+    }
+    await navigator.clipboard.writeText(quickScriptExportText);
+    setQuickScriptExportStatus('Quick script copied.');
+  }
+
+  function downloadQuickScriptExport() {
+    if (!quickScriptExportText) {
+      setQuickScriptExportStatus('No narration rows to download.');
+      return;
+    }
+    const blob = new Blob([quickScriptExportText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${jobId}-narration-quick-script.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    setQuickScriptExportStatus('Quick script download prepared.');
   }
 
   function seekPreviewTo(seconds: number) {
@@ -9731,6 +9766,12 @@ function NarrationWorkspacePanel({
             onModeChange={setQuickScriptMode}
             onReplace={() => applyQuickScriptImport('replace')}
             onScriptTextChange={updateQuickScriptText}
+          />
+          <NarrationQuickScriptExportPanel
+            scriptText={quickScriptExportText}
+            status={quickScriptExportStatus}
+            onCopy={() => void copyQuickScriptExport()}
+            onDownload={downloadQuickScriptExport}
           />
           <NarrationPreviewPanel
             currentSeconds={previewCurrentSeconds}
@@ -10018,6 +10059,44 @@ function NarrationQuickScriptImportPanel({
       <div className="narration-command-buttons">
         <button type="button" disabled={!canImport} onClick={onReplace}>Replace draft</button>
         <button type="button" disabled={!canImport} onClick={onAppend}>Append to draft</button>
+      </div>
+      {status ? <p className="narration-command-status">{status}</p> : null}
+    </section>
+  );
+}
+
+function NarrationQuickScriptExportPanel({
+  onCopy,
+  onDownload,
+  scriptText,
+  status
+}: {
+  onCopy: () => void;
+  onDownload: () => void;
+  scriptText: string;
+  status: string | null;
+}) {
+  const hasRows = scriptText.trim().length > 0;
+  return (
+    <section className="narration-quick-script-export" aria-label="Quick script export">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Quick script export</h4>
+          <p className="muted">Copy or download the current local draft in paste-ready quick script format.</p>
+        </div>
+        <span className={hasRows ? 'status-pill ready' : 'status-pill attention'}>
+          {hasRows ? 'Ready' : 'No rows'}
+        </span>
+      </div>
+      <textarea
+        aria-label="Quick script export text"
+        readOnly
+        rows={5}
+        value={scriptText}
+      />
+      <div className="narration-command-buttons">
+        <button type="button" disabled={!hasRows} onClick={onCopy}>Copy quick script</button>
+        <button type="button" disabled={!hasRows} onClick={onDownload}>Download quick script</button>
       </div>
       {status ? <p className="narration-command-status">{status}</p> : null}
     </section>
