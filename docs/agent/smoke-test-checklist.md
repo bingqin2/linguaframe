@@ -206,7 +206,8 @@ Expected:
 - Browser selected-job narration workspace shows a `Narration TTS preview` panel after draft history.
 - Browser selected-job narration workspace shows a `Quick script import` panel after TTS preview. Paste rows such as `00:15-00:28 | alloy | Explain this moment.` and `00:55-01:10 || Inherit default voice.`, verify parsed row count and total duration, then use `Replace draft` or `Append to draft`.
 - Quick script import supports `SS`, `MM:SS`, and `HH:MM:SS` timestamps, validates the current voice catalog, rejects overlaps, blank text, backward ranges, malformed rows, and over-limit text, and keeps both apply buttons disabled while errors are present.
-- Quick script import is local-only until `Save narration`; it must not call TTS providers, save narration rows, create artifacts, update evidence, generate video, or write object storage.
+- Browser selected-job narration workspace shows a `Quick script export` panel after quick import. Verify the export text reflects the current unsaved draft, inherited/default voice rows use `||`, `Copy quick script` writes to the clipboard, and `Download quick script` prepares a `.txt` file.
+- Quick script import/export is local-only until `Save narration`; it must not call TTS providers, save narration rows, create artifacts, update evidence, generate video, or write object storage.
 - `Preview selected TTS` sends the selected draft row text and voice, renders `Narration TTS preview player`, and shows that provider credits may be consumed.
 - Segment TTS preview uses unsaved local text but must not save narration rows, create artifacts, update evidence, write object storage, or generate video.
 - Blank selected narration text disables segment TTS preview, and rejected preview errors do not disable separate save/generate controls.
