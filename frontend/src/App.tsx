@@ -4754,6 +4754,44 @@ function DemoSessionCommandCenterPanel({
           <p className={commandCenter.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
             {commandCenter.recommendedNextAction}
           </p>
+          <section className="command-center-recovery-summary" aria-label="Command center recovery">
+            <div className="operations-section-heading">
+              <strong>Recovery</strong>
+              <span className={demoSessionStatusClassName(commandCenter.recoveryStatus)}>
+                {commandCenter.recoveryStatus}
+              </span>
+            </div>
+            <dl className="status-grid compact-status-grid operations-summary-grid">
+              <div>
+                <dt>Recover now</dt>
+                <dd>
+                  {commandCenter.recoverNowCount === 1
+                    ? '1 job needs recovery'
+                    : `${commandCenter.recoverNowCount} jobs need recovery`}
+                </dd>
+              </div>
+              <div>
+                <dt>Watch</dt>
+                <dd>{commandCenter.watchCount} active</dd>
+              </div>
+              <div>
+                <dt>Needs review</dt>
+                <dd>{commandCenter.needsReviewCount} review</dd>
+              </div>
+              <div>
+                <dt>Ready</dt>
+                <dd>{commandCenter.readyCount} ready</dd>
+              </div>
+            </dl>
+            <p className={commandCenter.recoveryStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+              {commandCenter.recoveryRecommendedNextAction}
+            </p>
+            {commandCenter.recoveryPrimaryAction ? (
+              <a className="text-link" href={commandCenter.recoveryPrimaryAction.href}>
+                {commandCenter.recoveryPrimaryAction.label}
+              </a>
+            ) : null}
+          </section>
           {focusRun ? (
             <div className="evidence-gallery-recommended">
               <h3>Run focus</h3>

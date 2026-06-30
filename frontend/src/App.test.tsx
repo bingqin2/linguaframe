@@ -749,11 +749,20 @@ describe('App', () => {
     expect(within(panel).getAllByText('READY').length).toBeGreaterThan(0);
     expect(within(panel).getByText('READY_TO_PRESENT')).toBeInTheDocument();
     expect(within(panel).getAllByText(/job-session/).length).toBeGreaterThan(0);
+    const recovery = within(panel).getByRole('region', { name: /command center recovery/i });
+    expect(within(recovery).getByText('BLOCKED')).toBeInTheDocument();
+    expect(within(recovery).getByText('Recover now')).toBeInTheDocument();
+    expect(within(recovery).getByText('1 job needs recovery')).toBeInTheDocument();
+    expect(within(recovery).getByText('Open stuck-job recovery.')).toBeInTheDocument();
     expect(within(panel).getAllByText('LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh').length)
       .toBeGreaterThan(0);
     expect(within(panel).getByRole('link', { name: /Command center Markdown/i })).toHaveAttribute(
       'href',
       '/api/operator/demo-session-command-center/markdown/download'
+    );
+    expect(within(panel).getByRole('link', { name: /Recovery board Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/demo-session-recovery-board/markdown/download'
     );
     await userEvent.click(within(panel).getByRole('button', { name: /download command center/i }));
     expect(downloadSpy).toHaveBeenCalledWith('job-session');
@@ -6689,10 +6698,38 @@ function demoSessionCommandCenterFixture(
         description: 'Downloadable command center notes.'
       },
       {
+        label: 'Recovery board Markdown',
+        href: '/api/operator/demo-session-recovery-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable recovery board.'
+      },
+      {
         label: 'Model usage ledger',
         href: '/api/operator/model-usage-ledger',
         contentType: 'application/json',
         description: 'Cost and latency evidence.'
+      }
+    ],
+    recoveryStatus: 'BLOCKED',
+    recoverNowCount: 1,
+    watchCount: 0,
+    needsReviewCount: 0,
+    readyCount: 1,
+    recoveryRecommendedNextAction: 'Open stuck-job recovery.',
+    recoveryPrimaryAction: {
+      id: 'OPEN_STUCK_RECOVERY',
+      label: 'Open stuck-job recovery',
+      href: '/api/jobs/job-stale/stuck-job-recovery',
+      description: 'Inspect per-job recovery checks.',
+      primary: true
+    },
+    recoveryLinks: [
+      {
+        kind: 'MARKDOWN',
+        label: 'Recovery board Markdown',
+        href: '/api/operator/demo-session-recovery-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable recovery board.'
       }
     ],
     estimatedCostUsd: '0.00020000',

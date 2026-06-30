@@ -38,28 +38,7 @@ demo_curl -fsS \
   "$BASE_URL/api/operator/demo-session-evidence-package/download$QUERY" \
   -o "$ZIP_OUTPUT_PATH"
 
-python3 - "$JSON_OUTPUT_PATH" "$ZIP_OUTPUT_PATH" <<'PY'
-import json
-import sys
-import zipfile
-from pathlib import Path
-
-json_path = Path(sys.argv[1])
-zip_path = Path(sys.argv[2])
-command_center = json.loads(json_path.read_text(encoding="utf-8"))
-focus_run = command_center.get("focusRun") or command_center.get("activeRun") or command_center.get("recommendedCompletedRun") or {}
-
-with zipfile.ZipFile(zip_path) as package:
-    entries = package.namelist()
-
-print(f"demoSessionEvidencePackageStatus={command_center.get('overallStatus')}")
-print(f"demoSessionEvidencePackagePhase={command_center.get('phase')}")
-print(f"demoSessionEvidencePackageNextAction={command_center.get('recommendedNextAction')}")
-print(f"demoSessionEvidencePackageFocusJobId={focus_run.get('jobId')}")
-print(f"demoSessionEvidencePackageJsonPath={json_path}")
-print(f"demoSessionEvidencePackageZipPath={zip_path}")
-print(f"demoSessionEvidencePackageEntries={','.join(entries)}")
-PY
+print_demo_session_evidence_package_summary_file "$JSON_OUTPUT_PATH" "$ZIP_OUTPUT_PATH"
 
 STATUS="$(python3 - "$JSON_OUTPUT_PATH" <<'PY'
 import json

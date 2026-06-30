@@ -358,9 +358,14 @@ class OperatorDashboardControllerTests {
                     .andExpect(jsonPath("$.phase").exists())
                     .andExpect(jsonPath("$.focusRun.jobId").value("session-controller-job"))
                     .andExpect(jsonPath("$.modelCallCount").value(1))
+                    .andExpect(jsonPath("$.recoveryStatus").exists())
+                    .andExpect(jsonPath("$.recoverNowCount").isNumber())
+                    .andExpect(jsonPath("$.recoveryRecommendedNextAction").exists())
                     .andExpect(jsonPath("$.phases[?(@.id == 'model-usage')]").exists())
+                    .andExpect(jsonPath("$.phases[?(@.id == 'recovery-board')]").exists())
                     .andExpect(jsonPath("$.actions[?(@.command == 'LINGUAFRAME_DEMO_JOB_ID=session-controller-job scripts/demo/demo-session-command-center.sh')]").exists())
                     .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/operator/demo-session-command-center/markdown/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/operator/demo-session-recovery-board/markdown/download')]").exists())
                     .andExpect(jsonPath("$.safetyNotes[0]").value(org.hamcrest.Matchers.containsString(
                             "metadata-only and read-only"
                     )));
@@ -448,12 +453,16 @@ class OperatorDashboardControllerTests {
                                         "operations.json",
                                         "launch-rehearsal.json",
                                         "model-usage-ledger.json",
+                                        "recovery-board.json",
+                                        "recovery-board.md",
                                         "presentation-cockpit.json",
                                         "evidence-gallery.json",
                                         "run-archive.json"
                                 );
                         org.assertj.core.api.Assertions.assertThat(entries.get("manifest.json"))
-                                .contains("DEMO_SESSION_EVIDENCE_PACKAGE", "session-package-controller-job");
+                                .contains("DEMO_SESSION_EVIDENCE_PACKAGE", "session-package-controller-job", "recovery-board.json");
+                        org.assertj.core.api.Assertions.assertThat(entries.get("recovery-board.md"))
+                                .contains("LinguaFrame Demo Session Recovery Board");
                         org.assertj.core.api.Assertions.assertThat(String.join("\n", entries.values()))
                                 .doesNotContain("source-videos/session-package-controller-video")
                                 .doesNotContain("OPENAI_API_KEY")

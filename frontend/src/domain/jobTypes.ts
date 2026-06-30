@@ -691,6 +691,14 @@ export interface DemoSessionCommandCenter {
   phases: DemoSessionCommandCenterPhase[];
   actions: DemoSessionCommandCenterAction[];
   evidenceLinks: DemoSessionCommandCenterEvidence[];
+  recoveryStatus: DemoSessionRecoveryBoardStatus;
+  recoverNowCount: number;
+  watchCount: number;
+  needsReviewCount: number;
+  readyCount: number;
+  recoveryRecommendedNextAction: string;
+  recoveryPrimaryAction: DemoSessionRecoveryBoardAction | null;
+  recoveryLinks: DemoSessionRecoveryBoardLink[];
   estimatedCostUsd: string;
   modelCallCount: number;
   failedModelCallCount: number;

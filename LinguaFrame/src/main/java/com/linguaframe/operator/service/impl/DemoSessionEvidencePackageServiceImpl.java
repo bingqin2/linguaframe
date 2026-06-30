@@ -10,6 +10,7 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterEvidenceVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterRunVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryDownloadVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryJobVo;
@@ -26,6 +27,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.DemoSessionEvidencePackageService;
+import com.linguaframe.operator.service.DemoSessionRecoveryBoardService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
 import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
@@ -59,6 +61,8 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
             "launch-rehearsal.md",
             "model-usage-ledger.json",
             "model-usage-ledger.md",
+            "recovery-board.json",
+            "recovery-board.md",
             "presentation-cockpit.json",
             "presentation-cockpit.md",
             "evidence-gallery.json",
@@ -75,6 +79,7 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
     private final DemoPresentationCockpitService cockpitService;
     private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
     private final PrivateDemoRunArchiveService runArchiveService;
+    private final DemoSessionRecoveryBoardService recoveryBoardService;
 
     public DemoSessionEvidencePackageServiceImpl(
             ObjectMapper objectMapper,
@@ -84,7 +89,8 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
             ModelUsageLedgerService modelUsageLedgerService,
             DemoPresentationCockpitService cockpitService,
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
-            PrivateDemoRunArchiveService runArchiveService
+            PrivateDemoRunArchiveService runArchiveService,
+            DemoSessionRecoveryBoardService recoveryBoardService
     ) {
         this.objectMapper = objectMapper;
         this.commandCenterService = commandCenterService;
@@ -94,6 +100,7 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
         this.cockpitService = cockpitService;
         this.evidenceGalleryService = evidenceGalleryService;
         this.runArchiveService = runArchiveService;
+        this.recoveryBoardService = recoveryBoardService;
     }
 
     @Override
@@ -103,6 +110,7 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
         PrivateDemoOperationsVo operations = operationsService.operations();
         PrivateDemoLaunchRehearsalVo launch = launchRehearsalService.launchRehearsal();
         ModelUsageLedgerVo ledger = modelUsageLedgerService.ledger(20);
+        DemoSessionRecoveryBoardVo recoveryBoard = recoveryBoardService.board(20);
         DemoPresentationCockpitVo cockpit = cockpitService.cockpit(focusedJobId);
         PrivateDemoEvidenceGalleryVo gallery = evidenceGalleryService.evidenceGallery(20);
         PrivateDemoRunArchiveVo archive = runArchiveService.runArchive();
@@ -120,6 +128,8 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
             writeEntry(zipOutputStream, "launch-rehearsal.md", bytes(launchMarkdown(launch)));
             writeEntry(zipOutputStream, "model-usage-ledger.json", writeJson(ledger));
             writeEntry(zipOutputStream, "model-usage-ledger.md", bytes(modelUsageLedgerService.ledgerMarkdown(20)));
+            writeEntry(zipOutputStream, "recovery-board.json", writeJson(recoveryBoard));
+            writeEntry(zipOutputStream, "recovery-board.md", bytes(recoveryBoardService.boardMarkdown(20)));
             writeEntry(zipOutputStream, "presentation-cockpit.json", writeJson(cockpit));
             writeEntry(zipOutputStream, "presentation-cockpit.md", bytes(cockpitMarkdown(cockpit)));
             writeEntry(zipOutputStream, "evidence-gallery.json", writeJson(gallery));
@@ -171,6 +181,7 @@ public class DemoSessionEvidencePackageServiceImpl implements DemoSessionEvidenc
                 "- `operations.json` / `operations.md`: private-demo runtime, access, provider, storage, cleanup, and evidence readiness.",
                 "- `launch-rehearsal.json` / `launch-rehearsal.md`: ordered pre-demo steps and expected evidence outputs.",
                 "- `model-usage-ledger.json` / `model-usage-ledger.md`: cross-job model-call count, cost, latency, failures, and cache evidence.",
+                "- `recovery-board.json` / `recovery-board.md`: session-level recover-now, watch, review, and ready rows with safe recovery links.",
                 "- `presentation-cockpit.json` / `presentation-cockpit.md`: active or selected run presentation status and links.",
                 "- `evidence-gallery.json` / `evidence-gallery.md`: completed run selection and package links.",
                 "- `run-archive.json` / `run-archive.md`: recommended completed run and operator-level archive links.",

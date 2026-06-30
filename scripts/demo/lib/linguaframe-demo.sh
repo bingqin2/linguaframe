@@ -1392,6 +1392,89 @@ print("demoSessionRecoveryBoardJsonPath=" + text(sys.argv[1]))
 PY
 }
 
+print_demo_session_command_center_summary_file() {
+  local command_center_json_path="$1"
+  local markdown_path="${2:-}"
+
+  python3 - "$command_center_json_path" "$markdown_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    command_center = json.load(handle)
+
+focus_run = (
+    command_center.get("focusRun")
+    or command_center.get("activeRun")
+    or command_center.get("recommendedCompletedRun")
+    or {}
+)
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+print("demoSessionCommandCenterStatus=" + text(command_center.get("overallStatus")))
+print("demoSessionCommandCenterPhase=" + text(command_center.get("phase")))
+print("demoSessionCommandCenterNextAction=" + text(command_center.get("recommendedNextAction")))
+print("demoSessionCommandCenterFocusJobId=" + text(focus_run.get("jobId")))
+print("demoSessionCommandCenterModelCallCount=" + text(command_center.get("modelCallCount")))
+print("demoSessionCommandCenterFailedModelCallCount=" + text(command_center.get("failedModelCallCount")))
+print("demoSessionCommandCenterEstimatedCostUsd=" + text(command_center.get("estimatedCostUsd")))
+print("demoSessionCommandCenterPrimaryCommand=" + text(command_center.get("primaryCommand")))
+print("demoSessionCommandCenterRecoveryStatus=" + text(command_center.get("recoveryStatus")))
+print("demoSessionCommandCenterRecoverNowCount=" + text(command_center.get("recoverNowCount", 0)))
+print("demoSessionCommandCenterRecoveryNextAction=" + text(command_center.get("recoveryRecommendedNextAction")))
+print("demoSessionCommandCenterJsonPath=" + text(sys.argv[1]))
+if sys.argv[2]:
+    print("demoSessionCommandCenterMarkdownPath=" + text(sys.argv[2]))
+PY
+}
+
+print_demo_session_evidence_package_summary_file() {
+  local command_center_json_path="$1"
+  local zip_path="$2"
+
+  python3 - "$command_center_json_path" "$zip_path" <<'PY'
+import json
+import sys
+import zipfile
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    command_center = json.load(handle)
+
+focus_run = (
+    command_center.get("focusRun")
+    or command_center.get("activeRun")
+    or command_center.get("recommendedCompletedRun")
+    or {}
+)
+
+with zipfile.ZipFile(sys.argv[2]) as package:
+    entries = package.namelist()
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+entry_set = set(entries)
+has_recovery_board = {"recovery-board.json", "recovery-board.md"}.issubset(entry_set)
+
+print("demoSessionEvidencePackageStatus=" + text(command_center.get("overallStatus")))
+print("demoSessionEvidencePackagePhase=" + text(command_center.get("phase")))
+print("demoSessionEvidencePackageNextAction=" + text(command_center.get("recommendedNextAction")))
+print("demoSessionEvidencePackageFocusJobId=" + text(focus_run.get("jobId")))
+print("demoSessionEvidencePackageRecoveryStatus=" + text(command_center.get("recoveryStatus")))
+print("demoSessionEvidencePackageRecoverNowCount=" + text(command_center.get("recoverNowCount", 0)))
+print("demoSessionEvidencePackageHasRecoveryBoard=" + str(has_recovery_board).lower())
+print("demoSessionEvidencePackageJsonPath=" + text(sys.argv[1]))
+print("demoSessionEvidencePackageZipPath=" + text(sys.argv[2]))
+print("demoSessionEvidencePackageEntries=" + ",".join(entries))
+PY
+}
+
 print_worker_topology_summary_file() {
   local runtime_dependencies_path="$1"
 

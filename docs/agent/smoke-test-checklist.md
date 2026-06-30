@@ -70,6 +70,21 @@ Expected:
 
 - Recent jobs are grouped into recover-now, watch, needs-review, ready, or no-action rows.
 - The board links to existing per-job recovery and evidence routes but does not execute recovery actions.
+
+For command-center recovery integration changes, run:
+
+```bash
+mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "demo session command center|session recovery board"
+bash scripts/demo/test-linguaframe-demo-client.sh
+bash -n scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/demo-session-recovery-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh
+```
+
+Expected:
+
+- The command center includes recovery status, recover-now/watch/review/ready counts, recovery next action, and recovery-board links.
+- A recover-now row makes the command center `BLOCKED`.
+- The session evidence package includes `recovery-board.json` and `recovery-board.md`.
 - Browser and terminal exports stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
 
 For worker logging changes, run:

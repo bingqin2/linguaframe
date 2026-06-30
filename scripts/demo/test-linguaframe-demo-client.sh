@@ -961,6 +961,87 @@ JSON
   fi
 }
 
+test_demo_session_command_center_helpers_include_recovery_summary() {
+  cat >"$TMPDIR/command-center.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "phase": "NEEDS_RECOVERY",
+  "recommendedNextAction": "Resolve blocking demo session checks.",
+  "focusRun": {
+    "jobId": "job-stale",
+    "filename": "private-source.mp4"
+  },
+  "modelCallCount": 4,
+  "failedModelCallCount": 1,
+  "estimatedCostUsd": "0.01200000",
+  "primaryCommand": "LINGUAFRAME_DEMO_JOB_ID=job-stale scripts/demo/demo-session-command-center.sh",
+  "recoveryStatus": "BLOCKED",
+  "recoverNowCount": 1,
+  "recoveryRecommendedNextAction": "Open stuck-job recovery.",
+  "token": "private-demo-token",
+  "localPath": "/Users/example/private.mov"
+}
+JSON
+
+  print_demo_session_command_center_summary_file \
+    "$TMPDIR/command-center.json" \
+    "$TMPDIR/command-center.md" \
+    >"$TMPDIR/command-center.out"
+  local output
+  output="$(cat "$TMPDIR/command-center.out")"
+  [[ "$output" == *"demoSessionCommandCenterStatus=BLOCKED"* ]] || fail "command center summary missed status"
+  [[ "$output" == *"demoSessionCommandCenterFocusJobId=job-stale"* ]] || fail "command center summary missed focus job"
+  [[ "$output" == *"demoSessionCommandCenterRecoveryStatus=BLOCKED"* ]] || fail "command center summary missed recovery status"
+  [[ "$output" == *"demoSessionCommandCenterRecoverNowCount=1"* ]] || fail "command center summary missed recover-now count"
+  [[ "$output" == *"demoSessionCommandCenterRecoveryNextAction=Open stuck-job recovery."* ]] || fail "command center summary missed recovery next action"
+  [[ "$output" != *"private-source.mp4"* ]] || fail "command center summary exposed filename"
+  [[ "$output" != *"private-demo-token"* ]] || fail "command center summary exposed demo token"
+  [[ "$output" != *"/Users/example"* ]] || fail "command center summary exposed local path"
+}
+
+test_demo_session_evidence_package_helpers_include_recovery_board_entries() {
+  cat >"$TMPDIR/evidence-command-center.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "phase": "NEEDS_RECOVERY",
+  "recommendedNextAction": "Resolve blocking demo session checks.",
+  "focusRun": {
+    "jobId": "job-stale",
+    "filename": "private-source.mp4"
+  },
+  "recoveryStatus": "BLOCKED",
+  "recoverNowCount": 1,
+  "token": "private-demo-token",
+  "localPath": "/Users/example/private.mov"
+}
+JSON
+  python3 - "$TMPDIR/evidence-package.zip" <<'PY'
+import sys
+import zipfile
+
+with zipfile.ZipFile(sys.argv[1], "w") as package:
+    package.writestr("manifest.json", "{}")
+    package.writestr("command-center.json", "{}")
+    package.writestr("recovery-board.json", "{}")
+    package.writestr("recovery-board.md", "# Recovery")
+PY
+
+  print_demo_session_evidence_package_summary_file \
+    "$TMPDIR/evidence-command-center.json" \
+    "$TMPDIR/evidence-package.zip" \
+    >"$TMPDIR/evidence-package.out"
+  local output
+  output="$(cat "$TMPDIR/evidence-package.out")"
+  [[ "$output" == *"demoSessionEvidencePackageStatus=BLOCKED"* ]] || fail "evidence package summary missed status"
+  [[ "$output" == *"demoSessionEvidencePackageFocusJobId=job-stale"* ]] || fail "evidence package summary missed focus job"
+  [[ "$output" == *"demoSessionEvidencePackageRecoveryStatus=BLOCKED"* ]] || fail "evidence package summary missed recovery status"
+  [[ "$output" == *"demoSessionEvidencePackageRecoverNowCount=1"* ]] || fail "evidence package summary missed recover-now count"
+  [[ "$output" == *"demoSessionEvidencePackageHasRecoveryBoard=true"* ]] || fail "evidence package summary missed recovery board entries"
+  [[ "$output" != *"private-source.mp4"* ]] || fail "evidence package summary exposed filename"
+  [[ "$output" != *"private-demo-token"* ]] || fail "evidence package summary exposed demo token"
+  [[ "$output" != *"/Users/example"* ]] || fail "evidence package summary exposed local path"
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -3312,6 +3393,8 @@ test_demo_run_launcher_helpers_are_metadata_only
 test_demo_run_launcher_script_exits_on_blocked_state
 test_demo_presentation_cockpit_helpers_are_metadata_only
 test_demo_session_recovery_board_helpers_are_metadata_only
+test_demo_session_command_center_helpers_include_recovery_summary
+test_demo_session_evidence_package_helpers_include_recovery_board_entries
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

@@ -12,6 +12,11 @@ import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterEvidenceVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterPhaseVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterRunVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardActionVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardCheckVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardJobVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardLinkVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerSummaryVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryDownloadVo;
@@ -49,6 +54,7 @@ class DemoSessionEvidencePackageServiceTests {
     private final StubDemoPresentationCockpitService cockpitService = new StubDemoPresentationCockpitService();
     private final StubPrivateDemoEvidenceGalleryService galleryService = new StubPrivateDemoEvidenceGalleryService();
     private final StubPrivateDemoRunArchiveService archiveService = new StubPrivateDemoRunArchiveService();
+    private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
 
     private final DemoSessionEvidencePackageService service = new DemoSessionEvidencePackageServiceImpl(
             objectMapper,
@@ -58,7 +64,8 @@ class DemoSessionEvidencePackageServiceTests {
             ledgerService,
             cockpitService,
             galleryService,
-            archiveService
+            archiveService,
+            recoveryBoardService
     );
 
     @Test
@@ -80,6 +87,8 @@ class DemoSessionEvidencePackageServiceTests {
                 "launch-rehearsal.md",
                 "model-usage-ledger.json",
                 "model-usage-ledger.md",
+                "recovery-board.json",
+                "recovery-board.md",
                 "presentation-cockpit.json",
                 "presentation-cockpit.md",
                 "evidence-gallery.json",
@@ -92,9 +101,10 @@ class DemoSessionEvidencePackageServiceTests {
         assertThat(manifest.path("packageType").asText()).isEqualTo("DEMO_SESSION_EVIDENCE_PACKAGE");
         assertThat(manifest.path("overallStatus").asText()).isEqualTo("READY");
         assertThat(manifest.path("phase").asText()).isEqualTo("READY_TO_PRESENT");
-        assertThat(manifest.path("entryCount").asInt()).isEqualTo(16);
+        assertThat(manifest.path("entryCount").asInt()).isEqualTo(18);
         assertThat(entries.get("README.md")).contains("LinguaFrame Demo Session Evidence Package");
         assertThat(entries.get("command-center.md")).contains("Command center Markdown");
+        assertThat(entries.get("recovery-board.md")).contains("Recovery Board");
         assertThat(entries.get("operations.md")).contains("Private Demo Operations");
         assertThat(entries.get("model-usage-ledger.md")).contains("Model Usage Ledger");
     }
@@ -169,6 +179,14 @@ class DemoSessionEvidencePackageServiceTests {
                 List.of(new DemoSessionCommandCenterPhaseVo("model-usage", "Model usage ledger", "READY", "Calls 2.", "Use ledger evidence.", false)),
                 List.of(new DemoSessionCommandCenterActionVo("session", "Export session", "scripts/demo/demo-session-command-center.sh", "Export metadata.", true)),
                 List.of(new DemoSessionCommandCenterEvidenceVo("Command center", "/api/operator/demo-session-command-center", "application/json", "Command center JSON.")),
+                "BLOCKED",
+                1,
+                0,
+                0,
+                1,
+                "Open stuck-job recovery.",
+                new DemoSessionRecoveryBoardActionVo("OPEN_STUCK_RECOVERY", "Open stuck-job recovery", "/api/jobs/job-stale/stuck-job-recovery", "Inspect recovery.", true),
+                List.of(new DemoSessionRecoveryBoardLinkVo("MARKDOWN", "Recovery board Markdown", "/api/operator/demo-session-recovery-board/markdown/download", "text/markdown", "Downloadable recovery board.")),
                 new BigDecimal("0.00020000"),
                 2,
                 0,
@@ -176,6 +194,50 @@ class DemoSessionEvidencePackageServiceTests {
                 100L,
                 1,
                 List.of("Metadata-only command center.")
+        );
+    }
+
+    private static DemoSessionRecoveryBoardVo recoveryBoard() {
+        DemoSessionRecoveryBoardActionVo action = new DemoSessionRecoveryBoardActionVo(
+                "OPEN_STUCK_RECOVERY",
+                "Open stuck-job recovery",
+                "/api/jobs/job-stale/stuck-job-recovery",
+                "Inspect per-job recovery evidence.",
+                true
+        );
+        return new DemoSessionRecoveryBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                "BLOCKED",
+                "1 job needs recovery.",
+                "Open stuck-job recovery.",
+                1,
+                0,
+                1,
+                0,
+                0,
+                action,
+                List.of(new DemoSessionRecoveryBoardJobVo(
+                        "job-stale",
+                        "video-stale",
+                        "stale.mp4",
+                        "tears-showcase",
+                        "QUEUED",
+                        null,
+                        null,
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        "RECOVER_NOW",
+                        "BLOCKED",
+                        "QUEUED_STALE_DISPATCH",
+                        null,
+                        "Open stuck-job recovery.",
+                        List.of(action),
+                        List.of(new DemoSessionRecoveryBoardLinkVo("STUCK_RECOVERY", "Stuck job recovery", "/api/jobs/job-stale/stuck-job-recovery", "application/json", "Recovery evidence."))
+                )),
+                List.of(new DemoSessionRecoveryBoardCheckVo("recover-now", "Recover now", "BLOCKED", "1 job needs recovery.", "Open recovery.", true)),
+                List.of(new DemoSessionRecoveryBoardLinkVo("MARKDOWN", "Recovery board Markdown", "/api/operator/demo-session-recovery-board/markdown/download", "text/markdown", "Downloadable recovery board.")),
+                List.of("Metadata only."),
+                "# Recovery Board\n\n- Recover now: 1\n"
         );
     }
 
@@ -398,6 +460,18 @@ class DemoSessionEvidencePackageServiceTests {
         @Override
         public PrivateDemoRunArchiveVo runArchive() {
             return DemoSessionEvidencePackageServiceTests.archive();
+        }
+    }
+
+    private static final class StubDemoSessionRecoveryBoardService implements DemoSessionRecoveryBoardService {
+        @Override
+        public DemoSessionRecoveryBoardVo board(Integer limit) {
+            return DemoSessionEvidencePackageServiceTests.recoveryBoard();
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return "# Recovery Board\n\n- Recover now: 1\n";
         }
     }
 }

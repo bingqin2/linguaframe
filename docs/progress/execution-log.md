@@ -6,6 +6,25 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Planned and implemented the session recovery command center integration from `docs/plans/166-session-recovery-command-center-integration.md`.
+- Extended the demo session command center with recovery-board status, recover-now/watch/review/ready counts, primary recovery action, recovery evidence links, and a `recovery-board` phase that blocks top-level readiness when recover-now rows exist.
+- Added `recovery-board.json` and `recovery-board.md` to the session evidence package ZIP and package README/manifest coverage.
+- Added a compact browser command-center recovery summary and updated API fixtures for the new command-center recovery fields.
+- Refactored command-center and evidence-package terminal summaries through shared helpers, including `demoSessionCommandCenterRecovery*` output and a recovery-board ZIP entry check.
+- Updated README, Docker demo guidance, smoke-test checklist, roadmap, and target state for the integrated recovery workflow.
+
+Validation:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests test` first failed on the new recovery-board constructor/API expectations, then passed with `Tests run: 10, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests test` passed with `Tests run: 28, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "demo session command center"` first failed because the command center had no `Command center recovery` region, then passed with `Test Files 1 passed` and `Tests 1 passed | 150 skipped`.
+- `bash -n scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/demo-session-recovery-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+
+## 2026-06-30
+
+Work:
+
 - Started and implemented the narration segment mix automation feature slice from `docs/plans/152-narration-segment-mix-automation.md`.
 - Added nullable `ducking_volume`, `narration_volume`, and `fade_duration_ms` fields to narration segments and round-tripped them through JDBC persistence.
 - Extended narration workspace save/read JSON, script package import/export JSON and Markdown, FFmpeg narration windows, narrated-video generation, narration evidence, terminal narration evidence summaries, and React selected-row inspector controls.

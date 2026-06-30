@@ -7,6 +7,11 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitRunVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherCommandVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardActionVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardCheckVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardJobVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardLinkVo;
+import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerSummaryVo;
 import com.linguaframe.operator.domain.vo.ModelUsageLedgerVo;
@@ -35,6 +40,7 @@ class DemoSessionCommandCenterServiceTests {
     private final StubPrivateDemoEvidenceGalleryService galleryService = new StubPrivateDemoEvidenceGalleryService();
     private final StubPrivateDemoRunArchiveService archiveService = new StubPrivateDemoRunArchiveService();
     private final StubModelUsageLedgerService ledgerService = new StubModelUsageLedgerService();
+    private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
 
     private final DemoSessionCommandCenterService service = new DemoSessionCommandCenterServiceImpl(
             operationsService,
@@ -43,7 +49,8 @@ class DemoSessionCommandCenterServiceTests {
             cockpitService,
             galleryService,
             archiveService,
-            ledgerService
+            ledgerService,
+            recoveryBoardService
     );
 
     @Test
@@ -59,10 +66,14 @@ class DemoSessionCommandCenterServiceTests {
         assertThat(center.modelCallCount()).isEqualTo(4);
         assertThat(center.estimatedCostUsd()).isEqualByComparingTo("0.01000000");
         assertThat(center.phases()).extracting("id")
-                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage");
+                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage", "recovery-board");
+        assertThat(center.recoveryStatus()).isEqualTo("READY");
+        assertThat(center.recoverNowCount()).isZero();
+        assertThat(center.recoveryRecommendedNextAction()).contains("No recovery action");
         assertThat(center.evidenceLinks()).extracting("href")
                 .contains(
                         "/api/operator/demo-session-command-center",
+                        "/api/operator/demo-session-recovery-board",
                         "/api/operator/model-usage-ledger",
                         "/api/jobs/job-best/demo-run-package/download",
                         "/api/jobs/job-best/demo-evidence-closure/download"
@@ -115,6 +126,30 @@ class DemoSessionCommandCenterServiceTests {
                 .satisfies(phase -> {
                     assertThat(phase.status()).isEqualTo("BLOCKED");
                     assertThat(phase.blocking()).isTrue();
+                });
+        assertThat(center.recommendedNextAction()).contains("Resolve blocking demo session checks");
+    }
+
+    @Test
+    void blocksWhenRecoveryBoardHasRecoverNowRows() {
+        recoveryBoardService.board = recoveryBoard("BLOCKED", 1, 0, 0, 0, "Open stuck-job recovery.");
+
+        DemoSessionCommandCenterVo center = service.commandCenter(null);
+
+        assertThat(center.overallStatus()).isEqualTo("BLOCKED");
+        assertThat(center.phase()).isEqualTo("BLOCKED");
+        assertThat(center.recoveryStatus()).isEqualTo("BLOCKED");
+        assertThat(center.recoverNowCount()).isEqualTo(1);
+        assertThat(center.recoveryPrimaryAction().id()).isEqualTo("OPEN_STUCK_RECOVERY");
+        assertThat(center.recoveryLinks()).extracting("href")
+                .contains("/api/operator/demo-session-recovery-board/markdown/download");
+        assertThat(center.phases())
+                .filteredOn(phase -> phase.id().equals("recovery-board"))
+                .singleElement()
+                .satisfies(phase -> {
+                    assertThat(phase.status()).isEqualTo("BLOCKED");
+                    assertThat(phase.blocking()).isTrue();
+                    assertThat(phase.nextAction()).contains("Open stuck-job recovery");
                 });
         assertThat(center.recommendedNextAction()).contains("Resolve blocking demo session checks");
     }
@@ -337,6 +372,60 @@ class DemoSessionCommandCenterServiceTests {
         );
     }
 
+    private static DemoSessionRecoveryBoardVo recoveryBoard(
+            String status,
+            int recoverNowCount,
+            int watchCount,
+            int needsReviewCount,
+            int readyCount,
+            String nextAction
+    ) {
+        DemoSessionRecoveryBoardActionVo action = recoverNowCount == 0 ? null : new DemoSessionRecoveryBoardActionVo(
+                "OPEN_STUCK_RECOVERY",
+                "Open stuck-job recovery",
+                "/api/jobs/job-stale/stuck-job-recovery",
+                "Inspect per-job recovery evidence.",
+                true
+        );
+        return new DemoSessionRecoveryBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                status,
+                recoverNowCount == 0 ? "No recoverable jobs." : recoverNowCount + " job needs recovery.",
+                nextAction,
+                recoverNowCount,
+                watchCount,
+                readyCount,
+                needsReviewCount,
+                0,
+                action,
+                recoverNowCount == 0 ? List.of() : List.of(new DemoSessionRecoveryBoardJobVo(
+                        "job-stale",
+                        "video-stale",
+                        "stale.mp4",
+                        "tears-showcase",
+                        "QUEUED",
+                        null,
+                        null,
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        Instant.parse("2026-06-29T07:00:00Z"),
+                        "RECOVER_NOW",
+                        "BLOCKED",
+                        "QUEUED_STALE_DISPATCH",
+                        null,
+                        "Open stuck-job recovery.",
+                        List.of(action),
+                        List.of(new DemoSessionRecoveryBoardLinkVo("STUCK_RECOVERY", "Stuck job recovery", "/api/jobs/job-stale/stuck-job-recovery", "application/json", "Recovery evidence."))
+                )),
+                List.of(new DemoSessionRecoveryBoardCheckVo("recovery", "Recovery status", status, nextAction, nextAction, recoverNowCount > 0)),
+                List.of(
+                        new DemoSessionRecoveryBoardLinkVo("JSON", "Recovery board JSON", "/api/operator/demo-session-recovery-board", "application/json", "Recovery board JSON."),
+                        new DemoSessionRecoveryBoardLinkVo("MARKDOWN", "Recovery board Markdown", "/api/operator/demo-session-recovery-board/markdown/download", "text/markdown", "Recovery board Markdown.")
+                ),
+                List.of("Metadata only."),
+                "# Recovery Board"
+        );
+    }
+
     private final class StubPrivateDemoOperationsService implements PrivateDemoOperationsService {
         private PrivateDemoOperationsVo operations = DemoSessionCommandCenterServiceTests.operations("READY");
 
@@ -407,6 +496,20 @@ class DemoSessionCommandCenterServiceTests {
         @Override
         public String ledgerMarkdown(Integer limit) {
             return "# Ledger";
+        }
+    }
+
+    private final class StubDemoSessionRecoveryBoardService implements DemoSessionRecoveryBoardService {
+        private DemoSessionRecoveryBoardVo board = recoveryBoard("READY", 0, 0, 0, 1, "No recovery action is needed.");
+
+        @Override
+        public DemoSessionRecoveryBoardVo board(Integer limit) {
+            return board;
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return board.markdown();
         }
     }
 }

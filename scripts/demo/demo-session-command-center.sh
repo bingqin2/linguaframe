@@ -38,27 +38,7 @@ demo_curl -fsS \
   "$BASE_URL/api/operator/demo-session-command-center/markdown/download$QUERY" \
   -o "$MARKDOWN_OUTPUT_PATH"
 
-python3 - "$JSON_OUTPUT_PATH" "$MARKDOWN_OUTPUT_PATH" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-json_path = Path(sys.argv[1])
-markdown_path = Path(sys.argv[2])
-command_center = json.loads(json_path.read_text(encoding="utf-8"))
-focus_run = command_center.get("focusRun") or command_center.get("activeRun") or command_center.get("recommendedCompletedRun") or {}
-
-print(f"demoSessionCommandCenterStatus={command_center.get('overallStatus')}")
-print(f"demoSessionCommandCenterPhase={command_center.get('phase')}")
-print(f"demoSessionCommandCenterNextAction={command_center.get('recommendedNextAction')}")
-print(f"demoSessionCommandCenterFocusJobId={focus_run.get('jobId')}")
-print(f"demoSessionCommandCenterModelCallCount={command_center.get('modelCallCount')}")
-print(f"demoSessionCommandCenterFailedModelCallCount={command_center.get('failedModelCallCount')}")
-print(f"demoSessionCommandCenterEstimatedCostUsd={command_center.get('estimatedCostUsd')}")
-print(f"demoSessionCommandCenterPrimaryCommand={command_center.get('primaryCommand')}")
-print(f"demoSessionCommandCenterJsonPath={json_path}")
-print(f"demoSessionCommandCenterMarkdownPath={markdown_path}")
-PY
+print_demo_session_command_center_summary_file "$JSON_OUTPUT_PATH" "$MARKDOWN_OUTPUT_PATH"
 
 STATUS="$(python3 - "$JSON_OUTPUT_PATH" <<'PY'
 import json

@@ -4022,6 +4022,28 @@ function demoSessionCommandCenterFixture() {
         description: 'Downloadable command center notes.'
       }
     ],
+    recoveryStatus: 'BLOCKED',
+    recoverNowCount: 1,
+    watchCount: 0,
+    needsReviewCount: 0,
+    readyCount: 1,
+    recoveryRecommendedNextAction: 'Open stuck-job recovery.',
+    recoveryPrimaryAction: {
+      id: 'OPEN_STUCK_RECOVERY',
+      label: 'Open stuck-job recovery',
+      href: '/api/jobs/job-stale/stuck-job-recovery',
+      description: 'Inspect per-job recovery checks.',
+      primary: true
+    },
+    recoveryLinks: [
+      {
+        kind: 'MARKDOWN',
+        label: 'Recovery board Markdown',
+        href: '/api/operator/demo-session-recovery-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable recovery board.'
+      }
+    ],
     estimatedCostUsd: '0.00020000',
     modelCallCount: 2,
     failedModelCallCount: 0,
