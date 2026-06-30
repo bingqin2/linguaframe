@@ -26,6 +26,7 @@ import com.linguaframe.job.domain.bo.StoredHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.bo.StoredQualityEvidenceBo;
 import com.linguaframe.job.domain.bo.StoredNarrationEvidencePackageBo;
+import com.linguaframe.job.domain.bo.StoredNarrationRecoveryHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
 import com.linguaframe.job.domain.bo.StoredSubtitleReviewEvidencePackageBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
@@ -53,6 +54,7 @@ import com.linguaframe.job.domain.vo.NarrationDemoRenderVo;
 import com.linguaframe.job.domain.vo.NarrationGenerationVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewVo;
+import com.linguaframe.job.domain.vo.NarrationRecoveryHandoffVo;
 import com.linguaframe.job.domain.vo.NarrationRenderReviewVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
@@ -99,6 +101,7 @@ import com.linguaframe.job.service.NarrationDemoRenderService;
 import com.linguaframe.job.service.NarrationEvidenceService;
 import com.linguaframe.job.service.NarrationPlaybackReviewResolutionService;
 import com.linguaframe.job.service.NarrationPlaybackReviewService;
+import com.linguaframe.job.service.NarrationRecoveryHandoffService;
 import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
@@ -183,6 +186,7 @@ public class LocalizationJobController {
     private final NarrationEvidenceService narrationEvidenceService;
     private final NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService;
     private final NarrationPlaybackReviewService narrationPlaybackReviewService;
+    private final NarrationRecoveryHandoffService narrationRecoveryHandoffService;
     private final NarrationRenderReviewService narrationRenderReviewService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
@@ -232,6 +236,7 @@ public class LocalizationJobController {
             NarrationEvidenceService narrationEvidenceService,
             NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService,
             NarrationPlaybackReviewService narrationPlaybackReviewService,
+            NarrationRecoveryHandoffService narrationRecoveryHandoffService,
             NarrationRenderReviewService narrationRenderReviewService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
@@ -280,6 +285,7 @@ public class LocalizationJobController {
         this.narrationEvidenceService = narrationEvidenceService;
         this.narrationPlaybackReviewResolutionService = narrationPlaybackReviewResolutionService;
         this.narrationPlaybackReviewService = narrationPlaybackReviewService;
+        this.narrationRecoveryHandoffService = narrationRecoveryHandoffService;
         this.narrationRenderReviewService = narrationRenderReviewService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
@@ -1450,6 +1456,15 @@ public class LocalizationJobController {
         return narrationPlaybackReviewResolutionService.getResolution(jobId);
     }
 
+    @GetMapping("/{jobId}/narration-recovery-handoff")
+    @Operation(summary = "Get metadata-only narration recovery handoff package metadata")
+    public NarrationRecoveryHandoffVo narrationRecoveryHandoff(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationRecoveryHandoffService.getHandoff(jobId);
+    }
+
     @PutMapping("/{jobId}/narration-playback-review/segments/{segmentIndex}")
     @Operation(summary = "Save metadata-only narration playback review decision for a segment")
     public NarrationPlaybackReviewVo updateNarrationPlaybackReviewSegment(
@@ -1535,6 +1550,42 @@ public class LocalizationJobController {
                         .build()
                         .toString())
                 .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-recovery-handoff/markdown/download")
+    @Operation(summary = "Download metadata-only narration recovery handoff Markdown")
+    public ResponseEntity<String> downloadNarrationRecoveryHandoffMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = narrationRecoveryHandoffService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-narration-recovery-handoff.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/narration-recovery-handoff/download")
+    @Operation(summary = "Download metadata-only narration recovery handoff package")
+    public ResponseEntity<InputStreamResource> downloadNarrationRecoveryHandoffPackage(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        StoredNarrationRecoveryHandoffPackageBo handoffPackage = narrationRecoveryHandoffService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(handoffPackage.contentType()))
+                .contentLength(handoffPackage.sizeBytes())
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment()
+                                .filename(handoffPackage.filename())
+                                .build()
+                                .toString()
+                )
+                .body(new InputStreamResource(handoffPackage.inputStream()));
     }
 
     @GetMapping("/{jobId}/narration-evidence/download")

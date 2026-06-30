@@ -226,6 +226,57 @@ export interface DemoHandoffPortal {
   safetyNotes: string[];
 }
 
+export type NarrationRecoveryHandoffStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+
+export interface NarrationRecoveryHandoffCheck {
+  key: string;
+  label: string;
+  status: NarrationRecoveryHandoffStatus;
+  detail: string;
+  nextAction: string;
+  required: boolean;
+}
+
+export interface NarrationRecoveryHandoffStep {
+  key: string;
+  label: string;
+  status: string;
+  action: string;
+  safeCommand: string;
+  safeLink: string;
+}
+
+export interface NarrationRecoveryHandoffLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface NarrationRecoveryHandoff {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  status: NarrationRecoveryHandoffStatus;
+  phase: string;
+  headline: string;
+  recommendedNextAction: string;
+  acceptanceGateStatus: string;
+  playbackResolutionStatus: string;
+  unresolvedSegmentCount: number;
+  textRevisionRequiredCount: number;
+  rerenderRequiredCount: number;
+  unreviewedSegmentCount: number;
+  audioReady: boolean;
+  videoReady: boolean;
+  checks: NarrationRecoveryHandoffCheck[];
+  steps: NarrationRecoveryHandoffStep[];
+  safeLinks: NarrationRecoveryHandoffLink[];
+  packageEntries: string[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'

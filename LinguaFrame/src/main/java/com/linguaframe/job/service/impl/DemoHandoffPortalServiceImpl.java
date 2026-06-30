@@ -463,6 +463,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 link("SUBTITLE_REVIEW_EVIDENCE_PACKAGE", "Subtitle review evidence package", "/api/jobs/" + jobId + "/subtitle-review-evidence/download", "application/zip", "Review coverage and release-note evidence package."),
                 link("NARRATION_EVIDENCE", "Narration evidence", "/api/jobs/" + jobId + "/narration-evidence", "application/json", "Metadata-only narration evidence."),
                 link("NARRATION_EVIDENCE_PACKAGE", "Narration evidence package", "/api/jobs/" + jobId + "/narration-evidence/download", "application/zip", "Narration timing and audio readiness evidence package."),
+                link("NARRATION_RECOVERY_HANDOFF", "Narration recovery handoff", "/api/jobs/" + jobId + "/narration-recovery-handoff/download", "application/zip", "Offline narration recovery package for blocked acceptance gates."),
                 link("NARRATED_VIDEO_GENERATION", "Generate narrated video", "/api/jobs/" + jobId + "/narration-workspace/generate-video", "application/json", "Create the standalone narrated video artifact when narration audio is ready."),
                 link("HANDOFF_PACKAGE", "Handoff package", "/api/jobs/" + jobId + "/handoff-package/download", "application/zip", "Reviewed delivery package."),
                 link("DIAGNOSTICS", "Diagnostics", "/api/jobs/" + jobId + "/diagnostics/download", "application/json", "Safe diagnostics report."),
@@ -484,6 +485,7 @@ public class DemoHandoffPortalServiceImpl implements DemoHandoffPortalService {
                 "run-monitor.json",
                 "Linked safe route: /api/jobs/" + jobId + "/subtitle-review-evidence/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-evidence/download",
+                "Linked safe route: /api/jobs/" + jobId + "/narration-recovery-handoff/download",
                 "Linked safe route: /api/jobs/" + jobId + "/narration-workspace/generate-video",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-reviewer-workspace/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-run-package/download"

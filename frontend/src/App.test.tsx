@@ -37,6 +37,7 @@ import type {
   NarrationGeneration,
   NarrationPlaybackReview,
   NarrationPlaybackReviewResolution,
+  NarrationRecoveryHandoff,
   NarrationRenderReview,
   NarrationScriptPackage,
   NarrationWaveform,
@@ -3888,6 +3889,46 @@ describe('App', () => {
         }
       ]
     }));
+    vi.spyOn(linguaFrameApi, 'getNarrationRecoveryHandoff').mockResolvedValue(narrationRecoveryHandoffFixture({
+      jobId: 'narration-acceptance-recovery-job',
+      videoId: 'narration-acceptance-recovery-video',
+      status: 'BLOCKED',
+      packageEntries: [
+        'narration-recovery-handoff.json',
+        'narration-recovery-handoff.md',
+        'acceptance-gate.json',
+        'playback-resolution.json',
+        'README.md',
+        'manifest.json'
+      ],
+      safeLinks: [
+        {
+          kind: 'NARRATION_RECOVERY_HANDOFF_JSON',
+          label: 'Narration recovery handoff',
+          href: '/api/jobs/narration-acceptance-recovery-job/narration-recovery-handoff',
+          contentType: 'application/json',
+          description: 'Recovery handoff metadata.'
+        },
+        {
+          kind: 'NARRATION_RECOVERY_HANDOFF_MARKDOWN',
+          label: 'Narration recovery handoff Markdown',
+          href: '/api/jobs/narration-acceptance-recovery-job/narration-recovery-handoff/markdown/download',
+          contentType: 'text/markdown',
+          description: 'Recovery checklist Markdown.'
+        },
+        {
+          kind: 'NARRATION_RECOVERY_HANDOFF_ZIP',
+          label: 'Narration recovery handoff ZIP',
+          href: '/api/jobs/narration-acceptance-recovery-job/narration-recovery-handoff/download',
+          contentType: 'application/zip',
+          description: 'Offline recovery handoff package.'
+        }
+      ]
+    }));
+    const downloadRecoveryMarkdown = vi.spyOn(linguaFrameApi, 'downloadNarrationRecoveryHandoffMarkdown')
+      .mockResolvedValue(new Blob(['# LinguaFrame Narration Recovery Handoff'], { type: 'text/markdown' }));
+    const downloadRecoveryZip = vi.spyOn(linguaFrameApi, 'downloadNarrationRecoveryHandoffZip')
+      .mockResolvedValue(new Blob(['recovery zip'], { type: 'application/zip' }));
     vi.spyOn(linguaFrameApi, 'getDemoAcceptanceGate').mockResolvedValue(
       demoAcceptanceGateFixture({
         jobId: 'narration-acceptance-recovery-job',
@@ -3942,14 +3983,21 @@ describe('App', () => {
     const recoveryPanel = await within(narrationPanel).findByRole('region', { name: /acceptance recovery/i });
 
     expect(within(recoveryPanel).getByText('Acceptance recovery')).toBeInTheDocument();
-    expect(within(recoveryPanel).getByText('BLOCKED')).toBeInTheDocument();
+    expect(within(recoveryPanel).getAllByText('BLOCKED').length).toBeGreaterThanOrEqual(1);
     expect(within(recoveryPanel).getByText('1 unresolved')).toBeInTheDocument();
     expect(within(recoveryPanel).getByText('1 rerender')).toBeInTheDocument();
     expect(within(recoveryPanel).getByText('Render review: ATTENTION')).toBeInTheDocument();
     expect(within(recoveryPanel).getByText('Playback review: ATTENTION')).toBeInTheDocument();
     expect(within(recoveryPanel).getByText('Narration audio: ready')).toBeInTheDocument();
     expect(within(recoveryPanel).getByText('Narrated video: missing')).toBeInTheDocument();
-    expect(within(recoveryPanel).getAllByText('Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.')).toHaveLength(2);
+    expect(within(recoveryPanel).getByText('Recovery handoff')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText((_content, element) => element?.textContent === 'Package entries6')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByText('narration-recovery-handoff.json')).toBeInTheDocument();
+    expect(within(recoveryPanel).getByRole('link', { name: /narration recovery handoff zip/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/narration-acceptance-recovery-job/narration-recovery-handoff/download'
+    );
+    expect(within(recoveryPanel).getAllByText('Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.').length).toBeGreaterThanOrEqual(2);
     expect(within(recoveryPanel).getByRole('link', { name: /open playback resolution/i })).toHaveAttribute(
       'href',
       '/api/jobs/narration-acceptance-recovery-job/narration-playback-review/resolution'
@@ -3961,6 +4009,12 @@ describe('App', () => {
 
     expect(within(recoveryPanel).getByText('Focused narration row 2 for playback resolution.')).toBeInTheDocument();
     expect(within(narrationPanel).getByRole('textbox', { name: /segment text/i })).toHaveValue('Explain the second scene.');
+
+    await userEvent.click(within(recoveryPanel).getByRole('button', { name: /download recovery markdown/i }));
+    await userEvent.click(within(recoveryPanel).getByRole('button', { name: /download recovery zip/i }));
+
+    expect(downloadRecoveryMarkdown).toHaveBeenCalledWith('narration-acceptance-recovery-job');
+    expect(downloadRecoveryZip).toHaveBeenCalledWith('narration-acceptance-recovery-job');
   });
 
   test('falls back to metadata narration waveform when decoded waveform is unavailable', async () => {
@@ -8332,6 +8386,67 @@ function narrationPlaybackReviewResolutionFixture(
       }
     ],
     safetyNotes: ['Playback resolution excludes narration text and reviewer note bodies.'],
+    ...overrides
+  };
+}
+
+function narrationRecoveryHandoffFixture(
+  overrides: Partial<NarrationRecoveryHandoff> = {}
+): NarrationRecoveryHandoff {
+  return {
+    jobId: 'narration-recovery-job',
+    videoId: 'narration-recovery-video',
+    generatedAt: '2026-06-30T09:15:00Z',
+    status: 'BLOCKED',
+    phase: 'NARRATION_RECOVERY_BLOCKED',
+    headline: 'Narration recovery is blocked by unresolved playback rows.',
+    recommendedNextAction: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+    acceptanceGateStatus: 'BLOCKED',
+    playbackResolutionStatus: 'ATTENTION',
+    unresolvedSegmentCount: 1,
+    textRevisionRequiredCount: 0,
+    rerenderRequiredCount: 1,
+    unreviewedSegmentCount: 0,
+    audioReady: true,
+    videoReady: false,
+    checks: [
+      {
+        key: 'ACCEPTANCE_GATE',
+        label: 'Acceptance gate',
+        status: 'BLOCKED',
+        detail: 'Acceptance gate status is BLOCKED.',
+        nextAction: 'Resolve narration playback.',
+        required: true
+      }
+    ],
+    steps: [
+      {
+        key: 'NARRATION_PLAYBACK_RESOLVED',
+        label: 'Resolve narration playback',
+        status: 'BLOCKED',
+        action: 'Open playback resolution, focus unresolved narration rows, save revisions, regenerate narration media, then re-run acceptance gate.',
+        safeCommand: 'LINGUAFRAME_DEMO_JOB_ID=narration-recovery-job scripts/demo/narration-playback-review-resolution.sh',
+        safeLink: '/api/jobs/narration-recovery-job/narration-playback-review/resolution'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'NARRATION_RECOVERY_HANDOFF_ZIP',
+        label: 'Narration recovery handoff ZIP',
+        href: '/api/jobs/narration-recovery-job/narration-recovery-handoff/download',
+        contentType: 'application/zip',
+        description: 'Offline recovery handoff package.'
+      }
+    ],
+    packageEntries: [
+      'narration-recovery-handoff.json',
+      'narration-recovery-handoff.md',
+      'acceptance-gate.json',
+      'playback-resolution.json',
+      'README.md',
+      'manifest.json'
+    ],
+    safetyNotes: ['Metadata only.'],
     ...overrides
   };
 }

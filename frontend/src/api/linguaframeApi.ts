@@ -38,6 +38,7 @@ import type {
   NarrationGeneration,
   NarrationPlaybackReview,
   NarrationPlaybackReviewResolution,
+  NarrationRecoveryHandoff,
   NarrationScriptPackage,
   NarrationScriptPackageImportResult,
   NarrationRenderReview,
@@ -804,6 +805,24 @@ export async function downloadDemoHandoffPortalZip(jobId: string): Promise<Blob>
   });
 }
 
+export async function getNarrationRecoveryHandoff(jobId: string): Promise<NarrationRecoveryHandoff> {
+  return requestJson<NarrationRecoveryHandoff>(`/api/jobs/${encodeURIComponent(jobId)}/narration-recovery-handoff`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadNarrationRecoveryHandoffMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/narration-recovery-handoff/markdown/download`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadNarrationRecoveryHandoffZip(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/narration-recovery-handoff/download`, {
+    method: 'GET'
+  });
+}
+
 export async function getRetentionCleanupPreview(): Promise<RetentionCleanupResult> {
   return requestJson<RetentionCleanupResult>('/api/retention/cleanup/preview', {
     method: 'GET'
@@ -1394,6 +1413,9 @@ export const linguaFrameApi = {
   getDemoHandoffPortal,
   downloadDemoHandoffPortalMarkdown,
   downloadDemoHandoffPortalZip,
+  getNarrationRecoveryHandoff,
+  downloadNarrationRecoveryHandoffMarkdown,
+  downloadNarrationRecoveryHandoffZip,
   getRetentionCleanupPreview,
   runRetentionCleanup,
   listTranscript,

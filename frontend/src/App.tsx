@@ -111,6 +111,7 @@ import type {
   NarrationPlaybackReview,
   NarrationPlaybackReviewDecision,
   NarrationPlaybackReviewResolution,
+  NarrationRecoveryHandoff,
   NarrationRenderReview,
   NarrationMixKeyframe,
   NarrationMixLane,
@@ -9444,6 +9445,7 @@ function NarrationWorkspacePanel({
   const [renderReview, setRenderReview] = useState<NarrationRenderReview | null>(null);
   const [playbackReview, setPlaybackReview] = useState<NarrationPlaybackReview | null>(null);
   const [playbackResolution, setPlaybackResolution] = useState<NarrationPlaybackReviewResolution | null>(null);
+  const [recoveryHandoff, setRecoveryHandoff] = useState<NarrationRecoveryHandoff | null>(null);
   const [playbackReviewStatus, setPlaybackReviewStatus] = useState<string | null>(null);
   const [playbackResolutionStatus, setPlaybackResolutionStatus] = useState<string | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -9605,6 +9607,36 @@ function NarrationWorkspacePanel({
     playbackReview?.needsRerenderCount,
     playbackReview?.reviewedSegmentCount,
     playbackReview?.unreviewedSegmentCount,
+    workspace?.segmentCount,
+    workspace?.totalDurationSeconds
+  ]);
+
+  useEffect(() => {
+    let active = true;
+    setRecoveryHandoff(null);
+    linguaFrameApi.getNarrationRecoveryHandoff(jobId)
+      .then((handoff) => {
+        if (active) {
+          setRecoveryHandoff(handoff);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setRecoveryHandoff(null);
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    artifactSignature,
+    demoAcceptanceGate?.gateStatus,
+    jobId,
+    playbackResolution?.status,
+    playbackResolution?.unresolvedSegmentCount,
+    playbackResolution?.rerenderRequiredCount,
+    playbackResolution?.textRevisionRequiredCount,
+    playbackResolution?.unreviewedSegmentCount,
     workspace?.segmentCount,
     workspace?.totalDurationSeconds
   ]);
@@ -10241,6 +10273,7 @@ function NarrationWorkspacePanel({
           evidence={evidence}
           playbackReview={playbackReview}
           playbackResolution={playbackResolution}
+          recoveryHandoff={recoveryHandoff}
           renderReview={renderReview}
           status={playbackResolutionStatus}
           onFocusSegment={focusPlaybackResolutionSegment}
@@ -11220,6 +11253,7 @@ function NarrationAcceptanceRecoveryPanel({
   onRefreshAcceptanceGate,
   onRefreshEvidence,
   playbackResolution,
+  recoveryHandoff,
   playbackReview,
   renderReview,
   status
@@ -11230,6 +11264,7 @@ function NarrationAcceptanceRecoveryPanel({
   onRefreshAcceptanceGate: () => void;
   onRefreshEvidence: () => void;
   playbackResolution: NarrationPlaybackReviewResolution | null;
+  recoveryHandoff: NarrationRecoveryHandoff | null;
   playbackReview: NarrationPlaybackReview | null;
   renderReview: NarrationRenderReview | null;
   status: string | null;
@@ -11336,6 +11371,51 @@ function NarrationAcceptanceRecoveryPanel({
         <a href={playbackResolutionUrl}>Open playback resolution</a>
         <a href={`/api/jobs/${acceptanceGate.jobId}/demo-acceptance-gate`}>Open acceptance gate JSON</a>
       </div>
+      {recoveryHandoff ? (
+        <section className="playback-review-segment" aria-label="Recovery handoff">
+          <div className="compact-panel-heading">
+            <div>
+              <h5>Recovery handoff</h5>
+              <p className="muted">{recoveryHandoff.recommendedNextAction}</p>
+            </div>
+            <span className={recoveryHandoff.status === 'READY' ? 'status-pill ready' : 'status-pill attention'}>
+              {recoveryHandoff.status}
+            </span>
+          </div>
+          <dl className="compact-metrics">
+            <div>
+              <dt>Package entries</dt>
+              <dd>{recoveryHandoff.packageEntries.length}</dd>
+            </div>
+            <div>
+              <dt>Recovery unresolved</dt>
+              <dd>{recoveryHandoff.unresolvedSegmentCount}</dd>
+            </div>
+            <div>
+              <dt>Recovery rerenders</dt>
+              <dd>{recoveryHandoff.rerenderRequiredCount}</dd>
+            </div>
+          </dl>
+          <div className="panel-actions">
+            <button type="button" onClick={() => void downloadNarrationRecoveryHandoffFile(acceptanceGate.jobId, 'markdown')}>
+              Download recovery Markdown
+            </button>
+            <button type="button" onClick={() => void downloadNarrationRecoveryHandoffFile(acceptanceGate.jobId, 'zip')}>
+              Download recovery ZIP
+            </button>
+          </div>
+          <ul className="safe-link-list">
+            {recoveryHandoff.packageEntries.map((entry) => (
+              <li key={entry}>{entry}</li>
+            ))}
+          </ul>
+          <div className="link-list">
+            {recoveryHandoff.safeLinks.map((link) => (
+              <a key={link.kind} href={link.href}>{link.label}</a>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </section>
   );
 }
@@ -13010,6 +13090,13 @@ async function downloadNarrationPlaybackReviewFile(jobId: string) {
 async function downloadNarrationPlaybackReviewResolutionFile(jobId: string) {
   const blob = await linguaFrameApi.downloadNarrationPlaybackReviewResolutionMarkdown(jobId);
   downloadBlob(blob, `narration-playback-resolution-${jobId}.md`);
+}
+
+async function downloadNarrationRecoveryHandoffFile(jobId: string, format: 'markdown' | 'zip') {
+  const blob = format === 'markdown'
+    ? await linguaFrameApi.downloadNarrationRecoveryHandoffMarkdown(jobId)
+    : await linguaFrameApi.downloadNarrationRecoveryHandoffZip(jobId);
+  downloadBlob(blob, `narration-recovery-handoff-${jobId}.${format === 'markdown' ? 'md' : 'zip'}`);
 }
 
 function parseNarrationScriptPackageImport(value: string): ImportNarrationScriptPackageRequest | null {

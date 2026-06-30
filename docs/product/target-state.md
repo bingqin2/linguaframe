@@ -61,9 +61,9 @@ Stage 1 goals:
 - Validate demo profile A/B evidence through backend comparison JSON/Markdown, the browser `Demo comparison` panel, and terminal full-video comparison downloads.
 - Validate same-source demo run selection through the browser `Demo run matrix`, backend matrix JSON, and terminal full-video `demo-run-matrix.json` output.
 - Validate presenter handoff readiness through the browser `Demo presenter pack`, backend presenter pack JSON, and terminal full-video `demo-presenter-pack.json` output.
-- Validate demo narration setup through the browser `Narration draft history`, `Demo narration preset`, `Render narration demo`, `Render review`, `Playback review`, `Playback resolution`, and `Acceptance recovery` panels, backend preset apply/preflight/render, render-review, playback-review, and playback-resolution responses, terminal `scripts/demo/narration-demo-preset.sh`, `scripts/demo/narration-demo-render-preflight.sh`, `scripts/demo/narration-demo-render.sh`, `scripts/demo/narration-render-review.sh`, `scripts/demo/narration-playback-review.sh`, and `scripts/demo/narration-playback-review-resolution.sh`, and optional full Tears narration render before narration evidence/review/resolution export.
-- Validate final demo readiness through the browser `Demo acceptance gate`, browser `Acceptance recovery`, backend gate JSON, and terminal full-video `demo-acceptance-gate.json` output, including the required narration playback resolution check and resolution runbook when narration rows exist.
-- Validate offline reviewer handoff through the browser `Demo handoff portal`, backend portal JSON/Markdown/ZIP, and terminal full-video `demo-handoff-portal.zip` output.
+- Validate demo narration setup through the browser `Narration draft history`, `Demo narration preset`, `Render narration demo`, `Render review`, `Playback review`, `Playback resolution`, and `Acceptance recovery` panels, backend preset apply/preflight/render, render-review, playback-review, playback-resolution, and recovery-handoff responses, terminal `scripts/demo/narration-demo-preset.sh`, `scripts/demo/narration-demo-render-preflight.sh`, `scripts/demo/narration-demo-render.sh`, `scripts/demo/narration-render-review.sh`, `scripts/demo/narration-playback-review.sh`, `scripts/demo/narration-playback-review-resolution.sh`, and `scripts/demo/narration-recovery-handoff.sh`, and optional full Tears narration render before narration evidence/review/resolution/recovery export.
+- Validate final demo readiness through the browser `Demo acceptance gate`, browser `Acceptance recovery`, backend gate JSON, backend recovery handoff JSON/Markdown/ZIP, and terminal full-video `demo-acceptance-gate.json` plus narration recovery handoff output, including the required narration playback resolution check and resolution runbook when narration rows exist.
+- Validate offline reviewer handoff through the browser `Demo handoff portal`, backend portal JSON/Markdown/ZIP, recovery handoff ZIP, and terminal full-video `demo-handoff-portal.zip` output.
 - Keep secrets local.
 
 ### Stage 2: Private Demo Deployment
@@ -212,7 +212,7 @@ The backend should provide:
 - A private-demo evidence gallery that safely aggregates recent completed jobs, handoff readiness, recommended run selection, and package links for browser and terminal handoff.
 - A private-demo owner quota preflight workspace that safely reports configured owner pressure and blocks new uploads before expensive work.
 - A pre-upload readiness workspace that combines access-gated API reachability, runtime contract, live dependencies, owner quota, selected demo profile, and paid-provider warnings before media upload.
-- A demo acceptance gate that combines existing safe job evidence and narration playback resolution into one final read-only go/no-go answer after processing completes.
+- A demo acceptance gate that combines existing safe job evidence and narration playback resolution into one final read-only go/no-go answer after processing completes, with a downloadable narration recovery handoff package when narration blocks readiness.
 
 ## Pipeline Target
 
