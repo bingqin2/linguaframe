@@ -52,6 +52,7 @@ import type {
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
+  PrivateDemoDeliveryReceipt,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PrivateDemoRunArchive,
@@ -759,6 +760,42 @@ export async function getPrivateDemoEvidenceGallery(limit?: number): Promise<Pri
 
 export async function getPrivateDemoRunArchive(): Promise<PrivateDemoRunArchive> {
   return requestJson<PrivateDemoRunArchive>('/api/operator/private-demo/run-archive', {
+    method: 'GET'
+  });
+}
+
+export async function getPrivateDemoDeliveryReceipt(jobId?: string): Promise<PrivateDemoDeliveryReceipt> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<PrivateDemoDeliveryReceipt>(`/api/operator/private-demo/delivery-receipt${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadPrivateDemoDeliveryReceiptMarkdown(jobId?: string): Promise<Blob> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/private-demo/delivery-receipt/markdown/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadPrivateDemoDeliveryReceiptZip(jobId?: string): Promise<Blob> {
+  const query = new URLSearchParams();
+  const normalizedJobId = jobId?.trim();
+  if (normalizedJobId) {
+    query.set('jobId', normalizedJobId);
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/private-demo/delivery-receipt/download${suffix}`, {
     method: 'GET'
   });
 }
@@ -1488,6 +1525,9 @@ export const linguaFrameApi = {
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
+  getPrivateDemoDeliveryReceipt,
+  downloadPrivateDemoDeliveryReceiptMarkdown,
+  downloadPrivateDemoDeliveryReceiptZip,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,

@@ -2,6 +2,26 @@
 
 This file records implementation progress, validation commands, failures, and follow-up notes.
 
+## 2026-07-01
+
+Work:
+
+- Started the private demo delivery receipt feature slice from `docs/plans/170-private-demo-delivery-receipt.md`.
+- Added backend `GET /api/operator/private-demo/delivery-receipt`, Markdown download, and metadata-only ZIP download that compose existing operations, launch rehearsal, evidence gallery, run archive, command center, recovery board, model ledger, OpenAI readiness, reviewer workspace, handoff portal, evidence closure, OpenAI proof, and AI audit links.
+- Added the React `Private demo delivery receipt` panel with status, selected/recommended job, delivery checks, primary export command, final proof links, package entries, and Markdown/ZIP downloads.
+- Added `scripts/demo/private-demo-delivery-receipt.sh` plus shared helper functions for JSON/Markdown/ZIP export and metadata-only terminal summaries.
+- Updated README, scripts README, Docker demo guidance, smoke checklist, private demo deployment docs, roadmap, and target state with the end-of-demo receipt workflow.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=PrivateDemoDeliveryReceiptServiceTests,OperatorDashboardControllerTests test` first failed at test compile because test helper names shadowed service methods and one VO field order was wrong; after fixing helpers, it passed with `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "private demo delivery receipt|private demo run archive|demo session command center"` first failed because the API test used a missing `blobResponse` helper; after switching to `new Response(...)`, it passed with `Tests 9 passed | 253 skipped`.
+- `bash -n scripts/demo/private-demo-delivery-receipt.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh && bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 847, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 319 passed`; jsdom printed expected navigation warnings from safe-link/blob-download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
 ## 2026-06-30
 
 Work:

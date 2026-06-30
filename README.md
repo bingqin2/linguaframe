@@ -404,6 +404,15 @@ LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-run-archive.sh
 
 The script writes `run-archive.json` and `run-archive.md` under `/tmp/linguaframe-demo/private-demo-run-archive/` by default. This archive is not a backup, does not contain generated media bytes, and does not replace per-job demo run packages; it is the operator-level table of contents for the private demo evidence set.
 
+At the end of the private demo, use the `Private demo delivery receipt` panel or terminal script as the final operator handoff:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-delivery-receipt.sh
+LINGUAFRAME_ENV_FILE=.env.private-demo LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/private-demo-delivery-receipt.sh
+```
+
+The receipt calls `GET /api/operator/private-demo/delivery-receipt` and writes JSON, Markdown, and ZIP files under `/tmp/linguaframe-demo/private-demo-delivery-receipt/`. It combines readiness, the recommended or selected run, command center state, session package, reviewer workspace, handoff portal, evidence closure, OpenAI proof, and AI audit links into one metadata-only delivery record.
+
 For a selected job, the browser demo includes a `Demo review guide` panel near the top of the job view. It orders the walkthrough into input, pipeline, review, delivery, evidence, and handoff steps, shows whether the run is presentation-ready, links to the existing detailed panels, and exports metadata-only presenter notes. The guide does not replace diagnostics, evidence bundle, demo session report, delivery manifest, or handoff package; it is the browser navigation layer for presenting them in a coherent order.
 
 The selected job view also includes a `Source media` panel. It shows safe uploaded-input metadata such as filename, content type, size, duration, upload status, created time, video id, job id, and target language, plus a `Download source video` link backed by `GET /api/media/uploads/{videoId}/source/download`. The metadata API does not expose source object keys or local paths; source bytes move only through the explicit download route.

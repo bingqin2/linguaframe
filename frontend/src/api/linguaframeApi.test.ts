@@ -51,6 +51,9 @@ import {
   getDemoPresentationCockpit,
   getPrivateDemoEvidenceGallery,
   getPrivateDemoRunArchive,
+  getPrivateDemoDeliveryReceipt,
+  downloadPrivateDemoDeliveryReceiptMarkdown,
+  downloadPrivateDemoDeliveryReceiptZip,
   getPrivateDemoLaunchRehearsal,
   getPrivateDemoOperations,
   getRetentionCleanupPreview,
@@ -2759,6 +2762,81 @@ describe('linguaframeApi', () => {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'
       }
     });
+  });
+
+  test('fetches private demo delivery receipt with encoded job id and demo access token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        generatedAt: '2026-06-28T09:00:00Z',
+        overallStatus: 'READY',
+        selectedJobId: 'job with spaces/slash',
+        recommendedJobId: 'job-gallery-best',
+        recommendedVideoId: 'video-gallery',
+        recommendedReadiness: 'READY',
+        operationsStatus: 'READY',
+        launchStatus: 'READY',
+        galleryStatus: 'READY',
+        archiveStatus: 'READY',
+        commandCenterStatus: 'READY',
+        recoveryStatus: 'READY',
+        modelUsageStatus: 'READY',
+        openAiReadinessStatus: 'READY',
+        checks: [],
+        sections: [],
+        actions: [],
+        evidenceLinks: [],
+        packageEntries: [],
+        safetyNotes: [],
+        receiptNotesMarkdown: '# Receipt'
+      })
+    );
+
+    const receipt = await getPrivateDemoDeliveryReceipt(' job with spaces/slash ');
+
+    expect(receipt.selectedJobId).toBe('job with spaces/slash');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/private-demo/delivery-receipt?jobId=job+with+spaces%2Fslash',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
+  test('downloads private demo delivery receipt markdown and zip with encoded job id', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('receipt markdown', { status: 200, headers: { 'Content-Type': 'text/markdown' } }))
+      .mockResolvedValueOnce(new Response('receipt zip', { status: 200, headers: { 'Content-Type': 'application/zip' } }));
+
+    const markdown = await downloadPrivateDemoDeliveryReceiptMarkdown(' job with spaces/slash ');
+    const zip = await downloadPrivateDemoDeliveryReceiptZip(' job with spaces/slash ');
+
+    await expect(markdown.text()).resolves.toBe('receipt markdown');
+    await expect(zip.text()).resolves.toBe('receipt zip');
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/operator/private-demo/delivery-receipt/markdown/download?jobId=job+with+spaces%2Fslash',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/operator/private-demo/delivery-receipt/download?jobId=job+with+spaces%2Fslash',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
   });
 
   test('fetches runtime dependencies with demo access token header when stored', async () => {

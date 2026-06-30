@@ -454,6 +454,8 @@ Expected browser behavior:
 - Terminal upload readiness output includes `workerTopologyRole`, `workerTopologyListenerQueue`, `workerTopologyFfmpegRoute`, `workerTopologyOpenaiRoute`, and `workerTopologyCommand` lines before any upload or provider call.
 - The `Private demo run archive` panel shows overall archive status, recommended job/profile/readiness, operations status, launch status, completed/handoff-ready counts, candidate rows, and safe archive links.
 - `scripts/demo/private-demo-run-archive.sh` writes metadata-only `run-archive.json` and `run-archive.md`, and terminal output includes `privateDemoRunArchiveOverall`, `privateDemoRunArchiveRecommendedJobId`, candidate rows, and link rows without tokens, local paths, provider payloads, or raw transcript/subtitle text.
+- The `Private demo delivery receipt` panel shows overall receipt status, selected or recommended job, delivery checks, primary export command, final proof links, and package entries.
+- `scripts/demo/private-demo-delivery-receipt.sh` writes metadata-only JSON, Markdown, and ZIP files, and terminal output includes `privateDemoDeliveryReceiptOverall`, recommended job, check/link/package counts, and the primary command without tokens, local paths, provider payloads, or raw transcript/subtitle text.
 - The `Live checks` panel shows overall `Ready` or `Blocked`, plus database, Redis, RabbitMQ, MinIO, FFmpeg, and OpenAI statuses from `GET /api/runtime/live-checks`. OpenAI is `SKIPPED` by default and `UP` or `DOWN` only when the explicit connectivity check is enabled.
 - If live checks fail to load, the `Live checks` panel shows a short unavailable message and leaves upload controls usable.
 

@@ -3068,6 +3068,112 @@ with open(output_path, "w", encoding="utf-8") as handle:
 PY
 }
 
+private_demo_delivery_receipt_query() {
+  local job_id="${1:-}"
+
+  if [[ -z "${job_id//[[:space:]]/}" ]]; then
+    return 0
+  fi
+
+  python3 - "$job_id" <<'PY'
+import sys
+from urllib.parse import urlencode
+
+print("?" + urlencode({"jobId": sys.argv[1].strip()}))
+PY
+}
+
+download_private_demo_delivery_receipt_json() {
+  local base_url="$1"
+  local output_path="$2"
+  local job_id="${3:-}"
+  local query
+  query="$(private_demo_delivery_receipt_query "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/delivery-receipt$query" -o "$output_path"
+}
+
+download_private_demo_delivery_receipt_markdown() {
+  local base_url="$1"
+  local output_path="$2"
+  local job_id="${3:-}"
+  local query
+  query="$(private_demo_delivery_receipt_query "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/delivery-receipt/markdown/download$query" -o "$output_path"
+}
+
+download_private_demo_delivery_receipt_zip() {
+  local base_url="$1"
+  local output_path="$2"
+  local job_id="${3:-}"
+  local query
+  query="$(private_demo_delivery_receipt_query "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/private-demo/delivery-receipt/download$query" -o "$output_path"
+}
+
+print_private_demo_delivery_receipt_summary_file() {
+  local receipt_path="$1"
+
+  python3 - "$receipt_path" <<'PY'
+import json
+import sys
+
+receipt = json.load(open(sys.argv[1], encoding="utf-8"))
+combined = json.dumps(receipt, ensure_ascii=False)
+for forbidden in [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "OPENAI_API_KEY",
+    "private-demo-token",
+    "demo-access-token",
+    "sk-",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+    "raw transcript text",
+    "raw subtitle text",
+    "corrected subtitle text",
+]:
+    if forbidden in combined:
+        raise SystemExit("Private demo delivery receipt contains forbidden sensitive string: " + forbidden)
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("privateDemoDeliveryReceiptOverall=" + text(receipt.get("overallStatus")))
+print("privateDemoDeliveryReceiptSelectedJobId=" + text(receipt.get("selectedJobId")))
+print("privateDemoDeliveryReceiptRecommendedJobId=" + text(receipt.get("recommendedJobId")))
+print("privateDemoDeliveryReceiptRecommendedReadiness=" + text(receipt.get("recommendedReadiness")))
+print("privateDemoDeliveryReceiptCheckCount=" + text(len(receipt.get("checks", []))))
+print("privateDemoDeliveryReceiptEvidenceLinkCount=" + text(len(receipt.get("evidenceLinks", []))))
+print("privateDemoDeliveryReceiptPackageEntryCount=" + text(len(receipt.get("packageEntries", []))))
+for check in receipt.get("checks", []):
+    print(
+        "privateDemoDeliveryReceiptCheck="
+        + text(check.get("id"))
+        + ":"
+        + text(check.get("status"))
+    )
+for link in receipt.get("evidenceLinks", []):
+    print(
+        "privateDemoDeliveryReceiptLink="
+        + text(link.get("label"))
+        + ":"
+        + text(link.get("href"))
+    )
+for action in receipt.get("actions", []):
+    if action.get("primary"):
+        print("privateDemoDeliveryReceiptPrimaryCommand=" + text(action.get("command")))
+PY
+}
+
 fetch_source_media_metadata() {
   local base_url="$1"
   local video_id="$2"

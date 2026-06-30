@@ -1,5 +1,16 @@
 # Demo Scripts
 
+## Private Demo Delivery Receipt
+
+Export the final metadata-only receipt after a rehearsal or private demo:
+
+```bash
+scripts/demo/private-demo-delivery-receipt.sh
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/private-demo-delivery-receipt.sh
+```
+
+The script writes `private-demo-delivery-receipt.json`, `.md`, and `.zip` to `/tmp/linguaframe-demo/private-demo-delivery-receipt/`, prints status, recommended job, evidence link counts, package entry counts, and the primary export command, and exits non-zero only when the receipt is `BLOCKED`. Set `LINGUAFRAME_PRIVATE_DEMO_DELIVERY_RECEIPT_REPORT_ONLY=true` to export a blocked receipt without failing the command.
+
 ## Narration Render Review
 
 Export the metadata-only narration cue sheet after saving narration or running the demo render:

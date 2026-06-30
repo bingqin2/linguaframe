@@ -3465,6 +3465,78 @@ JSON
   [[ "$output" != *"raw transcript text"* ]] || fail "run archive report exposed transcript"
 }
 
+test_private_demo_delivery_receipt_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_private_demo_delivery_receipt_json \
+    "http://example.test" \
+    "$TMPDIR/private-demo-delivery-receipt.json" \
+    "job with spaces/slash" >"$TMPDIR/private-demo-delivery-receipt-json-curl.out"
+
+  local json_curl_output
+  json_curl_output="$(cat "$TMPDIR/private-demo-delivery-receipt-json-curl.out")"
+  [[ "$json_curl_output" == *"http://example.test/api/operator/private-demo/delivery-receipt?jobId=job+with+spaces%2Fslash"* ]] || fail "delivery receipt JSON helper used wrong route"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_private_demo_delivery_receipt_markdown \
+    "http://example.test" \
+    "$TMPDIR/private-demo-delivery-receipt.md" \
+    "job with spaces/slash" >"$TMPDIR/private-demo-delivery-receipt-md-curl.out"
+  local markdown_curl_output
+  markdown_curl_output="$(cat "$TMPDIR/private-demo-delivery-receipt-md-curl.out")"
+  [[ "$markdown_curl_output" == *"http://example.test/api/operator/private-demo/delivery-receipt/markdown/download?jobId=job+with+spaces%2Fslash"* ]] || fail "delivery receipt Markdown helper used wrong route"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_private_demo_delivery_receipt_zip \
+    "http://example.test" \
+    "$TMPDIR/private-demo-delivery-receipt.zip" \
+    "job with spaces/slash" >"$TMPDIR/private-demo-delivery-receipt-zip-curl.out"
+  local zip_curl_output
+  zip_curl_output="$(cat "$TMPDIR/private-demo-delivery-receipt-zip-curl.out")"
+  [[ "$zip_curl_output" == *"http://example.test/api/operator/private-demo/delivery-receipt/download?jobId=job+with+spaces%2Fslash"* ]] || fail "delivery receipt ZIP helper used wrong route"
+
+  cat >"$TMPDIR/private-demo-delivery-receipt.json" <<'JSON'
+{
+  "overallStatus": "READY",
+  "selectedJobId": null,
+  "recommendedJobId": "job-gallery-best",
+  "recommendedReadiness": "READY",
+  "checks": [
+    { "id": "final-proof-links", "status": "READY" }
+  ],
+  "evidenceLinks": [
+    { "label": "Demo reviewer workspace", "href": "/api/jobs/job-gallery-best/demo-reviewer-workspace/download" },
+    { "label": "AI audit package", "href": "/api/jobs/job-gallery-best/ai-audit-package/download" }
+  ],
+  "packageEntries": [
+    { "label": "Receipt ZIP", "href": "/api/operator/private-demo/delivery-receipt/download" }
+  ],
+  "actions": [
+    {
+      "id": "export-receipt",
+      "primary": true,
+      "command": "LINGUAFRAME_DEMO_JOB_ID=job-gallery-best scripts/demo/private-demo-delivery-receipt.sh"
+    }
+  ]
+}
+JSON
+
+  print_private_demo_delivery_receipt_summary_file "$TMPDIR/private-demo-delivery-receipt.json" >"$TMPDIR/private-demo-delivery-receipt.out"
+  local output
+  output="$(cat "$TMPDIR/private-demo-delivery-receipt.out")"
+  [[ "$output" == *"privateDemoDeliveryReceiptOverall=READY"* ]] || fail "delivery receipt summary missed overall"
+  [[ "$output" == *"privateDemoDeliveryReceiptRecommendedJobId=job-gallery-best"* ]] || fail "delivery receipt summary missed recommended job"
+  [[ "$output" == *"privateDemoDeliveryReceiptLink=AI audit package:/api/jobs/job-gallery-best/ai-audit-package/download"* ]] || fail "delivery receipt summary missed AI audit link"
+  [[ "$output" == *"privateDemoDeliveryReceiptPrimaryCommand=LINGUAFRAME_DEMO_JOB_ID=job-gallery-best scripts/demo/private-demo-delivery-receipt.sh"* ]] || fail "delivery receipt summary missed primary command"
+  [[ "$output" != *"private-demo-token"* ]] || fail "delivery receipt summary exposed demo token"
+  [[ "$output" != *"OPENAI_API_KEY"* ]] || fail "delivery receipt summary exposed API key"
+  [[ "$output" != *"/Users/example"* ]] || fail "delivery receipt summary exposed local path"
+  [[ "$output" != *"provider payload"* ]] || fail "delivery receipt summary exposed provider payload"
+  [[ "$output" != *"raw transcript text"* ]] || fail "delivery receipt summary exposed transcript"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -3528,5 +3600,6 @@ test_write_private_demo_operations_report_is_metadata_only
 test_private_demo_launch_rehearsal_helpers_are_metadata_only
 test_private_demo_evidence_gallery_helpers_are_metadata_only
 test_private_demo_run_archive_helpers_are_metadata_only
+test_private_demo_delivery_receipt_helpers_are_metadata_only
 
 echo "linguaframe-demo client tests passed"

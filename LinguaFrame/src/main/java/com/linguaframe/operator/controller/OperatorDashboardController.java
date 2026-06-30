@@ -13,6 +13,7 @@ import com.linguaframe.operator.domain.vo.PrivateDemoEvidenceGalleryVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoLaunchRehearsalVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoOperationsVo;
 import com.linguaframe.operator.domain.vo.PrivateDemoRunArchiveVo;
+import com.linguaframe.operator.domain.vo.PrivateDemoDeliveryReceiptVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
@@ -26,6 +27,7 @@ import com.linguaframe.operator.service.PrivateDemoEvidenceGalleryService;
 import com.linguaframe.operator.service.PrivateDemoLaunchRehearsalService;
 import com.linguaframe.operator.service.PrivateDemoOperationsService;
 import com.linguaframe.operator.service.PrivateDemoRunArchiveService;
+import com.linguaframe.operator.service.PrivateDemoDeliveryReceiptService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -49,6 +51,7 @@ public class OperatorDashboardController {
     private final PrivateDemoLaunchRehearsalService launchRehearsalService;
     private final PrivateDemoEvidenceGalleryService evidenceGalleryService;
     private final PrivateDemoRunArchiveService runArchiveService;
+    private final PrivateDemoDeliveryReceiptService deliveryReceiptService;
     private final DemoSampleMediaCatalogService sampleMediaCatalogService;
     private final DemoRunLauncherService demoRunLauncherService;
     private final DemoPresentationCockpitService demoPresentationCockpitService;
@@ -64,6 +67,7 @@ public class OperatorDashboardController {
             PrivateDemoLaunchRehearsalService launchRehearsalService,
             PrivateDemoEvidenceGalleryService evidenceGalleryService,
             PrivateDemoRunArchiveService runArchiveService,
+            PrivateDemoDeliveryReceiptService deliveryReceiptService,
             DemoSampleMediaCatalogService sampleMediaCatalogService,
             DemoRunLauncherService demoRunLauncherService,
             DemoPresentationCockpitService demoPresentationCockpitService,
@@ -78,6 +82,7 @@ public class OperatorDashboardController {
         this.launchRehearsalService = launchRehearsalService;
         this.evidenceGalleryService = evidenceGalleryService;
         this.runArchiveService = runArchiveService;
+        this.deliveryReceiptService = deliveryReceiptService;
         this.sampleMediaCatalogService = sampleMediaCatalogService;
         this.demoRunLauncherService = demoRunLauncherService;
         this.demoPresentationCockpitService = demoPresentationCockpitService;
@@ -138,6 +143,50 @@ public class OperatorDashboardController {
     })
     public PrivateDemoRunArchiveVo privateDemoRunArchive() {
         return runArchiveService.runArchive();
+    }
+
+    @GetMapping("/private-demo/delivery-receipt")
+    @Operation(summary = "Get private demo delivery receipt")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo delivery receipt was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public PrivateDemoDeliveryReceiptVo privateDemoDeliveryReceipt(
+            @RequestParam(required = false) String jobId
+    ) {
+        return deliveryReceiptService.receipt(jobId);
+    }
+
+    @GetMapping(value = "/private-demo/delivery-receipt/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download private demo delivery receipt markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo delivery receipt markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> privateDemoDeliveryReceiptMarkdown(
+            @RequestParam(required = false) String jobId
+    ) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"private-demo-delivery-receipt.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(deliveryReceiptService.receiptMarkdown(jobId));
+    }
+
+    @GetMapping(value = "/private-demo/delivery-receipt/download", produces = "application/zip")
+    @Operation(summary = "Download private demo delivery receipt package")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Private demo delivery receipt ZIP was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<InputStreamResource> privateDemoDeliveryReceiptPackage(
+            @RequestParam(required = false) String jobId
+    ) {
+        DemoSessionEvidencePackageBo receiptPackage = deliveryReceiptService.openPackage(jobId);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + receiptPackage.filename() + "\"")
+                .contentLength(receiptPackage.sizeBytes())
+                .contentType(MediaType.parseMediaType(receiptPackage.contentType()))
+                .body(new InputStreamResource(receiptPackage.inputStream()));
     }
 
     @GetMapping("/demo-sample-media-catalog")

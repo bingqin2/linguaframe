@@ -158,6 +158,15 @@ LINGUAFRAME_ENV_FILE=.env.private-demo LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/
 
 The script writes `command-center.json` and `demo-session-evidence-package.zip` under `/tmp/linguaframe-demo/demo-session-evidence-package/`. The ZIP is metadata-only and read-only: it aggregates command center, operations, launch rehearsal, model usage, presentation cockpit, evidence gallery, and run archive evidence without media bytes, object keys, local paths, provider payloads, transcript text, subtitle text, or secrets. Use it as the session-level handoff bundle after a rehearsal or live demo.
 
+For the final end-of-demo handoff, export the delivery receipt:
+
+```bash
+LINGUAFRAME_ENV_FILE=.env.private-demo scripts/demo/private-demo-delivery-receipt.sh
+LINGUAFRAME_ENV_FILE=.env.private-demo LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/private-demo-delivery-receipt.sh
+```
+
+The receipt writes `private-demo-delivery-receipt.json`, `.md`, and `.zip` under `/tmp/linguaframe-demo/private-demo-delivery-receipt/`. It is a metadata-only proof of what was delivered: readiness status, selected or recommended job, command center state, safe package links, reviewer workspace, handoff portal, evidence closure, OpenAI proof, and AI audit package routes. It links to existing ZIPs instead of embedding nested binaries.
+
 ## Evidence Gallery
 
 Use the browser `Private demo evidence gallery` panel after demo jobs complete. It is the post-run selection workspace: operations readiness explains current health, launch rehearsal orders the go/no-go path, and evidence gallery picks completed outputs for presentation or handoff.

@@ -52,6 +52,7 @@ import type {
   DemoUploadReadiness,
   OperatorDashboard,
   OwnerQuotaPreflight,
+  PrivateDemoDeliveryReceipt,
   PrivateDemoEvidenceGallery,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
@@ -123,6 +124,15 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'getPrivateDemoRunArchive').mockResolvedValue(
       privateDemoRunArchiveFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'getPrivateDemoDeliveryReceipt').mockResolvedValue(
+      privateDemoDeliveryReceiptFixture()
+    );
+    vi.spyOn(linguaFrameApi, 'downloadPrivateDemoDeliveryReceiptMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Private Demo Delivery Receipt'], { type: 'text/markdown' })
+    );
+    vi.spyOn(linguaFrameApi, 'downloadPrivateDemoDeliveryReceiptZip').mockResolvedValue(
+      new Blob(['zip-bytes'], { type: 'application/zip' })
     );
     vi.spyOn(linguaFrameApi, 'getDemoSampleMediaCatalog').mockResolvedValue(
       demoSampleMediaCatalogFixture()
@@ -694,6 +704,42 @@ describe('App', () => {
       .toBeEnabled();
     expect(archive).not.toHaveTextContent('raw transcript text');
     expect(archive).not.toHaveTextContent('private-demo-token');
+  });
+
+  test('shows private demo delivery receipt with final proof links and downloads', async () => {
+    const markdownSpy = vi.spyOn(linguaFrameApi, 'downloadPrivateDemoDeliveryReceiptMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Private Demo Delivery Receipt'], { type: 'text/markdown' })
+    );
+    const zipSpy = vi.spyOn(linguaFrameApi, 'downloadPrivateDemoDeliveryReceiptZip').mockResolvedValue(
+      new Blob(['zip-bytes'], { type: 'application/zip' })
+    );
+
+    render(<App />);
+
+    const receipt = await screen.findByRole('region', {
+      name: /private demo delivery receipt/i
+    });
+    expect(within(receipt).getAllByText('READY').length).toBeGreaterThan(0);
+    expect(within(receipt).getAllByText('job-gallery-best').length).toBeGreaterThan(0);
+    expect(within(receipt).getByText('LINGUAFRAME_DEMO_JOB_ID=job-gallery-best scripts/demo/private-demo-delivery-receipt.sh'))
+      .toBeInTheDocument();
+    expect(within(receipt).getByRole('link', { name: /demo reviewer workspace/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/demo-reviewer-workspace/download');
+    expect(within(receipt).getByRole('link', { name: /demo handoff portal/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/demo-handoff-portal/download');
+    expect(within(receipt).getByRole('link', { name: /demo evidence closure/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/demo-evidence-closure/download');
+    expect(within(receipt).getByRole('link', { name: /openai smoke proof markdown/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/openai-smoke-proof/markdown/download');
+    expect(within(receipt).getByRole('link', { name: /ai audit package/i }))
+      .toHaveAttribute('href', '/api/jobs/job-gallery-best/ai-audit-package/download');
+
+    await userEvent.click(within(receipt).getByRole('button', { name: /download receipt notes/i }));
+    expect(markdownSpy).toHaveBeenCalledWith('job-gallery-best');
+    await userEvent.click(within(receipt).getByRole('button', { name: /download receipt zip/i }));
+    expect(zipSpy).toHaveBeenCalledWith('job-gallery-best');
+    expect(receipt).not.toHaveTextContent('raw transcript text');
+    expect(receipt).not.toHaveTextContent('private-demo-token');
   });
 
   test('shows demo presentation cockpit with focus run and readiness checks', async () => {
@@ -7055,6 +7101,113 @@ function privateDemoRunArchiveFixture(
       }
     ],
     archiveNotesMarkdown: '# LinguaFrame Private Demo Run Archive\nRecommended job: job-gallery-best\n',
+    ...overrides
+  };
+}
+
+function privateDemoDeliveryReceiptFixture(
+  overrides: Partial<PrivateDemoDeliveryReceipt> = {}
+): PrivateDemoDeliveryReceipt {
+  return {
+    generatedAt: '2026-06-28T09:00:00Z',
+    overallStatus: 'READY',
+    selectedJobId: null,
+    recommendedJobId: 'job-gallery-best',
+    recommendedVideoId: 'video-gallery',
+    recommendedReadiness: 'READY',
+    operationsStatus: 'READY',
+    launchStatus: 'READY',
+    galleryStatus: 'READY',
+    archiveStatus: 'READY',
+    commandCenterStatus: 'READY',
+    recoveryStatus: 'READY',
+    modelUsageStatus: 'READY',
+    openAiReadinessStatus: 'READY',
+    checks: [
+      {
+        id: 'final-proof-links',
+        label: 'Final proof links',
+        status: 'READY',
+        detail: 'Final proof links are available for job-gallery-best.',
+        nextAction: 'Export reviewer workspace, handoff portal, evidence closure, OpenAI proof, and AI audit package.',
+        blocking: false
+      },
+      {
+        id: 'command-center',
+        label: 'Command center',
+        status: 'READY',
+        detail: 'Phase READY_TO_PRESENT.',
+        nextAction: 'Present the recommended run.',
+        blocking: false
+      }
+    ],
+    sections: [
+      {
+        id: 'session',
+        title: 'Session delivery',
+        status: 'READY',
+        facts: ['Recommended job: job-gallery-best']
+      }
+    ],
+    actions: [
+      {
+        id: 'export-receipt',
+        label: 'Export delivery receipt',
+        command: 'LINGUAFRAME_DEMO_JOB_ID=job-gallery-best scripts/demo/private-demo-delivery-receipt.sh',
+        description: 'Export JSON, Markdown, and ZIP receipt artifacts.',
+        primary: true
+      }
+    ],
+    evidenceLinks: [
+      {
+        label: 'Demo reviewer workspace',
+        href: '/api/jobs/job-gallery-best/demo-reviewer-workspace/download',
+        contentType: 'application/zip',
+        description: 'Reviewer workspace package.'
+      },
+      {
+        label: 'Demo handoff portal',
+        href: '/api/jobs/job-gallery-best/demo-handoff-portal/download',
+        contentType: 'application/zip',
+        description: 'Static handoff portal package.'
+      },
+      {
+        label: 'Demo evidence closure',
+        href: '/api/jobs/job-gallery-best/demo-evidence-closure/download',
+        contentType: 'application/zip',
+        description: 'Final evidence closure package.'
+      },
+      {
+        label: 'OpenAI smoke proof Markdown',
+        href: '/api/jobs/job-gallery-best/openai-smoke-proof/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Focused OpenAI proof Markdown.'
+      },
+      {
+        label: 'AI audit package',
+        href: '/api/jobs/job-gallery-best/ai-audit-package/download',
+        contentType: 'application/zip',
+        description: 'AI model usage and prompt audit package.'
+      }
+    ],
+    packageEntries: [
+      {
+        label: 'Receipt JSON',
+        filename: 'private-demo-delivery-receipt.json',
+        href: '/api/operator/private-demo/delivery-receipt',
+        contentType: 'application/json',
+        description: 'Receipt metadata.'
+      },
+      {
+        label: 'Receipt ZIP',
+        filename: 'linguaframe-private-demo-delivery-receipt.zip',
+        href: '/api/operator/private-demo/delivery-receipt/download',
+        contentType: 'application/zip',
+        description: 'Receipt package.'
+      }
+    ],
+    safetyNotes: ['Metadata only.'],
+    receiptNotesMarkdown: '# LinguaFrame Private Demo Delivery Receipt\n',
     ...overrides
   };
 }

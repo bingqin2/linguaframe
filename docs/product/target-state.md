@@ -96,6 +96,7 @@ Stage 2 goals:
 - Provide a read-only launch rehearsal checklist that orders deploy preflight, stack startup, private preflight, OpenAI preflight, backup/restore dry-runs, smoke/full demos, and evidence export without auto-running those steps.
 - Provide a read-only evidence gallery that selects completed demo runs for presentation and handoff from safe metadata and package links.
 - Provide a read-only run archive that captures private-demo readiness, launch status, completed-run gallery counts, the recommended job, and safe package routes as a post-demo evidence index.
+- Provide a final private-demo delivery receipt that aggregates readiness, selected or recommended run, command center state, session evidence package, reviewer workspace, handoff portal, final proof links, OpenAI proof, and AI audit routes into one metadata-only browser, API, CLI, and ZIP handoff.
 - Keep file size and duration limits conservative.
 - Show repeatable demo input and output.
 

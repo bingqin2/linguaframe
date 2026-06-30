@@ -205,6 +205,100 @@ class OperatorDashboardControllerTests {
         }
 
         @Test
+        void returnsPrivateDemoDeliveryReceipt() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:10:00Z");
+            createJob("delivery-receipt-controller-video", "delivery-receipt-controller-job", "delivery-receipt.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("delivery-receipt-controller-call", "delivery-receipt-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/private-demo/delivery-receipt"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.recommendedJobId").value("delivery-receipt-controller-job"))
+                    .andExpect(jsonPath("$.recommendedVideoId").value("delivery-receipt-controller-video"))
+                    .andExpect(jsonPath("$.operationsStatus").exists())
+                    .andExpect(jsonPath("$.launchStatus").exists())
+                    .andExpect(jsonPath("$.commandCenterStatus").exists())
+                    .andExpect(jsonPath("$.modelUsageStatus").exists())
+                    .andExpect(jsonPath("$.checks[?(@.id == 'final-proof-links')]").exists())
+                    .andExpect(jsonPath("$.sections[?(@.id == 'session')]").exists())
+                    .andExpect(jsonPath("$.actions[?(@.command == 'LINGUAFRAME_DEMO_JOB_ID=delivery-receipt-controller-job scripts/demo/private-demo-delivery-receipt.sh')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/operator/demo-session-evidence-package/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/jobs/delivery-receipt-controller-job/demo-reviewer-workspace/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/jobs/delivery-receipt-controller-job/demo-handoff-portal/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/jobs/delivery-receipt-controller-job/demo-evidence-closure/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/jobs/delivery-receipt-controller-job/openai-smoke-proof/markdown/download')]").exists())
+                    .andExpect(jsonPath("$.evidenceLinks[?(@.href == '/api/jobs/delivery-receipt-controller-job/ai-audit-package/download')]").exists())
+                    .andExpect(jsonPath("$.packageEntries[?(@.href == '/api/operator/private-demo/delivery-receipt/download')]").exists())
+                    .andExpect(jsonPath("$.receiptNotesMarkdown").value(org.hamcrest.Matchers.containsString(
+                            "LinguaFrame Private Demo Delivery Receipt"
+                    )))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                            .doesNotContain("source-videos/delivery-receipt-controller-video")
+                            .doesNotContain("OPENAI_API_KEY")
+                            .doesNotContain("private-demo-token")
+                            .doesNotContain("provider request payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
+        void downloadsPrivateDemoDeliveryReceiptMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:20:00Z");
+            createJob("delivery-receipt-markdown-video", "delivery-receipt-markdown-job", "delivery-receipt-markdown.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+
+            mockMvc.perform(get("/api/operator/private-demo/delivery-receipt/markdown/download")
+                            .param("jobId", "delivery-receipt-markdown-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("private-demo-delivery-receipt.md"))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Private Demo Delivery Receipt", "delivery-receipt-markdown-job")
+                            .doesNotContain("source-videos/delivery-receipt-markdown-video")
+                            .doesNotContain("OPENAI_API_KEY")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
+        void downloadsPrivateDemoDeliveryReceiptZip() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T07:30:00Z");
+            createJob("delivery-receipt-package-video", "delivery-receipt-package-job", "delivery-receipt-package.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("delivery-receipt-package-call", "delivery-receipt-package-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/private-demo/delivery-receipt/download")
+                            .param("jobId", "delivery-receipt-package-job"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("linguaframe-private-demo-delivery-receipt-package-job-delivery-receipt.zip"))
+                    .andExpect(result -> {
+                        Map<String, String> entries = zipEntries(result.getResponse().getContentAsByteArray());
+                        org.assertj.core.api.Assertions.assertThat(entries.keySet())
+                                .containsExactlyInAnyOrder(
+                                        "manifest.json",
+                                        "private-demo-delivery-receipt.json",
+                                        "private-demo-delivery-receipt.md",
+                                        "run-archive.json",
+                                        "command-center.json",
+                                        "README.md"
+                                );
+                        org.assertj.core.api.Assertions.assertThat(entries.get("manifest.json"))
+                                .contains("PRIVATE_DEMO_DELIVERY_RECEIPT", "delivery-receipt-package-job", "private-demo-delivery-receipt.md");
+                        org.assertj.core.api.Assertions.assertThat(entries.get("private-demo-delivery-receipt.md"))
+                                .contains("LinguaFrame Private Demo Delivery Receipt", "Demo reviewer workspace", "OpenAI smoke proof Markdown");
+                        org.assertj.core.api.Assertions.assertThat(String.join("\n", entries.values()))
+                                .doesNotContain("source-videos/delivery-receipt-package-video")
+                                .doesNotContain("OPENAI_API_KEY")
+                                .doesNotContain("private-demo-token")
+                                .doesNotContain("provider request payload")
+                                .doesNotContain("raw transcript text:");
+                    });
+        }
+
+        @Test
         void returnsDemoSampleMediaCatalog() throws Exception {
             mockMvc.perform(get("/api/operator/demo-sample-media-catalog"))
                     .andExpect(status().isOk())

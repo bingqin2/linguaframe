@@ -1438,6 +1438,69 @@ export interface PrivateDemoRunArchiveLink {
   description: string;
 }
 
+export interface PrivateDemoDeliveryReceipt {
+  generatedAt: string;
+  overallStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  selectedJobId: string | null;
+  recommendedJobId: string | null;
+  recommendedVideoId: string | null;
+  recommendedReadiness: string;
+  operationsStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  launchStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  galleryStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  archiveStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  commandCenterStatus: DemoSessionCommandCenterStatus;
+  recoveryStatus: DemoSessionCommandCenterStatus;
+  modelUsageStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  openAiReadinessStatus: PrivateDemoOperationsStatus | 'EMPTY';
+  checks: PrivateDemoDeliveryReceiptCheck[];
+  sections: PrivateDemoDeliveryReceiptSection[];
+  actions: PrivateDemoDeliveryReceiptAction[];
+  evidenceLinks: PrivateDemoDeliveryReceiptLink[];
+  packageEntries: PrivateDemoDeliveryReceiptPackageEntry[];
+  safetyNotes: string[];
+  receiptNotesMarkdown: string;
+}
+
+export interface PrivateDemoDeliveryReceiptCheck {
+  id: string;
+  label: string;
+  status: PrivateDemoOperationsStatus | 'EMPTY';
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface PrivateDemoDeliveryReceiptSection {
+  id: string;
+  title: string;
+  status: PrivateDemoOperationsStatus | 'EMPTY';
+  facts: string[];
+}
+
+export interface PrivateDemoDeliveryReceiptAction {
+  id: string;
+  label: string;
+  command: string;
+  description: string;
+  primary: boolean;
+}
+
+export interface PrivateDemoDeliveryReceiptLink {
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface PrivateDemoDeliveryReceiptPackageEntry {
+  label: string;
+  filename: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
 export interface OpenAiReadinessEvidence {
   generatedAt: string;
   overallStatus: PrivateDemoOperationsStatus | 'SKIPPED';

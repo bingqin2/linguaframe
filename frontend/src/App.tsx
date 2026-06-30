@@ -126,6 +126,7 @@ import type {
   OperatorDashboard,
   OwnerQuotaPreflight,
   PrivateDemoEvidenceGallery,
+  PrivateDemoDeliveryReceipt,
   PrivateDemoLaunchRehearsal,
   PrivateDemoOperations,
   PrivateDemoRunArchive,
@@ -544,6 +545,12 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [privateDemoRunArchive, setPrivateDemoRunArchive] = useState<PrivateDemoRunArchive | null>(null);
   const [privateDemoRunArchiveError, setPrivateDemoRunArchiveError] = useState<string | null>(null);
   const [isLoadingPrivateDemoRunArchive, setIsLoadingPrivateDemoRunArchive] = useState(false);
+  const [privateDemoDeliveryReceipt, setPrivateDemoDeliveryReceipt] =
+    useState<PrivateDemoDeliveryReceipt | null>(null);
+  const [privateDemoDeliveryReceiptError, setPrivateDemoDeliveryReceiptError] = useState<string | null>(
+    null
+  );
+  const [isLoadingPrivateDemoDeliveryReceipt, setIsLoadingPrivateDemoDeliveryReceipt] = useState(false);
   const [retentionCleanup, setRetentionCleanup] = useState<RetentionCleanupResult | null>(null);
   const [retentionCleanupError, setRetentionCleanupError] = useState<string | null>(null);
   const [isLoadingRetentionCleanup, setIsLoadingRetentionCleanup] = useState(false);
@@ -1017,6 +1024,20 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadPrivateDemoDeliveryReceipt = useCallback(async (jobId?: string) => {
+    setIsLoadingPrivateDemoDeliveryReceipt(true);
+    try {
+      const receipt = await linguaFrameApi.getPrivateDemoDeliveryReceipt(jobId);
+      setPrivateDemoDeliveryReceipt(receipt);
+      setPrivateDemoDeliveryReceiptError(null);
+    } catch (receiptLoadError) {
+      setPrivateDemoDeliveryReceipt(null);
+      setPrivateDemoDeliveryReceiptError(toErrorMessage(receiptLoadError));
+    } finally {
+      setIsLoadingPrivateDemoDeliveryReceipt(false);
+    }
+  }, []);
+
   const loadDemoSampleMediaCatalog = useCallback(async () => {
     setIsLoadingDemoSampleMediaCatalog(true);
     try {
@@ -1349,6 +1370,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadPrivateDemoRunArchive]);
 
   useEffect(() => {
+    void loadPrivateDemoDeliveryReceipt();
+  }, [loadPrivateDemoDeliveryReceipt]);
+
+  useEffect(() => {
     void loadDemoSampleMediaCatalog();
   }, [loadDemoSampleMediaCatalog]);
 
@@ -1464,6 +1489,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
@@ -1472,7 +1498,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadPrivateDemoDeliveryReceipt, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1490,6 +1516,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadStuckJobRecovery(nextJob.jobId);
         void loadDemoPresentationCockpit(nextJob.jobId);
         void loadDemoSessionCommandCenter(nextJob.jobId);
+        void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
@@ -1517,7 +1544,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadSourceMedia, loadStuckJobRecovery]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadPrivateDemoDeliveryReceipt, loadSourceMedia, loadStuckJobRecovery]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1795,6 +1822,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(upload.jobId);
       await loadDemoPresentationCockpit(upload.jobId);
       await loadDemoSessionCommandCenter(upload.jobId);
+      await loadPrivateDemoDeliveryReceipt(upload.jobId);
       await loadOpenAiSmokeProof(upload.jobId);
       await loadDemoReviewerWorkspace(upload.jobId);
       await loadDemoHandoffPortal(upload.jobId);
@@ -1830,6 +1858,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(jobId);
     await loadDemoPresentationCockpit(jobId);
     await loadDemoSessionCommandCenter(jobId);
+    await loadPrivateDemoDeliveryReceipt(jobId);
     await loadOpenAiSmokeProof(jobId);
     await loadDemoReviewerWorkspace(jobId);
     await loadDemoHandoffPortal(jobId);
@@ -1856,6 +1885,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(retriedJob.jobId);
       await loadDemoPresentationCockpit(retriedJob.jobId);
       await loadDemoSessionCommandCenter(retriedJob.jobId);
+      await loadPrivateDemoDeliveryReceipt(retriedJob.jobId);
       await loadOpenAiSmokeProof(retriedJob.jobId);
       await loadDemoReviewerWorkspace(retriedJob.jobId);
       await loadDemoHandoffPortal(retriedJob.jobId);
@@ -1889,6 +1919,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(cancelledJob.jobId);
       await loadDemoPresentationCockpit(cancelledJob.jobId);
       await loadDemoSessionCommandCenter(cancelledJob.jobId);
+      await loadPrivateDemoDeliveryReceipt(cancelledJob.jobId);
       await loadOpenAiSmokeProof(cancelledJob.jobId);
       await loadDemoReviewerWorkspace(cancelledJob.jobId);
       await loadDemoHandoffPortal(cancelledJob.jobId);
@@ -1951,6 +1982,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(recentJob.jobId);
     await loadDemoPresentationCockpit(recentJob.jobId);
     await loadDemoSessionCommandCenter(recentJob.jobId);
+    await loadPrivateDemoDeliveryReceipt(recentJob.jobId);
     await loadOpenAiSmokeProof(recentJob.jobId);
     await loadDemoReviewerWorkspace(recentJob.jobId);
     await loadDemoHandoffPortal(recentJob.jobId);
@@ -1980,6 +2012,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(historyJob.jobId);
     await loadDemoPresentationCockpit(historyJob.jobId);
     await loadDemoSessionCommandCenter(historyJob.jobId);
+    await loadPrivateDemoDeliveryReceipt(historyJob.jobId);
     await loadOpenAiSmokeProof(historyJob.jobId);
     await loadDemoReviewerWorkspace(historyJob.jobId);
     await loadDemoHandoffPortal(historyJob.jobId);
@@ -2010,6 +2043,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(failure.jobId);
     await loadDemoPresentationCockpit(failure.jobId);
     await loadDemoSessionCommandCenter(failure.jobId);
+    await loadPrivateDemoDeliveryReceipt(failure.jobId);
     await loadOpenAiSmokeProof(failure.jobId);
     await loadDemoReviewerWorkspace(failure.jobId);
     await loadDemoHandoffPortal(failure.jobId);
@@ -2945,6 +2979,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={privateDemoRunArchiveError}
             isLoading={isLoadingPrivateDemoRunArchive}
             onRefresh={loadPrivateDemoRunArchive}
+          />
+
+          <PrivateDemoDeliveryReceiptPanel
+            receipt={privateDemoDeliveryReceipt}
+            error={privateDemoDeliveryReceiptError}
+            isLoading={isLoadingPrivateDemoDeliveryReceipt}
+            onRefresh={() => void loadPrivateDemoDeliveryReceipt(job?.jobId)}
           />
 
           <RetentionCleanupPanel
@@ -5725,6 +5766,141 @@ function PrivateDemoRunArchivePanel({
             </button>
           </div>
           {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function PrivateDemoDeliveryReceiptPanel({
+  receipt,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  receipt: PrivateDemoDeliveryReceipt | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+  const focusJobId = receipt?.selectedJobId ?? receipt?.recommendedJobId ?? undefined;
+  const primaryAction = receipt?.actions.find((action) => action.primary) ?? receipt?.actions[0] ?? null;
+
+  const handleDownloadMarkdown = async () => {
+    if (!receipt) {
+      return;
+    }
+    const blob = await linguaFrameApi.downloadPrivateDemoDeliveryReceiptMarkdown(focusJobId);
+    downloadBlob(blob, 'linguaframe-private-demo-delivery-receipt.md');
+    setStatus('Delivery receipt Markdown downloaded.');
+  };
+
+  const handleDownloadZip = async () => {
+    if (!receipt) {
+      return;
+    }
+    const blob = await linguaFrameApi.downloadPrivateDemoDeliveryReceiptZip(focusJobId);
+    downloadBlob(blob, 'linguaframe-private-demo-delivery-receipt.zip');
+    setStatus('Delivery receipt ZIP downloaded.');
+  };
+
+  return (
+    <section className="panel private-demo-delivery-receipt-panel" aria-label="Private demo delivery receipt">
+      <div className="panel-heading">
+        <h2>Private demo delivery receipt</h2>
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Delivery receipt unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !receipt ? <p className="muted">Loading delivery receipt...</p> : null}
+      {receipt ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Overall</dt>
+              <dd>
+                <span className={operationsStatusClassName(receipt.overallStatus)}>
+                  {receipt.overallStatus}
+                </span>
+              </dd>
+            </div>
+            <div>
+              <dt>Selected</dt>
+              <dd>{receipt.selectedJobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Recommended</dt>
+              <dd>{receipt.recommendedJobId ?? 'None'}</dd>
+            </div>
+            <div>
+              <dt>Readiness</dt>
+              <dd>{receipt.recommendedReadiness}</dd>
+            </div>
+            <div>
+              <dt>Command center</dt>
+              <dd>{receipt.commandCenterStatus}</dd>
+            </div>
+            <div>
+              <dt>OpenAI</dt>
+              <dd>{receipt.openAiReadinessStatus}</dd>
+            </div>
+          </dl>
+          {primaryAction ? (
+            <div className="evidence-gallery-recommended">
+              <h3>Primary next action</h3>
+              <p>
+                <strong>{primaryAction.label}</strong>
+              </p>
+              <code>{primaryAction.command}</code>
+              <small>{primaryAction.description}</small>
+            </div>
+          ) : null}
+          <h3>Delivery checks</h3>
+          <ul className="operations-section-list evidence-gallery-job-list">
+            {receipt.checks.map((check) => (
+              <li key={check.id}>
+                <div className="operations-section-heading">
+                  <strong>{check.label}</strong>
+                  <span className={operationsStatusClassName(check.status)}>{check.status}</span>
+                </div>
+                <p>{check.detail}</p>
+                <small>{check.nextAction}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Evidence links</h3>
+          <ul className="link-list">
+            {receipt.evidenceLinks.slice(0, 12).map((link) => (
+              <li key={link.href}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Package entries</h3>
+          <ul className="compact-list">
+            {receipt.packageEntries.map((entry) => (
+              <li key={entry.href}>
+                {entry.label}: <code>{entry.filename}</code>
+              </li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" onClick={handleDownloadMarkdown}>
+              Download receipt notes
+            </button>
+            <button type="button" className="secondary-button" onClick={handleDownloadZip}>
+              Download receipt ZIP
+            </button>
+          </div>
           {status ? <p className="muted">{status}</p> : null}
         </>
       ) : null}
