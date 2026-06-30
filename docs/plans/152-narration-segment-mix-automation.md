@@ -164,8 +164,8 @@
 - [x] Run `npm run build`.
 - [x] Run `bash -n scripts/demo/narration-timing-assistant.sh scripts/demo/narration-evidence.sh scripts/demo/narration-script-package.sh scripts/demo/lib/linguaframe-demo.sh`.
 - [x] Run `git diff --check`.
-- [ ] Commit with message `Add narration segment mix automation`.
-- [ ] Switch to `main`, merge `narration-segment-mix-automation`, and confirm `git status --short --branch` is clean.
+- [x] Commit with message `Add narration segment mix automation`.
+- [x] Switch to `main`, merge `narration-segment-mix-automation`, and confirm `git status --short --branch` is clean.
 
 ## Self-Review
 
