@@ -39,6 +39,9 @@ public class JdbcNarrationSegmentRepository implements NarrationSegmentRepositor
                             end_seconds,
                             text,
                             voice,
+                            ducking_volume,
+                            narration_volume,
+                            fade_duration_ms,
                             created_at,
                             updated_at
                         FROM narration_segments
@@ -67,6 +70,9 @@ public class JdbcNarrationSegmentRepository implements NarrationSegmentRepositor
                             end_seconds,
                             text,
                             voice,
+                            ducking_volume,
+                            narration_volume,
+                            fade_duration_ms,
                             created_at,
                             updated_at
                         )
@@ -78,6 +84,9 @@ public class JdbcNarrationSegmentRepository implements NarrationSegmentRepositor
                             :endSeconds,
                             :text,
                             :voice,
+                            :duckingVolume,
+                            :narrationVolume,
+                            :fadeDurationMs,
                             :createdAt,
                             :updatedAt
                         )
@@ -89,6 +98,9 @@ public class JdbcNarrationSegmentRepository implements NarrationSegmentRepositor
                 .param("endSeconds", record.endSeconds())
                 .param("text", record.text())
                 .param("voice", record.voice())
+                .param("duckingVolume", record.duckingVolume())
+                .param("narrationVolume", record.narrationVolume())
+                .param("fadeDurationMs", record.fadeDurationMs())
                 .param("createdAt", Timestamp.from(record.createdAt()))
                 .param("updatedAt", Timestamp.from(record.updatedAt()))
                 .update();
@@ -103,8 +115,16 @@ public class JdbcNarrationSegmentRepository implements NarrationSegmentRepositor
                 rs.getBigDecimal("end_seconds"),
                 rs.getString("text"),
                 rs.getString("voice"),
+                rs.getBigDecimal("ducking_volume"),
+                rs.getBigDecimal("narration_volume"),
+                nullableInteger(rs, "fade_duration_ms"),
                 rs.getTimestamp("created_at").toInstant(),
                 rs.getTimestamp("updated_at").toInstant()
         );
+    }
+
+    private Integer nullableInteger(ResultSet rs, String column) throws SQLException {
+        int value = rs.getInt(column);
+        return rs.wasNull() ? null : value;
     }
 }

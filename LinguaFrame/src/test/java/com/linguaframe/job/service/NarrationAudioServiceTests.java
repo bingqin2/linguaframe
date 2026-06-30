@@ -227,6 +227,9 @@ class NarrationAudioServiceTests {
                 new BigDecimal(end),
                 text,
                 voice,
+                null,
+                null,
+                null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:00:00Z")
         );

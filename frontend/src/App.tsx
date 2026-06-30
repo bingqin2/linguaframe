@@ -2038,13 +2038,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     setIsSavingNarration(true);
     try {
       const updated = await linguaFrameApi.saveNarrationWorkspace(job.jobId, {
-        segments: segments.map((segment, index) => ({
-          index,
-          startSeconds: Number(segment.startSeconds),
-          endSeconds: Number(segment.endSeconds),
-          text: segment.text,
-          voice: segment.voice?.trim() || null
-        }))
+        segments: segments.map((segment, index) => saveNarrationSegmentPayload(segment, index))
       });
       const evidence = await linguaFrameApi.getNarrationEvidence(job.jobId);
       setNarrationWorkspace(updated);
@@ -10509,6 +10503,11 @@ function NarrationInspector({
               onChange={(event) => onUpdateSegment(selectedIndex, { text: event.target.value })}
             />
           </label>
+          <SegmentMixOverridePanel
+            mixSettings={mixSettings}
+            onUpdateSegment={(patch) => onUpdateSegment(selectedIndex, patch)}
+            selectedSegment={selectedSegment}
+          />
           <NarrationEvidenceMetrics evidence={evidence} />
           {mixSettings ? (
             <NarrationMixSettingsPanel
@@ -11019,10 +11018,74 @@ function NarrationEvidenceMetrics({ evidence }: { evidence: NarrationEvidence | 
         <dd>{formatEvidenceToken(evidence?.mixSettingsSource)}</dd>
       </div>
       <div>
+        <dt>Segment overrides</dt>
+        <dd>{evidence ? `${evidence.segmentMixOverrideCount} (${evidence.segmentMixOverrideSummary})` : 'N/A'}</dd>
+      </div>
+      <div>
         <dt>Narration windows</dt>
         <dd>{evidence?.segmentCount ?? 0} windows</dd>
       </div>
     </dl>
+  );
+}
+
+function SegmentMixOverridePanel({
+  mixSettings,
+  onUpdateSegment,
+  selectedSegment
+}: {
+  mixSettings: NarrationWorkspace['mixSettings'] | null;
+  onUpdateSegment: (patch: Partial<NarrationWorkspace['segments'][number]>) => void;
+  selectedSegment: NarrationWorkspace['segments'][number];
+}) {
+  return (
+    <section className="segment-mix-overrides" aria-label="Segment mix overrides">
+      <div>
+        <h4>Segment mix</h4>
+        <p className="muted">Blank values inherit job mix settings.</p>
+      </div>
+      <div className="mix-setting-grid">
+        <label>
+          Ducking
+          <input
+            aria-label="Selected segment ducking"
+            max="1"
+            min="0"
+            placeholder={formatNullableNumber(mixSettings?.duckingVolume)}
+            step="0.001"
+            type="number"
+            value={selectedSegment.duckingVolume ?? ''}
+            onChange={(event) => onUpdateSegment({ duckingVolume: parseOptionalNumber(event.target.value) })}
+          />
+        </label>
+        <label>
+          Narration
+          <input
+            aria-label="Selected segment narration gain"
+            max="2"
+            min="0"
+            placeholder={formatNullableNumber(mixSettings?.narrationVolume)}
+            step="0.001"
+            type="number"
+            value={selectedSegment.narrationVolume ?? ''}
+            onChange={(event) => onUpdateSegment({ narrationVolume: parseOptionalNumber(event.target.value) })}
+          />
+        </label>
+        <label>
+          Fade
+          <input
+            aria-label="Selected segment fade duration"
+            max="5000"
+            min="0"
+            placeholder={mixSettings ? String(mixSettings.fadeDurationMs) : '250'}
+            step="1"
+            type="number"
+            value={selectedSegment.fadeDurationMs ?? ''}
+            onChange={(event) => onUpdateSegment({ fadeDurationMs: parseOptionalNumber(event.target.value) })}
+          />
+        </label>
+      </div>
+    </section>
   );
 }
 
@@ -11705,6 +11768,14 @@ function formatNullableNumber(value: number | null | undefined) {
   return value == null ? 'N/A' : String(value);
 }
 
+function parseOptionalNumber(value: string): number | null {
+  if (value.trim() === '') {
+    return null;
+  }
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
 function formatSeconds(value: number | null | undefined) {
   if (value == null || Number.isNaN(value)) {
     return 'N/A';
@@ -11749,6 +11820,15 @@ function validateNarrationSegments(segments: NarrationWorkspace['segments'], cat
     if (segment.voice && catalog && !catalog.presets.some((preset) => preset.voice === segment.voice)) {
       messages.push(`Row ${index + 1}: voice must be one of the configured presets.`);
     }
+    if (segment.duckingVolume != null && (segment.duckingVolume < 0 || segment.duckingVolume > 1)) {
+      messages.push(`Row ${index + 1}: ducking volume must be between 0.00 and 1.00.`);
+    }
+    if (segment.narrationVolume != null && (segment.narrationVolume < 0 || segment.narrationVolume > 2)) {
+      messages.push(`Row ${index + 1}: narration volume must be between 0.00 and 2.00.`);
+    }
+    if (segment.fadeDurationMs != null && (segment.fadeDurationMs < 0 || segment.fadeDurationMs > 5000)) {
+      messages.push(`Row ${index + 1}: fade duration must be between 0 and 5000 ms.`);
+    }
   });
   for (let index = 1; index < segments.length; index += 1) {
     if (segments[index].startSeconds < segments[index - 1].endSeconds) {
@@ -11756,6 +11836,31 @@ function validateNarrationSegments(segments: NarrationWorkspace['segments'], cat
     }
   }
   return messages;
+}
+
+function optionalNumber(value: number | null | undefined): number | null {
+  return value == null || Number.isNaN(value) ? null : value;
+}
+
+function saveNarrationSegmentPayload(segment: NarrationWorkspace['segments'][number], index: number) {
+  return {
+    index,
+    startSeconds: Number(segment.startSeconds),
+    endSeconds: Number(segment.endSeconds),
+    text: segment.text,
+    voice: segment.voice?.trim() || null,
+    ...optionalPayloadField('duckingVolume', segment.duckingVolume),
+    ...optionalPayloadField('narrationVolume', segment.narrationVolume),
+    ...optionalPayloadField('fadeDurationMs', segment.fadeDurationMs)
+  };
+}
+
+function optionalPayloadField<Key extends 'duckingVolume' | 'narrationVolume' | 'fadeDurationMs'>(
+  key: Key,
+  value: number | null | undefined
+): Partial<Record<Key, number>> {
+  const parsed = optionalNumber(value);
+  return parsed == null ? {} : { [key]: parsed } as Partial<Record<Key, number>>;
 }
 
 function validateNarrationMixSettings(settings: NarrationWorkspace['mixSettings'] | null): string[] {
@@ -11812,7 +11917,10 @@ function parseNarrationScriptPackageImport(value: string): ImportNarrationScript
         startSeconds: Number(segment.startSeconds),
         endSeconds: Number(segment.endSeconds),
         text: String(segment.text ?? ''),
-        voice: segment.voice ? String(segment.voice) : null
+        voice: segment.voice ? String(segment.voice) : null,
+        ...optionalPayloadField('duckingVolume', parseOptionalNumber(String(segment.duckingVolume ?? ''))),
+        ...optionalPayloadField('narrationVolume', parseOptionalNumber(String(segment.narrationVolume ?? ''))),
+        ...optionalPayloadField('fadeDurationMs', parseOptionalNumber(String(segment.fadeDurationMs ?? '')))
       }))
     };
   } catch {

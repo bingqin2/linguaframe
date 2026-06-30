@@ -290,6 +290,8 @@ class NarrationDemoRenderPreflightServiceTests {
                 new BigDecimal("1.000"),
                 250,
                 "SAVED",
+                0,
+                "none",
                 List.of(),
                 List.of(),
                 List.of("manifest.json"),

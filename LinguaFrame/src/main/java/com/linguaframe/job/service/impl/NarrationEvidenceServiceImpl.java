@@ -110,6 +110,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 mixSettings == null ? null : mixSettings.narrationVolume(),
                 mixSettings == null ? 0 : mixSettings.fadeDurationMs(),
                 mixSettings == null ? null : mixSettings.source(),
+                segmentMixOverrideCount(segments),
+                segmentMixOverrideSummary(segments),
                 checks(segments.size(), audioArtifacts, narratedVideoArtifacts),
                 safeLinks(jobId),
                 packageEntries(jobId),
@@ -143,6 +145,8 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
         lines.add("- Narration volume: " + valueOrDefault(evidence.narrationVolume(), "N/A"));
         lines.add("- Fade duration ms: " + (evidence.fadeDurationMs() == 0 ? "N/A" : evidence.fadeDurationMs()));
         lines.add("- Mix settings source: " + valueOrDefault(evidence.mixSettingsSource(), "N/A"));
+        lines.add("- Segment mix override count: " + evidence.segmentMixOverrideCount());
+        lines.add("- Segment mix override summary: " + evidence.segmentMixOverrideSummary());
         lines.add("");
         lines.add("## Checks");
         for (NarrationEvidenceCheckVo check : evidence.checks()) {
@@ -195,7 +199,7 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
 
     private String manifest(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","includesNarrationTextBodies":false}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","narrationAudioReady":%s,"audioLayout":"%s","timeAligned":%s,"narratedVideoReady":%s,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s","includesNarrationTextBodies":false}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -214,13 +218,15 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 jsonNumberOrNull(evidence.duckingVolume()),
                 jsonNumberOrNull(evidence.narrationVolume()),
                 evidence.fadeDurationMs(),
-                json(valueOrDefault(evidence.mixSettingsSource(), "N/A"))
+                json(valueOrDefault(evidence.mixSettingsSource(), "N/A")),
+                evidence.segmentMixOverrideCount(),
+                json(evidence.segmentMixOverrideSummary())
         );
     }
 
     private String summary(NarrationEvidenceVo evidence) {
         return """
-                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s"}
+                {"jobId":"%s","status":"%s","segmentCount":%d,"totalCharacterCount":%d,"totalTimelineDurationSeconds":"%s","timelineGapCount":%d,"timelineGapSeconds":"%s","timelineHasOverlap":%s,"voicePresetCount":%d,"voiceSummary":"%s","defaultVoice":"%s","audioArtifactCount":%d,"audioLayout":"%s","timeAligned":%s,"narratedVideoArtifactCount":%d,"mixMode":"%s","duckingVolume":%s,"narrationVolume":%s,"fadeDurationMs":%d,"mixSettingsSource":"%s","segmentMixOverrideCount":%d,"segmentMixOverrideSummary":"%s"}
                 """.formatted(
                 json(evidence.jobId()),
                 json(evidence.status()),
@@ -241,7 +247,9 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 jsonNumberOrNull(evidence.duckingVolume()),
                 jsonNumberOrNull(evidence.narrationVolume()),
                 evidence.fadeDurationMs(),
-                json(valueOrDefault(evidence.mixSettingsSource(), "N/A"))
+                json(valueOrDefault(evidence.mixSettingsSource(), "N/A")),
+                evidence.segmentMixOverrideCount(),
+                json(evidence.segmentMixOverrideSummary())
         );
     }
 
@@ -311,6 +319,26 @@ public class NarrationEvidenceServiceImpl implements NarrationEvidenceService {
                 .map(String::trim)
                 .mapToInt(String::length)
                 .sum();
+    }
+
+    private int segmentMixOverrideCount(List<NarrationSegmentRecord> segments) {
+        return (int) segments.stream()
+                .filter(this::hasSegmentMixOverride)
+                .count();
+    }
+
+    private String segmentMixOverrideSummary(List<NarrationSegmentRecord> segments) {
+        List<String> indexes = segments.stream()
+                .filter(this::hasSegmentMixOverride)
+                .map(segment -> Integer.toString(segment.segmentIndex()))
+                .toList();
+        return indexes.isEmpty() ? "none" : "segments=" + String.join(",", indexes);
+    }
+
+    private boolean hasSegmentMixOverride(NarrationSegmentRecord segment) {
+        return segment.duckingVolume() != null
+                || segment.narrationVolume() != null
+                || segment.fadeDurationMs() != null;
     }
 
     private BigDecimal totalTimelineDurationSeconds(List<NarrationSegmentRecord> segments) {

@@ -76,8 +76,8 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
             Path outputVideoPath = workDirectory.resolve("narrated-video.mp4");
             copyBaseVideo(jobId, baseVideo, inputVideoPath);
             copyArtifact(jobId, narrationAudio, inputAudioPath);
-            List<NarrationWindowBo> narrationWindows = narrationWindows(jobId);
             NarrationMixSettingsRecord mixSettings = mixSettings(jobId);
+            List<NarrationWindowBo> narrationWindows = narrationWindows(jobId, mixSettings);
             DubbedVideoBo narratedVideo = narratedVideoMixService.mixNarration(new MixNarratedVideoCommand(
                     jobId,
                     inputVideoPath,
@@ -163,10 +163,16 @@ public class NarratedVideoServiceImpl implements NarratedVideoService {
         }
     }
 
-    private List<NarrationWindowBo> narrationWindows(String jobId) {
+    private List<NarrationWindowBo> narrationWindows(String jobId, NarrationMixSettingsRecord mixSettings) {
         return narrationSegmentRepository.findByJobId(jobId).stream()
                 .sorted(Comparator.comparingInt(NarrationSegmentRecord::segmentIndex))
-                .map(segment -> new NarrationWindowBo(segment.startSeconds(), segment.endSeconds()))
+                .map(segment -> new NarrationWindowBo(
+                        segment.startSeconds(),
+                        segment.endSeconds(),
+                        segment.duckingVolume() == null ? mixSettings.duckingVolume() : segment.duckingVolume(),
+                        segment.narrationVolume() == null ? mixSettings.narrationVolume() : segment.narrationVolume(),
+                        segment.fadeDurationMs() == null ? mixSettings.fadeDurationMs() : segment.fadeDurationMs()
+                ))
                 .toList();
     }
 

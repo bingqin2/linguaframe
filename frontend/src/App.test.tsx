@@ -3125,6 +3125,60 @@ describe('App', () => {
     expect(saveNarrationWorkspace).not.toHaveBeenCalled();
   });
 
+  test('narration inspector saves segment mix overrides', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-segment-mix-job', videoId: 'narration-segment-mix-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    const workspaceWithoutOverrides = narrationWorkspaceFixture({
+      jobId: 'narration-segment-mix-job',
+      segments: narrationWorkspaceFixture().segments.map((segment) => ({
+        ...segment,
+        duckingVolume: null,
+        narrationVolume: null,
+        fadeDurationMs: null
+      }))
+    });
+    vi.spyOn(linguaFrameApi, 'getNarrationWorkspace').mockResolvedValue(workspaceWithoutOverrides);
+    vi.spyOn(linguaFrameApi, 'getNarrationEvidence').mockResolvedValue(narrationEvidenceFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationScriptPackage').mockResolvedValue(narrationScriptPackageFixture());
+    const saveNarrationWorkspace = vi.spyOn(linguaFrameApi, 'saveNarrationWorkspace').mockResolvedValue(
+      narrationWorkspaceFixture({
+        jobId: 'narration-segment-mix-job',
+        segments: narrationWorkspaceFixture().segments.map((segment, index) =>
+          index === 0
+            ? { ...segment, duckingVolume: 0.25, narrationVolume: 1.5, fadeDurationMs: 125 }
+            : segment
+        )
+      })
+    );
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-segment-mix-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: '1' }));
+    await userEvent.type(within(narrationPanel).getByLabelText(/selected segment ducking/i), '0.25');
+    await userEvent.type(within(narrationPanel).getByLabelText(/selected segment narration gain/i), '1.5');
+    await userEvent.type(within(narrationPanel).getByLabelText(/selected segment fade duration/i), '125');
+    await userEvent.click(within(narrationPanel).getByRole('button', { name: /save narration/i }));
+
+    expect(saveNarrationWorkspace).toHaveBeenCalledWith('narration-segment-mix-job', expect.objectContaining({
+      segments: expect.arrayContaining([
+        expect.objectContaining({
+          index: 0,
+          duckingVolume: 0.25,
+          narrationVolume: 1.5,
+          fadeDurationMs: 125
+        })
+      ])
+    }));
+  });
+
   test('narration timing assistant resolves overlaps and keeps provider actions untouched', async () => {
     vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
       jobFixture({ jobId: 'narration-timing-overlap-job', videoId: 'narration-timing-overlap-video', targetLanguage: 'zh-CN' })
@@ -7384,6 +7438,9 @@ function narrationScriptPackageFixture(overrides: Partial<NarrationScriptPackage
         durationSeconds: 13,
         text: 'Explain the first scene.',
         voice: 'alloy',
+        duckingVolume: 0.25,
+        narrationVolume: 1.5,
+        fadeDurationMs: 125,
         characterCount: 24,
         updatedAt: '2026-06-29T10:00:00Z'
       },
@@ -7479,6 +7536,8 @@ function narrationEvidenceFixture(overrides: Partial<NarrationEvidence> = {}): N
     narrationVolume: readyVideo ? 1 : null,
     fadeDurationMs: readyVideo ? 250 : 0,
     mixSettingsSource: readyVideo ? 'DEFAULTS' : null,
+    segmentMixOverrideCount: 1,
+    segmentMixOverrideSummary: 'segments=0',
     checks: [],
     safeLinks: [],
     packageEntries: [],

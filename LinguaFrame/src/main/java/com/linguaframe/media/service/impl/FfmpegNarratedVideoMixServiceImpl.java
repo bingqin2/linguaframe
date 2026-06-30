@@ -126,54 +126,85 @@ public class FfmpegNarratedVideoMixServiceImpl implements FfmpegNarratedVideoMix
     }
 
     private String mixFilter(MixNarratedVideoCommand command) {
-        return "[0:a]volume='if("
-                + duckingCondition(command.narrationWindows())
-                + ","
-                + formatDecimal(command.duckingVolume())
-                + ",1.0)'[base];[1:a]"
-                + narrationFilter(command)
-                + "[narration];[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]";
+        List<NarrationWindowBo> windows = command.narrationWindows() == null ? List.of() : command.narrationWindows();
+        List<String> parts = new ArrayList<>();
+        parts.add("[0:a]volume='" + duckingExpression(command, windows) + "'[base]");
+        List<String> narrationLabels = new ArrayList<>();
+        for (int i = 0; i < windows.size(); i++) {
+            NarrationWindowBo window = windows.get(i);
+            String label = "narration" + i;
+            narrationLabels.add("[" + label + "]");
+            parts.add("[1:a]" + narrationFilter(command, window) + "[" + label + "]");
+        }
+        if (narrationLabels.isEmpty()) {
+            parts.add("[1:a]volume=" + formatDecimal(command.narrationVolume()) + "[narration]");
+        } else if (narrationLabels.size() == 1) {
+            parts.add(narrationLabels.getFirst() + "anull[narration]");
+        } else {
+            parts.add(String.join("", narrationLabels)
+                    + "amix=inputs=" + narrationLabels.size() + ":duration=longest:normalize=0[narration]");
+        }
+        parts.add("[base][narration]amix=inputs=2:duration=longest:normalize=0[aout]");
+        return String.join(";", parts);
     }
 
-    private String narrationFilter(MixNarratedVideoCommand command) {
-        List<String> filters = new ArrayList<>();
-        filters.addAll(fadeFilters(command.narrationWindows(), command.fadeDurationMs()));
-        filters.add("volume=" + formatDecimal(command.narrationVolume()));
+    private String narrationFilter(MixNarratedVideoCommand command, NarrationWindowBo window) {
+        List<String> filters = new ArrayList<>(fadeFilters(window, resolvedFadeDurationMs(command, window)));
+        filters.add("volume=" + formatDecimal(resolvedNarrationVolume(command, window)));
         return String.join(",", filters);
     }
 
-    private List<String> fadeFilters(List<NarrationWindowBo> windows, int fadeDurationMs) {
-        if (fadeDurationMs <= 0 || windows == null || windows.isEmpty()) {
+    private List<String> fadeFilters(NarrationWindowBo window, int fadeDurationMs) {
+        if (fadeDurationMs <= 0 || window == null) {
             return List.of();
         }
         BigDecimal requestedSeconds = BigDecimal.valueOf(fadeDurationMs)
                 .divide(BigDecimal.valueOf(1000), 3, RoundingMode.HALF_UP);
         List<String> filters = new ArrayList<>();
-        for (NarrationWindowBo window : windows) {
-            BigDecimal windowDuration = window.endSeconds().subtract(window.startSeconds());
-            if (windowDuration.signum() <= 0) {
-                continue;
-            }
-            BigDecimal halfWindow = windowDuration.divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
-            BigDecimal fadeSeconds = requestedSeconds.min(halfWindow);
-            if (fadeSeconds.signum() <= 0) {
-                continue;
-            }
-            BigDecimal fadeOutStart = window.endSeconds().subtract(fadeSeconds);
-            filters.add("afade=t=in:st=" + formatSeconds(window.startSeconds()) + ":d=" + formatSeconds(fadeSeconds));
-            filters.add("afade=t=out:st=" + formatSeconds(fadeOutStart) + ":d=" + formatSeconds(fadeSeconds));
+        BigDecimal windowDuration = window.endSeconds().subtract(window.startSeconds());
+        if (windowDuration.signum() <= 0) {
+            return List.of();
         }
+        BigDecimal halfWindow = windowDuration.divide(BigDecimal.valueOf(2), 3, RoundingMode.HALF_UP);
+        BigDecimal fadeSeconds = requestedSeconds.min(halfWindow);
+        if (fadeSeconds.signum() <= 0) {
+            return List.of();
+        }
+        BigDecimal fadeOutStart = window.endSeconds().subtract(fadeSeconds);
+        filters.add("afade=t=in:st=" + formatSeconds(window.startSeconds()) + ":d=" + formatSeconds(fadeSeconds));
+        filters.add("afade=t=out:st=" + formatSeconds(fadeOutStart) + ":d=" + formatSeconds(fadeSeconds));
         return filters;
     }
 
-    private String duckingCondition(List<NarrationWindowBo> windows) {
-        if (windows == null || windows.isEmpty()) {
-            return "0";
+    private String duckingExpression(MixNarratedVideoCommand command, List<NarrationWindowBo> windows) {
+        String expression = "1.0";
+        for (int i = windows.size() - 1; i >= 0; i--) {
+            NarrationWindowBo window = windows.get(i);
+            expression = "if("
+                    + betweenCondition(window)
+                    + ","
+                    + formatDecimal(resolvedDuckingVolume(command, window))
+                    + ","
+                    + expression
+                    + ")";
         }
-        return windows.stream()
-                .map(window -> "between(t," + formatSeconds(window.startSeconds()) + "," + formatSeconds(window.endSeconds()) + ")")
-                .reduce((left, right) -> left + "+" + right)
-                .orElse("0");
+        return expression;
+    }
+
+    private String betweenCondition(NarrationWindowBo window) {
+        return "between(t," + formatSeconds(window.startSeconds()) + "," + formatSeconds(window.endSeconds()) + ")";
+    }
+
+    private BigDecimal resolvedDuckingVolume(MixNarratedVideoCommand command, NarrationWindowBo window) {
+        return window.duckingVolume() == null ? command.duckingVolume() : window.duckingVolume();
+    }
+
+    private BigDecimal resolvedNarrationVolume(MixNarratedVideoCommand command, NarrationWindowBo window) {
+        return window.narrationVolume() == null ? command.narrationVolume() : window.narrationVolume();
+    }
+
+    private int resolvedFadeDurationMs(MixNarratedVideoCommand command, NarrationWindowBo window) {
+        return window.fadeDurationMs() == null ? command.fadeDurationMs() : window.fadeDurationMs();
     }
 
     private String formatSeconds(BigDecimal value) {

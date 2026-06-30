@@ -916,6 +916,25 @@ td {
   resize: vertical;
 }
 
+.segment-mix-overrides {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcfd;
+}
+
+.mix-setting-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mix-setting-grid input {
+  width: 100%;
+}
+
 .script-package-panel {
   display: grid;
   gap: 12px;

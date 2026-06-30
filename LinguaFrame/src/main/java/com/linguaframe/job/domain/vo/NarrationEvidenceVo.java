@@ -26,6 +26,8 @@ public record NarrationEvidenceVo(
         BigDecimal narrationVolume,
         int fadeDurationMs,
         String mixSettingsSource,
+        int segmentMixOverrideCount,
+        String segmentMixOverrideSummary,
         List<NarrationEvidenceCheckVo> checks,
         List<NarrationEvidenceLinkVo> safeLinks,
         List<String> packageEntries,

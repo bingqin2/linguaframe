@@ -253,6 +253,9 @@ class NarrationDemoPresetApplyServiceTests {
                 new BigDecimal(end),
                 text,
                 voice,
+                null,
+                null,
+                null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:00:00Z")
         );
@@ -401,6 +404,8 @@ class NarrationDemoPresetApplyServiceTests {
                     new BigDecimal("1.000"),
                     250,
                     "SAVED",
+                    0,
+                    "none",
                     List.of(),
                     List.of(),
                     List.of(),

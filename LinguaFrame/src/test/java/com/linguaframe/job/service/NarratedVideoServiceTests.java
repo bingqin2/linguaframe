@@ -68,6 +68,12 @@ class NarratedVideoServiceTests {
         assertThat(narratedVideoMixService.command.narrationWindows()).hasSize(2);
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).startSeconds()).isEqualByComparingTo("15.000");
         assertThat(narratedVideoMixService.command.narrationWindows().get(0).endSeconds()).isEqualByComparingTo("28.000");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).duckingVolume()).isEqualByComparingTo("0.250");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).narrationVolume()).isEqualByComparingTo("1.500");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).fadeDurationMs()).isEqualTo(125);
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).duckingVolume()).isEqualByComparingTo("0.350");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).narrationVolume()).isEqualByComparingTo("1.000");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).fadeDurationMs()).isEqualTo(250);
         assertThat(result.jobId()).isEqualTo("job-narrated");
         assertThat(result.filename()).isEqualTo("narrated-video.mp4");
         assertThat(result.contentType()).isEqualTo("video/mp4");
@@ -103,6 +109,12 @@ class NarratedVideoServiceTests {
         assertThat(narratedVideoMixService.command.duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(narratedVideoMixService.command.narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(narratedVideoMixService.command.fadeDurationMs()).isEqualTo(400);
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).duckingVolume()).isEqualByComparingTo("0.250");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).narrationVolume()).isEqualByComparingTo("1.500");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(0).fadeDurationMs()).isEqualTo(125);
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).duckingVolume()).isEqualByComparingTo("0.125");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).narrationVolume()).isEqualByComparingTo("1.750");
+        assertThat(narratedVideoMixService.command.narrationWindows().get(1).fadeDurationMs()).isEqualTo(400);
         assertThat(result.duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(result.narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(result.fadeDurationMs()).isEqualTo(400);
@@ -393,6 +405,9 @@ class NarratedVideoServiceTests {
                     new java.math.BigDecimal(end),
                     "Narration " + index,
                     "alloy",
+                    index == 0 ? new BigDecimal("0.250") : null,
+                    index == 0 ? new BigDecimal("1.500") : null,
+                    index == 0 ? 125 : null,
                     Instant.parse("2026-06-29T12:00:00Z"),
                     Instant.parse("2026-06-29T12:00:00Z")
             );

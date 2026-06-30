@@ -177,6 +177,9 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         for (NarrationScriptPackageSegmentVo segment : scriptPackage.segments()) {
             lines.add("- " + segment.index() + ": " + segment.startSeconds() + "-" + segment.endSeconds()
                     + " (" + segment.durationSeconds() + "s), voice=" + valueOrInherit(segment.voice())
+                    + ", ducking=" + valueOrInherit(segment.duckingVolume())
+                    + ", narration=" + valueOrInherit(segment.narrationVolume())
+                    + ", fadeMs=" + valueOrInherit(segment.fadeDurationMs())
                     + ", characters=" + segment.characterCount());
             lines.add("  Text: " + segment.text());
         }
@@ -236,7 +239,10 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                                 normalizeSeconds(segment.startSeconds(), "startSeconds"),
                                 normalizeSeconds(segment.endSeconds(), "endSeconds"),
                                 segment.text().trim(),
-                                normalizeVoice(segment.voice())
+                                normalizeVoice(segment.voice()),
+                                normalizeOptionalMixDecimal(segment.duckingVolume(), "duckingVolume", MAX_DUCKING_VOLUME),
+                                normalizeOptionalMixDecimal(segment.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME),
+                                normalizeOptionalFadeDuration(segment.fadeDurationMs())
                         ))
                         .toList())
         );
@@ -310,6 +316,9 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
                 duration,
                 text,
                 record.voice(),
+                normalizeStoredMixDecimal(record.duckingVolume()),
+                normalizeStoredMixDecimal(record.narrationVolume()),
+                record.fadeDurationMs(),
                 text.length(),
                 record.updatedAt()
         );
@@ -443,6 +452,9 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         if (!voiceCatalogService.containsVoice(voice)) {
             throw new IllegalArgumentException("Narration voice must be one of the configured presets.");
         }
+        normalizeOptionalMixDecimal(segment.duckingVolume(), "duckingVolume", MAX_DUCKING_VOLUME);
+        normalizeOptionalMixDecimal(segment.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME);
+        normalizeOptionalFadeDuration(segment.fadeDurationMs());
     }
 
     private void validateImportMixSettings(UpdateNarrationMixSettingsDto request) {
@@ -479,6 +491,17 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
         return normalized;
     }
 
+    private BigDecimal normalizeOptionalMixDecimal(BigDecimal value, String label, BigDecimal max) {
+        if (value == null) {
+            return null;
+        }
+        return normalizeMixDecimal(value, label, max);
+    }
+
+    private BigDecimal normalizeStoredMixDecimal(BigDecimal value) {
+        return value == null ? null : value.setScale(3, RoundingMode.HALF_UP);
+    }
+
     private int normalizeFadeDuration(Integer value) {
         if (value == null) {
             throw new IllegalArgumentException("Narration fadeDurationMs is required.");
@@ -487,6 +510,13 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
             throw new IllegalArgumentException("fadeDurationMs must be between 0 and 5000.");
         }
         return value;
+    }
+
+    private Integer normalizeOptionalFadeDuration(Integer value) {
+        if (value == null) {
+            return null;
+        }
+        return normalizeFadeDuration(value);
     }
 
     private BigDecimal totalDuration(List<NarrationScriptPackageSegmentVo> segments) {
@@ -545,6 +575,10 @@ public class NarrationScriptPackageServiceImpl implements NarrationScriptPackage
 
     private String valueOrInherit(String value) {
         return value == null || value.isBlank() ? "INHERIT_DEFAULT" : value;
+    }
+
+    private String valueOrInherit(Object value) {
+        return value == null ? "INHERIT_MIX" : value.toString();
     }
 
     private record GapSummary(int gapCount, BigDecimal gapSeconds, boolean hasOverlap) {

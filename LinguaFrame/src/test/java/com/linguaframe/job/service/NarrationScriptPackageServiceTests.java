@@ -110,10 +110,10 @@ class NarrationScriptPackageServiceTests {
         assertThat(scriptPackage.mixSettings().narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(scriptPackage.mixSettings().fadeDurationMs()).isEqualTo(400);
         assertThat(scriptPackage.segments())
-                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.durationSeconds() + ":" + segment.voice() + ":" + segment.text())
+                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.durationSeconds() + ":" + segment.voice() + ":" + segment.duckingVolume() + ":" + segment.narrationVolume() + ":" + segment.fadeDurationMs() + ":" + segment.text())
                 .containsExactly(
-                        "0:15.000:28.000:13.000:demo-voice:Explain the first scene.",
-                        "1:55.000:70.500:15.500:demo-voice:Explain the second scene."
+                        "0:15.000:28.000:13.000:demo-voice:0.250:1.500:125:Explain the first scene.",
+                        "1:55.000:70.500:15.500:demo-voice:null:null:null:Explain the second scene."
                 );
         assertThat(scriptPackage.checks())
                 .extracting(check -> check.key() + ":" + check.status())
@@ -125,6 +125,8 @@ class NarrationScriptPackageServiceTests {
         assertThat(markdown)
                 .contains("Explain the first scene.")
                 .contains("Explain the second scene.")
+                .contains("ducking=0.250")
+                .contains("ducking=INHERIT_MIX")
                 .contains("- Voice summary: PRESET:demo-voice")
                 .contains("- Timeline gap count: 1")
                 .doesNotContain("source-videos/")
@@ -138,6 +140,9 @@ class NarrationScriptPackageServiceTests {
                 .contains("\"includesNarrationTextBodies\":true")
                 .contains("\"voiceSummary\":\"PRESET:demo-voice\"")
                 .contains("\"timelineGapCount\":1")
+                .contains("\"duckingVolume\":0.250")
+                .contains("\"narrationVolume\":1.500")
+                .contains("\"fadeDurationMs\":125")
                 .contains("Explain the first scene.")
                 .doesNotContain("source-videos/")
                 .doesNotContain("/Users/")
@@ -167,18 +172,18 @@ class NarrationScriptPackageServiceTests {
         assertThat(result.replacedExisting()).isTrue();
         assertThat(result.warnings()).isEmpty();
         assertThat(result.workspace().segments())
-                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text())
+                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.duckingVolume() + ":" + segment.narrationVolume() + ":" + segment.fadeDurationMs())
                 .containsExactly(
-                        "0:15.000:28.000:Explain the first scene.",
-                        "1:55.000:70.500:Explain the second scene."
+                        "0:15.000:28.000:Explain the first scene.:0.250:1.500:125",
+                        "1:55.000:70.500:Explain the second scene.:null:null:null"
                 );
         assertThat(result.workspace().mixSettings().duckingVolume()).isEqualByComparingTo("0.125");
         assertThat(result.workspace().mixSettings().narrationVolume()).isEqualByComparingTo("1.750");
         assertThat(result.workspace().mixSettings().fadeDurationMs()).isEqualTo(400);
         assertThat(segmentRepository.records())
-                .extracting(NarrationSegmentRecord::text)
-                .containsExactly("Explain the first scene.", "Explain the second scene.")
-                .doesNotContain("Old script.");
+                .extracting(record -> record.text() + ":" + record.duckingVolume() + ":" + record.narrationVolume() + ":" + record.fadeDurationMs())
+                .containsExactly("Explain the first scene.:0.250:1.500:125", "Explain the second scene.:null:null:null")
+                .doesNotContain("Old script.:null:null:null");
         assertThat(mixSettingsRepository.settings().duckingVolume()).isEqualByComparingTo("0.125");
     }
 
@@ -228,6 +233,12 @@ class NarrationScriptPackageServiceTests {
         assertRejectedImportLeavesWorkspaceUnchanged(
                 new ImportNarrationScriptPackageDto(true, validImportSegments(),
                         new UpdateNarrationMixSettingsDto(new BigDecimal("1.001"), new BigDecimal("1.000"), 250)),
+                "duckingVolume must be between 0.00 and 1.00."
+        );
+        assertRejectedImportLeavesWorkspaceUnchanged(
+                new ImportNarrationScriptPackageDto(true, List.of(
+                        importSegment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice", "1.001", null, null)
+                ), validMixSettings()),
                 "duckingVolume must be between 0.00 and 1.00."
         );
     }
@@ -309,7 +320,7 @@ class NarrationScriptPackageServiceTests {
 
     private List<ImportNarrationScriptPackageSegmentDto> validImportSegments() {
         return List.of(
-                importSegment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice"),
+                importSegment(0, "15.000", "28.000", "Explain the first scene.", "demo-voice", "0.250", "1.500", 125),
                 importSegment(1, "55.000", "70.500", "Explain the second scene.", "demo-voice")
         );
     }
@@ -327,6 +338,28 @@ class NarrationScriptPackageServiceTests {
                 new BigDecimal(end),
                 text,
                 voice
+        );
+    }
+
+    private ImportNarrationScriptPackageSegmentDto importSegment(
+            int index,
+            String start,
+            String end,
+            String text,
+            String voice,
+            String duckingVolume,
+            String narrationVolume,
+            Integer fadeDurationMs
+    ) {
+        return new ImportNarrationScriptPackageSegmentDto(
+                index,
+                new BigDecimal(start),
+                new BigDecimal(end),
+                text,
+                voice,
+                duckingVolume == null ? null : new BigDecimal(duckingVolume),
+                narrationVolume == null ? null : new BigDecimal(narrationVolume),
+                fadeDurationMs
         );
     }
 
@@ -350,6 +383,9 @@ class NarrationScriptPackageServiceTests {
                 new BigDecimal(end),
                 text,
                 voice,
+                index == 0 ? new BigDecimal("0.250") : null,
+                index == 0 ? new BigDecimal("1.500") : null,
+                index == 0 ? 125 : null,
                 Instant.parse("2026-06-29T10:00:00Z"),
                 Instant.parse("2026-06-29T10:00:00Z")
         );

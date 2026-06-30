@@ -98,6 +98,9 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                         normalizeSeconds(segment.endSeconds(), "endSeconds"),
                         segment.text().trim(),
                         normalizeVoice(segment.voice()),
+                        normalizeOptionalMixDecimal(segment.duckingVolume(), "duckingVolume", MAX_DUCKING_VOLUME),
+                        normalizeOptionalMixDecimal(segment.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME),
+                        normalizeOptionalFadeDuration(segment.fadeDurationMs()),
                         now,
                         now
                 ))
@@ -184,6 +187,9 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
         if (!voiceCatalogService.containsVoice(voice)) {
             throw new IllegalArgumentException("Narration voice must be one of the configured presets.");
         }
+        normalizeOptionalMixDecimal(segment.duckingVolume(), "duckingVolume", MAX_DUCKING_VOLUME);
+        normalizeOptionalMixDecimal(segment.narrationVolume(), "narrationVolume", MAX_NARRATION_VOLUME);
+        normalizeOptionalFadeDuration(segment.fadeDurationMs());
     }
 
     private NarrationWorkspaceVo toWorkspace(String jobId, List<NarrationSegmentRecord> records) {
@@ -350,6 +356,9 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
                 end.subtract(start),
                 text,
                 normalizeVoice(record.voice()),
+                normalizeStoredMixDecimal(record.duckingVolume()),
+                normalizeStoredMixDecimal(record.narrationVolume()),
+                record.fadeDurationMs(),
                 text.length(),
                 record.updatedAt()
         );
@@ -380,6 +389,17 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
         return normalized;
     }
 
+    private BigDecimal normalizeOptionalMixDecimal(BigDecimal value, String label, BigDecimal max) {
+        if (value == null) {
+            return null;
+        }
+        return normalizeMixDecimal(value, label, max);
+    }
+
+    private BigDecimal normalizeStoredMixDecimal(BigDecimal value) {
+        return value == null ? null : value.setScale(3, java.math.RoundingMode.HALF_UP);
+    }
+
     private int normalizeFadeDuration(Integer value) {
         if (value == null) {
             throw new IllegalArgumentException("Narration fadeDurationMs is required.");
@@ -388,5 +408,12 @@ public class NarrationWorkspaceServiceImpl implements NarrationWorkspaceService 
             throw new IllegalArgumentException("fadeDurationMs must be between 0 and 5000.");
         }
         return value;
+    }
+
+    private Integer normalizeOptionalFadeDuration(Integer value) {
+        if (value == null) {
+            return null;
+        }
+        return normalizeFadeDuration(value);
     }
 }

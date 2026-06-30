@@ -31,7 +31,7 @@ class NarrationWorkspaceServiceTests {
         NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(repository, new FakeNarrationMixSettingsRepository(), CLOCK);
 
         NarrationWorkspaceVo workspace = service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
-                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "demo-voice"),
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("15.000"), new BigDecimal("28.000"), "Explain the first scene.", "demo-voice", new BigDecimal("0.250"), new BigDecimal("1.500"), 125),
                 new SaveNarrationSegmentsRequest.Segment(1, new BigDecimal("55.000"), new BigDecimal("70.500"), "Explain the second scene.", "demo-voice")
         )));
 
@@ -64,14 +64,14 @@ class NarrationWorkspaceServiceTests {
                         "1:72.07:27.93:READY"
                 );
         assertThat(workspace.segments())
-                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice())
+                .extracting(segment -> segment.index() + ":" + segment.startSeconds() + ":" + segment.endSeconds() + ":" + segment.text() + ":" + segment.voice() + ":" + segment.duckingVolume() + ":" + segment.narrationVolume() + ":" + segment.fadeDurationMs())
                 .containsExactly(
-                        "0:15.000:28.000:Explain the first scene.:demo-voice",
-                        "1:55.000:70.500:Explain the second scene.:demo-voice"
+                        "0:15.000:28.000:Explain the first scene.:demo-voice:0.250:1.500:125",
+                        "1:55.000:70.500:Explain the second scene.:demo-voice:null:null:null"
                 );
         assertThat(repository.records)
-                .extracting(record -> record.segmentIndex() + ":" + record.text() + ":" + record.voice())
-                .containsExactly("0:Explain the first scene.:demo-voice", "1:Explain the second scene.:demo-voice");
+                .extracting(record -> record.segmentIndex() + ":" + record.text() + ":" + record.voice() + ":" + record.duckingVolume() + ":" + record.narrationVolume() + ":" + record.fadeDurationMs())
+                .containsExactly("0:Explain the first scene.:demo-voice:0.250:1.500:125", "1:Explain the second scene.:demo-voice:null:null:null");
     }
 
     @Test
@@ -168,6 +168,9 @@ class NarrationWorkspaceServiceTests {
                 new BigDecimal("2.000"),
                 "Existing",
                 "verse",
+                null,
+                null,
+                null,
                 Instant.parse("2026-06-29T09:00:00Z"),
                 Instant.parse("2026-06-29T09:00:00Z")
         ));
@@ -235,6 +238,29 @@ class NarrationWorkspaceServiceTests {
                 new BigDecimal("1.000"),
                 5001
         )))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("fadeDurationMs must be between 0 and 5000");
+    }
+
+    @Test
+    void rejectsSegmentMixOverridesOutsideAllowedRanges() {
+        NarrationWorkspaceService service = new NarrationWorkspaceServiceImpl(new FakeNarrationSegmentRepository(), new FakeNarrationMixSettingsRepository(), CLOCK);
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Too loud.", null, new BigDecimal("1.001"), null, null)
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("duckingVolume must be between 0.00 and 1.00");
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Too loud.", null, null, new BigDecimal("2.001"), null)
+        ))))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("narrationVolume must be between 0.00 and 2.00");
+
+        assertThatThrownBy(() -> service.saveWorkspace("job-narration", new SaveNarrationSegmentsRequest(List.of(
+                new SaveNarrationSegmentsRequest.Segment(0, new BigDecimal("1.000"), new BigDecimal("2.000"), "Too slow.", null, null, null, 5001)
+        ))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("fadeDurationMs must be between 0 and 5000");
     }
