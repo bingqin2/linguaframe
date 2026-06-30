@@ -99,19 +99,19 @@
 - Modify: `docs/progress/execution-log.md`
 - Modify: `docs/plans/150-narration-voice-audition-workbench.md`
 
-- [ ] Document browser order: open narration workspace, audition a preset with sample text, apply it to selected/all local rows, save only when ready, then generate audio/video explicitly.
-- [ ] Document terminal order for `scripts/demo/narration-voice-audition.sh`, including required env vars, provider-credit warning, and local MP3 output.
-- [ ] State that audition preview can call the configured provider, but it does not save rows, create artifacts, update evidence, generate video, or write object storage.
-- [ ] Add a decision record explaining why this slice reuses transient segment preview before adding voice cloning, uploaded reference audio, or provider-specific voice tuning.
-- [ ] Run `npm test -- --run src/App.test.tsx -t "voice audition"`.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
-- [ ] Run `npm test -- --run`.
-- [ ] Run `npm run build`.
-- [ ] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests`.
-- [ ] Run `mvn -pl LinguaFrame test`.
-- [ ] Run `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
-- [ ] Run `git diff --check`.
-- [ ] Update execution log with final verification evidence.
+- [x] Document browser order: open narration workspace, audition a preset with sample text, apply it to selected/all local rows, save only when ready, then generate audio/video explicitly.
+- [x] Document terminal order for `scripts/demo/narration-voice-audition.sh`, including required env vars, provider-credit warning, and local MP3 output.
+- [x] State that audition preview can call the configured provider, but it does not save rows, create artifacts, update evidence, generate video, or write object storage.
+- [x] Add a decision record explaining why this slice reuses transient segment preview before adding voice cloning, uploaded reference audio, or provider-specific voice tuning.
+- [x] Run `npm test -- --run src/App.test.tsx -t "voice audition"`.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts src/domain/narrationDraftHistory.test.ts src/domain/narrationEditingCommands.test.ts src/App.test.tsx`.
+- [x] Run `npm test -- --run`.
+- [x] Run `npm run build`.
+- [x] Run `mvn -pl LinguaFrame test -Dtest=NarrationSegmentPreviewServiceTests,LocalizationJobControllerTests,NarrationVoiceCatalogServiceTests,NarrationWorkspaceServiceTests`.
+- [x] Run `mvn -pl LinguaFrame test`.
+- [x] Run `bash -n scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-demo-render.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh`.
+- [x] Run `git diff --check`.
+- [x] Update execution log with final verification evidence.
 - [ ] Commit with message `Document narration voice audition workbench`.
 - [ ] Merge feature branch back to `main`.
 - [ ] Confirm `git status --short --branch` is clean on `main`.

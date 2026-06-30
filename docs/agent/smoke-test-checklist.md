@@ -190,7 +190,7 @@ Focused narration preset checks:
 JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame test -Dtest=NarrationDemoPresetServiceTests,DemoRunProfileControllerTests,NarrationDemoPresetApplyServiceTests,LocalizationJobControllerTests,NarrationScriptPackageServiceTests
 cd frontend
 npm test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx
-bash -n scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
+bash -n scripts/demo/narration-voice-audition.sh scripts/demo/narration-segment-preview.sh scripts/demo/narration-demo-preset.sh scripts/demo/narration-script-package.sh scripts/demo/narration-evidence.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/lib/linguaframe-demo.sh
 ```
 
 Expected:
@@ -208,6 +208,8 @@ Expected:
 - Quick script import supports `SS`, `MM:SS`, and `HH:MM:SS` timestamps, validates the current voice catalog, rejects overlaps, blank text, backward ranges, malformed rows, and over-limit text, and keeps both apply buttons disabled while errors are present.
 - Browser selected-job narration workspace shows a `Quick script export` panel after quick import. Verify the export text reflects the current unsaved draft, inherited/default voice rows use `||`, `Copy quick script` writes to the clipboard, and `Download quick script` prepares a `.txt` file.
 - Quick script import/export is local-only until `Save narration`; it must not call TTS providers, save narration rows, create artifacts, update evidence, generate video, or write object storage.
+- Browser selected-job narration workspace shows a `Voice audition` panel. Verify preset options come from the voice catalog, default text is editable, `Preview voice` renders `Voice audition preview player`, and provider credits may be consumed.
+- `Apply to selected row` and `Apply to all rows` update only local draft voice values until `Save narration`; they must not save narration rows, call generation, create artifacts, update evidence, generate video, or write object storage.
 - `Preview selected TTS` sends the selected draft row text and voice, renders `Narration TTS preview player`, and shows that provider credits may be consumed.
 - Segment TTS preview uses unsaved local text but must not save narration rows, create artifacts, update evidence, write object storage, or generate video.
 - Blank selected narration text disables segment TTS preview, and rejected preview errors do not disable separate save/generate controls.
@@ -224,6 +226,7 @@ Expected:
 - `LINGUAFRAME_NARRATION_DEMO_PRESET_REPORT_ONLY=true scripts/demo/narration-demo-preset.sh` writes preset catalog metadata without a job id or mutation.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-demo-preset.sh` writes preset apply evidence plus refreshed script/evidence files under `/tmp/linguaframe-demo/narration-demo-preset/`.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_NARRATION_PREVIEW_TEXT="Preview this line." scripts/demo/narration-segment-preview.sh` writes request JSON and `narration-segment-preview.mp3` under `/tmp/linguaframe-demo/narration-segment-preview/`.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_NARRATION_AUDITION_VOICE=alloy LINGUAFRAME_NARRATION_AUDITION_TEXT="Preview this voice." scripts/demo/narration-voice-audition.sh` writes request JSON and `/tmp/linguaframe-demo/narration-voice-audition.mp3`.
 - `LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true scripts/demo/docker-e2e-tears-of-steel-full.sh` applies the preset before narration evidence export.
 - Preset summaries exclude transcript text, subtitle text, object keys, local paths, demo tokens, provider payloads, credentials, API keys, and media bytes.
 
