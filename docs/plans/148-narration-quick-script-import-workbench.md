@@ -41,17 +41,17 @@
   - `NarrationQuickScriptImportResult`
   - `parseNarrationQuickScript(input: string, options: { existingSegments: NarrationWorkspace['segments']; voiceCatalog: NarrationWorkspace['voiceCatalog'] | null; mode: NarrationQuickScriptImportMode; }): NarrationQuickScriptImportResult`
 
-- [ ] Write failing parser tests for `00:15-00:28 | alloy | Explain the first scene.` and `55-70.5 || Inherit default voice.`.
-- [ ] Write failing parser tests for `MM:SS`, `HH:MM:SS`, decimal seconds, whitespace trimming, and Unicode narration text.
-- [ ] Write failing parser tests for malformed lines, blank text, end-before-start, text longer than 1000 characters, voice longer than 64 characters, and unknown voice presets.
-- [ ] Write failing parser tests proving overlapping imported rows are rejected and append mode reindexes after existing rows.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it fails because the parser module does not exist.
-- [ ] Implement `parseTimestampSeconds(value: string): number | null` with `SS`, `MM:SS`, `HH:MM:SS`, and decimal support.
-- [ ] Implement line parsing with exact `|` separators and row-level issue messages such as `Line 2: expected START-END | VOICE | TEXT.`
-- [ ] Implement validation with existing narration limits and voice catalog checks.
-- [ ] Implement replace and append indexing without mutating caller-owned segment objects.
-- [ ] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
-- [ ] Update execution log with RED/GREEN parser evidence.
+- [x] Write failing parser tests for `00:15-00:28 | alloy | Explain the first scene.` and `55-70.5 || Inherit default voice.`.
+- [x] Write failing parser tests for `MM:SS`, `HH:MM:SS`, decimal seconds, whitespace trimming, and Unicode narration text.
+- [x] Write failing parser tests for malformed lines, blank text, end-before-start, text longer than 1000 characters, voice longer than 64 characters, and unknown voice presets.
+- [x] Write failing parser tests proving overlapping imported rows are rejected and append mode reindexes after existing rows.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it fails because the parser module does not exist.
+- [x] Implement `parseTimestampSeconds(value: string): number | null` with `SS`, `MM:SS`, `HH:MM:SS`, and decimal support.
+- [x] Implement line parsing with exact `|` separators and row-level issue messages such as `Line 2: expected START-END | VOICE | TEXT.`
+- [x] Implement validation with existing narration limits and voice catalog checks.
+- [x] Implement replace and append indexing without mutating caller-owned segment objects.
+- [x] Run `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` and verify it passes.
+- [x] Update execution log with RED/GREEN parser evidence.
 - [ ] Commit with message `Add narration quick script parser`.
 
 ## Task 2: Browser Import Workbench

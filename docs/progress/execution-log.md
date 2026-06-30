@@ -6,6 +6,20 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the narration quick script import workbench feature slice from `docs/plans/148-narration-quick-script-import-workbench.md`.
+- Added a pure frontend narration quick-script parser for `START-END | VOICE | TEXT` rows.
+- Parser supports `SS`, `MM:SS`, `HH:MM:SS`, decimal seconds, blank voice inheritance, voice-catalog validation, overlap detection, replace mode, and append mode reindexing without mutating caller-owned rows.
+
+Validation:
+
+- `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` first failed because `frontend/src/domain/narrationQuickScriptImport.ts` did not exist.
+- After adding the parser, the same command initially failed because an overlong voice also reported an unknown-voice error.
+- After prioritizing voice-length validation, `npm test -- --run src/domain/narrationQuickScriptImport.test.ts` passed with `Test Files 1 passed` and `Tests 5 passed`.
+
+## 2026-06-30
+
+Work:
+
 - Documented the completed narration segment TTS preview workflow in README, Docker E2E guidance, smoke checklist, roadmap, target state, and decision log.
 - Clarified the browser order: edit/select a row, preview transient TTS, adjust text/voice locally, save only when ready, then generate full narration audio/video explicitly.
 - Clarified the terminal order for `scripts/demo/narration-segment-preview.sh`, including text/file input, optional voice, local MP3 output, provider credit warning, and no artifact/evidence/object-storage side effects.
