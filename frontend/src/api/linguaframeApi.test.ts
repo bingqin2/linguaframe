@@ -41,6 +41,8 @@ import {
   getDemoSessionCommandCenter,
   downloadDemoSessionCommandCenterMarkdown,
   downloadDemoSessionEvidencePackageZip,
+  getDemoSessionRecoveryBoard,
+  downloadDemoSessionRecoveryBoardMarkdown,
   getDemoSampleMediaCatalog,
   getDemoRunLauncher,
   getDemoPresentationCockpit,
@@ -2414,6 +2416,50 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches demo session recovery board with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(demoSessionRecoveryBoardFixture())
+    );
+
+    const board = await getDemoSessionRecoveryBoard(7);
+
+    expect(board.overallStatus).toBe('BLOCKED');
+    expect(board.recoverNowCount).toBe(1);
+    expect(board.jobs[0]?.classification).toBe('RECOVER_NOW');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-session-recovery-board?limit=7', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads demo session recovery board markdown with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Demo Session Recovery Board', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadDemoSessionRecoveryBoardMarkdown(7);
+
+    expect(await result.text()).toContain('Demo Session Recovery Board');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/demo-session-recovery-board/markdown/download?limit=7',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
   test('fetches private demo operations with demo access token header when stored', async () => {
     writeDemoToken(window.localStorage, 'private-demo-token');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -3983,6 +4029,84 @@ function demoSessionCommandCenterFixture() {
     averageLatencyMs: 120,
     providerCacheHitCount: 1,
     safetyNotes: ['Demo session command center is metadata-only and read-only.']
+  };
+}
+
+function demoSessionRecoveryBoardFixture() {
+  return {
+    generatedAt: '2026-06-30T10:10:00Z',
+    overallStatus: 'BLOCKED',
+    headline: '1 job needs recovery.',
+    recommendedNextAction: 'Open stuck-job recovery.',
+    recoverNowCount: 1,
+    watchCount: 0,
+    readyCount: 1,
+    needsReviewCount: 0,
+    noActionCount: 0,
+    primaryAction: {
+      id: 'OPEN_STUCK_RECOVERY',
+      label: 'Open stuck-job recovery',
+      href: '/api/jobs/job-stale/stuck-job-recovery',
+      description: 'Inspect per-job recovery checks.',
+      primary: true
+    },
+    jobs: [
+      {
+        jobId: 'job-stale',
+        videoId: 'video-stale',
+        filename: 'stale.mp4',
+        demoProfileId: 'tears-showcase',
+        status: 'QUEUED',
+        currentStage: null,
+        elapsedMs: null,
+        createdAt: '2026-06-30T10:00:00Z',
+        updatedAt: '2026-06-30T10:00:00Z',
+        classification: 'RECOVER_NOW',
+        attentionLevel: 'BLOCKED',
+        recoveryClassification: 'QUEUED_STALE_DISPATCH',
+        acceptanceStatus: null,
+        recommendedNextAction: 'Open stuck-job recovery.',
+        actions: [
+          {
+            id: 'OPEN_STUCK_RECOVERY',
+            label: 'Open stuck-job recovery',
+            href: '/api/jobs/job-stale/stuck-job-recovery',
+            description: 'Inspect per-job recovery checks.',
+            primary: true
+          }
+        ],
+        links: [
+          {
+            kind: 'STUCK_RECOVERY',
+            label: 'Stuck job recovery',
+            href: '/api/jobs/job-stale/stuck-job-recovery',
+            contentType: 'application/json',
+            description: 'Per-job recovery cockpit.'
+          }
+        ]
+      }
+    ],
+    checks: [
+      {
+        id: 'recover-now',
+        label: 'Recover now',
+        status: 'BLOCKED',
+        detail: '1 job needs recovery.',
+        nextAction: 'Open the first recovery row.',
+        blocking: true
+      }
+    ],
+    links: [
+      {
+        kind: 'MARKDOWN',
+        label: 'Recovery board Markdown',
+        href: '/api/operator/demo-session-recovery-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable board report.'
+      }
+    ],
+    safetyNotes: ['Demo session recovery board is metadata-only and read-only.'],
+    markdown: '# LinguaFrame Demo Session Recovery Board'
   };
 }
 

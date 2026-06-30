@@ -86,7 +86,9 @@ public class RuntimeDependencySummaryServiceImpl implements RuntimeDependencySum
             "/api/operator/private-demo/evidence-gallery",
             "/api/operator/private-demo/run-archive",
             "/api/operator/demo-sample-media-catalog",
-            "/api/operator/demo-run-launcher"
+            "/api/operator/demo-run-launcher",
+            "/api/operator/demo-session-recovery-board",
+            "/api/operator/demo-session-recovery-board/markdown/download"
     );
 
     private final LinguaFrameProperties properties;

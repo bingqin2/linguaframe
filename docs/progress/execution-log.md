@@ -4907,6 +4907,29 @@ Validation so far:
 
 Work:
 
+- Started the demo session recovery board feature slice from `docs/plans/165-session-recovery-board.md`.
+- Added backend recovery board VOs, service, JSON endpoint, and Markdown download endpoint that classify recent jobs into recover-now, watch, needs-review, ready, and no-action rows.
+- Reused existing stuck-job recovery, run monitor, acceptance gate, reviewer workspace, handoff portal, and evidence package links instead of adding automatic recovery execution.
+- Added a browser `Demo session recovery board` panel with grouped recent jobs, safe checks, evidence links, refresh, and Markdown download.
+- Added typed frontend API helpers, terminal `scripts/demo/demo-session-recovery-board.sh`, shared Bash helper functions, redaction checks, runtime dependency route registration, and OpenAPI route coverage.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, and target-state docs with session-level recovery usage and testing notes.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSessionRecoveryBoardServiceTests test` first failed because the recovery board service and VOs did not exist and later because safety notes included a forbidden provider-payload phrase, then passed.
+- `mvn -pl LinguaFrame -Dtest=OperatorDashboardControllerTests test` first failed with 404 responses for the new routes, then passed.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionRecoveryBoardServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test` passed with `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "session recovery board"` first failed because the frontend API helpers were missing, then passed with `Tests 2 passed | 105 skipped`.
+- `npm --prefix frontend test -- --run src/App.test.tsx -t "session recovery board"` first failed because the browser panel was missing and then because a row omitted optional checks, then passed with `Tests 1 passed | 150 skipped`.
+- `bash -n scripts/demo/demo-session-recovery-board.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 834, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 315 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` first failed because the frontend recovery board job type omitted `checks`, then passed; Vite reported the existing chunk-size warning for a 550.99 kB bundle.
+- `git diff --check` passed.
+
+Work:
+
 - Started the narration acceptance recovery workflow feature slice from `docs/plans/162-narration-acceptance-recovery-workflow.md`.
 - Added a browser `Acceptance recovery` panel inside the narration workspace when the final demo acceptance gate is blocked by narration playback resolution.
 - Composed existing safe frontend data from acceptance gate, playback resolution, render review, playback review, and narration evidence instead of adding a new backend endpoint.

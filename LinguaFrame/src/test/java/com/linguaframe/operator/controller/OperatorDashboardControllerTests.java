@@ -383,6 +383,48 @@ class OperatorDashboardControllerTests {
         }
 
         @Test
+        void returnsDemoSessionRecoveryBoard() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:40:00Z");
+            createJob("session-recovery-stale-video", "session-recovery-stale-job", "stale.mp4",
+                    LocalizationJobStatus.QUEUED, createdAt);
+            createJob("session-recovery-ready-video", "session-recovery-ready-job", "ready.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt.plusSeconds(10));
+            saveModelCall("session-recovery-call", "session-recovery-ready-job", createdAt.plusSeconds(11));
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board").param("limit", "10"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.recoverNowCount").isNumber())
+                    .andExpect(jsonPath("$.jobs[?(@.jobId == 'session-recovery-stale-job')]").exists())
+                    .andExpect(jsonPath("$.jobs[?(@.jobId == 'session-recovery-ready-job')]").exists())
+                    .andExpect(jsonPath("$.links[?(@.href == '/api/operator/demo-session-recovery-board/markdown/download')]").exists())
+                    .andExpect(jsonPath("$.safetyNotes[0]").value(org.hamcrest.Matchers.containsString("metadata-only")))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                            .doesNotContain("source-videos/session-recovery-stale-video")
+                            .doesNotContain("provider payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
+        void downloadsDemoSessionRecoveryBoardMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T09:45:00Z");
+            createJob("session-recovery-markdown-video", "session-recovery-markdown-job", "session-recovery.md.mp4",
+                    LocalizationJobStatus.QUEUED, createdAt);
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board/markdown/download").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("demo-session-recovery-board.md"))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Demo Session Recovery Board", "session-recovery-markdown-job")
+                            .doesNotContain("source-videos/session-recovery-markdown-video")
+                            .doesNotContain("provider payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
         void downloadsDemoSessionEvidencePackageZip() throws Exception {
             Instant createdAt = Instant.parse("2026-06-27T10:00:00Z");
             createJob("session-package-controller-video", "session-package-controller-job", "session-package.mp4",
@@ -575,6 +617,20 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/demo-session-evidence-package/download")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board/markdown/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-recovery-board/markdown/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
 

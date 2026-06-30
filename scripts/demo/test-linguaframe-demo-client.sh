@@ -858,6 +858,109 @@ JSON
   [[ "$output" != *"raw subtitle text"* ]] || fail "cockpit summary exposed subtitle"
 }
 
+test_demo_session_recovery_board_helpers_are_metadata_only() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_session_recovery_board_json "http://example.test" "25" "$TMPDIR/recovery-board.json" \
+    >"$TMPDIR/recovery-board-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_session_recovery_board_markdown "http://example.test" "25" "$TMPDIR/recovery-board.md" \
+    >"$TMPDIR/recovery-board-markdown-curl.out"
+
+  local json_output markdown_output
+  json_output="$(cat "$TMPDIR/recovery-board-json-curl.out")"
+  markdown_output="$(cat "$TMPDIR/recovery-board-markdown-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/operator/demo-session-recovery-board?limit=25"* ]] || fail "recovery board JSON helper used wrong route"
+  [[ "$markdown_output" == *"http://example.test/api/operator/demo-session-recovery-board/markdown/download?limit=25"* ]] || fail "recovery board Markdown helper used wrong route"
+
+  cat >"$TMPDIR/recovery-board.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "headline": "1 job needs recovery.",
+  "recommendedNextAction": "Open stuck-job recovery.",
+  "recoverNowCount": 1,
+  "watchCount": 0,
+  "readyCount": 1,
+  "needsReviewCount": 0,
+  "noActionCount": 0,
+  "primaryAction": {
+    "id": "OPEN_STUCK_RECOVERY",
+    "label": "Open stuck-job recovery",
+    "href": "/api/jobs/job-stale/stuck-job-recovery",
+    "description": "Inspect per-job recovery checks.",
+    "primary": true
+  },
+  "jobs": [
+    {
+      "jobId": "job-stale",
+      "filename": "private-source.mp4",
+      "classification": "RECOVER_NOW",
+      "recommendedNextAction": "Open stuck-job recovery.",
+      "links": [
+        {
+          "kind": "STUCK_RECOVERY",
+          "label": "Stuck job recovery",
+          "href": "/api/jobs/job-stale/stuck-job-recovery",
+          "contentType": "application/json",
+          "description": "Per-job recovery cockpit."
+        }
+      ]
+    },
+    {
+      "jobId": "job-ready",
+      "filename": "ready.mp4",
+      "classification": "READY_TO_PRESENT",
+      "recommendedNextAction": "Use completion evidence."
+    }
+  ],
+  "links": [
+    {
+      "kind": "MARKDOWN",
+      "label": "Recovery board Markdown",
+      "href": "/api/operator/demo-session-recovery-board/markdown/download",
+      "contentType": "text/markdown",
+      "description": "Downloadable board report."
+    }
+  ],
+  "safetyNotes": [
+    "Metadata-only recovery board: job ids, statuses, counts, and safe evidence links only."
+  ]
+}
+JSON
+
+  print_demo_session_recovery_board_summary_file "$TMPDIR/recovery-board.json" \
+    >"$TMPDIR/recovery-board.out"
+  local output
+  output="$(cat "$TMPDIR/recovery-board.out")"
+  [[ "$output" == *"demoSessionRecoveryBoardStatus=BLOCKED"* ]] || fail "recovery board summary missed status"
+  [[ "$output" == *"demoSessionRecoveryBoardRecoverNowCount=1"* ]] || fail "recovery board summary missed recover-now count"
+  [[ "$output" == *"demoSessionRecoveryBoardReadyCount=1"* ]] || fail "recovery board summary missed ready count"
+  [[ "$output" == *"demoSessionRecoveryBoardFirstRecoverableJobId=job-stale"* ]] || fail "recovery board summary missed first recoverable job"
+  [[ "$output" == *"demoSessionRecoveryBoardPrimaryAction=OPEN_STUCK_RECOVERY"* ]] || fail "recovery board summary missed primary action"
+  [[ "$output" != *"private-source.mp4"* ]] || fail "recovery board summary exposed filename"
+
+  cat >"$TMPDIR/recovery-board-unsafe.json" <<'JSON'
+{
+  "overallStatus": "BLOCKED",
+  "recoverNowCount": 1,
+  "jobs": [
+    {
+      "jobId": "job-stale",
+      "localPath": "/Users/example/private.mov",
+      "providerPayload": "raw provider payload",
+      "token": "private-demo-token"
+    }
+  ]
+}
+JSON
+  if print_demo_session_recovery_board_summary_file "$TMPDIR/recovery-board-unsafe.json" \
+      >"$TMPDIR/recovery-board-unsafe.out" 2>&1; then
+    fail "recovery board summary accepted unsafe content"
+  fi
+}
+
 test_upload_demo_video_includes_subtitle_polishing_mode() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -3208,6 +3311,7 @@ test_demo_sample_media_catalog_script_exits_on_blocked_state
 test_demo_run_launcher_helpers_are_metadata_only
 test_demo_run_launcher_script_exits_on_blocked_state
 test_demo_presentation_cockpit_helpers_are_metadata_only
+test_demo_session_recovery_board_helpers_are_metadata_only
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile

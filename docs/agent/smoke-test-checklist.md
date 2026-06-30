@@ -57,6 +57,21 @@ Expected:
 - Failed jobs surface retry eligibility through the existing retry semantics.
 - Browser and terminal output stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
 
+For demo session recovery board changes, run:
+
+```bash
+JAVA_HOME=/Users/wangbingqin/Library/Java/JavaVirtualMachines/ms-21.0.11/Contents/Home mvn -pl LinguaFrame -Dtest=DemoSessionRecoveryBoardServiceTests,OperatorDashboardControllerTests,RuntimeDependencyControllerTests,OpenApiDocumentationTests test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "session recovery board"
+bash scripts/demo/test-linguaframe-demo-client.sh
+bash -n scripts/demo/demo-session-recovery-board.sh scripts/demo/lib/linguaframe-demo.sh
+```
+
+Expected:
+
+- Recent jobs are grouped into recover-now, watch, needs-review, ready, or no-action rows.
+- The board links to existing per-job recovery and evidence routes but does not execute recovery actions.
+- Browser and terminal exports stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
+
 For worker logging changes, run:
 
 ```bash

@@ -291,6 +291,7 @@ Build:
 - Same-source demo run matrix. Status: implemented with `GET /api/jobs/{jobId}/demo-run-matrix`, a browser `Demo run matrix` panel, and full Tears terminal `demo-run-matrix.json` output for baseline, quality, cost, cache, and handoff inspection across recent runs.
 - Demo presenter pack workspace. Status: implemented with `GET /api/jobs/{jobId}/demo-presenter-pack`, a browser `Demo presenter pack` panel, and full Tears terminal `demo-presenter-pack.json` output for readiness, recommended runs, presenter notes, and safe evidence links.
 - Stuck job recovery cockpit. Status: implemented with `GET /api/jobs/{jobId}/stuck-job-recovery`, Markdown download, confirmed recovery action endpoint, a browser selected-job panel, and `scripts/demo/stuck-job-recovery.sh` for metadata-only diagnosis and controlled requeue/cancel/retry actions.
+- Demo session recovery board. Status: implemented with `GET /api/operator/demo-session-recovery-board`, Markdown download, a browser run-day recovery panel, and `scripts/demo/demo-session-recovery-board.sh` for metadata-only session-level triage across recent jobs while reusing existing per-job recovery and evidence routes.
 - Retry button.
 - Cost summary.
 - Operator dashboard. Status: implemented for status counts, recent failures, model-call totals, cache totals, and manual retention cleanup preview/run actions.
