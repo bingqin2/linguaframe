@@ -348,6 +348,49 @@ td {
   background: #f8fafc;
 }
 
+.upload-narration-launchpad {
+  display: grid;
+  gap: 12px;
+  min-width: 560px;
+  margin-bottom: 12px;
+  border: 1px solid #bfd1db;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfdfe;
+}
+
+.upload-narration-launchpad .compact-panel-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.upload-narration-launchpad h4,
+.upload-narration-launchpad .muted {
+  margin: 0;
+}
+
+.upload-narration-launchpad-metrics {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.upload-narration-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.upload-narration-actions a {
+  text-decoration: none;
+}
+
+.upload-narration-actions code {
+  color: #31586e;
+  font-size: 0.78rem;
+  white-space: normal;
+}
+
 .narration-scene-board-metrics {
   grid-template-columns: repeat(7, minmax(0, 1fr));
   margin: 0;

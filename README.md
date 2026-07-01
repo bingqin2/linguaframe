@@ -16,6 +16,8 @@ Core promise:
 Upload a short video and receive bilingual subtitles, translated captions, TTS dubbing audio, a subtitle-burned video, and a clear processing record.
 ```
 
+Narration demos can also seed time-coded explanatory rows at upload time and then continue in the browser `Upload narration launchpad` plus `Narration workspace` flow for selected-row TTS preview, explicit audio generation, and narrated-video rendering.
+
 ## Repository Layout
 
 Planned repository shape:

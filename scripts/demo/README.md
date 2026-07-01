@@ -21,6 +21,16 @@ LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/narration-scene-board.sh
 
 The script writes `narration-scene-board.json` and `.md` to `/tmp/linguaframe-demo/narration-scene-board/`, prints status, segment count, coverage, gaps, overlap state, voice count, mix keyframe count, audio/video readiness, blocked checks, and the recommended next action. It does not call OpenAI, call TTS providers, run FFmpeg, save rows, print narration text, expose object keys, expose local paths, or include media bytes. Set `LINGUAFRAME_NARRATION_SCENE_BOARD_REPORT_ONLY=true` to export a `BLOCKED` board without failing the command.
 
+## Upload Narration Launchpad
+
+Export the metadata-only handoff after uploading a video with `LINGUAFRAME_DEMO_NARRATION_SCRIPT` or `LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE`:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/upload-narration-launchpad.sh
+```
+
+The script writes `upload-narration-launchpad.json` and `.md` to `/tmp/linguaframe-demo/upload-narration-launchpad/`, prints status, seeded row count, character count, selected row, voice summary, scene-board status, audio/video readiness, next actions, and safe links. It does not call OpenAI, call TTS providers, run FFmpeg, save rows, print narration text, expose object keys, expose local paths, or include media bytes.
+
 ## Session Narration Production Board
 
 Export the run-day production overview across recent narration jobs:

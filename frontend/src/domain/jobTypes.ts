@@ -2053,6 +2053,36 @@ export interface NarrationSceneBoardLink {
   label: string;
 }
 
+export interface UploadNarrationLaunchpadAction {
+  key: string;
+  label: string;
+  description: string;
+  href: string;
+  command: string | null;
+}
+
+export interface UploadNarrationLaunchpad {
+  jobId: string;
+  generatedAt: string;
+  status: string;
+  nextAction: string;
+  segmentCount: number;
+  characterCount: number;
+  totalNarrationSeconds: number;
+  selectedSegmentIndex: number | null;
+  voiceProvider: string;
+  defaultVoice: string;
+  voiceSummary: string;
+  sceneBoardStatus: string;
+  blockingIssueCount: number;
+  attentionIssueCount: number;
+  audioReady: boolean;
+  videoReady: boolean;
+  actions: UploadNarrationLaunchpadAction[];
+  safeLinks: NarrationSceneBoardLink[];
+  safetyNotes: string[];
+}
+
 export interface SaveNarrationSegment {
   index: number;
   startSeconds: number;

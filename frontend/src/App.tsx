@@ -124,6 +124,7 @@ import type {
   NarrationScriptPackage,
   ImportNarrationScriptPackageRequest,
   NarrationWorkspace,
+  UploadNarrationLaunchpad,
   OpenAiReadinessEvidence,
   OpenAiSmokeProof,
   OperatorDashboard,
@@ -515,6 +516,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
   const [narrationSceneBoard, setNarrationSceneBoard] = useState<NarrationSceneBoard | null>(null);
+  const [uploadNarrationLaunchpad, setUploadNarrationLaunchpad] = useState<UploadNarrationLaunchpad | null>(null);
+  const [uploadNarrationLaunchpadError, setUploadNarrationLaunchpadError] = useState<string | null>(null);
   const [narrationEvidence, setNarrationEvidence] = useState<NarrationEvidence | null>(null);
   const [narrationScriptPackage, setNarrationScriptPackage] = useState<NarrationScriptPackage | null>(null);
   const [narrationDeliveryPackage, setNarrationDeliveryPackage] = useState<NarrationDeliveryPackage | null>(null);
@@ -1264,6 +1267,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       draftResult,
       narrationWorkspaceResult,
       narrationSceneBoardResult,
+      uploadNarrationLaunchpadResult,
       narrationEvidenceResult,
       narrationScriptPackageResult,
       narrationDeliveryPackageResult
@@ -1278,6 +1282,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getSubtitleDraft(jobId, language),
       linguaFrameApi.getNarrationWorkspace(jobId),
       linguaFrameApi.getNarrationSceneBoard(jobId),
+      linguaFrameApi.getUploadNarrationLaunchpad(jobId),
       linguaFrameApi.getNarrationEvidence(jobId),
       linguaFrameApi.getNarrationScriptPackage(jobId),
       linguaFrameApi.getNarrationDeliveryPackage(jobId)
@@ -1365,6 +1370,14 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     } else {
       setNarrationSceneBoard(null);
       errors.push(`Narration scene board: ${toErrorMessage(narrationSceneBoardResult.reason)}`);
+    }
+
+    if (uploadNarrationLaunchpadResult.status === 'fulfilled') {
+      setUploadNarrationLaunchpad(uploadNarrationLaunchpadResult.value);
+      setUploadNarrationLaunchpadError(null);
+    } else {
+      setUploadNarrationLaunchpad(null);
+      setUploadNarrationLaunchpadError(toErrorMessage(uploadNarrationLaunchpadResult.reason));
     }
 
     if (narrationEvidenceResult.status === 'fulfilled') {
@@ -1894,6 +1907,11 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       const nextJob = await loadJob(upload.jobId);
       await loadSourceMedia(nextJob.videoId);
       await loadPreviewData(upload.jobId, recentJob.targetLanguage);
+      if (upload.narrationScriptSeeded) {
+        setNarrationStatus(
+          `Upload narration launchpad ready: ${upload.narrationScriptSegmentCount} seeded rows. Preview selected-row TTS explicitly before rendering.`
+        );
+      }
       await loadDemoRunMatrix(upload.jobId);
       await loadDemoRunMonitor(upload.jobId);
       await loadStuckJobRecovery(upload.jobId);
@@ -3289,6 +3307,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               narrationDemoRenderResult={narrationDemoRenderResult}
               narrationEvidence={narrationEvidence}
               narrationDeliveryPackage={narrationDeliveryPackage}
+              uploadNarrationLaunchpad={uploadNarrationLaunchpad}
+              uploadNarrationLaunchpadError={uploadNarrationLaunchpadError}
               narrationSceneBoard={narrationSceneBoard}
               narrationScriptPackage={narrationScriptPackage}
               narrationDemoPresets={narrationDemoPresets}
@@ -6990,6 +7010,8 @@ function JobDetail({
   narrationDemoRenderResult,
   narrationEvidence,
   narrationDeliveryPackage,
+  uploadNarrationLaunchpad,
+  uploadNarrationLaunchpadError,
   narrationDemoPresets,
   narrationSceneBoard,
   narrationScriptPackage,
@@ -7128,6 +7150,8 @@ function JobDetail({
   narrationDemoRenderResult: NarrationDemoRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
   narrationDeliveryPackage: NarrationDeliveryPackage | null;
+  uploadNarrationLaunchpad: UploadNarrationLaunchpad | null;
+  uploadNarrationLaunchpadError: string | null;
   narrationDemoPresets: NarrationDemoPreset[];
   narrationSceneBoard: NarrationSceneBoard | null;
   narrationScriptPackage: NarrationScriptPackage | null;
@@ -7436,6 +7460,8 @@ function JobDetail({
         error={narrationError}
         evidence={narrationEvidence}
         deliveryPackage={narrationDeliveryPackage}
+        uploadNarrationLaunchpad={uploadNarrationLaunchpad}
+        uploadNarrationLaunchpadError={uploadNarrationLaunchpadError}
         isClearing={isClearingNarration}
         isGenerating={isGeneratingNarration}
         isGeneratingVideo={isGeneratingNarratedVideo}
@@ -10476,6 +10502,8 @@ function NarrationWorkspacePanel({
   deliveryPackage,
   error,
   evidence,
+  uploadNarrationLaunchpad,
+  uploadNarrationLaunchpadError,
   isClearing,
   isGenerating,
   isGeneratingVideo,
@@ -10508,6 +10536,8 @@ function NarrationWorkspacePanel({
   deliveryPackage: NarrationDeliveryPackage | null;
   error: string | null;
   evidence: NarrationEvidence | null;
+  uploadNarrationLaunchpad: UploadNarrationLaunchpad | null;
+  uploadNarrationLaunchpadError: string | null;
   isClearing: boolean;
   isGenerating: boolean;
   isGeneratingVideo: boolean;
@@ -11227,6 +11257,10 @@ function NarrationWorkspacePanel({
       ) : null}
       <div className="narration-workbench">
         <div className="narration-table-wrap">
+          <UploadNarrationLaunchpadPanel
+            error={uploadNarrationLaunchpadError}
+            launchpad={uploadNarrationLaunchpad}
+          />
           <NarrationSceneBoardPanel
             board={sceneBoard}
             canRunPreflight={demoPresets.length > 0}
@@ -11444,6 +11478,122 @@ function NarrationWorkspacePanel({
           onRender={onRenderDemo}
         />
       </div>
+    </section>
+  );
+}
+
+function UploadNarrationLaunchpadPanel({
+  error,
+  launchpad
+}: {
+  error: string | null;
+  launchpad: UploadNarrationLaunchpad | null;
+}) {
+  const [downloadStatus, setDownloadStatus] = useState<string | null>(null);
+
+  async function downloadMarkdown() {
+    if (!launchpad) {
+      return;
+    }
+    try {
+      const blob = await linguaFrameApi.downloadUploadNarrationLaunchpadMarkdown(launchpad.jobId);
+      downloadBlob(blob, `linguaframe-job-${sanitizeFilename(launchpad.jobId)}-upload-narration-launchpad.md`);
+      setDownloadStatus('Upload narration launchpad Markdown downloaded.');
+    } catch (downloadError) {
+      setDownloadStatus(toErrorMessage(downloadError));
+    }
+  }
+
+  const status = launchpad?.status ?? (error ? 'UNAVAILABLE' : 'LOADING');
+
+  return (
+    <section className="upload-narration-launchpad" aria-label="Upload narration launchpad">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Upload narration launchpad</h4>
+          <p className="muted">
+            {launchpad ? launchpad.nextAction : 'Loading upload-seeded narration handoff metadata.'}
+          </p>
+        </div>
+        <span className={readinessStatusClassName(status)}>{status}</span>
+      </div>
+      {error ? <p className="error-text">Launchpad unavailable: {error}</p> : null}
+      {launchpad ? (
+        <>
+          <dl className="compact-metrics upload-narration-launchpad-metrics">
+            <div>
+              <dt>Rows</dt>
+              <dd>{launchpad.segmentCount}</dd>
+            </div>
+            <div>
+              <dt>Characters</dt>
+              <dd>{launchpad.characterCount}</dd>
+            </div>
+            <div>
+              <dt>Duration</dt>
+              <dd>{formatSeconds(launchpad.totalNarrationSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Selected row</dt>
+              <dd>{launchpad.selectedSegmentIndex === null ? 'None' : launchpad.selectedSegmentIndex + 1}</dd>
+            </div>
+            <div>
+              <dt>Voice provider</dt>
+              <dd>{launchpad.voiceProvider}</dd>
+            </div>
+            <div>
+              <dt>Default voice</dt>
+              <dd>{launchpad.defaultVoice}</dd>
+            </div>
+            <div>
+              <dt>Voice summary</dt>
+              <dd>{launchpad.voiceSummary}</dd>
+            </div>
+            <div>
+              <dt>Scene board</dt>
+              <dd>{launchpad.sceneBoardStatus}</dd>
+            </div>
+            <div>
+              <dt>Issues</dt>
+              <dd>{launchpad.blockingIssueCount} blocked / {launchpad.attentionIssueCount} attention</dd>
+            </div>
+            <div>
+              <dt>Render assets</dt>
+              <dd>{launchpad.audioReady ? 'Audio ready' : 'Audio missing'} / {launchpad.videoReady ? 'Video ready' : 'Video missing'}</dd>
+            </div>
+          </dl>
+          <div className="upload-narration-actions" aria-label="Upload narration next actions">
+            {launchpad.actions.map((action) => (
+              <a key={action.key} className="scene-rail-row" href={action.href}>
+                <strong>{action.label}</strong>
+                <small>{action.description}</small>
+                {action.command ? <code>{action.command}</code> : null}
+              </a>
+            ))}
+          </div>
+          <div className="narration-command-buttons">
+            <button type="button" onClick={() => void downloadMarkdown()}>
+              Download launchpad Markdown
+            </button>
+            <a className="secondary-link" href="#narration-workspace">Open narration workspace</a>
+          </div>
+          {downloadStatus ? <p className="narration-command-status">{downloadStatus}</p> : null}
+          {launchpad.safeLinks.length ? (
+            <ul className="safe-link-list">
+              {launchpad.safeLinks.map((link) => (
+                <li key={`${link.kind}-${link.href}`}>
+                  <a href={link.href}>{link.label}</a>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <ul className="compact-list">
+            {launchpad.safetyNotes.map((note) => <li key={note}>{note}</li>)}
+          </ul>
+        </>
+      ) : (
+        <p className="muted">No upload narration launchpad loaded.</p>
+      )}
     </section>
   );
 }

@@ -68,7 +68,8 @@ import type {
   StuckJobRecovery,
   SubtitleDraftSummary,
   SubtitleReviewEvidence,
-  SubtitleReviewSummary
+  SubtitleReviewSummary,
+  UploadNarrationLaunchpad
 } from './domain/jobTypes';
 
 class FakeEventSource {
@@ -152,6 +153,10 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationDeliveryPackage').mockResolvedValue(narrationDeliveryPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getUploadNarrationLaunchpad').mockResolvedValue(uploadNarrationLaunchpadFixture());
+    vi.spyOn(linguaFrameApi, 'downloadUploadNarrationLaunchpadMarkdown').mockResolvedValue(
+      new Blob(['# Upload Narration Launchpad'], { type: 'text/markdown' })
+    );
     vi.spyOn(linguaFrameApi, 'getDemoRunLauncher').mockResolvedValue(
       demoRunLauncherFixture()
     );
@@ -1754,6 +1759,17 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
     vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.mocked(linguaFrameApi.getUploadNarrationLaunchpad).mockResolvedValue(uploadNarrationLaunchpadFixture({
+      jobId: 'job-1',
+      status: 'READY',
+      nextAction: 'Preview selected-row TTS before render.',
+      segmentCount: 2,
+      characterCount: 54,
+      totalNarrationSeconds: 28,
+      voiceProvider: 'demo',
+      defaultVoice: 'demo-voice',
+      voiceSummary: 'demo-voice: 1, inherited: 1'
+    }));
 
     render(<App />);
 
@@ -1786,6 +1802,22 @@ describe('App', () => {
         '',
         expect.stringContaining('Explain the opening gesture')
       )
+    );
+    expect(await screen.findByText(/Upload narration launchpad ready: 2 seeded rows/i)).toBeInTheDocument();
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const launchpad = within(narrationPanel).getByRole('region', { name: /upload narration launchpad/i });
+    expect(within(launchpad).getByText('READY')).toBeInTheDocument();
+    expect(within(launchpad).getByText('Preview selected-row TTS before render.')).toBeInTheDocument();
+    expect(within(launchpad).getByText('demo-voice: 1, inherited: 1')).toBeInTheDocument();
+    expect(within(launchpad).getByRole('link', { name: /preview selected-row tts/i })).toHaveAttribute(
+      'href',
+      '#narration-workspace'
+    );
+
+    await userEvent.click(within(launchpad).getByRole('button', { name: /download launchpad markdown/i }));
+    await waitFor(() =>
+      expect(linguaFrameApi.downloadUploadNarrationLaunchpadMarkdown).toHaveBeenCalledWith('job-1')
     );
   });
 
@@ -9256,6 +9288,59 @@ function narrationSceneBoardFixture(overrides: Partial<NarrationSceneBoard> = {}
       }
     ],
     safetyNotes: ['Metadata only.'],
+    ...overrides
+  };
+}
+
+function uploadNarrationLaunchpadFixture(overrides: Partial<UploadNarrationLaunchpad> = {}): UploadNarrationLaunchpad {
+  return {
+    jobId: 'narration-mix-job',
+    generatedAt: '2026-06-30T08:05:00Z',
+    status: 'ATTENTION',
+    nextAction: 'Preview selected-row TTS before render.',
+    segmentCount: 2,
+    characterCount: 49,
+    totalNarrationSeconds: 28.5,
+    selectedSegmentIndex: 0,
+    voiceProvider: 'openai',
+    defaultVoice: 'verse',
+    voiceSummary: 'alloy: 1, verse: 1',
+    sceneBoardStatus: 'ATTENTION',
+    blockingIssueCount: 0,
+    attentionIssueCount: 1,
+    audioReady: true,
+    videoReady: false,
+    actions: [
+      {
+        key: 'open-workspace',
+        label: 'Open narration workspace',
+        description: 'Review seeded narration rows in the workspace.',
+        href: '#narration-workspace',
+        command: 'Open this job in the browser.'
+      },
+      {
+        key: 'preview-tts',
+        label: 'Preview selected-row TTS',
+        description: 'Audition the selected narration row before saving render artifacts.',
+        href: '#narration-workspace',
+        command: 'Use Preview selected TTS.'
+      },
+      {
+        key: 'render-preflight',
+        label: 'Run render preflight',
+        description: 'Check provider, audio, and video readiness before rendering.',
+        href: '#narration-workspace',
+        command: 'Run render preflight.'
+      }
+    ],
+    safeLinks: [
+      {
+        kind: 'workspace',
+        href: '/api/jobs/narration-mix-job/narration-workspace',
+        label: 'Narration workspace'
+      }
+    ],
+    safetyNotes: ['Metadata only; seeded narration text stays in the workspace endpoint.'],
     ...overrides
   };
 }

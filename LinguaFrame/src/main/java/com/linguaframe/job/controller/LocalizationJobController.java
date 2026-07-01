@@ -75,6 +75,7 @@ import com.linguaframe.job.domain.vo.SubtitleReviewEvidenceVo;
 import com.linguaframe.job.domain.vo.SubtitleSegmentVo;
 import com.linguaframe.job.domain.vo.SubtitleReviewSummaryVo;
 import com.linguaframe.job.domain.vo.TranscriptSegmentVo;
+import com.linguaframe.job.domain.vo.UploadNarrationLaunchpadVo;
 import com.linguaframe.job.service.JobArtifactService;
 import com.linguaframe.job.service.AiAuditPackageService;
 import com.linguaframe.job.service.DeliveryManifestService;
@@ -125,6 +126,8 @@ import com.linguaframe.job.service.SubtitleReviewEvidenceService;
 import com.linguaframe.job.service.SubtitleReviewService;
 import com.linguaframe.job.service.StuckJobRecoveryService;
 import com.linguaframe.job.service.TranscriptService;
+import com.linguaframe.job.service.UploadNarrationLaunchpadReportService;
+import com.linguaframe.job.service.UploadNarrationLaunchpadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -205,6 +208,8 @@ public class LocalizationJobController {
     private final NarrationWaveformService narrationWaveformService;
     private final NarrationWorkspaceService narrationWorkspaceService;
     private final NarratedVideoService narratedVideoService;
+    private final UploadNarrationLaunchpadService uploadNarrationLaunchpadService;
+    private final UploadNarrationLaunchpadReportService uploadNarrationLaunchpadReportService;
     private final ObjectMapper objectMapper;
 
     public LocalizationJobController(
@@ -258,6 +263,8 @@ public class LocalizationJobController {
             NarrationWaveformService narrationWaveformService,
             NarrationWorkspaceService narrationWorkspaceService,
             NarratedVideoService narratedVideoService,
+            UploadNarrationLaunchpadService uploadNarrationLaunchpadService,
+            UploadNarrationLaunchpadReportService uploadNarrationLaunchpadReportService,
             ObjectMapper objectMapper
     ) {
         this.queryService = queryService;
@@ -310,6 +317,8 @@ public class LocalizationJobController {
         this.narrationWaveformService = narrationWaveformService;
         this.narrationWorkspaceService = narrationWorkspaceService;
         this.narratedVideoService = narratedVideoService;
+        this.uploadNarrationLaunchpadService = uploadNarrationLaunchpadService;
+        this.uploadNarrationLaunchpadReportService = uploadNarrationLaunchpadReportService;
         this.objectMapper = objectMapper;
     }
 
@@ -1509,6 +1518,15 @@ public class LocalizationJobController {
         return narrationSceneBoardService.getSceneBoard(jobId);
     }
 
+    @GetMapping("/{jobId}/upload-narration-launchpad")
+    @Operation(summary = "Get metadata-only upload narration launchpad")
+    public UploadNarrationLaunchpadVo uploadNarrationLaunchpad(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return uploadNarrationLaunchpadService.getLaunchpad(jobId);
+    }
+
     @GetMapping("/{jobId}/narration-render-review")
     @Operation(summary = "Get metadata-only narration render review cue sheet")
     public NarrationRenderReviewVo narrationRenderReview(
@@ -1604,6 +1622,22 @@ public class LocalizationJobController {
                 .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                         .filename("linguaframe-job-" + jobId + "-narration-scene-board.md")
+                        .build()
+                        .toString())
+                .body(markdown);
+    }
+
+    @GetMapping("/{jobId}/upload-narration-launchpad/markdown/download")
+    @Operation(summary = "Download metadata-only upload narration launchpad Markdown")
+    public ResponseEntity<String> downloadUploadNarrationLaunchpadMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        String markdown = uploadNarrationLaunchpadReportService.renderMarkdown(jobId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-upload-narration-launchpad.md")
                         .build()
                         .toString())
                 .body(markdown);

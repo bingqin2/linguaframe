@@ -110,6 +110,8 @@ import {
   estimateUploadExecutionPlan,
   downloadUploadExecutionPlanMarkdown,
   downloadUploadDecisionPackageMarkdown,
+  downloadUploadNarrationLaunchpadMarkdown,
+  getUploadNarrationLaunchpad,
   downloadUploadDecisionPackageZip,
   listDemoRunProfiles,
   listNarrationDemoPresets,
@@ -683,6 +685,54 @@ describe('linguaframeApi', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Fscene/narration-scene-board');
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
     expect(fetchMock.mock.calls[1]?.[0]).toBe('/api/jobs/job%20narration%2Fscene/narration-scene-board/markdown/download');
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
+  });
+
+  test('loads upload narration launchpad and downloads metadata markdown', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        jobId: 'job narration/launchpad',
+        generatedAt: '2026-07-01T00:00:00Z',
+        status: 'READY',
+        nextAction: 'Preview selected-row TTS explicitly, then run render preflight when ready.',
+        segmentCount: 2,
+        characterCount: 54,
+        totalNarrationSeconds: 28,
+        selectedSegmentIndex: 0,
+        voiceProvider: 'demo',
+        defaultVoice: 'demo-voice',
+        voiceSummary: 'demo-voice: 1, inherited: 1',
+        sceneBoardStatus: 'READY',
+        blockingIssueCount: 0,
+        attentionIssueCount: 0,
+        audioReady: false,
+        videoReady: false,
+        actions: [
+          {
+            key: 'open-workspace',
+            label: 'Open narration workspace',
+            description: 'Review rows.',
+            href: '/api/jobs/job-narration/launchpad/narration-workspace',
+            command: 'Open this job in the browser.'
+          }
+        ],
+        safeLinks: [],
+        safetyNotes: []
+      })
+    );
+
+    const launchpad = await getUploadNarrationLaunchpad('job narration/launchpad');
+    fetchMock.mockResolvedValueOnce(new Response(new Blob(['# Upload Narration Launchpad'])));
+    await downloadUploadNarrationLaunchpadMarkdown('job narration/launchpad');
+
+    expect(launchpad.status).toBe('READY');
+    expect(launchpad.segmentCount).toBe(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Flaunchpad/upload-narration-launchpad');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'GET' });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      '/api/jobs/job%20narration%2Flaunchpad/upload-narration-launchpad/markdown/download'
+    );
     expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
   });
 

@@ -921,3 +921,11 @@ Decision: Add upload-time narration quick script intake as workspace seeding onl
 Reason: Operators asked to upload a video and provide explanatory narration rows in one intake flow, but automatic TTS or video rendering during upload would hide provider cost and blur the existing explicit narration workflow.
 
 Impact: Upload, execution-plan, decision-package, browser upload, and demo script flows accept optional `START-END | VOICE | TEXT` rows. Valid rows seed the new job's narration workspace and expose safe counts/status; invalid rows block upload before storage or dispatch. Upload-time intake does not call OpenAI, TTS providers, FFmpeg, create narration artifacts, or update narration evidence.
+
+## 2026-07-01
+
+Decision: Add an upload narration launchpad before any upload-triggered TTS or render automation.
+
+Reason: After a video upload seeds narration rows, operators need an immediate handoff that says what was seeded and what to do next, but the handoff must not expose narration text or spend provider credits.
+
+Impact: `GET /api/jobs/{jobId}/upload-narration-launchpad`, its Markdown download, the browser `Upload narration launchpad`, and `scripts/demo/upload-narration-launchpad.sh` summarize seeded row counts, voice coverage, scene-board readiness, safe links, and explicit next actions. The launchpad is metadata-only and does not save rows, call OpenAI/TTS providers, run FFmpeg, create artifacts, or generate media.

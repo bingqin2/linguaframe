@@ -41,6 +41,8 @@ SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_SUBTITLE_REVIEW_EVIDENCE_Z
 NARRATION_EVIDENCE_JSON_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_JSON_PATH:-/tmp/linguaframe-demo/narration-evidence.json}"
 NARRATION_EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/narration-evidence.md}"
 NARRATION_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_ZIP_PATH:-/tmp/linguaframe-demo/narration-evidence.zip}"
+UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH="${LINGUAFRAME_DEMO_UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH:-/tmp/linguaframe-demo/upload-narration-launchpad.json}"
+UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH="${LINGUAFRAME_DEMO_UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH:-/tmp/linguaframe-demo/upload-narration-launchpad.md}"
 SOURCE_MEDIA_METADATA_PATH="${LINGUAFRAME_DEMO_SOURCE_MEDIA_METADATA_PATH:-/tmp/linguaframe-demo/source-media.json}"
 SOURCE_MEDIA_PATH="${LINGUAFRAME_DEMO_SOURCE_MEDIA_PATH:-/tmp/linguaframe-demo/source-video.mp4}"
 DELIVERY_MANIFEST_MARKDOWN_PATH="${LINGUAFRAME_DEMO_DELIVERY_MANIFEST_MARKDOWN_PATH:-/tmp/linguaframe-demo/delivery-manifest.md}"
@@ -60,6 +62,11 @@ narration_script_character_count="$(printf '%s' "$upload_response" | extract_jso
 
 echo "Uploaded demo video. Waiting for job $job_id to complete..."
 echo "Upload narration script seeded: $narration_script_seeded (${narration_script_segment_count} rows, ${narration_script_character_count} characters)."
+if [[ "$narration_script_seeded" == "true" ]]; then
+  download_upload_narration_launchpad_json "$BASE_URL" "$job_id" "$UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH"
+  download_upload_narration_launchpad_markdown "$BASE_URL" "$job_id" "$UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
+  print_upload_narration_launchpad_summary_file "$UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH" "$UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
+fi
 job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
 video_id="$(printf '%s' "$job_response" | extract_json_field videoId)"
 mkdir -p "$(dirname "$JOB_DETAIL_PATH")"
@@ -198,6 +205,10 @@ echo "Downloaded demo handoff portal ZIP to $DEMO_HANDOFF_PORTAL_ZIP_PATH"
 echo "Downloaded subtitle review evidence JSON to $SUBTITLE_REVIEW_EVIDENCE_JSON_PATH"
 echo "Downloaded subtitle review evidence Markdown to $SUBTITLE_REVIEW_EVIDENCE_MARKDOWN_PATH"
 echo "Downloaded subtitle review evidence ZIP to $SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH"
+if [[ "$narration_script_seeded" == "true" ]]; then
+  echo "Downloaded upload narration launchpad JSON to $UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH"
+  echo "Downloaded upload narration launchpad Markdown to $UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
+fi
 echo "Checked narration evidence JSON at $NARRATION_EVIDENCE_JSON_PATH"
 echo "Downloaded source video to $SOURCE_MEDIA_PATH"
 echo "Downloaded worker summary to $ARTIFACT_PATH"

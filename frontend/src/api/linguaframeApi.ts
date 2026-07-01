@@ -82,7 +82,8 @@ import type {
   UpdateNarrationPlaybackReviewSegmentRequest,
   UpdateSubtitleDraftRequest,
   UploadCostEstimate,
-  UploadExecutionPlan
+  UploadExecutionPlan,
+  UploadNarrationLaunchpad
 } from '../domain/jobTypes';
 
 export const DEMO_ACCESS_TOKEN_STORAGE_KEY = 'linguaframe.demoToken.v1';
@@ -478,6 +479,21 @@ export async function getJob(jobId: string): Promise<LocalizationJob> {
 
 export async function getDeliveryManifest(jobId: string): Promise<DeliveryManifest> {
   return requestJson<DeliveryManifest>(`/api/jobs/${encodeURIComponent(jobId)}/delivery-manifest`, {
+    method: 'GET'
+  });
+}
+
+export async function getUploadNarrationLaunchpad(jobId: string): Promise<UploadNarrationLaunchpad> {
+  return requestJson<UploadNarrationLaunchpad>(
+    `/api/jobs/${encodeURIComponent(jobId)}/upload-narration-launchpad`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
+export async function downloadUploadNarrationLaunchpadMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(`/api/jobs/${encodeURIComponent(jobId)}/upload-narration-launchpad/markdown/download`, {
     method: 'GET'
   });
 }
@@ -1653,6 +1669,8 @@ export const linguaFrameApi = {
   saveNarrationWorkspace,
   clearNarrationWorkspace,
   updateNarrationMixSettings,
+  getUploadNarrationLaunchpad,
+  downloadUploadNarrationLaunchpadMarkdown,
   generateNarrationAudio,
   previewNarrationSegment,
   generateNarratedVideo,

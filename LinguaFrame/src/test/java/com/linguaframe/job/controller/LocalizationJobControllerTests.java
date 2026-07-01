@@ -2395,6 +2395,84 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsUploadNarrationLaunchpadJsonAndMetadataOnlyMarkdown() throws Exception {
+        Instant createdAt = Instant.parse("2026-07-01T00:30:00Z");
+        createJob(
+                "video-upload-launchpad",
+                "job-controller-upload-launchpad",
+                "upload-launchpad.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+        narrationSegmentRepository.replaceSegments("job-controller-upload-launchpad", List.of(
+                new NarrationSegmentRecord(
+                        "upload-launchpad-segment-1",
+                        "job-controller-upload-launchpad",
+                        0,
+                        new BigDecimal("15.000"),
+                        new BigDecimal("28.000"),
+                        "Private browser-only launchpad narration text.",
+                        "demo-voice",
+                        null,
+                        null,
+                        null,
+                        createdAt,
+                        createdAt
+                ),
+                new NarrationSegmentRecord(
+                        "upload-launchpad-segment-2",
+                        "job-controller-upload-launchpad",
+                        1,
+                        new BigDecimal("55.000"),
+                        new BigDecimal("70.000"),
+                        "Another private launchpad narration line.",
+                        null,
+                        null,
+                        null,
+                        null,
+                        createdAt,
+                        createdAt
+                )
+        ));
+
+        mockMvc.perform(get("/api/jobs/{jobId}/upload-narration-launchpad", "job-controller-upload-launchpad"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-upload-launchpad"))
+                .andExpect(jsonPath("$.status").value("ATTENTION"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.characterCount").value(87))
+                .andExpect(jsonPath("$.voiceProvider").value("demo"))
+                .andExpect(jsonPath("$.defaultVoice").value("demo-voice"))
+                .andExpect(jsonPath("$.voiceSummary").value("demo-voice: 1, inherited: 1"))
+                .andExpect(jsonPath("$.actions[0].key").value("open-workspace"))
+                .andExpect(jsonPath("$.actions[1].key").value("preview-tts"));
+
+        String markdown = mockMvc.perform(get(
+                        "/api/jobs/{jobId}/upload-narration-launchpad/markdown/download",
+                        "job-controller-upload-launchpad"
+                ))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType("text/markdown;charset=UTF-8"))
+                .andExpect(header().string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"linguaframe-job-job-controller-upload-launchpad-upload-narration-launchpad.md\""
+                ))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(markdown)
+                .contains("# Upload Narration Launchpad")
+                .contains("- Job: job-controller-upload-launchpad")
+                .contains("- Segments: 2")
+                .contains("- Voice provider: demo")
+                .contains("/api/jobs/job-controller-upload-launchpad/narration-workspace")
+                .doesNotContain("Private browser-only launchpad narration text")
+                .doesNotContain("Another private launchpad narration line")
+                .doesNotContain("job-artifacts/");
+    }
+
+    @Test
     void generatesNarrationAudioForLocalizationJobWithoutReplacingDeliveryArtifacts() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:12:00Z");
         createJob("job-controller-video-narration-audio", "job-controller-job-narration-audio", createdAt);

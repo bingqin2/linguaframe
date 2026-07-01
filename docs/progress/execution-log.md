@@ -5245,3 +5245,17 @@ Validation so far:
 - `mvn -pl LinguaFrame test` passed with `Tests run: 854, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 324 passed`; jsdom printed expected navigation warnings from blob downloads.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 572.17 kB bundle.
+
+Work:
+
+- Started the upload narration launchpad feature slice from `docs/plans/176-upload-narration-launchpad.md`.
+- Added backend upload narration launchpad JSON and Markdown routes that summarize upload-seeded narration rows without exposing narration text.
+- Added a browser `Upload narration launchpad` panel inside the narration workspace with status, next action, voice summary, scene-board readiness, safe links, and Markdown download.
+- Added terminal `scripts/demo/upload-narration-launchpad.sh`, shared demo helpers, and `docker-e2e-success.sh` integration for seeded upload narration runs.
+- Updated README, Docker demo guidance, demo script docs, and decisions with the launchpad boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=UploadNarrationLaunchpadServiceTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=UploadNarrationLaunchpadReportServiceTests,LocalizationJobControllerTests#returnsUploadNarrationLaunchpadJsonAndMetadataOnlyMarkdown test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "upload narration launchpad|optional narration quick script"` passed with `Test Files 2 passed` and `Tests 2 passed | 271 skipped`; jsdom printed an expected navigation warning from blob/link navigation.

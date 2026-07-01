@@ -768,6 +768,28 @@ download_demo_reviewer_workspace_zip() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/demo-reviewer-workspace/download" -o "$output_path"
 }
 
+download_upload_narration_launchpad_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/upload-narration-launchpad" -o "$output_path"
+}
+
+download_upload_narration_launchpad_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/upload-narration-launchpad/markdown/download" -o "$output_path"
+}
+
 download_demo_handoff_portal_json() {
   local base_url="$1"
   local job_id="$2"
@@ -2011,6 +2033,61 @@ for run in runs:
     ]))
 for download in downloads:
     print("demoPresenterPackDownload=" + text(download.get("kind")) + ":" + text(download.get("url")))
+PY
+}
+
+print_upload_narration_launchpad_summary_file() {
+  local launchpad_path="$1"
+  local markdown_path="$2"
+
+  python3 - "$launchpad_path" "$markdown_path" <<'PY'
+import json
+import sys
+from decimal import Decimal
+
+launchpad_path, markdown_path = sys.argv[1], sys.argv[2]
+with open(launchpad_path, encoding="utf-8") as handle:
+    launchpad = json.load(handle, parse_float=Decimal)
+
+def text(value):
+    if value is None:
+        return "N/A"
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return str(value)
+
+def flag(value):
+    return str(bool(value)).lower()
+
+actions = launchpad.get("actions") or []
+safe_links = launchpad.get("safeLinks") or []
+
+print("uploadNarrationLaunchpadJobId=" + text(launchpad.get("jobId")))
+print("uploadNarrationLaunchpadStatus=" + text(launchpad.get("status")))
+print("uploadNarrationLaunchpadNextAction=" + text(launchpad.get("nextAction")))
+print("uploadNarrationLaunchpadSegmentCount=" + text(launchpad.get("segmentCount", 0)))
+print("uploadNarrationLaunchpadCharacterCount=" + text(launchpad.get("characterCount", 0)))
+print("uploadNarrationLaunchpadTotalNarrationSeconds=" + text(launchpad.get("totalNarrationSeconds", 0)))
+print("uploadNarrationLaunchpadSelectedSegmentIndex=" + text(launchpad.get("selectedSegmentIndex")))
+print("uploadNarrationLaunchpadVoiceProvider=" + text(launchpad.get("voiceProvider")))
+print("uploadNarrationLaunchpadDefaultVoice=" + text(launchpad.get("defaultVoice")))
+print("uploadNarrationLaunchpadVoiceSummary=" + text(launchpad.get("voiceSummary")))
+print("uploadNarrationLaunchpadSceneBoardStatus=" + text(launchpad.get("sceneBoardStatus")))
+print("uploadNarrationLaunchpadBlockingIssues=" + text(launchpad.get("blockingIssueCount", 0)))
+print("uploadNarrationLaunchpadAttentionIssues=" + text(launchpad.get("attentionIssueCount", 0)))
+print("uploadNarrationLaunchpadAudioReady=" + flag(launchpad.get("audioReady")))
+print("uploadNarrationLaunchpadVideoReady=" + flag(launchpad.get("videoReady")))
+for action in actions:
+    print("uploadNarrationLaunchpadAction=" + ":".join([
+        text(action.get("key")),
+        text(action.get("label")),
+        text(action.get("href")),
+    ]))
+for link in safe_links:
+    print("uploadNarrationLaunchpadLink=" + text(link.get("kind")) + ":" + text(link.get("href")))
+print("uploadNarrationLaunchpadJsonPath=" + launchpad_path)
+print("uploadNarrationLaunchpadMarkdownPath=" + markdown_path)
+print("uploadNarrationLaunchpadSafety=Metadata-only summary; narration text, media paths, object keys, provider payloads, tokens, and secrets are not printed.")
 PY
 }
 

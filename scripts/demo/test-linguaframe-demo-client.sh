@@ -1540,6 +1540,24 @@ test_download_demo_presenter_pack_helper_uses_backend_route() {
   [[ "$output" == *"http://example.test/api/jobs/presenter%20job%2Fslash/demo-presenter-pack"* ]] || fail "demo presenter pack helper used wrong route"
 }
 
+test_upload_narration_launchpad_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_upload_narration_launchpad_json "http://example.test" "launchpad job/slash" "$TMPDIR/upload-narration-launchpad.json" >"$TMPDIR/upload-narration-launchpad-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_upload_narration_launchpad_markdown "http://example.test" "launchpad job/slash" "$TMPDIR/upload-narration-launchpad.md" >"$TMPDIR/upload-narration-launchpad-md-curl.out"
+
+  local json_output
+  json_output="$(cat "$TMPDIR/upload-narration-launchpad-json-curl.out")"
+  [[ "$json_output" == *"http://example.test/api/jobs/launchpad%20job%2Fslash/upload-narration-launchpad"* ]] || fail "upload narration launchpad JSON helper used wrong route"
+
+  local markdown_output
+  markdown_output="$(cat "$TMPDIR/upload-narration-launchpad-md-curl.out")"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/launchpad%20job%2Fslash/upload-narration-launchpad/markdown/download"* ]] || fail "upload narration launchpad Markdown helper used wrong route"
+}
+
 test_download_demo_replay_card_helper_uses_backend_route() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -1951,6 +1969,66 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "presenter pack summary exposed local path"
   [[ "$output" != *"sk-test"* ]] || fail "presenter pack summary exposed token"
   [[ "$output" != *"provider payload"* ]] || fail "presenter pack summary exposed provider payload"
+}
+
+test_print_upload_narration_launchpad_summary_is_metadata_only() {
+  cat >"$TMPDIR/upload-narration-launchpad.json" <<'JSON'
+{
+  "jobId": "job-launchpad",
+  "status": "READY",
+  "nextAction": "Preview selected-row TTS before render.",
+  "segmentCount": 2,
+  "characterCount": 54,
+  "totalNarrationSeconds": 28,
+  "selectedSegmentIndex": 0,
+  "voiceProvider": "demo",
+  "defaultVoice": "demo-voice",
+  "voiceSummary": "demo-voice: 1, inherited: 1",
+  "sceneBoardStatus": "READY",
+  "blockingIssueCount": 0,
+  "attentionIssueCount": 0,
+  "audioReady": false,
+  "videoReady": false,
+  "actions": [
+    {
+      "key": "preview-tts",
+      "label": "Preview selected-row TTS",
+      "description": "Audition the selected row.",
+      "href": "#narration-workspace",
+      "command": "Use Preview selected TTS."
+    }
+  ],
+  "safeLinks": [
+    {
+      "kind": "workspace",
+      "href": "/api/jobs/job-launchpad/narration-workspace",
+      "label": "Narration workspace"
+    }
+  ],
+  "safetyNotes": ["Metadata only."],
+  "text": "Explain the opening gesture.",
+  "sourceObjectKey": "job-artifacts/private/source.mp4",
+  "localPath": "/Users/example/private.mov",
+  "token": "sk-test-secret",
+  "providerPayload": "raw-provider-body"
+}
+JSON
+  printf '# Upload Narration Launchpad\n' >"$TMPDIR/upload-narration-launchpad.md"
+
+  print_upload_narration_launchpad_summary_file "$TMPDIR/upload-narration-launchpad.json" "$TMPDIR/upload-narration-launchpad.md" >"$TMPDIR/upload-narration-launchpad.out"
+  local output
+  output="$(cat "$TMPDIR/upload-narration-launchpad.out")"
+  [[ "$output" == *"uploadNarrationLaunchpadJobId=job-launchpad"* ]] || fail "upload narration launchpad summary missed job"
+  [[ "$output" == *"uploadNarrationLaunchpadStatus=READY"* ]] || fail "upload narration launchpad summary missed status"
+  [[ "$output" == *"uploadNarrationLaunchpadSegmentCount=2"* ]] || fail "upload narration launchpad summary missed row count"
+  [[ "$output" == *"uploadNarrationLaunchpadVoiceSummary=demo-voice: 1, inherited: 1"* ]] || fail "upload narration launchpad summary missed voice summary"
+  [[ "$output" == *"uploadNarrationLaunchpadAction=preview-tts:Preview selected-row TTS:#narration-workspace"* ]] || fail "upload narration launchpad summary missed action"
+  [[ "$output" == *"uploadNarrationLaunchpadLink=workspace:/api/jobs/job-launchpad/narration-workspace"* ]] || fail "upload narration launchpad summary missed safe link"
+  [[ "$output" != *"Explain the opening gesture"* ]] || fail "upload narration launchpad summary exposed narration text"
+  [[ "$output" != *"job-artifacts/private"* ]] || fail "upload narration launchpad summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "upload narration launchpad summary exposed local path"
+  [[ "$output" != *"sk-test-secret"* ]] || fail "upload narration launchpad summary exposed token"
+  [[ "$output" != *"raw-provider-body"* ]] || fail "upload narration launchpad summary exposed provider payload"
 }
 
 test_print_demo_replay_card_summary_is_metadata_only() {
@@ -3824,6 +3902,7 @@ test_print_job_comparison_summary_is_metadata_only
 test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
+test_upload_narration_launchpad_helpers_use_backend_routes
 test_download_demo_replay_card_helper_uses_backend_route
 test_download_demo_completion_certificate_helper_uses_backend_route
 test_download_demo_acceptance_gate_helper_uses_backend_route
@@ -3834,6 +3913,7 @@ test_print_demo_run_monitor_summary_is_metadata_only
 test_print_stuck_job_recovery_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
+test_print_upload_narration_launchpad_summary_is_metadata_only
 test_print_demo_replay_card_summary_is_metadata_only
 test_print_demo_completion_certificate_summary_is_metadata_only
 test_print_demo_acceptance_gate_summary_is_metadata_only
