@@ -2269,6 +2269,15 @@ print("demoAcceptanceGateStatus=" + text(gate.get("gateStatus")))
 print("demoAcceptanceGateJobStatus=" + text(gate.get("jobStatus")))
 print("demoAcceptanceGateProfile=" + text(gate.get("demoProfileId") or "manual"))
 print("demoAcceptanceGateNextAction=" + safe(gate.get("recommendedNextAction")))
+custom_render = gate.get("customNarrationRender") or {}
+if custom_render:
+    print("demoAcceptanceGateCustomNarrationRenderStatus=" + text(custom_render.get("status")))
+    print("demoAcceptanceGateCustomNarrationRenderOutputPlan=" + safe(custom_render.get("outputPlan")))
+    print("demoAcceptanceGateCustomNarrationRenderRows=" + text(custom_render.get("segmentCount")))
+    print("demoAcceptanceGateCustomNarrationRenderAudioReady=" + text(custom_render.get("audioReady")))
+    print("demoAcceptanceGateCustomNarrationRenderVideoReady=" + text(custom_render.get("videoReady")))
+    print("demoAcceptanceGateCustomNarrationRenderReport=" + safe(custom_render.get("reportRoute")))
+    print("demoAcceptanceGateCustomNarrationRenderNextAction=" + safe(custom_render.get("nextAction")))
 for check in gate.get("checks", []):
     print("demoAcceptanceGateCheck=" + ":".join([
         text(check.get("key")),

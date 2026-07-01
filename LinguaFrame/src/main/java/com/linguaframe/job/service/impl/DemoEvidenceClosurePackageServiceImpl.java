@@ -2,6 +2,7 @@ package com.linguaframe.job.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linguaframe.job.domain.bo.StoredDemoEvidenceClosurePackageBo;
+import com.linguaframe.job.domain.vo.CustomNarrationRenderHandoffVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateLinkVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateLinkVo;
@@ -9,10 +10,12 @@ import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
 import com.linguaframe.job.domain.vo.DemoEvidenceClosurePackageVo;
 import com.linguaframe.job.domain.vo.DemoEvidenceClosureSectionVo;
 import com.linguaframe.job.domain.vo.DemoRunVarianceReportVo;
+import com.linguaframe.job.service.CustomNarrationRenderHandoffService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
 import com.linguaframe.job.service.DemoEvidenceClosurePackageService;
 import com.linguaframe.job.service.DemoRunVarianceReportService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
@@ -32,7 +35,23 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
     private final DemoRunVarianceReportService demoRunVarianceReportService;
     private final DemoAcceptanceGateService demoAcceptanceGateService;
     private final DemoCompletionCertificateService demoCompletionCertificateService;
+    private final CustomNarrationRenderHandoffService customNarrationRenderHandoffService;
     private final ObjectMapper objectMapper;
+
+    @Autowired
+    public DemoEvidenceClosurePackageServiceImpl(
+            DemoRunVarianceReportService demoRunVarianceReportService,
+            DemoAcceptanceGateService demoAcceptanceGateService,
+            DemoCompletionCertificateService demoCompletionCertificateService,
+            CustomNarrationRenderHandoffService customNarrationRenderHandoffService,
+            ObjectMapper objectMapper
+    ) {
+        this.demoRunVarianceReportService = demoRunVarianceReportService;
+        this.demoAcceptanceGateService = demoAcceptanceGateService;
+        this.demoCompletionCertificateService = demoCompletionCertificateService;
+        this.customNarrationRenderHandoffService = customNarrationRenderHandoffService;
+        this.objectMapper = objectMapper;
+    }
 
     public DemoEvidenceClosurePackageServiceImpl(
             DemoRunVarianceReportService demoRunVarianceReportService,
@@ -40,10 +59,30 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
             DemoCompletionCertificateService demoCompletionCertificateService,
             ObjectMapper objectMapper
     ) {
-        this.demoRunVarianceReportService = demoRunVarianceReportService;
-        this.demoAcceptanceGateService = demoAcceptanceGateService;
-        this.demoCompletionCertificateService = demoCompletionCertificateService;
-        this.objectMapper = objectMapper;
+        this(
+                demoRunVarianceReportService,
+                demoAcceptanceGateService,
+                demoCompletionCertificateService,
+                DemoEvidenceClosurePackageServiceImpl::defaultCustomNarrationRender,
+                objectMapper
+        );
+    }
+
+    private static CustomNarrationRenderHandoffVo defaultCustomNarrationRender(String jobId) {
+        return new CustomNarrationRenderHandoffVo(
+                jobId,
+                "NOT_APPLICABLE",
+                "No saved custom narration rows",
+                0,
+                0,
+                false,
+                false,
+                "/api/jobs/" + jobId + "/custom-narration-render/markdown/download",
+                "/api/jobs/" + jobId + "/custom-narration-render",
+                "/api/jobs/" + jobId + "/narration-evidence",
+                "/api/jobs/" + jobId + "/narration-delivery-package",
+                "Add or import custom narration rows before rendering."
+        );
     }
 
     @Override
@@ -51,17 +90,19 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
         DemoRunVarianceReportVo variance = demoRunVarianceReportService.build(jobId, preUploadJson);
         DemoAcceptanceGateVo acceptanceGate = demoAcceptanceGateService.buildGate(jobId);
         DemoCompletionCertificateVo certificate = demoCompletionCertificateService.buildCertificate(jobId);
+        CustomNarrationRenderHandoffVo customRender = customNarrationRenderHandoffService.summarize(jobId);
 
         List<DemoEvidenceClosureSectionVo> sections = List.of(
                 preUploadBaselineSection(variance),
                 postRunVarianceSection(variance),
                 acceptanceSection(acceptanceGate),
                 completionSection(certificate),
-                deliveryPackageSection(variance, acceptanceGate, certificate),
-                reviewerHandoffSection(variance, acceptanceGate, certificate)
+                customNarrationRenderSection(customRender),
+                deliveryPackageSection(variance, acceptanceGate, certificate, customRender),
+                reviewerHandoffSection(variance, acceptanceGate, certificate, customRender)
         );
         String closureStatus = closureStatus(variance, acceptanceGate, certificate);
-        List<String> safeLinks = safeLinks(variance, acceptanceGate, certificate);
+        List<String> safeLinks = safeLinks(variance, acceptanceGate, certificate, customRender);
 
         return new DemoEvidenceClosurePackageVo(
                 variance.jobId(),
@@ -100,6 +141,7 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
         appendSection(markdown, "Post-Run Variance", closure, "POST_RUN_VARIANCE");
         appendSection(markdown, "Acceptance", closure, "ACCEPTANCE_GATE");
         appendSection(markdown, "Completion", closure, "COMPLETION_CERTIFICATE");
+        appendSection(markdown, "Custom Narration Render", closure, "CUSTOM_NARRATION_RENDER");
 
         markdown.append("## Safe Links\n\n");
         for (String link : closure.safeLinks()) {
@@ -184,10 +226,35 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
         );
     }
 
+    private DemoEvidenceClosureSectionVo customNarrationRenderSection(CustomNarrationRenderHandoffVo customRender) {
+        return new DemoEvidenceClosureSectionVo(
+                "CUSTOM_NARRATION_RENDER",
+                "Custom narration render",
+                "BLOCKED".equals(customRender.status()) ? "ATTENTION" : customRender.status(),
+                customRender.nextAction(),
+                List.of(
+                        "Custom narration render: " + customRender.status(),
+                        "Output plan: " + customRender.outputPlan(),
+                        "Saved custom rows: " + customRender.segmentCount(),
+                        "Character count: " + customRender.characterCount(),
+                        "Audio ready: " + customRender.audioReady(),
+                        "Video ready: " + customRender.videoReady(),
+                        "Report route: " + customRender.reportRoute()
+                ),
+                List.of(
+                        customRender.reportRoute(),
+                        customRender.renderRoute(),
+                        customRender.evidenceRoute(),
+                        customRender.deliveryPackageRoute()
+                )
+        );
+    }
+
     private DemoEvidenceClosureSectionVo deliveryPackageSection(
             DemoRunVarianceReportVo variance,
             DemoAcceptanceGateVo gate,
-            DemoCompletionCertificateVo certificate
+            DemoCompletionCertificateVo certificate,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         return new DemoEvidenceClosureSectionVo(
                 "DELIVERY_PACKAGE",
@@ -199,14 +266,15 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
                         "Acceptance links: " + gate.links().size(),
                         "Certificate links: " + certificate.links().size()
                 ),
-                safeLinks(variance, gate, certificate)
+                safeLinks(variance, gate, certificate, customRender)
         );
     }
 
     private DemoEvidenceClosureSectionVo reviewerHandoffSection(
             DemoRunVarianceReportVo variance,
             DemoAcceptanceGateVo gate,
-            DemoCompletionCertificateVo certificate
+            DemoCompletionCertificateVo certificate,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         String status = closureStatus(variance, gate, certificate);
         return new DemoEvidenceClosureSectionVo(
@@ -220,7 +288,7 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
                         "Acceptance: " + gate.gateStatus(),
                         "Completion: " + certificate.certificateStatus()
                 ),
-                safeLinks(variance, gate, certificate)
+                safeLinks(variance, gate, certificate, customRender)
         );
     }
 
@@ -266,12 +334,17 @@ public class DemoEvidenceClosurePackageServiceImpl implements DemoEvidenceClosur
     private List<String> safeLinks(
             DemoRunVarianceReportVo variance,
             DemoAcceptanceGateVo gate,
-            DemoCompletionCertificateVo certificate
+            DemoCompletionCertificateVo certificate,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         Set<String> links = new LinkedHashSet<>();
         links.addAll(variance.safeLinks());
         gate.links().forEach(link -> links.add(link.url()));
         certificate.links().forEach(link -> links.add(link.url()));
+        links.add(customRender.reportRoute());
+        links.add(customRender.renderRoute());
+        links.add(customRender.evidenceRoute());
+        links.add(customRender.deliveryPackageRoute());
         links.add("/api/jobs/" + clean(variance.jobId()) + "/demo-evidence-closure");
         links.add("/api/jobs/" + clean(variance.jobId()) + "/demo-evidence-closure/download");
         return List.copyOf(links);

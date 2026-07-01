@@ -2,6 +2,7 @@ package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.enums.JobArtifactType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.vo.CustomNarrationRenderHandoffVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateCheckVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateEvidenceVo;
@@ -19,6 +20,7 @@ import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationPlaybackReviewResolutionVo;
 import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.QualityEvaluationVo;
+import com.linguaframe.job.service.CustomNarrationRenderHandoffService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
@@ -32,6 +34,7 @@ import com.linguaframe.job.service.NarrationPlaybackReviewResolutionService;
 import com.linguaframe.job.service.NarrationDeliveryPackageService;
 import com.linguaframe.media.domain.vo.MediaUploadDetailVo;
 import com.linguaframe.media.service.MediaUploadService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -79,7 +82,39 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
     private final DemoRunMatrixService matrixService;
     private final NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService;
     private final NarrationDeliveryPackageService narrationDeliveryPackageService;
+    private final CustomNarrationRenderHandoffService customNarrationRenderHandoffService;
     private final Clock clock;
+
+    @Autowired
+    public DemoAcceptanceGateServiceImpl(
+            LocalizationJobQueryService queryService,
+            MediaUploadService mediaUploadService,
+            JobArtifactService artifactService,
+            DeliveryManifestService deliveryManifestService,
+            DemoCompletionCertificateService completionCertificateService,
+            DemoPresenterPackService presenterPackService,
+            DemoReplayCardService replayCardService,
+            DemoRunSnapshotService snapshotService,
+            DemoRunMatrixService matrixService,
+            NarrationPlaybackReviewResolutionService narrationPlaybackReviewResolutionService,
+            NarrationDeliveryPackageService narrationDeliveryPackageService,
+            CustomNarrationRenderHandoffService customNarrationRenderHandoffService,
+            Clock clock
+    ) {
+        this.queryService = queryService;
+        this.mediaUploadService = mediaUploadService;
+        this.artifactService = artifactService;
+        this.deliveryManifestService = deliveryManifestService;
+        this.completionCertificateService = completionCertificateService;
+        this.presenterPackService = presenterPackService;
+        this.replayCardService = replayCardService;
+        this.snapshotService = snapshotService;
+        this.matrixService = matrixService;
+        this.narrationPlaybackReviewResolutionService = narrationPlaybackReviewResolutionService;
+        this.narrationDeliveryPackageService = narrationDeliveryPackageService;
+        this.customNarrationRenderHandoffService = customNarrationRenderHandoffService;
+        this.clock = clock;
+    }
 
     public DemoAcceptanceGateServiceImpl(
             LocalizationJobQueryService queryService,
@@ -95,18 +130,38 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             NarrationDeliveryPackageService narrationDeliveryPackageService,
             Clock clock
     ) {
-        this.queryService = queryService;
-        this.mediaUploadService = mediaUploadService;
-        this.artifactService = artifactService;
-        this.deliveryManifestService = deliveryManifestService;
-        this.completionCertificateService = completionCertificateService;
-        this.presenterPackService = presenterPackService;
-        this.replayCardService = replayCardService;
-        this.snapshotService = snapshotService;
-        this.matrixService = matrixService;
-        this.narrationPlaybackReviewResolutionService = narrationPlaybackReviewResolutionService;
-        this.narrationDeliveryPackageService = narrationDeliveryPackageService;
-        this.clock = clock;
+        this(
+                queryService,
+                mediaUploadService,
+                artifactService,
+                deliveryManifestService,
+                completionCertificateService,
+                presenterPackService,
+                replayCardService,
+                snapshotService,
+                matrixService,
+                narrationPlaybackReviewResolutionService,
+                narrationDeliveryPackageService,
+                DemoAcceptanceGateServiceImpl::defaultCustomNarrationRender,
+                clock
+        );
+    }
+
+    private static CustomNarrationRenderHandoffVo defaultCustomNarrationRender(String jobId) {
+        return new CustomNarrationRenderHandoffVo(
+                jobId,
+                "NOT_APPLICABLE",
+                "No saved custom narration rows",
+                0,
+                0,
+                false,
+                false,
+                "/api/jobs/" + jobId + "/custom-narration-render/markdown/download",
+                "/api/jobs/" + jobId + "/custom-narration-render",
+                "/api/jobs/" + jobId + "/narration-evidence",
+                "/api/jobs/" + jobId + "/narration-delivery-package",
+                "Add or import custom narration rows before rendering."
+        );
     }
 
     @Override
@@ -122,8 +177,9 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         DemoRunMatrixVo matrix = matrixService.buildMatrix(jobId, 8);
         NarrationPlaybackReviewResolutionVo narrationResolution = narrationPlaybackReviewResolutionService.getResolution(jobId);
         NarrationDeliveryPackageVo narrationDelivery = narrationDeliveryPackageService.getSummary(jobId);
+        CustomNarrationRenderHandoffVo customRender = customNarrationRenderHandoffService.summarize(jobId);
 
-        List<DemoAcceptanceGateCheckVo> checks = checks(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution, narrationDelivery);
+        List<DemoAcceptanceGateCheckVo> checks = checks(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution, narrationDelivery, customRender);
         String status = status(checks);
 
         return new DemoAcceptanceGateVo(
@@ -137,10 +193,11 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
                 headline(job, status),
                 summary(job, status, checks),
                 recommendedNextAction(status),
+                customRender,
                 runbookSteps(jobId, checks),
                 checks,
-                evidence(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution, narrationDelivery),
-                links(jobId, certificate, presenterPack, replayCard, snapshot, narrationResolution, narrationDelivery),
+                evidence(job, source, artifacts, manifest, certificate, presenterPack, replayCard, snapshot, matrix, narrationResolution, narrationDelivery, customRender),
+                links(jobId, certificate, presenterPack, replayCard, snapshot, narrationResolution, narrationDelivery, customRender),
                 safetyNotes(job)
         );
     }
@@ -156,7 +213,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoRunSnapshotVo snapshot,
             DemoRunMatrixVo matrix,
             NarrationPlaybackReviewResolutionVo narrationResolution,
-            NarrationDeliveryPackageVo narrationDelivery
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         List<DemoAcceptanceGateCheckVo> checks = new ArrayList<>();
         checks.add(check("JOB_COMPLETED", "Job completed", job.status() == LocalizationJobStatus.COMPLETED ? "PASS" : "FAIL",
@@ -205,8 +263,26 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
 
         checks.add(narrationResolutionCheck(narrationResolution));
         checks.add(narrationDeliveryCheck(narrationDelivery));
+        checks.add(customNarrationRenderCheck(customRender));
 
         return List.copyOf(checks);
+    }
+
+    private DemoAcceptanceGateCheckVo customNarrationRenderCheck(CustomNarrationRenderHandoffVo customRender) {
+        String status = switch (customRender.status()) {
+            case "READY", "NOT_APPLICABLE" -> "PASS";
+            case "BLOCKED" -> "WARN";
+            default -> "WARN";
+        };
+        String detail = "Custom narration render status=%s; outputPlan=%s; audioReady=%s; videoReady=%s; segments=%d."
+                .formatted(
+                        customRender.status(),
+                        customRender.outputPlan(),
+                        customRender.audioReady(),
+                        customRender.videoReady(),
+                        customRender.segmentCount()
+                );
+        return check("CUSTOM_NARRATION_RENDER_HANDOFF", "Custom narration render handoff", status, detail, false);
     }
 
     private DemoAcceptanceGateCheckVo narrationResolutionCheck(NarrationPlaybackReviewResolutionVo resolution) {
@@ -274,7 +350,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoRunSnapshotVo snapshot,
             DemoRunMatrixVo matrix,
             NarrationPlaybackReviewResolutionVo narrationResolution,
-            NarrationDeliveryPackageVo narrationDelivery
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         long subtitleCount = artifacts.stream().filter(artifact -> SUBTITLE_TYPES.contains(artifact.type())).count();
         long mediaOutputCount = artifacts.stream().filter(artifact -> MEDIA_OUTPUT_TYPES.contains(artifact.type())).count();
@@ -298,7 +375,21 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         ));
         evidence.addAll(narrationResolutionEvidence(narrationResolution));
         evidence.addAll(narrationDeliveryEvidence(narrationDelivery));
+        evidence.addAll(customNarrationRenderEvidence(customRender));
         return List.copyOf(evidence);
+    }
+
+    private List<DemoAcceptanceGateEvidenceVo> customNarrationRenderEvidence(CustomNarrationRenderHandoffVo customRender) {
+        String readiness = "READY".equals(customRender.status()) || "NOT_APPLICABLE".equals(customRender.status())
+                ? "READY"
+                : "ATTENTION";
+        return List.of(
+                evidence("CUSTOM_NARRATION_RENDER_STATUS", "Custom narration render", customRender.status(), readiness),
+                evidence("CUSTOM_NARRATION_RENDER_OUTPUT_PLAN", "Custom narration output plan", customRender.outputPlan(), readiness),
+                evidence("CUSTOM_NARRATION_RENDER_SEGMENT_COUNT", "Custom narration rows", String.valueOf(customRender.segmentCount()), readiness),
+                evidence("CUSTOM_NARRATION_RENDER_AUDIO_READY", "Custom narration audio ready", String.valueOf(customRender.audioReady()), customRender.audioReady() || "NOT_APPLICABLE".equals(customRender.status()) ? "READY" : "ATTENTION"),
+                evidence("CUSTOM_NARRATION_RENDER_VIDEO_READY", "Custom narration video ready", String.valueOf(customRender.videoReady()), customRender.videoReady() || "NOT_APPLICABLE".equals(customRender.status()) ? "READY" : "ATTENTION")
+        );
     }
 
     private List<DemoAcceptanceGateEvidenceVo> narrationResolutionEvidence(NarrationPlaybackReviewResolutionVo resolution) {
@@ -332,7 +423,8 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
             DemoReplayCardVo replayCard,
             DemoRunSnapshotVo snapshot,
             NarrationPlaybackReviewResolutionVo narrationResolution,
-            NarrationDeliveryPackageVo narrationDelivery
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         Map<String, DemoAcceptanceGateLinkVo> links = new LinkedHashMap<>();
         add(links, link("ACCEPTANCE_GATE_JSON", "Demo acceptance gate JSON", "/api/jobs/%s/demo-acceptance-gate".formatted(jobId)));
@@ -348,6 +440,9 @@ public class DemoAcceptanceGateServiceImpl implements DemoAcceptanceGateService 
         for (var deliveryLink : narrationDelivery.safeLinks()) {
             add(links, link(deliveryLink.kind(), deliveryLink.label(), deliveryLink.href()));
         }
+        add(links, link("CUSTOM_NARRATION_RENDER_REPORT", "Custom narration render report", customRender.reportRoute()));
+        add(links, link("CUSTOM_NARRATION_RENDER_ROUTE", "Custom narration render", customRender.renderRoute()));
+        add(links, link("CUSTOM_NARRATION_RENDER_EVIDENCE", "Custom narration evidence", customRender.evidenceRoute()));
         for (var certificateLink : certificate.links()) {
             add(links, link(certificateLink.kind(), certificateLink.label(), certificateLink.url()));
         }

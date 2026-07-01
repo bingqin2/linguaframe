@@ -5282,3 +5282,26 @@ Validation so far:
 - `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 332 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 597.95 kB bundle.
 - `git diff --check` passed.
+
+Work:
+
+- Started the custom narration render handoff integration feature slice from `docs/plans/178-custom-narration-render-handoff-integration.md`.
+- Added a metadata-only custom narration render handoff summary service and exposed it through acceptance gate, reviewer workspace, handoff portal, and evidence closure.
+- Added browser acceptance-gate visibility for custom render status, output plan, readiness, next action, and safe report/evidence/package links.
+- Added full-demo terminal summary lines for custom render handoff and exported `custom-narration-render.md` from the full Tears script when custom render is enabled.
+- Updated docs and decision records for using final aggregate sections instead of persistent custom-render artifacts.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame test -DskipTests` passed compile and test-compile.
+- `mvn -pl LinguaFrame -Dtest=DemoAcceptanceGateServiceTests,DemoReviewerWorkspaceServiceTests,DemoHandoffPortalServiceTests,DemoEvidenceClosurePackageServiceTests test` passed with `Tests run: 18, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning.
+- `npm --prefix frontend run test:run -- App.test.tsx -t "shows a demo acceptance gate"` passed with `Tests 1 passed | 155 skipped`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh` passed.
+- `bash -n scripts/demo/docker-e2e-tears-of-steel-full.sh` passed.
+- Initial `mvn -pl LinguaFrame test` exposed ambiguous Spring constructor injection after adding backward-compatible test constructors; adding `@Autowired` to the production constructors fixed the context startup.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 894, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 332 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 599.42 kB bundle.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/custom-narration-render.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.

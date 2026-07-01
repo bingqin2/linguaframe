@@ -9661,6 +9661,41 @@ function DemoAcceptanceGatePanel({
           <p className={gate.gateStatus === 'READY' ? 'success-text' : gate.gateStatus === 'BLOCKED' ? 'error-text' : 'warning-text'}>
             {gate.recommendedNextAction}
           </p>
+          {gate.customNarrationRender ? (
+            <section className="inline-panel" aria-label="Custom narration render handoff">
+              <h4>Custom narration render</h4>
+              <dl className="compact-definition-list">
+                <div>
+                  <dt>Status</dt>
+                  <dd>{gate.customNarrationRender.status}</dd>
+                </div>
+                <div>
+                  <dt>Output</dt>
+                  <dd>{gate.customNarrationRender.outputPlan}</dd>
+                </div>
+                <div>
+                  <dt>Rows</dt>
+                  <dd>{gate.customNarrationRender.segmentCount}</dd>
+                </div>
+                <div>
+                  <dt>Audio</dt>
+                  <dd>{gate.customNarrationRender.audioReady ? 'Ready' : 'Not ready'}</dd>
+                </div>
+                <div>
+                  <dt>Video</dt>
+                  <dd>{gate.customNarrationRender.videoReady ? 'Ready' : 'Not ready'}</dd>
+                </div>
+              </dl>
+              <p className={gate.customNarrationRender.status === 'READY' || gate.customNarrationRender.status === 'NOT_APPLICABLE' ? 'success-text' : 'warning-text'}>
+                {gate.customNarrationRender.nextAction}
+              </p>
+              <div className="link-list">
+                <a href={gate.customNarrationRender.reportRoute}>Custom render report</a>
+                <a href={gate.customNarrationRender.evidenceRoute}>Narration evidence</a>
+                <a href={gate.customNarrationRender.deliveryPackageRoute}>Narration delivery package</a>
+              </div>
+            </section>
+          ) : null}
           {attentionChecks.length > 0 ? (
             <ul className="checklist compact-list">
               {attentionChecks.map((check) => (

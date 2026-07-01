@@ -2,6 +2,7 @@ package com.linguaframe.job.service.impl;
 
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
 import com.linguaframe.job.domain.bo.StoredDemoReviewerWorkspacePackageBo;
+import com.linguaframe.job.domain.vo.CustomNarrationRenderHandoffVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
@@ -12,6 +13,7 @@ import com.linguaframe.job.domain.vo.DemoReviewerWorkspaceVo;
 import com.linguaframe.job.domain.vo.LocalizationJobVo;
 import com.linguaframe.job.domain.vo.NarrationDeliveryPackageVo;
 import com.linguaframe.job.domain.vo.OpenAiSmokeProofVo;
+import com.linguaframe.job.service.CustomNarrationRenderHandoffService;
 import com.linguaframe.job.service.DeliveryManifestService;
 import com.linguaframe.job.service.DemoAcceptanceGateService;
 import com.linguaframe.job.service.DemoCompletionCertificateService;
@@ -41,6 +43,7 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
     private final DeliveryManifestService deliveryManifestService;
     private final OpenAiSmokeProofService openAiSmokeProofService;
     private final NarrationDeliveryPackageService narrationDeliveryPackageService;
+    private final CustomNarrationRenderHandoffService customNarrationRenderHandoffService;
     private final Clock clock;
 
     @Autowired
@@ -50,10 +53,31 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
             DemoCompletionCertificateService completionCertificateService,
             DeliveryManifestService deliveryManifestService,
             OpenAiSmokeProofService openAiSmokeProofService,
-            NarrationDeliveryPackageService narrationDeliveryPackageService
+            NarrationDeliveryPackageService narrationDeliveryPackageService,
+            CustomNarrationRenderHandoffService customNarrationRenderHandoffService
     ) {
         this(queryService, acceptanceGateService, completionCertificateService, deliveryManifestService,
-                openAiSmokeProofService, narrationDeliveryPackageService, Clock.systemUTC());
+                openAiSmokeProofService, narrationDeliveryPackageService, customNarrationRenderHandoffService, Clock.systemUTC());
+    }
+
+    public DemoReviewerWorkspaceServiceImpl(
+            LocalizationJobQueryService queryService,
+            DemoAcceptanceGateService acceptanceGateService,
+            DemoCompletionCertificateService completionCertificateService,
+            DeliveryManifestService deliveryManifestService,
+            OpenAiSmokeProofService openAiSmokeProofService,
+            NarrationDeliveryPackageService narrationDeliveryPackageService,
+            CustomNarrationRenderHandoffService customNarrationRenderHandoffService,
+            Clock clock
+    ) {
+        this.queryService = queryService;
+        this.acceptanceGateService = acceptanceGateService;
+        this.completionCertificateService = completionCertificateService;
+        this.deliveryManifestService = deliveryManifestService;
+        this.openAiSmokeProofService = openAiSmokeProofService;
+        this.narrationDeliveryPackageService = narrationDeliveryPackageService;
+        this.customNarrationRenderHandoffService = customNarrationRenderHandoffService;
+        this.clock = clock;
     }
 
     public DemoReviewerWorkspaceServiceImpl(
@@ -65,13 +89,33 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
             NarrationDeliveryPackageService narrationDeliveryPackageService,
             Clock clock
     ) {
-        this.queryService = queryService;
-        this.acceptanceGateService = acceptanceGateService;
-        this.completionCertificateService = completionCertificateService;
-        this.deliveryManifestService = deliveryManifestService;
-        this.openAiSmokeProofService = openAiSmokeProofService;
-        this.narrationDeliveryPackageService = narrationDeliveryPackageService;
-        this.clock = clock;
+        this(
+                queryService,
+                acceptanceGateService,
+                completionCertificateService,
+                deliveryManifestService,
+                openAiSmokeProofService,
+                narrationDeliveryPackageService,
+                DemoReviewerWorkspaceServiceImpl::defaultCustomNarrationRender,
+                clock
+        );
+    }
+
+    private static CustomNarrationRenderHandoffVo defaultCustomNarrationRender(String jobId) {
+        return new CustomNarrationRenderHandoffVo(
+                jobId,
+                "NOT_APPLICABLE",
+                "No saved custom narration rows",
+                0,
+                0,
+                false,
+                false,
+                "/api/jobs/" + jobId + "/custom-narration-render/markdown/download",
+                "/api/jobs/" + jobId + "/custom-narration-render",
+                "/api/jobs/" + jobId + "/narration-evidence",
+                "/api/jobs/" + jobId + "/narration-delivery-package",
+                "Add or import custom narration rows before rendering."
+        );
     }
 
     @Override
@@ -82,7 +126,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
         DeliveryManifestVo manifest = deliveryManifestService.buildManifest(jobId);
         OpenAiSmokeProofVo openAiProof = openAiSmokeProofService.getProof(jobId);
         NarrationDeliveryPackageVo narrationDelivery = narrationDeliveryPackageService.getSummary(jobId);
-        List<DemoReviewerWorkspaceCheckVo> checks = checks(job, acceptance, certificate, manifest, openAiProof, narrationDelivery);
+        CustomNarrationRenderHandoffVo customRender = customNarrationRenderHandoffService.summarize(jobId);
+        List<DemoReviewerWorkspaceCheckVo> checks = checks(job, acceptance, certificate, manifest, openAiProof, narrationDelivery, customRender);
         String overallStatus = overallStatus(checks);
         return new DemoReviewerWorkspaceVo(
                 job.jobId(),
@@ -94,9 +139,9 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 job.completedAt(),
                 job.targetLanguage(),
                 job.demoProfileId(),
-                sections(job, acceptance, certificate, manifest, openAiProof, narrationDelivery),
+                sections(job, acceptance, certificate, manifest, openAiProof, narrationDelivery, customRender),
                 checks,
-                safeLinks(job.jobId(), narrationDelivery),
+                safeLinks(job.jobId(), narrationDelivery, customRender),
                 packageEntries(job.jobId()),
                 safetyNotes()
         );
@@ -171,7 +216,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
             DemoCompletionCertificateVo certificate,
             DeliveryManifestVo manifest,
             OpenAiSmokeProofVo openAiProof,
-            NarrationDeliveryPackageVo narrationDelivery
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         List<DemoReviewerWorkspaceCheckVo> checks = new ArrayList<>();
         checks.add(job.status() == LocalizationJobStatus.COMPLETED
@@ -200,6 +246,12 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                         + "; audioReady=" + narrationDelivery.audioReady()
                         + "; videoReady=" + narrationDelivery.videoReady() + ".",
                 narrationDelivery.recommendedNextAction()));
+        checks.add(statusCheck("CUSTOM_NARRATION_RENDER_HANDOFF", "Custom narration render handoff", customRender.status(), false,
+                "Custom narration render status is " + customRender.status()
+                        + "; outputPlan=" + customRender.outputPlan()
+                        + "; audioReady=" + customRender.audioReady()
+                        + "; videoReady=" + customRender.videoReady() + ".",
+                customRender.nextAction()));
         checks.add(job.qualityEvaluation() == null
                 ? attention("QUALITY_EVALUATION", "Quality evaluation", "No quality evaluation is attached to this job.", "Mention deterministic or unevaluated run if presenting.", false)
                 : ready("QUALITY_EVALUATION", "Quality evaluation", "Quality evaluation is attached to this job.", "Keep quality evidence with reviewer package.", false));
@@ -212,7 +264,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
             DemoCompletionCertificateVo certificate,
             DeliveryManifestVo manifest,
             OpenAiSmokeProofVo openAiProof,
-            NarrationDeliveryPackageVo narrationDelivery
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
     ) {
         return List.of(
                 section("RUN_SUMMARY", "Run summary", job.status().name(), List.of(
@@ -238,6 +291,16 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                         "Narrated video ready: " + narrationDelivery.videoReady(),
                         "Delivery package entries: " + narrationDelivery.packageEntries().size(),
                         "Delivery next action: " + value(narrationDelivery.recommendedNextAction())
+                )),
+                section("CUSTOM_NARRATION_RENDER", "Custom narration render", customRender.status(), List.of(
+                        "Custom narration render: " + customRender.status(),
+                        "Output plan: " + customRender.outputPlan(),
+                        "Saved custom rows: " + customRender.segmentCount(),
+                        "Character count: " + customRender.characterCount(),
+                        "Audio ready: " + customRender.audioReady(),
+                        "Video ready: " + customRender.videoReady(),
+                        "Report route: " + customRender.reportRoute(),
+                        "Next action: " + value(customRender.nextAction())
                 )),
                 section("FINAL_PROOF_BUNDLE", "Final proof bundle",
                         finalProofStatus(acceptance.gateStatus(), certificate.certificateStatus(), openAiProof.overallStatus()),
@@ -302,7 +365,11 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
         };
     }
 
-    private static List<DemoReviewerWorkspaceLinkVo> safeLinks(String jobId, NarrationDeliveryPackageVo narrationDelivery) {
+    private static List<DemoReviewerWorkspaceLinkVo> safeLinks(
+            String jobId,
+            NarrationDeliveryPackageVo narrationDelivery,
+            CustomNarrationRenderHandoffVo customRender
+    ) {
         List<DemoReviewerWorkspaceLinkVo> links = new ArrayList<>(List.of(
                 link("JOB_DETAIL", "Job detail", "/api/jobs/" + jobId, "application/json", "Safe job detail."),
                 link("REVIEWER_MARKDOWN", "Reviewer workspace Markdown", "/api/jobs/" + jobId + "/demo-reviewer-workspace/markdown/download", "text/markdown", "Reviewer summary as Markdown."),
@@ -316,7 +383,10 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 link("OPENAI_SMOKE_PROOF_MARKDOWN", "OpenAI smoke proof Markdown", "/api/jobs/" + jobId + "/openai-smoke-proof/markdown/download", "text/markdown", "Provider-backed proof summary as Markdown."),
                 link("DEMO_EVIDENCE_CLOSURE", "Demo evidence closure", "/api/jobs/" + jobId + "/demo-evidence-closure", "application/json", "Final proof closure manifest."),
                 link("DEMO_EVIDENCE_CLOSURE_MARKDOWN", "Demo evidence closure Markdown", "/api/jobs/" + jobId + "/demo-evidence-closure/markdown/download", "text/markdown", "Final proof closure report."),
-                link("DEMO_EVIDENCE_CLOSURE_ZIP", "Demo evidence closure ZIP", "/api/jobs/" + jobId + "/demo-evidence-closure/download", "application/zip", "Final proof closure package.")
+                link("DEMO_EVIDENCE_CLOSURE_ZIP", "Demo evidence closure ZIP", "/api/jobs/" + jobId + "/demo-evidence-closure/download", "application/zip", "Final proof closure package."),
+                link("CUSTOM_NARRATION_RENDER_REPORT", "Custom narration render report", customRender.reportRoute(), "text/markdown", "Custom narration render handoff report."),
+                link("CUSTOM_NARRATION_RENDER", "Custom narration render", customRender.renderRoute(), "application/json", "Custom narration render route."),
+                link("CUSTOM_NARRATION_RENDER_EVIDENCE", "Custom narration evidence", customRender.evidenceRoute(), "application/json", "Custom narration evidence route.")
         ));
         for (var deliveryLink : narrationDelivery.safeLinks()) {
             links.add(link(deliveryLink.kind(), deliveryLink.label(), deliveryLink.href(), deliveryLink.contentType(), deliveryLink.description()));
@@ -338,7 +408,8 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
                 "Linked safe route: /api/jobs/" + jobId + "/handoff-package/download",
                 "Linked safe route: /api/jobs/" + jobId + "/demo-evidence-closure/download",
                 "Linked safe route: /api/jobs/" + jobId + "/openai-smoke-proof/markdown/download",
-                "Linked safe route: /api/jobs/" + jobId + "/narration-delivery-package/download"
+                "Linked safe route: /api/jobs/" + jobId + "/narration-delivery-package/download",
+                "Linked safe route: /api/jobs/" + jobId + "/custom-narration-render/markdown/download"
         );
     }
 
@@ -490,7 +561,7 @@ public class DemoReviewerWorkspaceServiceImpl implements DemoReviewerWorkspaceSe
     }
 
     private static boolean isReadyStatus(String status) {
-        return "READY".equals(status) || "PASS".equals(status) || "EMPTY".equals(status);
+        return "READY".equals(status) || "PASS".equals(status) || "EMPTY".equals(status) || "NOT_APPLICABLE".equals(status);
     }
 
     private static boolean isBlockedStatus(String status) {

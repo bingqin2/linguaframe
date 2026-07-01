@@ -937,3 +937,11 @@ Decision: Keep custom narration render separate from demo-preset render.
 Reason: Operators need to render upload-seeded or manually edited narration rows without accidentally replacing them with the built-in Tears showcase preset. The existing demo-preset renderer remains useful for repeatable demos, but its replacement semantics are the wrong default for operator-authored rows.
 
 Impact: `POST /api/jobs/{jobId}/custom-narration-render/preflight`, `POST /api/jobs/{jobId}/custom-narration-render`, the Markdown report download, browser `Render custom narration`, and `scripts/demo/custom-narration-render.sh` operate on the saved workspace only. Preflight is read-only and metadata-only; render explicitly acknowledges provider cost and optional video rendering, preserves partial audio success when video fails, and refreshes narration evidence and delivery-package outputs.
+
+## 2026-07-01
+
+Decision: Surface custom narration render proof through existing final handoff aggregates instead of storing a new report artifact.
+
+Reason: Final demo reviewers need to see whether saved operator-authored narration rows were rendered, which output mode exists, and where to open the safe report, but adding a persistent custom-render artifact would duplicate the existing acceptance, reviewer, portal, closure, evidence, and delivery-package routes.
+
+Impact: Acceptance gate, reviewer workspace, handoff portal, evidence closure, and full Tears terminal summaries now include custom narration render status, output plan, row/character counts, audio/video readiness, next action, and safe report/evidence/delivery routes. These aggregate surfaces remain read-only and metadata-only; they do not call providers, run FFmpeg, save rows, upload media, or embed narration text, notes, local paths, object keys, secrets, provider payloads, or media bytes.

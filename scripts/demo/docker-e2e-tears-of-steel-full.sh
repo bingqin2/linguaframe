@@ -182,6 +182,8 @@ if [[ "$RENDER_CUSTOM_NARRATION" == "true" ]]; then
   LINGUAFRAME_DEMO_JOB_ID="$job_id" \
     LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR="$OUTPUT_DIR/custom-narration-render" \
     "$SCRIPT_DIR/custom-narration-render.sh"
+  cp "$OUTPUT_DIR/custom-narration-render/custom-narration-render.md" "$OUTPUT_DIR/custom-narration-render.md"
+  echo "Custom narration render report exported to $OUTPUT_DIR/custom-narration-render.md"
 else
   echo "Skipping custom narration render. Set LINGUAFRAME_RENDER_CUSTOM_NARRATION=true to render saved upload-seeded or manually edited narration rows."
   echo "Run scripts/demo/custom-narration-render.sh with LINGUAFRAME_DEMO_JOB_ID=$job_id to preflight and render the saved custom workspace."

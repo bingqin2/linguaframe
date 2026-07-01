@@ -6289,6 +6289,12 @@ describe('App', () => {
     expect(within(gate).getByText('Narration playback resolved')).toBeInTheDocument();
     expect(within(gate).getAllByText('Narration playback resolution').length).toBeGreaterThan(0);
     expect(within(gate).getAllByText('READY (READY)').length).toBeGreaterThan(0);
+    expect(within(gate).getByRole('region', { name: /custom narration render handoff/i })).toBeInTheDocument();
+    expect(within(gate).getByText('Audio + narrated video')).toBeInTheDocument();
+    expect(within(gate).getByRole('link', { name: /custom render report/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/acceptance-showcase-job/custom-narration-render/markdown/download'
+    );
     expect(within(gate).getByRole('link', { name: /demo acceptance gate json/i })).toHaveAttribute(
       'href',
       '/api/jobs/acceptance-showcase-job/demo-acceptance-gate'
@@ -8766,6 +8772,20 @@ function demoAcceptanceGateFixture(overrides: Partial<DemoAcceptanceGate> = {}):
     headline: 'tears-showcase acceptance gate for zh-CN (READY)',
     summary: `Job ${jobId} is COMPLETED with gateStatus=READY, failedChecks=0, warningChecks=0.`,
     recommendedNextAction: 'Present this run using the completion certificate, demo run package, and snapshot.',
+    customNarrationRender: {
+      jobId,
+      status: 'READY',
+      outputPlan: 'Audio + narrated video',
+      segmentCount: 2,
+      characterCount: 96,
+      audioReady: true,
+      videoReady: true,
+      reportRoute: `/api/jobs/${jobId}/custom-narration-render/markdown/download`,
+      renderRoute: `/api/jobs/${jobId}/custom-narration-render`,
+      evidenceRoute: `/api/jobs/${jobId}/narration-evidence`,
+      deliveryPackageRoute: `/api/jobs/${jobId}/narration-delivery-package`,
+      nextAction: 'Open the custom narration render report and delivery package with the final handoff.'
+    },
     runbookSteps: [],
     checks: [
       {

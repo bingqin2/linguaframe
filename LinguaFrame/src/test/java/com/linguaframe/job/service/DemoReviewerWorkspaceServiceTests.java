@@ -68,9 +68,9 @@ class DemoReviewerWorkspaceServiceTests {
         assertThat(workspace.phase()).isEqualTo("REVIEW_PACKAGE_READY");
         assertThat(workspace.checks()).extracting("status").containsOnly("READY");
         assertThat(workspace.checks()).extracting("key")
-                .contains("NARRATION_DELIVERY_PACKAGE", "FINAL_PROOF_BUNDLE");
+                .contains("NARRATION_DELIVERY_PACKAGE", "CUSTOM_NARRATION_RENDER_HANDOFF", "FINAL_PROOF_BUNDLE");
         assertThat(workspace.sections()).extracting("title")
-                .contains("Run summary", "Delivery", "OpenAI proof", "Narration delivery", "Final proof bundle", "Packages");
+                .contains("Run summary", "Delivery", "OpenAI proof", "Narration delivery", "Custom narration render", "Final proof bundle", "Packages");
         assertThat(workspace.safeLinks()).extracting("href")
                 .contains(
                         "/api/jobs/job-reviewer",
@@ -82,6 +82,7 @@ class DemoReviewerWorkspaceServiceTests {
                         "/api/jobs/job-reviewer/demo-evidence-closure/markdown/download",
                         "/api/jobs/job-reviewer/demo-evidence-closure/download",
                         "/api/jobs/job-reviewer/openai-smoke-proof/markdown/download",
+                        "/api/jobs/job-reviewer/custom-narration-render/markdown/download",
                         "/api/jobs/job-reviewer/narration-delivery-package",
                         "/api/jobs/job-reviewer/narration-delivery-package/markdown/download",
                         "/api/jobs/job-reviewer/narration-delivery-package/download"
@@ -94,7 +95,8 @@ class DemoReviewerWorkspaceServiceTests {
                         "final-proof-bundle.md",
                         "Linked safe route: /api/jobs/job-reviewer/demo-evidence-closure/download",
                         "Linked safe route: /api/jobs/job-reviewer/openai-smoke-proof/markdown/download",
-                        "Linked safe route: /api/jobs/job-reviewer/narration-delivery-package/download"
+                        "Linked safe route: /api/jobs/job-reviewer/narration-delivery-package/download",
+                        "Linked safe route: /api/jobs/job-reviewer/custom-narration-render/markdown/download"
                 );
         assertThat(workspace.recommendedNextAction()).contains("share");
     }

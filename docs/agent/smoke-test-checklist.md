@@ -323,6 +323,7 @@ Expected:
 - If audio succeeds but narrated-video generation fails, the backend returns `PARTIAL`, keeps `NARRATION_AUDIO`, and reports the video step as failed.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true scripts/demo/custom-narration-render.sh` writes preflight JSON plus Markdown report without rendering media.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false scripts/demo/custom-narration-render.sh` runs the saved custom workspace as audio-only output.
+- Final handoff surfaces show the custom render handoff state: acceptance gate summary lines include `demoAcceptanceGateCustomNarrationRenderStatus`, reviewer workspace and handoff portal include a `Custom narration render` section, and evidence closure includes a `CUSTOM_NARRATION_RENDER` section with safe report/evidence/package routes.
 - `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/custom-narration-render.sh` writes render JSON, refreshed narration evidence, and delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`.
 - Custom render outputs must not apply the demo preset, replace operator-authored rows, print narration text, print reviewer note bodies, expose object keys/local paths/provider payloads/tokens/API keys, or include media bytes.
 - Browser selected-job narration workspace shows `Render narration demo` near `Demo narration preset`.

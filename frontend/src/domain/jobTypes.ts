@@ -3068,6 +3068,21 @@ export interface DemoAcceptanceGateRunbookStep {
   safeLink: string;
 }
 
+export interface CustomNarrationRenderHandoff {
+  jobId: string;
+  status: string;
+  outputPlan: string;
+  segmentCount: number;
+  characterCount: number;
+  audioReady: boolean;
+  videoReady: boolean;
+  reportRoute: string;
+  renderRoute: string;
+  evidenceRoute: string;
+  deliveryPackageRoute: string;
+  nextAction: string;
+}
+
 export interface DemoAcceptanceGate {
   jobId: string;
   videoId: string;
@@ -3079,6 +3094,7 @@ export interface DemoAcceptanceGate {
   headline: string;
   summary: string;
   recommendedNextAction: string;
+  customNarrationRender?: CustomNarrationRenderHandoff;
   runbookSteps: DemoAcceptanceGateRunbookStep[];
   checks: DemoAcceptanceGateCheck[];
   evidence: DemoAcceptanceGateEvidence[];

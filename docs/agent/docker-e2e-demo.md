@@ -245,7 +245,7 @@ LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> \
 scripts/demo/custom-narration-render.sh
 ```
 
-The script writes preflight JSON, render JSON, Markdown report, narration evidence, and narration delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`. Use `LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true` to collect the preflight/report without rendering, `LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false` for audio-only output, or `LINGUAFRAME_RENDER_CUSTOM_NARRATION=true` with the short or full E2E scripts to run this step after a seeded upload.
+The script writes preflight JSON, render JSON, Markdown report, narration evidence, and narration delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`. Use `LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true` to collect the preflight/report without rendering, `LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false` for audio-only output, or `LINGUAFRAME_RENDER_CUSTOM_NARRATION=true` with the short or full E2E scripts to run this step after a seeded upload. The full Tears script also exports `/tmp/linguaframe-demo/tears-of-steel-full/custom-narration-render.md`, and the final acceptance gate, reviewer workspace, handoff portal, and evidence closure include safe custom-render report links.
 
 Expected output includes:
 

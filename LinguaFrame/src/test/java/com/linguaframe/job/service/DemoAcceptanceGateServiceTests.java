@@ -78,6 +78,9 @@ class DemoAcceptanceGateServiceTests {
                         "MEDIA_OUTPUT_COUNT",
                         "QUALITY_SCORE",
                         "CERTIFICATE_STATUS",
+                        "CUSTOM_NARRATION_RENDER_STATUS",
+                        "CUSTOM_NARRATION_RENDER_OUTPUT_PLAN",
+                        "CUSTOM_NARRATION_RENDER_SEGMENT_COUNT",
                         "NARRATION_DELIVERY_PACKAGE_STATUS",
                         "NARRATION_DELIVERY_AUDIO_READY",
                         "NARRATION_DELIVERY_VIDEO_READY",
@@ -89,6 +92,7 @@ class DemoAcceptanceGateServiceTests {
                         "COMPLETION_CERTIFICATE_JSON",
                         "DEMO_RUN_PACKAGE",
                         "SNAPSHOT_DOWNLOAD",
+                        "CUSTOM_NARRATION_RENDER_REPORT",
                         "NARRATION_DELIVERY_PACKAGE_JSON",
                         "NARRATION_DELIVERY_PACKAGE_MARKDOWN",
                         "NARRATION_DELIVERY_PACKAGE_ZIP"
@@ -99,6 +103,16 @@ class DemoAcceptanceGateServiceTests {
                     assertThat(check.status()).isEqualTo("PASS");
                     assertThat(check.required()).isFalse();
                     assertThat(check.detail()).contains("status=READY").contains("audioReady=true").contains("videoReady=true");
+                });
+        assertThat(gate.customNarrationRender().status()).isEqualTo("NOT_APPLICABLE");
+        assertThat(gate.customNarrationRender().reportRoute())
+                .isEqualTo("/api/jobs/job-acceptance/custom-narration-render/markdown/download");
+        assertThat(gate.checks())
+                .anySatisfy(check -> {
+                    assertThat(check.key()).isEqualTo("CUSTOM_NARRATION_RENDER_HANDOFF");
+                    assertThat(check.status()).isEqualTo("PASS");
+                    assertThat(check.required()).isFalse();
+                    assertThat(check.detail()).contains("outputPlan=No saved custom narration rows");
                 });
         assertThat(gate.recommendedNextAction()).contains("Present this run");
         assertThat(gate.runbookSteps()).isEmpty();

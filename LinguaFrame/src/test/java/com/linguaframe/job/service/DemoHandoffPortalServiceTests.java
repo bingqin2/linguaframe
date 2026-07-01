@@ -89,9 +89,9 @@ class DemoHandoffPortalServiceTests {
         assertThat(portal.headline()).contains("ready");
         assertThat(portal.checks()).extracting("status").containsOnly("READY");
         assertThat(portal.checks()).extracting("key")
-                .contains("NARRATION_DELIVERY_PACKAGE", "FINAL_PROOF_BUNDLE");
+                .contains("NARRATION_DELIVERY_PACKAGE", "CUSTOM_NARRATION_RENDER_HANDOFF", "FINAL_PROOF_BUNDLE");
         assertThat(portal.sections()).extracting("title")
-                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Narration delivery", "Final proof bundle", "Presentation evidence", "Safe packages");
+                .contains("Reviewer workspace", "Offline portal", "Narration audio mix", "Narration delivery", "Custom narration render", "Final proof bundle", "Presentation evidence", "Safe packages");
         assertThat(portal.sections())
                 .filteredOn(section -> section.key().equals("NARRATION_AUDIO_MIX"))
                 .singleElement()

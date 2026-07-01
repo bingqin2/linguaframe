@@ -57,11 +57,13 @@ class DemoEvidenceClosurePackageServiceTests {
                 "POST_RUN_VARIANCE",
                 "ACCEPTANCE_GATE",
                 "COMPLETION_CERTIFICATE",
+                "CUSTOM_NARRATION_RENDER",
                 "DELIVERY_PACKAGE",
                 "REVIEWER_HANDOFF"
         );
         assertThat(closure.safeLinks()).contains(
                 "/api/jobs/job-1/demo-run-package/download",
+                "/api/jobs/job-1/custom-narration-render/markdown/download",
                 "/api/jobs/job-1/demo-evidence-closure/download"
         );
         assertThat(markdown).contains(
@@ -71,6 +73,7 @@ class DemoEvidenceClosurePackageServiceTests {
                 "## Post-Run Variance",
                 "## Acceptance",
                 "## Completion",
+                "## Custom Narration Render",
                 "## Safe Links",
                 "## Safety Notes"
         );
