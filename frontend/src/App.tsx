@@ -429,6 +429,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [subtitleStylePreset, setSubtitleStylePreset] = useState('STANDARD');
   const [subtitlePolishingMode, setSubtitlePolishingMode] = useState('OFF');
   const [translationGlossary, setTranslationGlossary] = useState('');
+  const [uploadNarrationScript, setUploadNarrationScript] = useState('');
   const [manualJobId, setManualJobId] = useState('');
   const [selectedRecentJob, setSelectedRecentJob] = useState<RecentJob | null>(null);
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>(() =>
@@ -630,6 +631,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isLoadingDemoShareSheet, setIsLoadingDemoShareSheet] = useState(false);
 
   const selectedLanguage = selectedRecentJob?.targetLanguage ?? job?.targetLanguage ?? targetLanguage;
+  const uploadNarrationScriptPreview = useMemo(
+    () => parseNarrationQuickScript(uploadNarrationScript, {
+      existingSegments: [],
+      mode: 'replace',
+      voiceCatalog: null
+    }),
+    [uploadNarrationScript]
+  );
+  const uploadNarrationScriptHasBlockingErrors = uploadNarrationScript.trim().length > 0 && !uploadNarrationScriptPreview.valid;
   const canRetry = job?.status === 'FAILED';
   const canCancel = job ? CANCELLABLE_STATUSES.has(job.status) : false;
   const cacheReplayCandidates = useMemo(
@@ -1673,7 +1683,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       setUploadCostEstimate(estimate);
       setUploadCostEstimateError(null);
@@ -1705,7 +1716,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       setUploadExecutionPlan(plan);
       setUploadExecutionPlanError(null);
@@ -1750,7 +1762,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -1782,7 +1795,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -1814,7 +1828,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -1846,6 +1861,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setError(demoUploadReadiness.requiredActions[0] ?? 'Upload readiness blocked upload.');
       return;
     }
+    if (uploadNarrationScriptHasBlockingErrors) {
+      setError('Fix upload narration script errors before uploading.');
+      return;
+    }
 
     const validation = await runUploadValidation(file);
     if (!validation) {
@@ -1866,7 +1885,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         subtitleStylePreset,
         translationGlossary,
         subtitlePolishingMode,
-        demoProfileId
+        demoProfileId,
+        uploadNarrationScript
       );
       const recentJob = toRecentJob(upload);
       setRecentJobs(saveRecentJob(window.localStorage, recentJob));
@@ -2821,6 +2841,53 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                 ))}
               </select>
             </label>
+            <section className="upload-narration-script-intake" aria-label="Upload narration script">
+              <div className="panel-heading compact-panel-heading">
+                <h3>Upload narration script</h3>
+                {uploadNarrationScript.trim() ? (
+                  <span className={uploadNarrationScriptHasBlockingErrors ? 'status-pill blocked' : 'status-pill ready'}>
+                    {uploadNarrationScriptHasBlockingErrors ? 'BLOCKED' : 'READY'}
+                  </span>
+                ) : (
+                  <span className="status-pill">Optional</span>
+                )}
+              </div>
+              <textarea
+                aria-label="Upload narration script"
+                value={uploadNarrationScript}
+                onChange={(event) => {
+                  setUploadNarrationScript(event.target.value);
+                  setUploadExecutionPlan(null);
+                  setUploadExecutionPlanError(null);
+                  setUploadCostEstimate(null);
+                  setUploadCostEstimateError(null);
+                }}
+                placeholder={'00:15-00:28 | demo-voice | Explain this moment.\n00:55-01:10 || Inherit the default voice.'}
+                rows={4}
+              />
+              {uploadNarrationScript.trim() ? (
+                uploadNarrationScriptPreview.valid ? (
+                  <p className="muted validation-message">
+                    {uploadNarrationScriptPreview.importedCount} rows,{' '}
+                    {uploadNarrationScriptPreview.rows.reduce((total, row) => total + row.characterCount, 0)} characters,{' '}
+                    {formatDurationSeconds(uploadNarrationScriptPreview.totalDurationSeconds)} total narration.
+                  </p>
+                ) : (
+                  <ul className="readiness-list upload-readiness-list" aria-label="Upload narration script errors">
+                    {uploadNarrationScriptPreview.issues.slice(0, 4).map((issue) => (
+                      <li key={`${issue.lineNumber}-${issue.message}`}>
+                        <span>Line {issue.lineNumber}</span>
+                        <span className="status-pill blocked">BLOCKED</span>
+                        <span>{issue.message}</span>
+                        <span>Fix this row before upload.</span>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : (
+                <p className="muted validation-message">Optional rows seed the narration workspace after upload; rendering remains explicit.</p>
+              )}
+            </section>
             <div className="panel-actions upload-actions">
               <button
                 type="button"
@@ -2854,7 +2921,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
                   isEstimatingUploadCost ||
                   isEstimatingUploadExecutionPlan ||
                   ownerQuotaPreflight?.allowed === false ||
-                  demoUploadReadiness?.overallStatus === 'BLOCKED'
+                  demoUploadReadiness?.overallStatus === 'BLOCKED' ||
+                  uploadNarrationScriptHasBlockingErrors
                 }
               >
                 {isUploading ? 'Uploading...' : 'Upload'}
@@ -4294,7 +4362,51 @@ function UploadExecutionPlanPanel({
               <dt>Polishing</dt>
               <dd>{plan.subtitlePolishingMode}</dd>
             </div>
+            <div>
+              <dt>Narration script</dt>
+              <dd>
+                {plan.narrationScriptIntake?.supplied
+                  ? `${plan.narrationScriptIntake.segmentCount} rows / ${plan.narrationScriptIntake.characterCount} chars`
+                  : 'Not supplied'}
+              </dd>
+            </div>
           </dl>
+          {plan.narrationScriptIntake?.supplied ? (
+            <div className="upload-validation-subsection" aria-label="Narration script intake summary">
+              <div className="panel-heading compact-panel-heading">
+                <h4>Narration script intake</h4>
+                <span className={readinessStatusClassName(plan.narrationScriptIntake.status)}>
+                  {plan.narrationScriptIntake.status}
+                </span>
+              </div>
+              <dl className="status-grid compact-status-grid upload-validation-grid">
+                <div>
+                  <dt>Rows</dt>
+                  <dd>{plan.narrationScriptIntake.segmentCount}</dd>
+                </div>
+                <div>
+                  <dt>Characters</dt>
+                  <dd>{plan.narrationScriptIntake.characterCount}</dd>
+                </div>
+                <div>
+                  <dt>Voices</dt>
+                  <dd>{plan.narrationScriptIntake.voiceSummary}</dd>
+                </div>
+              </dl>
+              {plan.narrationScriptIntake.errors.length > 0 ? (
+                <ul className="readiness-list upload-readiness-list">
+                  {plan.narrationScriptIntake.errors.map((intakeError) => (
+                    <li key={intakeError}>
+                      <span>Script row</span>
+                      <span className="status-pill blocked">BLOCKED</span>
+                      <span>{intakeError}</span>
+                      <span>Fix before upload.</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
           {visibleGates.length > 0 ? (
             <ul className="readiness-list upload-readiness-list" aria-label="Upload execution plan gates">
               {visibleGates.map((gate) => (

@@ -410,6 +410,74 @@ class MediaUploadControllerTests {
     }
 
     @Test
+    void createsUploadAndSeedsNarrationWorkspace() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        when(objectStorageService.store(any(StoreObjectCommand.class))).thenAnswer(invocation -> {
+            StoreObjectCommand command = invocation.getArgument(0);
+            return new StoredObjectBo("linguaframe-artifacts", command.objectKey(), command.sizeBytes());
+        });
+        MockMultipartFile file = new MockMultipartFile("file", "narrated.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        String response = mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("narrationScript", """
+                                00:15-00:28 | demo-voice | Explain the opening gesture.
+                                00:55-01:10 || Inherit the default voice.
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.narrationScriptSeeded").value(true))
+                .andExpect(jsonPath("$.narrationScriptSegmentCount").value(2))
+                .andExpect(jsonPath("$.narrationScriptCharacterCount").value(54))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String jobId = response.replaceAll(".*\"jobId\":\"([^\"]+)\".*", "$1");
+        mockMvc.perform(get("/api/jobs/{jobId}/narration-workspace", jobId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.totalCharacterCount").value(54))
+                .andExpect(jsonPath("$.segments[0].voice").value("demo-voice"))
+                .andExpect(jsonPath("$.segments[1].voice").doesNotExist())
+                .andExpect(jsonPath("$.segments[0].text").value("Explain the opening gesture."));
+    }
+
+    @Test
+    void rejectsInvalidUploadNarrationScriptBeforeStorage() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "bad-narration.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("narrationScript", "00:20-00:10 | alloy | Backwards."))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UPLOAD_VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.message").value("Row 1: end time must be greater than start time."));
+
+        org.mockito.Mockito.verify(objectStorageService, org.mockito.Mockito.never()).store(any(StoreObjectCommand.class));
+        assertThat(jobRepository.countSummariesByOwnerId("demo-owner", null)).isZero();
+    }
+
+    @Test
+    void rejectsUnknownUploadNarrationVoiceBeforeStorage() throws Exception {
+        when(mediaDurationProbeService.probeDuration(any())).thenReturn(new MediaDurationProbeResult(90.0));
+        MockMultipartFile file = new MockMultipartFile("file", "bad-voice.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/media/uploads")
+                        .file(file)
+                        .param("targetLanguage", "zh-CN")
+                        .param("narrationScript", "00:15-00:28 | alloy | OpenAI voice is not available in demo mode."))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("UPLOAD_VALIDATION_FAILED"))
+                .andExpect(jsonPath("$.message").value("Row 1: narration voice must be one of the configured presets."));
+
+        org.mockito.Mockito.verify(objectStorageService, org.mockito.Mockito.never()).store(any(StoreObjectCommand.class));
+        assertThat(jobRepository.countSummariesByOwnerId("demo-owner", null)).isZero();
+    }
+
+    @Test
     void rejectsUploadWhenOwnerQuotaIsExceeded() throws Exception {
         properties.getOwnerQuota().setEnabled(true);
         properties.getOwnerQuota().setMaxActiveJobs(1);

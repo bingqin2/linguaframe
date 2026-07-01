@@ -38,6 +38,21 @@ public class UploadExecutionPlanReportServiceImpl implements UploadExecutionPlan
         markdown.append("- Code: ").append(value(plan.validationCode())).append('\n');
         markdown.append("- Message: ").append(value(plan.validationMessage())).append("\n\n");
 
+        markdown.append("## Narration Script Intake\n\n");
+        if (plan.narrationScriptIntake() == null) {
+            markdown.append("- Status: none\n\n");
+        } else {
+            markdown.append("- Status: ").append(value(plan.narrationScriptIntake().status())).append('\n');
+            markdown.append("- Supplied: ").append(plan.narrationScriptIntake().supplied()).append('\n');
+            markdown.append("- Segment count: ").append(plan.narrationScriptIntake().segmentCount()).append('\n');
+            markdown.append("- Character count: ").append(plan.narrationScriptIntake().characterCount()).append('\n');
+            markdown.append("- Voice summary: ").append(value(plan.narrationScriptIntake().voiceSummary())).append('\n');
+            for (String error : plan.narrationScriptIntake().errors()) {
+                markdown.append("- Error: ").append(value(error)).append('\n');
+            }
+            markdown.append('\n');
+        }
+
         markdown.append("## Cost And Time Estimate\n\n");
         markdown.append("- Estimated cost: ").append(money(plan.estimatedCostUsdLower())).append(" - ")
                 .append(money(plan.estimatedCostUsdUpper())).append(" (expected ")

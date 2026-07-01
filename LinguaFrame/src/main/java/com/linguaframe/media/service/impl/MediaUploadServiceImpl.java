@@ -1,5 +1,6 @@
 package com.linguaframe.media.service.impl;
 
+import com.linguaframe.common.config.LinguaFrameProperties;
 import com.linguaframe.job.domain.bo.TranslationGlossaryBo;
 import com.linguaframe.job.domain.bo.StoredObjectResourceBo;
 import com.linguaframe.job.domain.entity.LocalizationJobRecord;
@@ -9,6 +10,10 @@ import com.linguaframe.job.domain.enums.SubtitleStylePreset;
 import com.linguaframe.job.domain.enums.TranslationStyle;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.JobDispatchOutboxService;
+import com.linguaframe.job.service.NarrationVoiceCatalogService;
+import com.linguaframe.job.service.NarrationWorkspaceService;
+import com.linguaframe.job.service.impl.NarrationQuickScriptParser;
+import com.linguaframe.job.service.impl.NarrationVoiceCatalogServiceImpl;
 import com.linguaframe.job.service.impl.TranslationGlossaryParser;
 import com.linguaframe.common.quota.OwnerQuotaPreflightService;
 import com.linguaframe.common.security.DemoOwnerIdentityService;
@@ -55,6 +60,9 @@ public class MediaUploadServiceImpl implements MediaUploadService {
     private final DemoOwnerIdentityService ownerIdentityService;
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
     private final SourceMediaFingerprintService sourceMediaFingerprintService;
+    private final NarrationWorkspaceService narrationWorkspaceService;
+    private final NarrationVoiceCatalogService narrationVoiceCatalogService;
+    private final NarrationQuickScriptParser narrationQuickScriptParser;
 
     public MediaUploadServiceImpl(
             MediaUploadValidationService validationService,
@@ -63,7 +71,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             LocalizationJobRepository jobRepository,
             JobDispatchOutboxService dispatchOutboxService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService(), noopNarrationWorkspaceService(), defaultNarrationVoiceCatalogService(), new NarrationQuickScriptParser());
     }
 
     public MediaUploadServiceImpl(
@@ -74,7 +82,7 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             DemoOwnerIdentityService ownerIdentityService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService, noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), ownerIdentityService, noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService(), noopNarrationWorkspaceService(), defaultNarrationVoiceCatalogService(), new NarrationQuickScriptParser());
     }
 
     public MediaUploadServiceImpl(
@@ -85,7 +93,18 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             JobDispatchOutboxService dispatchOutboxService,
             OwnerQuotaPreflightService ownerQuotaPreflightService
     ) {
-        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", ownerQuotaPreflightService, new Sha256SourceMediaFingerprintService());
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", ownerQuotaPreflightService, new Sha256SourceMediaFingerprintService(), noopNarrationWorkspaceService(), defaultNarrationVoiceCatalogService(), new NarrationQuickScriptParser());
+    }
+
+    public MediaUploadServiceImpl(
+            MediaUploadValidationService validationService,
+            ObjectStorageService objectStorageService,
+            VideoRepository videoRepository,
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService,
+            NarrationWorkspaceService narrationWorkspaceService
+    ) {
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, new TranslationGlossaryParser(), new InMemoryDemoRunProfileService(), () -> "demo-owner", noopQuotaPreflightService(), new Sha256SourceMediaFingerprintService(), narrationWorkspaceService, defaultNarrationVoiceCatalogService(), new NarrationQuickScriptParser());
     }
 
     @Autowired
@@ -99,7 +118,27 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             DemoRunProfileService demoRunProfileService,
             DemoOwnerIdentityService ownerIdentityService,
             OwnerQuotaPreflightService ownerQuotaPreflightService,
-            SourceMediaFingerprintService sourceMediaFingerprintService
+            SourceMediaFingerprintService sourceMediaFingerprintService,
+            NarrationWorkspaceService narrationWorkspaceService,
+            NarrationVoiceCatalogService narrationVoiceCatalogService
+    ) {
+        this(validationService, objectStorageService, videoRepository, jobRepository, dispatchOutboxService, translationGlossaryParser, demoRunProfileService, ownerIdentityService, ownerQuotaPreflightService, sourceMediaFingerprintService, narrationWorkspaceService, narrationVoiceCatalogService, new NarrationQuickScriptParser());
+    }
+
+    private MediaUploadServiceImpl(
+            MediaUploadValidationService validationService,
+            ObjectStorageService objectStorageService,
+            VideoRepository videoRepository,
+            LocalizationJobRepository jobRepository,
+            JobDispatchOutboxService dispatchOutboxService,
+            TranslationGlossaryParser translationGlossaryParser,
+            DemoRunProfileService demoRunProfileService,
+            DemoOwnerIdentityService ownerIdentityService,
+            OwnerQuotaPreflightService ownerQuotaPreflightService,
+            SourceMediaFingerprintService sourceMediaFingerprintService,
+            NarrationWorkspaceService narrationWorkspaceService,
+            NarrationVoiceCatalogService narrationVoiceCatalogService,
+            NarrationQuickScriptParser narrationQuickScriptParser
     ) {
         this.validationService = validationService;
         this.objectStorageService = objectStorageService;
@@ -111,6 +150,9 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         this.ownerIdentityService = ownerIdentityService;
         this.ownerQuotaPreflightService = ownerQuotaPreflightService;
         this.sourceMediaFingerprintService = sourceMediaFingerprintService;
+        this.narrationWorkspaceService = narrationWorkspaceService;
+        this.narrationVoiceCatalogService = narrationVoiceCatalogService;
+        this.narrationQuickScriptParser = narrationQuickScriptParser;
     }
 
     @Override
@@ -125,11 +167,42 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             String subtitlePolishingMode,
             String demoProfileId
     ) {
+        return createUpload(
+                file,
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId,
+                null
+        );
+    }
+
+    @Override
+    @Transactional
+    public MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossary,
+            String subtitlePolishingMode,
+            String demoProfileId,
+            String narrationScript
+    ) {
         String normalizedTranslationStyle = TranslationStyle.parse(translationStyle).name();
         String normalizedSubtitleStylePreset = SubtitleStylePreset.parse(subtitleStylePreset).name();
         String normalizedSubtitlePolishingMode = SubtitlePolishingMode.parse(subtitlePolishingMode).name();
         String normalizedDemoProfileId = normalizeDemoProfileId(demoProfileId);
         TranslationGlossaryBo parsedGlossary = translationGlossaryParser.parse(translationGlossary);
+        NarrationQuickScriptParser.Result parsedNarrationScript = narrationQuickScriptParser.parse(narrationScript);
+        if (!parsedNarrationScript.valid()) {
+            throw new IllegalArgumentException(String.join(" ", parsedNarrationScript.errors()));
+        }
+        validateNarrationVoices(parsedNarrationScript);
         MediaUploadValidationVo validation = validationService.validate(file);
         if (!validation.valid()) {
             throw new IllegalArgumentException(validation.code().name() + ": " + validation.message());
@@ -187,6 +260,9 @@ public class MediaUploadServiceImpl implements MediaUploadService {
         );
         videoRepository.save(video);
         jobRepository.save(job);
+        if (parsedNarrationScript.segmentCount() > 0) {
+            narrationWorkspaceService.saveWorkspace(jobId, parsedNarrationScript.toSaveRequest());
+        }
         dispatchOutboxService.enqueueLocalizationJobQueued(video, job);
 
         return new MediaUploadVo(
@@ -207,6 +283,9 @@ public class MediaUploadServiceImpl implements MediaUploadService {
                 parsedGlossary.hash(),
                 normalizedSubtitlePolishingMode,
                 normalizedDemoProfileId,
+                parsedNarrationScript.segmentCount() > 0,
+                parsedNarrationScript.segmentCount(),
+                parsedNarrationScript.characterCount(),
                 createdAt
         );
     }
@@ -266,6 +345,49 @@ public class MediaUploadServiceImpl implements MediaUploadService {
             public void requireUploadAllowed() {
             }
         };
+    }
+
+    private static NarrationWorkspaceService noopNarrationWorkspaceService() {
+        return new NarrationWorkspaceService() {
+            @Override
+            public com.linguaframe.job.domain.vo.NarrationWorkspaceVo getWorkspace(String jobId) {
+                throw new UnsupportedOperationException("No-op narration workspace service cannot read workspaces.");
+            }
+
+            @Override
+            public com.linguaframe.job.domain.vo.NarrationWorkspaceVo saveWorkspace(
+                    String jobId,
+                    com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest request
+            ) {
+                return null;
+            }
+
+            @Override
+            public com.linguaframe.job.domain.vo.NarrationWorkspaceVo updateMixSettings(
+                    String jobId,
+                    com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto request
+            ) {
+                throw new UnsupportedOperationException("No-op narration workspace service cannot update mix settings.");
+            }
+
+            @Override
+            public com.linguaframe.job.domain.vo.NarrationWorkspaceVo clearWorkspace(String jobId) {
+                throw new UnsupportedOperationException("No-op narration workspace service cannot clear workspaces.");
+            }
+        };
+    }
+
+    private static NarrationVoiceCatalogService defaultNarrationVoiceCatalogService() {
+        return new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties());
+    }
+
+    private void validateNarrationVoices(NarrationQuickScriptParser.Result parsedNarrationScript) {
+        for (com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest.Segment segment : parsedNarrationScript.segments()) {
+            if (!narrationVoiceCatalogService.containsVoice(segment.voice())) {
+                throw new IllegalArgumentException("Row " + (segment.index() + 1)
+                        + ": narration voice must be one of the configured presets.");
+            }
+        }
     }
 
     private String normalizeTtsVoice(String ttsVoice) {

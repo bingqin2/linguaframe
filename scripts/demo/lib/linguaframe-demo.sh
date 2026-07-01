@@ -168,6 +168,10 @@ upload_demo_video() {
   if [[ -z "$translation_glossary" && -n "${LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE:-}" ]]; then
     translation_glossary="$(<"$LINGUAFRAME_DEMO_TRANSLATION_GLOSSARY_FILE")"
   fi
+  local narration_script="${LINGUAFRAME_DEMO_NARRATION_SCRIPT:-}"
+  if [[ -z "$narration_script" && -n "${LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE:-}" ]]; then
+    narration_script="$(<"$LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE")"
+  fi
 
   local form_args=(
     -F "file=@${sample_path};type=video/mp4"
@@ -179,6 +183,9 @@ upload_demo_video() {
   )
   if [[ -n "${translation_glossary//[[:space:]]/}" ]]; then
     form_args+=(-F "translationGlossary=${translation_glossary}")
+  fi
+  if [[ -n "${narration_script//[[:space:]]/}" ]]; then
+    form_args+=(-F "narrationScript=${narration_script}")
   fi
 
   demo_curl -fsS "${form_args[@]}" "$base_url/api/media/uploads"

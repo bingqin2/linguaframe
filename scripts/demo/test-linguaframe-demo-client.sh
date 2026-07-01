@@ -1315,6 +1315,38 @@ test_upload_demo_video_explicit_env_overrides_profile() {
   [[ "$output" == *"translationStyle=CONCISE"* ]] || fail "upload_demo_video did not let explicit style override profile"
 }
 
+test_upload_demo_video_includes_narration_script_from_env() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  local sample_path="$TMPDIR/sample.mp4"
+  printf 'demo' >"$sample_path"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_NARRATION_SCRIPT="00:15-00:28 | demo-voice | Explain this moment." \
+    upload_demo_video "http://example.test" "$sample_path" >"$TMPDIR/upload-demo-narration.out"
+
+  local output
+  output="$(cat "$TMPDIR/upload-demo-narration.out")"
+  [[ "$output" == *"narrationScript=00:15-00:28 | demo-voice | Explain this moment."* ]] || fail "upload_demo_video missed narration script env"
+}
+
+test_upload_demo_video_includes_narration_script_from_file() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  local sample_path="$TMPDIR/sample.mp4"
+  local script_path="$TMPDIR/narration-script.txt"
+  printf 'demo' >"$sample_path"
+  printf '00:55-01:10 || Inherit the default voice.\n' >"$script_path"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+  LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE="$script_path" \
+    upload_demo_video "http://example.test" "$sample_path" >"$TMPDIR/upload-demo-narration-file.out"
+
+  local output
+  output="$(cat "$TMPDIR/upload-demo-narration-file.out")"
+  [[ "$output" == *"narrationScript=00:55-01:10 || Inherit the default voice."* ]] || fail "upload_demo_video missed narration script file"
+}
+
 test_download_job_comparison_helpers_use_backend_routes() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -3785,6 +3817,8 @@ test_demo_session_evidence_package_helpers_include_recovery_board_entries
 test_upload_demo_video_includes_subtitle_polishing_mode
 test_upload_demo_video_applies_tears_showcase_profile
 test_upload_demo_video_explicit_env_overrides_profile
+test_upload_demo_video_includes_narration_script_from_env
+test_upload_demo_video_includes_narration_script_from_file
 test_download_job_comparison_helpers_use_backend_routes
 test_print_job_comparison_summary_is_metadata_only
 test_download_demo_run_matrix_helper_uses_backend_route

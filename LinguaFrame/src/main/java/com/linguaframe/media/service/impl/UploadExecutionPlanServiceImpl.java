@@ -12,6 +12,7 @@ import com.linguaframe.media.domain.vo.UploadExecutionPlanCommandVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanGateVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanStageVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
+import com.linguaframe.media.domain.vo.UploadNarrationScriptIntakeVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseVo;
 import com.linguaframe.media.service.DemoUploadReadinessService;
@@ -19,7 +20,13 @@ import com.linguaframe.media.service.UploadCostEstimateService;
 import com.linguaframe.media.service.UploadExecutionPlanService;
 import com.linguaframe.media.service.UploadSourceReuseDecisionService;
 import com.linguaframe.media.service.UploadSourceReuseService;
+import com.linguaframe.job.service.NarrationVoiceCatalogService;
+import com.linguaframe.job.service.impl.NarrationQuickScriptParser;
+import com.linguaframe.job.service.impl.NarrationVoiceCatalogServiceImpl;
+import com.linguaframe.common.config.LinguaFrameProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
@@ -38,6 +45,25 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
     private final OwnerQuotaPreflightService ownerQuotaPreflightService;
     private final UploadSourceReuseService uploadSourceReuseService;
     private final UploadSourceReuseDecisionService uploadSourceReuseDecisionService;
+    private final NarrationVoiceCatalogService narrationVoiceCatalogService;
+    private final NarrationQuickScriptParser narrationQuickScriptParser = new NarrationQuickScriptParser();
+
+    @Autowired
+    public UploadExecutionPlanServiceImpl(
+            UploadCostEstimateService costEstimateService,
+            DemoUploadReadinessService demoUploadReadinessService,
+            OwnerQuotaPreflightService ownerQuotaPreflightService,
+            UploadSourceReuseService uploadSourceReuseService,
+            UploadSourceReuseDecisionService uploadSourceReuseDecisionService,
+            NarrationVoiceCatalogService narrationVoiceCatalogService
+    ) {
+        this.costEstimateService = costEstimateService;
+        this.demoUploadReadinessService = demoUploadReadinessService;
+        this.ownerQuotaPreflightService = ownerQuotaPreflightService;
+        this.uploadSourceReuseService = uploadSourceReuseService;
+        this.uploadSourceReuseDecisionService = uploadSourceReuseDecisionService;
+        this.narrationVoiceCatalogService = narrationVoiceCatalogService;
+    }
 
     public UploadExecutionPlanServiceImpl(
             UploadCostEstimateService costEstimateService,
@@ -46,11 +72,8 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
             UploadSourceReuseService uploadSourceReuseService,
             UploadSourceReuseDecisionService uploadSourceReuseDecisionService
     ) {
-        this.costEstimateService = costEstimateService;
-        this.demoUploadReadinessService = demoUploadReadinessService;
-        this.ownerQuotaPreflightService = ownerQuotaPreflightService;
-        this.uploadSourceReuseService = uploadSourceReuseService;
-        this.uploadSourceReuseDecisionService = uploadSourceReuseDecisionService;
+        this(costEstimateService, demoUploadReadinessService, ownerQuotaPreflightService, uploadSourceReuseService,
+                uploadSourceReuseDecisionService, new NarrationVoiceCatalogServiceImpl(new LinguaFrameProperties()));
     }
 
     @Override
@@ -60,7 +83,8 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
         DemoUploadReadinessVo readiness = demoUploadReadinessService.getReadiness(estimate.demoProfileId());
         OwnerQuotaPreflightVo ownerQuota = ownerQuotaPreflightService.getPreflight();
         List<UploadExecutionPlanStageVo> stages = estimate.valid() ? stages(estimate) : List.of();
-        List<UploadExecutionPlanGateVo> gates = gates(estimate, readiness, ownerQuota);
+        UploadNarrationScriptIntakeVo narrationScriptIntake = narrationScriptIntake(safeOptions.narrationScript());
+        List<UploadExecutionPlanGateVo> gates = gates(estimate, readiness, ownerQuota, narrationScriptIntake);
         int lower = estimateDurationLower(estimate, stages);
         int upper = estimateDurationUpper(estimate, stages);
         String status = overallStatus(estimate, readiness, ownerQuota, gates);
@@ -97,8 +121,31 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
                 commands(status, estimate.demoProfileId()),
                 sourceReuse,
                 sourceReuseDecision,
+                narrationScriptIntake,
                 estimate.cacheNotes(),
                 safetyNotes(estimate, readiness)
+        );
+    }
+
+    private UploadNarrationScriptIntakeVo narrationScriptIntake(String narrationScript) {
+        boolean supplied = StringUtils.hasText(narrationScript);
+        NarrationQuickScriptParser.Result result = narrationQuickScriptParser.parse(narrationScript);
+        List<String> errors = new ArrayList<>(result.errors());
+        if (result.valid()) {
+            for (com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest.Segment segment : result.segments()) {
+                if (!narrationVoiceCatalogService.containsVoice(segment.voice())) {
+                    errors.add("Row " + (segment.index() + 1)
+                            + ": narration voice must be one of the configured presets.");
+                }
+            }
+        }
+        return new UploadNarrationScriptIntakeVo(
+                errors.isEmpty() ? STATUS_READY : STATUS_BLOCKED,
+                supplied,
+                result.segmentCount(),
+                result.characterCount(),
+                result.voiceSummary(),
+                errors
         );
     }
 
@@ -129,7 +176,8 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
     private List<UploadExecutionPlanGateVo> gates(
             UploadCostEstimateVo estimate,
             DemoUploadReadinessVo readiness,
-            OwnerQuotaPreflightVo ownerQuota
+            OwnerQuotaPreflightVo ownerQuota,
+            UploadNarrationScriptIntakeVo narrationScriptIntake
     ) {
         List<UploadExecutionPlanGateVo> gates = new ArrayList<>();
         gates.add(new UploadExecutionPlanGateVo(
@@ -163,6 +211,16 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
             ));
         }
         gates.add(new UploadExecutionPlanGateVo(
+                "narrationScriptIntake",
+                "Narration script intake",
+                narrationScriptIntake.status(),
+                STATUS_BLOCKED.equals(narrationScriptIntake.status()),
+                narrationScriptIntakeDetail(narrationScriptIntake),
+                STATUS_BLOCKED.equals(narrationScriptIntake.status())
+                        ? "Fix upload-time narration script rows before uploading media."
+                        : "No narration script intake action required."
+        ));
+        gates.add(new UploadExecutionPlanGateVo(
                 "ownerQuota",
                 "Owner quota",
                 ownerQuota.allowed() ? STATUS_READY : STATUS_BLOCKED,
@@ -185,6 +243,17 @@ public class UploadExecutionPlanServiceImpl implements UploadExecutionPlanServic
             ));
         }
         return gates;
+    }
+
+    private String narrationScriptIntakeDetail(UploadNarrationScriptIntakeVo intake) {
+        if (STATUS_BLOCKED.equals(intake.status())) {
+            return String.join(" ", intake.errors());
+        }
+        if (!intake.supplied()) {
+            return "No upload-time narration script supplied.";
+        }
+        return "Upload will seed " + intake.segmentCount() + " narration script rows, "
+                + intake.characterCount() + " characters, voices: " + intake.voiceSummary() + ".";
     }
 
     private List<UploadExecutionPlanCommandVo> commands(String status, String demoProfileId) {

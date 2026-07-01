@@ -165,7 +165,8 @@ export async function estimateUploadCost(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<UploadCostEstimate> {
   const body = buildUploadOptionsFormData(
     file,
@@ -175,7 +176,8 @@ export async function estimateUploadCost(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestJson<UploadCostEstimate>('/api/media/uploads/cost-estimate', {
@@ -192,7 +194,8 @@ export async function estimateUploadExecutionPlan(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<UploadExecutionPlan> {
   const body = buildUploadOptionsFormData(
     file,
@@ -202,7 +205,8 @@ export async function estimateUploadExecutionPlan(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestJson<UploadExecutionPlan>('/api/media/uploads/execution-plan', {
@@ -219,7 +223,8 @@ export async function downloadUploadExecutionPlanMarkdown(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<Blob> {
   const body = buildUploadOptionsFormData(
     file,
@@ -229,7 +234,8 @@ export async function downloadUploadExecutionPlanMarkdown(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestBlob('/api/media/uploads/execution-plan/markdown/download', {
@@ -246,7 +252,8 @@ export async function downloadUploadDecisionPackageMarkdown(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<Blob> {
   const body = buildUploadOptionsFormData(
     file,
@@ -256,7 +263,8 @@ export async function downloadUploadDecisionPackageMarkdown(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestBlob('/api/media/uploads/decision-package/markdown/download', {
@@ -273,7 +281,8 @@ export async function downloadUploadDecisionPackageZip(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<Blob> {
   const body = buildUploadOptionsFormData(
     file,
@@ -283,7 +292,8 @@ export async function downloadUploadDecisionPackageZip(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestBlob('/api/media/uploads/decision-package/download', {
@@ -310,6 +320,15 @@ export function renderUploadExecutionPlanMarkdown(plan: UploadExecutionPlan): st
     `- Size bytes: ${plan.fileSizeBytes} / ${plan.maxFileSizeBytes}`,
     `- Duration seconds: ${plan.durationSeconds ?? 'unknown'} / ${plan.maxDurationSeconds}`,
     `- Source SHA-256: ${safeValue(plan.sourceReuse?.sourceContentSha256)}`,
+    '',
+    '## Narration Script Intake',
+    '',
+    `- Status: ${safeValue(plan.narrationScriptIntake?.status)}`,
+    `- Supplied: ${plan.narrationScriptIntake?.supplied ?? false}`,
+    `- Segment count: ${plan.narrationScriptIntake?.segmentCount ?? 0}`,
+    `- Character count: ${plan.narrationScriptIntake?.characterCount ?? 0}`,
+    `- Voice summary: ${safeValue(plan.narrationScriptIntake?.voiceSummary)}`,
+    ...((plan.narrationScriptIntake?.errors ?? []).map((error) => `- Error: ${safeValue(error)}`)),
     '',
     '## Source Reuse Decision',
     '',
@@ -373,7 +392,8 @@ export async function uploadMedia(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): Promise<MediaUpload> {
   const body = buildUploadOptionsFormData(
     file,
@@ -383,7 +403,8 @@ export async function uploadMedia(
     subtitleStylePreset,
     translationGlossary,
     subtitlePolishingMode,
-    demoProfileId
+    demoProfileId,
+    narrationScript
   );
 
   return requestJson<MediaUpload>('/api/media/uploads', {
@@ -400,7 +421,8 @@ function buildUploadOptionsFormData(
   subtitleStylePreset?: string,
   translationGlossary?: string,
   subtitlePolishingMode?: string,
-  demoProfileId?: string
+  demoProfileId?: string,
+  narrationScript?: string
 ): FormData {
   const body = new FormData();
   body.set('file', file);
@@ -428,6 +450,10 @@ function buildUploadOptionsFormData(
   const normalizedDemoProfileId = demoProfileId?.trim();
   if (normalizedDemoProfileId) {
     body.set('demoProfileId', normalizedDemoProfileId);
+  }
+  const normalizedNarrationScript = narrationScript?.trim();
+  if (normalizedNarrationScript) {
+    body.set('narrationScript', normalizedNarrationScript);
   }
   return body;
 }

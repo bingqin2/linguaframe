@@ -913,3 +913,11 @@ Decision: Add persistent narration mix keyframes after segment overrides and bef
 Reason: Operators need reusable ducking, narration-volume, and fade automation across full videos, but individual narration rows still need precise local fixes. Keeping precedence as segment override, latest saved keyframe at or before the window start, then job default makes the behavior explainable, exportable, and compatible with existing mix settings.
 
 Impact: The workspace API now persists `mixAutomation.keyframes`, script packages export/import `mixKeyframes`, narrated-video generation resolves keyframes into effective mix windows, and narration evidence plus terminal summaries report keyframe counts by lane without exposing narration text or media paths. Browser keyframe edits remain local until `Save narration`; they do not call providers, create artifacts, write object storage, or generate media.
+
+## 2026-07-01
+
+Decision: Add upload-time narration quick script intake as workspace seeding only.
+
+Reason: Operators asked to upload a video and provide explanatory narration rows in one intake flow, but automatic TTS or video rendering during upload would hide provider cost and blur the existing explicit narration workflow.
+
+Impact: Upload, execution-plan, decision-package, browser upload, and demo script flows accept optional `START-END | VOICE | TEXT` rows. Valid rows seed the new job's narration workspace and expose safe counts/status; invalid rows block upload before storage or dispatch. Upload-time intake does not call OpenAI, TTS providers, FFmpeg, create narration artifacts, or update narration evidence.

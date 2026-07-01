@@ -10,9 +10,13 @@ import com.linguaframe.common.security.DemoOwnerIdentityService;
 import com.linguaframe.job.domain.enums.JobDispatchEventStatus;
 import com.linguaframe.job.domain.enums.JobDispatchEventType;
 import com.linguaframe.job.domain.enums.LocalizationJobStatus;
+import com.linguaframe.job.domain.dto.SaveNarrationSegmentsRequest;
+import com.linguaframe.job.domain.dto.UpdateNarrationMixSettingsDto;
+import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.repository.JobDispatchEventRepository;
 import com.linguaframe.job.repository.LocalizationJobRepository;
 import com.linguaframe.job.service.impl.JobDispatchOutboxServiceImpl;
+import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.media.domain.bo.MediaDurationProbeCommand;
 import com.linguaframe.media.domain.bo.MediaDurationProbeResult;
 import com.linguaframe.media.domain.exception.UnreadableMediaException;
@@ -338,6 +342,109 @@ class MediaUploadServiceTests {
         assertThat(dispatchEventRepository.findLatestByJobId(result.jobId()))
                 .get()
                 .satisfies(event -> assertThat(event.payloadJson()).contains("\"demoProfileId\":\"tears-showcase\""));
+    }
+
+    @Test
+    void seedsNarrationWorkspaceFromUploadQuickScript() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        RecordingNarrationWorkspaceService narrationWorkspaceService = new RecordingNarrationWorkspaceService();
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper),
+                narrationWorkspaceService
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "narrated.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        MediaUploadVo result = service.createUpload(
+                file,
+                "zh-CN",
+                "verse",
+                "formal",
+                "high_contrast",
+                "Maya => 玛雅",
+                "balanced",
+                "tears-showcase",
+                """
+                        00:15-00:28 | demo-voice | Explain the opening gesture.
+                        00:55-01:10 || Inherit the default voice.
+                        """
+        );
+
+        assertThat(result.narrationScriptSeeded()).isTrue();
+        assertThat(result.narrationScriptSegmentCount()).isEqualTo(2);
+        assertThat(result.narrationScriptCharacterCount()).isEqualTo(54);
+        assertThat(narrationWorkspaceService.jobId).isEqualTo(result.jobId());
+        assertThat(narrationWorkspaceService.request.segments()).hasSize(2);
+        assertThat(narrationWorkspaceService.request.segments().get(0).voice()).isEqualTo("demo-voice");
+        assertThat(narrationWorkspaceService.request.segments().get(1).voice()).isNull();
+        assertThat(dispatchEventRepository.findLatestByJobId(result.jobId())).isPresent();
+    }
+
+    @Test
+    void rejectsInvalidNarrationScriptBeforeStorageAndDispatch() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        RecordingNarrationWorkspaceService narrationWorkspaceService = new RecordingNarrationWorkspaceService();
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper),
+                narrationWorkspaceService
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "bad-narration.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(
+                file,
+                "zh-CN",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "00:20-00:10 | alloy | Backwards."
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Row 1: end time must be greater than start time.");
+        assertThat(storageService.lastCommand).isNull();
+        assertThat(narrationWorkspaceService.request).isNull();
+        assertThat(jobRepository.countSummariesByOwnerId("demo-owner", null)).isZero();
+    }
+
+    @Test
+    void rejectsUnknownNarrationVoiceBeforeStorageAndDispatch() {
+        RecordingObjectStorageService storageService = new RecordingObjectStorageService(false);
+        RecordingNarrationWorkspaceService narrationWorkspaceService = new RecordingNarrationWorkspaceService();
+        MediaUploadService service = new MediaUploadServiceImpl(
+                new MediaUploadValidationServiceImpl(properties, new RecordingMediaDurationProbeService(42.0)),
+                storageService,
+                videoRepository,
+                jobRepository,
+                new JobDispatchOutboxServiceImpl(dispatchEventRepository, objectMapper),
+                narrationWorkspaceService
+        );
+        MockMultipartFile file = new MockMultipartFile("file", "bad-voice.mp4", "video/mp4", new byte[] {1, 2, 3});
+
+        assertThatThrownBy(() -> service.createUpload(
+                file,
+                "zh-CN",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "00:15-00:28 | alloy | OpenAI voice is not available in demo mode."
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Row 1: narration voice must be one of the configured presets.");
+        assertThat(storageService.lastCommand).isNull();
+        assertThat(narrationWorkspaceService.request).isNull();
+        assertThat(jobRepository.countSummariesByOwnerId("demo-owner", null)).isZero();
     }
 
     @Test
@@ -668,6 +775,34 @@ class MediaUploadServiceTests {
                     List.of(new OwnerQuotaLimitVo("activeJobs", true, BigDecimal.ONE, BigDecimal.ONE)),
                     List.of("Active job limit reached for owner demo-owner: current 1, limit 1.")
             );
+        }
+    }
+
+    private static class RecordingNarrationWorkspaceService implements NarrationWorkspaceService {
+
+        private String jobId;
+        private SaveNarrationSegmentsRequest request;
+
+        @Override
+        public NarrationWorkspaceVo getWorkspace(String jobId) {
+            throw new UnsupportedOperationException("Not used by this test.");
+        }
+
+        @Override
+        public NarrationWorkspaceVo saveWorkspace(String jobId, SaveNarrationSegmentsRequest request) {
+            this.jobId = jobId;
+            this.request = request;
+            return null;
+        }
+
+        @Override
+        public NarrationWorkspaceVo updateMixSettings(String jobId, UpdateNarrationMixSettingsDto request) {
+            throw new UnsupportedOperationException("Not used by this test.");
+        }
+
+        @Override
+        public NarrationWorkspaceVo clearWorkspace(String jobId) {
+            throw new UnsupportedOperationException("Not used by this test.");
         }
     }
 }

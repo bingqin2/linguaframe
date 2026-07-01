@@ -15,6 +15,9 @@ export interface MediaUpload {
   translationGlossaryHash: string;
   subtitlePolishingMode: string;
   demoProfileId: string | null;
+  narrationScriptSeeded: boolean;
+  narrationScriptSegmentCount: number;
+  narrationScriptCharacterCount: number;
   createdAt: string;
 }
 
@@ -453,6 +456,15 @@ export interface UploadExecutionPlanCommand {
   description: string;
 }
 
+export interface UploadNarrationScriptIntake {
+  status: DemoUploadReadinessStatus;
+  supplied: boolean;
+  segmentCount: number;
+  characterCount: number;
+  voiceSummary: string;
+  errors: string[];
+}
+
 export interface UploadSourceReuseCandidate {
   videoId: string;
   jobId: string;
@@ -537,6 +549,7 @@ export interface UploadExecutionPlan {
   commands: UploadExecutionPlanCommand[];
   sourceReuse: UploadSourceReuse;
   sourceReuseDecision: UploadSourceReuseDecision;
+  narrationScriptIntake: UploadNarrationScriptIntake;
   cacheNotes: string[];
   safetyNotes: string[];
 }

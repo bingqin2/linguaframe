@@ -341,6 +341,67 @@ describe('linguaframeApi', () => {
     expect((body as FormData).get('subtitlePolishingMode')).toBe('BALANCED');
   });
 
+  test('uploads media with narration quick script only when non blank', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        videoId: 'video-1',
+        jobId: 'job-1',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-1/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        narrationScriptSeeded: true,
+        narrationScriptSegmentCount: 2,
+        narrationScriptCharacterCount: 54,
+        createdAt: '2026-06-26T10:00:00Z'
+      })
+    );
+
+    await uploadMedia(
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' }),
+      'zh',
+      'verse',
+      'formal',
+      'high_contrast',
+      'Maya => 玛雅',
+      'balanced',
+      'tears-showcase',
+      ' 00:15-00:28 | demo-voice | Explain this moment. '
+    );
+
+    const body = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(body).toBeInstanceOf(FormData);
+    expect((body as FormData).get('narrationScript')).toBe('00:15-00:28 | demo-voice | Explain this moment.');
+
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse({
+        videoId: 'video-2',
+        jobId: 'job-2',
+        filename: 'sample.mp4',
+        contentType: 'video/mp4',
+        fileSizeBytes: 1234,
+        sourceObjectKey: 'uploads/video-2/source.mp4',
+        status: 'STORED',
+        jobStatus: 'QUEUED',
+        targetLanguage: 'zh',
+        narrationScriptSeeded: false,
+        narrationScriptSegmentCount: 0,
+        narrationScriptCharacterCount: 0,
+        createdAt: '2026-06-26T10:01:00Z'
+      })
+    );
+    fetchMock.mockClear();
+
+    await uploadMedia(new File(['demo'], 'sample.mp4', { type: 'video/mp4' }), 'zh', undefined, undefined, undefined, undefined, undefined, undefined, '   ');
+
+    const blankBody = fetchMock.mock.calls[0]?.[1]?.body;
+    expect(blankBody).toBeInstanceOf(FormData);
+    expect((blankBody as FormData).has('narrationScript')).toBe(false);
+  });
+
   test('manages narration workspace endpoints', async () => {
     const workspaceResponse = {
         jobId: 'job-narration',

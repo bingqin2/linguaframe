@@ -236,6 +236,8 @@ scripts/demo/docker-e2e-success.sh
 
 Set `LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase` when the terminal demo should use the Tears of Steel terminology, high-contrast subtitles, and balanced subtitle polishing preset. Existing env overrides such as `LINGUAFRAME_DEMO_SUBTITLE_POLISHING_MODE=STRICT` still win over the profile.
 
+Set `LINGUAFRAME_DEMO_NARRATION_SCRIPT` or `LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE` when the upload should seed an editable narration workspace immediately. Rows use `START-END | VOICE | TEXT`, for example `00:15-00:28 | demo-voice | Explain this moment.` or `00:55-01:10 || Inherit the default voice.`. This only stores narration rows on the new job; TTS preview, narration audio generation, and narrated-video rendering still require explicit later actions.
+
 Expected output includes:
 
 ```text

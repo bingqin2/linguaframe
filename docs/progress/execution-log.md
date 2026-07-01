@@ -6,6 +6,33 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the upload narration script intake feature slice from `docs/plans/175-upload-narration-script-intake.md`.
+- Added backend `NarrationQuickScriptParser` for upload-time `START-END | VOICE | TEXT` rows, including timestamp normalization, blank inherited voice support, malformed row detection, overlap detection, text limits, row limits, and safe metadata summaries.
+- Extended media upload to accept optional `narrationScript`, parse it before storage, seed the new job's existing narration workspace after job creation and before dispatch, and return safe seeded/count metadata.
+- Added upload execution-plan and decision-package narration intake metadata and gates without exposing script bodies in general upload reports.
+- Added browser upload narration script intake with local quick-script preview/errors, disabled upload on malformed rows, API propagation, and execution-plan narration intake summary.
+- Added demo client support for `LINGUAFRAME_DEMO_NARRATION_SCRIPT` and `LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE`, plus safe upload response summary output in `docker-e2e-success.sh`.
+- Updated README, demo docs, decisions, and this execution log with upload-time narration seeding behavior.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationQuickScriptParserTests test` first failed at test compile because `NarrationQuickScriptParser` did not exist; after adding the parser, it passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=MediaUploadServiceTests,MediaUploadControllerTests test` first failed at test compile because upload service signatures, constructor injection, and `MediaUploadVo` metadata were not implemented; after wiring upload narration seeding, it passed.
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests test` first failed at test compile because `UploadCostEstimateOptionsBo` and `UploadExecutionPlanVo` had no narration intake fields; after adding safe narration intake metadata and gates, it passed.
+- `mvn -pl LinguaFrame -Dtest=UploadExecutionPlanServiceTests,UploadExecutionPlanReportServiceTests,UploadDecisionPackageServiceTests,MediaUploadControllerTests test` passed with `Tests run: 37, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration quick script|uploads media with narration|uploads with optional narration"` first failed because the test selected both the upload narration region and textarea; after using the textbox role, it passed with `Tests 2 passed`.
+- `npm --prefix frontend test -- --run src/domain/narrationQuickScriptImport.test.ts src/api/linguaframeApi.test.ts src/App.test.tsx` passed with `Tests 280 passed`.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed with `linguaframe-demo client tests passed`.
+- `mvn -pl LinguaFrame -Dtest=NarrationQuickScriptParserTests,MediaUploadServiceTests,MediaUploadControllerTests,UploadExecutionPlanServiceTests,UploadExecutionPlanReportServiceTests,UploadDecisionPackageServiceTests,UploadCostEstimateServiceTests test` passed with `Tests run: 69, Failures: 0, Errors: 0, Skipped: 0`.
+- After adding configured voice preset preflight validation, `mvn -pl LinguaFrame -Dtest=MediaUploadServiceTests,MediaUploadControllerTests,UploadExecutionPlanServiceTests test` passed with `Tests run: 59, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 879, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 329 passed`; jsdom printed expected navigation warnings from download/link fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `git diff --check` passed.
+
+Work:
+
 - Started the demo session cost-control board feature slice from `docs/plans/174-demo-session-cost-control-board.md`.
 - Added backend `DemoSessionCostControlBoardService`, VOs, JSON route, and Markdown download route that compose recent model usage, runtime budget posture, and owner quota preflight into one metadata-only run-day cost safety board.
 - Integrated cost-control status, spend, failed-call count, next action, phase readiness, links, and Markdown into the demo session command center.

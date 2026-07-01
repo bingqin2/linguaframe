@@ -4,6 +4,7 @@ import com.linguaframe.media.domain.vo.UploadExecutionPlanCommandVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanGateVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanStageVo;
 import com.linguaframe.media.domain.vo.UploadExecutionPlanVo;
+import com.linguaframe.media.domain.vo.UploadNarrationScriptIntakeVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionActionVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionLinkVo;
 import com.linguaframe.media.domain.vo.UploadSourceReuseDecisionVo;
@@ -102,6 +103,7 @@ class UploadExecutionPlanReportServiceTests {
                 List.of(new UploadExecutionPlanCommandVo("upload", "Run upload demo", "scripts/demo/docker-e2e-success.sh", "Run the selected demo upload.")),
                 sourceReuse,
                 decision,
+                narrationIntake(),
                 List.of("Estimate does not assume cache hits."),
                 List.of("Execution plan is read-only and does not store media or call providers.")
         );
@@ -151,8 +153,13 @@ class UploadExecutionPlanReportServiceTests {
                 List.of(),
                 sourceReuse,
                 decision,
+                narrationIntake(),
                 List.of(),
                 List.of("Only safe media metadata is returned.")
         );
+    }
+
+    private static UploadNarrationScriptIntakeVo narrationIntake() {
+        return new UploadNarrationScriptIntakeVo("READY", false, 0, 0, "none", List.of());
     }
 }

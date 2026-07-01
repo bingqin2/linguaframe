@@ -33,6 +33,7 @@ public record UploadExecutionPlanVo(
         List<UploadExecutionPlanCommandVo> commands,
         UploadSourceReuseVo sourceReuse,
         UploadSourceReuseDecisionVo sourceReuseDecision,
+        UploadNarrationScriptIntakeVo narrationScriptIntake,
         List<String> cacheNotes,
         List<String> safetyNotes
 ) {

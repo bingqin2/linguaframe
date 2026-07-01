@@ -148,7 +148,9 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) {
         return uploadCostEstimateService.estimate(file, new UploadCostEstimateOptionsBo(
                 targetLanguage,
@@ -157,7 +159,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         ));
     }
 
@@ -183,7 +186,9 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) {
         return uploadExecutionPlanService.plan(file, uploadOptions(
                 targetLanguage,
@@ -192,7 +197,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         ));
     }
 
@@ -218,7 +224,9 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) {
         UploadExecutionPlanVo plan = uploadExecutionPlanService.plan(file, uploadOptions(
                 targetLanguage,
@@ -227,7 +235,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         ));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/markdown"))
@@ -258,7 +267,9 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) {
         UploadDecisionPackageVo decisionPackage = uploadDecisionPackageService.build(file, uploadOptions(
                 targetLanguage,
@@ -267,7 +278,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         ));
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType("text/markdown"))
@@ -298,7 +310,9 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) throws JsonProcessingException {
         UploadDecisionPackageVo decisionPackage = uploadDecisionPackageService.build(file, uploadOptions(
                 targetLanguage,
@@ -307,7 +321,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         ));
         byte[] zip = uploadDecisionPackageZip(decisionPackage);
         return ResponseEntity.ok()
@@ -341,9 +356,11 @@ public class MediaUploadController {
             @Parameter(description = "Optional subtitle polishing mode: OFF, BALANCED, or STRICT.")
             @RequestParam(value = "subtitlePolishingMode", required = false) String subtitlePolishingMode,
             @Parameter(description = "Optional built-in demo run profile id.")
-            @RequestParam(value = "demoProfileId", required = false) String demoProfileId
+            @RequestParam(value = "demoProfileId", required = false) String demoProfileId,
+            @Parameter(description = "Optional time-coded narration quick script rows.")
+            @RequestParam(value = "narrationScript", required = false) String narrationScript
     ) {
-        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, subtitlePolishingMode, demoProfileId);
+        MediaUploadVo upload = uploadService.createUpload(file, targetLanguage, ttsVoice, translationStyle, subtitleStylePreset, translationGlossary, subtitlePolishingMode, demoProfileId, narrationScript);
         return ResponseEntity.status(HttpStatus.CREATED).body(upload);
     }
 
@@ -388,7 +405,8 @@ public class MediaUploadController {
             String subtitleStylePreset,
             String translationGlossary,
             String subtitlePolishingMode,
-            String demoProfileId
+            String demoProfileId,
+            String narrationScript
     ) {
         return new UploadCostEstimateOptionsBo(
                 targetLanguage,
@@ -397,7 +415,8 @@ public class MediaUploadController {
                 subtitleStylePreset,
                 translationGlossary,
                 subtitlePolishingMode,
-                demoProfileId
+                demoProfileId,
+                narrationScript
         );
     }
 

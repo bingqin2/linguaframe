@@ -54,8 +54,12 @@ ensure_demo_sample "$SAMPLE_PATH"
 
 upload_response="$(upload_demo_video "$BASE_URL" "$SAMPLE_PATH")"
 job_id="$(printf '%s' "$upload_response" | extract_json_field jobId)"
+narration_script_seeded="$(printf '%s' "$upload_response" | extract_json_field narrationScriptSeeded)"
+narration_script_segment_count="$(printf '%s' "$upload_response" | extract_json_field narrationScriptSegmentCount)"
+narration_script_character_count="$(printf '%s' "$upload_response" | extract_json_field narrationScriptCharacterCount)"
 
 echo "Uploaded demo video. Waiting for job $job_id to complete..."
+echo "Upload narration script seeded: $narration_script_seeded (${narration_script_segment_count} rows, ${narration_script_character_count} characters)."
 job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
 video_id="$(printf '%s' "$job_response" | extract_json_field videoId)"
 mkdir -p "$(dirname "$JOB_DETAIL_PATH")"

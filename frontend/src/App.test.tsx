@@ -1495,6 +1495,7 @@ describe('App', () => {
       'HIGH_CONTRAST',
       'Maya => 玛雅',
       'OFF',
+      '',
       ''
     );
     expect(validateUpload).toHaveBeenCalledBefore(linguaFrameApi.uploadMedia as never);
@@ -1736,7 +1737,54 @@ describe('App', () => {
         'HIGH_CONTRAST',
         expect.stringContaining('Tears of Steel'),
         'BALANCED',
-        'tears-showcase'
+        'tears-showcase',
+        ''
+      )
+    );
+  });
+
+  test('uploads with optional narration quick script and blocks malformed rows locally', async () => {
+    vi.spyOn(linguaFrameApi, 'validateUpload').mockResolvedValue(mediaUploadValidationFixture());
+    const uploadMedia = vi.spyOn(linguaFrameApi, 'uploadMedia').mockResolvedValue(mediaUploadFixture({
+      narrationScriptSeeded: true,
+      narrationScriptSegmentCount: 2,
+      narrationScriptCharacterCount: 54
+    }));
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(jobFixture({ status: 'QUEUED' }));
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+
+    render(<App />);
+
+    await userEvent.upload(
+      screen.getByLabelText(/video file/i),
+      new File(['demo'], 'sample.mp4', { type: 'video/mp4' })
+    );
+    const narrationScriptInput = screen.getByRole('textbox', { name: /upload narration script/i });
+    await userEvent.type(narrationScriptInput, '00:20-00:10 | demo-voice | Backwards.');
+    expect(screen.getByRole('button', { name: /upload/i })).toBeDisabled();
+    expect(screen.getByText(/end must be after start/i)).toBeInTheDocument();
+
+    await userEvent.clear(narrationScriptInput);
+    await userEvent.type(
+      narrationScriptInput,
+      '00:15-00:28 | demo-voice | Explain the opening gesture.\n00:55-01:10 || Inherit the default voice.'
+    );
+    expect(screen.getByRole('button', { name: /upload/i })).not.toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: /upload/i }));
+
+    await waitFor(() =>
+      expect(uploadMedia).toHaveBeenCalledWith(
+        expect.any(File),
+        'zh-CN',
+        '',
+        'NATURAL',
+        'STANDARD',
+        '',
+        'OFF',
+        '',
+        expect.stringContaining('Explain the opening gesture')
       )
     );
   });
@@ -8289,6 +8337,9 @@ function mediaUploadFixture(overrides: Partial<MediaUpload> = {}): MediaUpload {
     translationGlossaryHash: '',
     subtitlePolishingMode: 'OFF',
     demoProfileId: null,
+    narrationScriptSeeded: false,
+    narrationScriptSegmentCount: 0,
+    narrationScriptCharacterCount: 0,
     createdAt: '2026-06-26T10:00:00Z',
     ...overrides
   };

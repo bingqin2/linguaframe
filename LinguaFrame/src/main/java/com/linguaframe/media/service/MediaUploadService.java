@@ -68,6 +68,29 @@ public interface MediaUploadService {
             String demoProfileId
     );
 
+    default MediaUploadVo createUpload(
+            MultipartFile file,
+            String targetLanguage,
+            String ttsVoice,
+            String translationStyle,
+            String subtitleStylePreset,
+            String translationGlossary,
+            String subtitlePolishingMode,
+            String demoProfileId,
+            String narrationScript
+    ) {
+        return createUpload(
+                file,
+                targetLanguage,
+                ttsVoice,
+                translationStyle,
+                subtitleStylePreset,
+                translationGlossary,
+                subtitlePolishingMode,
+                demoProfileId
+        );
+    }
+
     MediaUploadDetailVo getUpload(String videoId);
 
     StoredObjectResourceBo openSourceMedia(String videoId);

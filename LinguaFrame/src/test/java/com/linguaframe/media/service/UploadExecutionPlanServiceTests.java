@@ -89,6 +89,101 @@ class UploadExecutionPlanServiceTests {
         assertThat(plan.sourceReuse().recommendedAction()).isEqualTo("UPLOAD_NEW_SOURCE");
         assertThat(plan.sourceReuse().candidateCount()).isZero();
         assertThat(plan.sourceReuseDecision().status()).isEqualTo("UPLOAD_NEW_SOURCE");
+        assertThat(plan.narrationScriptIntake().status()).isEqualTo("READY");
+        assertThat(plan.narrationScriptIntake().segmentCount()).isZero();
+    }
+
+    @Test
+    void includesSafeNarrationScriptIntakeMetadata() {
+        costEstimateService.next = readyCostEstimate();
+        readinessService.next = readiness("READY", List.of());
+        ownerQuotaPreflightService.next = ownerPreflight(true);
+
+        UploadExecutionPlanVo plan = service.plan(videoFile(), new UploadCostEstimateOptionsBo(
+                "zh-CN",
+                "",
+                "FORMAL",
+                "HIGH_CONTRAST",
+                "Maya => 玛雅",
+                "BALANCED",
+                "tears-showcase",
+                """
+                        00:15-00:28 | demo-voice | Explain the opening gesture.
+                        00:55-01:10 || Inherit the default voice.
+                        """
+        ));
+
+        assertThat(plan.overallStatus()).isEqualTo("READY");
+        assertThat(plan.narrationScriptIntake().status()).isEqualTo("READY");
+        assertThat(plan.narrationScriptIntake().segmentCount()).isEqualTo(2);
+        assertThat(plan.narrationScriptIntake().characterCount()).isEqualTo(54);
+        assertThat(plan.narrationScriptIntake().voiceSummary()).isEqualTo("demo-voice: 1, inherited: 1");
+        assertThat(plan.narrationScriptIntake().errors()).isEmpty();
+        assertThat(plan.gates())
+                .anySatisfy(gate -> {
+                    assertThat(gate.id()).isEqualTo("narrationScriptIntake");
+                    assertThat(gate.status()).isEqualTo("READY");
+                    assertThat(gate.detail()).contains("2 narration script rows");
+                });
+    }
+
+    @Test
+    void blocksInvalidNarrationScriptIntake() {
+        costEstimateService.next = readyCostEstimate();
+        readinessService.next = readiness("READY", List.of());
+        ownerQuotaPreflightService.next = ownerPreflight(true);
+
+        UploadExecutionPlanVo plan = service.plan(videoFile(), new UploadCostEstimateOptionsBo(
+                "zh-CN",
+                "",
+                "FORMAL",
+                "HIGH_CONTRAST",
+                "",
+                "BALANCED",
+                "quick-baseline",
+                "00:20-00:10 | demo-voice | Backwards."
+        ));
+
+        assertThat(plan.overallStatus()).isEqualTo("BLOCKED");
+        assertThat(plan.recommendedNextAction()).contains("blocking");
+        assertThat(plan.narrationScriptIntake().status()).isEqualTo("BLOCKED");
+        assertThat(plan.narrationScriptIntake().errors())
+                .containsExactly("Row 1: end time must be greater than start time.");
+        assertThat(plan.gates())
+                .anySatisfy(gate -> {
+                    assertThat(gate.id()).isEqualTo("narrationScriptIntake");
+                    assertThat(gate.status()).isEqualTo("BLOCKED");
+                    assertThat(gate.blocking()).isTrue();
+                });
+    }
+
+    @Test
+    void blocksUnknownNarrationVoiceInDemoMode() {
+        costEstimateService.next = readyCostEstimate();
+        readinessService.next = readiness("READY", List.of());
+        ownerQuotaPreflightService.next = ownerPreflight(true);
+
+        UploadExecutionPlanVo plan = service.plan(videoFile(), new UploadCostEstimateOptionsBo(
+                "zh-CN",
+                "",
+                "FORMAL",
+                "HIGH_CONTRAST",
+                "",
+                "BALANCED",
+                "quick-baseline",
+                "00:15-00:28 | alloy | OpenAI voice is not available in demo mode."
+        ));
+
+        assertThat(plan.overallStatus()).isEqualTo("BLOCKED");
+        assertThat(plan.narrationScriptIntake().status()).isEqualTo("BLOCKED");
+        assertThat(plan.narrationScriptIntake().errors())
+                .containsExactly("Row 1: narration voice must be one of the configured presets.");
+        assertThat(plan.gates())
+                .anySatisfy(gate -> {
+                    assertThat(gate.id()).isEqualTo("narrationScriptIntake");
+                    assertThat(gate.status()).isEqualTo("BLOCKED");
+                    assertThat(gate.blocking()).isTrue();
+                });
     }
 
     @Test
