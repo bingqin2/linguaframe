@@ -314,6 +314,17 @@ bash -n scripts/demo/narration-demo-render-preflight.sh scripts/demo/narration-d
 
 Expected:
 
+- Browser selected-job narration workspace shows `Render custom narration` near `Demo narration preset` and `Render narration demo`.
+- `Run custom preflight` shows `READY`, `ATTENTION`, or `BLOCKED`, provider mode, paid-provider flag, saved row count, character count, narration span, scene-board status, audio/video readiness, required acknowledgements, safe command, safe routes, and check rows.
+- Custom render remains disabled until the latest matching preflight is `READY` or `ATTENTION` and required provider/video acknowledgements are checked.
+- `BLOCKED` custom preflight remains visible and disables render without hiding save, preview, separate generate audio/video, demo preset, or demo render controls.
+- `Generate narrated video` defaults on and maps to `generateNarratedVideo`; disabling it produces an audio-only custom render request.
+- A successful custom render refreshes artifacts, narration workspace, scene board, evidence, delivery package, and render preflight, then shows audio/video/review/evidence/delivery step rows.
+- If audio succeeds but narrated-video generation fails, the backend returns `PARTIAL`, keeps `NARRATION_AUDIO`, and reports the video step as failed.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true scripts/demo/custom-narration-render.sh` writes preflight JSON plus Markdown report without rendering media.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false scripts/demo/custom-narration-render.sh` runs the saved custom workspace as audio-only output.
+- `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/custom-narration-render.sh` writes render JSON, refreshed narration evidence, and delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`.
+- Custom render outputs must not apply the demo preset, replace operator-authored rows, print narration text, print reviewer note bodies, expose object keys/local paths/provider payloads/tokens/API keys, or include media bytes.
 - Browser selected-job narration workspace shows `Render narration demo` near `Demo narration preset`.
 - `Render preflight` shows `READY`, `ATTENTION`, or `BLOCKED`, provider mode, paid-provider flag, estimated size, existing workspace size, output plan, safe next command, evidence routes, and check rows.
 - Render remains disabled until the latest matching preflight is `READY` or `ATTENTION` and both replacement and paid-provider acknowledgements are checked.

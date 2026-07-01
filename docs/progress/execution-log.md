@@ -5259,3 +5259,26 @@ Validation so far:
 - `mvn -pl LinguaFrame -Dtest=UploadNarrationLaunchpadServiceTests test` passed with `Tests run: 3, Failures: 0, Errors: 0, Skipped: 0`.
 - `mvn -pl LinguaFrame -Dtest=UploadNarrationLaunchpadReportServiceTests,LocalizationJobControllerTests#returnsUploadNarrationLaunchpadJsonAndMetadataOnlyMarkdown test` passed with `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`.
 - `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "upload narration launchpad|optional narration quick script"` passed with `Test Files 2 passed` and `Tests 2 passed | 271 skipped`; jsdom printed an expected navigation warning from blob/link navigation.
+
+Work:
+
+- Started the custom narration render console feature slice from `docs/plans/177-custom-narration-render-console.md`.
+- Added backend custom saved-workspace render preflight, render action, and metadata-only Markdown report routes.
+- Added a browser `Render custom narration` panel that works on saved custom rows, requires preflight plus provider/video acknowledgements, renders audio plus optional video, and shows step/partial status without hiding existing narration controls.
+- Added typed frontend API helpers, route-encoding tests, terminal `scripts/demo/custom-narration-render.sh`, shared Bash helpers, optional seeded short/full E2E integration, route/body/redaction shell tests, and documentation.
+- Recorded the decision to keep custom saved-workspace render separate from demo-preset render so operator-authored rows are not replaced.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=CustomNarrationRenderConsoleServiceTests,CustomNarrationRenderReportServiceTests,LocalizationJobControllerTests#returnsCustomNarrationRenderPreflightForSavedWorkspace test` passed with `Tests run: 9, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=LocalizationJobControllerTests#rendersCustomNarrationWorkspaceAndDownloadsMetadataOnlyReport test` passed with `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts -t "custom narration render|custom narration"` passed with `Tests 2 passed | 117 skipped`.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/custom-narration-render.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=CustomNarrationRenderConsoleServiceTests,CustomNarrationRenderReportServiceTests,LocalizationJobControllerTests test` first exposed an inconsistent controller test assertion for audio-only preflight, then passed with `Tests run: 95, Failures: 0, Errors: 0, Skipped: 0` after aligning the assertion with the request body.
+- `bash -n scripts/demo/custom-narration-render.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 894, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 332 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 597.95 kB bundle.
+- `git diff --check` passed.

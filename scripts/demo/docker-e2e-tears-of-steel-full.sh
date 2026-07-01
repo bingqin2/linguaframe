@@ -18,6 +18,7 @@ Environment:
   LINGUAFRAME_FULL_DEMO_WAIT_ATTEMPTS       Default: 240
   LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS  Default: 5
   LINGUAFRAME_RENDER_NARRATION_DEMO         Default: false
+  LINGUAFRAME_RENDER_CUSTOM_NARRATION       Default: false
   LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET   Default: false
   LINGUAFRAME_NARRATION_DEMO_RENDER_PREFLIGHT_REQUIRED
                                               Default for full render: true
@@ -41,6 +42,7 @@ WAIT_DELAY_SECONDS="${LINGUAFRAME_FULL_DEMO_WAIT_DELAY_SECONDS:-5}"
 COMPARISON_BASELINE_JOB_ID="${LINGUAFRAME_COMPARISON_BASELINE_JOB_ID:-}"
 APPLY_NARRATION_DEMO_PRESET="${LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET:-false}"
 RENDER_NARRATION_DEMO="${LINGUAFRAME_RENDER_NARRATION_DEMO:-false}"
+RENDER_CUSTOM_NARRATION="${LINGUAFRAME_RENDER_CUSTOM_NARRATION:-false}"
 
 if [[ ! -s "$SAMPLE_PATH" ]]; then
   echo "Missing Tears of Steel sample: $SAMPLE_PATH" >&2
@@ -173,6 +175,16 @@ else
   echo "Skipping narration demo render. Set LINGUAFRAME_RENDER_NARRATION_DEMO=true to apply the preset, generate narration audio/video, and export refreshed evidence."
   echo "Run scripts/demo/narration-demo-render-preflight.sh with LINGUAFRAME_DEMO_JOB_ID=$job_id to inspect the read-only preflight first."
   echo "Set LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true for the apply-only workflow."
+fi
+
+if [[ "$RENDER_CUSTOM_NARRATION" == "true" ]]; then
+  echo "Custom narration render:"
+  LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+    LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR="$OUTPUT_DIR/custom-narration-render" \
+    "$SCRIPT_DIR/custom-narration-render.sh"
+else
+  echo "Skipping custom narration render. Set LINGUAFRAME_RENDER_CUSTOM_NARRATION=true to render saved upload-seeded or manually edited narration rows."
+  echo "Run scripts/demo/custom-narration-render.sh with LINGUAFRAME_DEMO_JOB_ID=$job_id to preflight and render the saved custom workspace."
 fi
 
 echo "Narration evidence:"

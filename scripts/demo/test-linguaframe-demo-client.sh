@@ -3870,6 +3870,109 @@ JSON
   [[ "$output" != *"raw transcript text"* ]] || fail "delivery receipt summary exposed transcript"
 }
 
+test_custom_narration_render_helpers_use_backend_routes() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    preflight_custom_narration_render_json \
+    "http://example.test" \
+    "job with spaces/slash" \
+    true \
+    true \
+    true \
+    "$TMPDIR/custom-narration-preflight.json" >"$TMPDIR/custom-narration-preflight-curl.out"
+  local preflight_output
+  preflight_output="$(cat "$TMPDIR/custom-narration-preflight-curl.out")"
+  [[ "$preflight_output" == *"http://example.test/api/jobs/job%20with%20spaces%2Fslash/custom-narration-render/preflight"* ]] || fail "custom narration preflight helper used wrong route"
+  [[ "$preflight_output" == *"{\"generateNarratedVideo\":true,\"acknowledgeProviderCost\":true,\"acknowledgeVideoRender\":true}"* ]] || fail "custom narration preflight helper missed acknowledgement body"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    render_custom_narration_json \
+    "http://example.test" \
+    "job with spaces/slash" \
+    false \
+    true \
+    false \
+    "$TMPDIR/custom-narration-render.json" >"$TMPDIR/custom-narration-render-curl.out"
+  local render_output
+  render_output="$(cat "$TMPDIR/custom-narration-render-curl.out")"
+  [[ "$render_output" == *"http://example.test/api/jobs/job%20with%20spaces%2Fslash/custom-narration-render"* ]] || fail "custom narration render helper used wrong route"
+  [[ "$render_output" == *"{\"generateNarratedVideo\":false,\"acknowledgeProviderCost\":true,\"acknowledgeVideoRender\":false}"* ]] || fail "custom narration render helper missed acknowledgement body"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_custom_narration_render_markdown \
+    "http://example.test" \
+    "job with spaces/slash" \
+    "$TMPDIR/custom-narration-render.md" >"$TMPDIR/custom-narration-render-md-curl.out"
+  local markdown_output
+  markdown_output="$(cat "$TMPDIR/custom-narration-render-md-curl.out")"
+  [[ "$markdown_output" == *"http://example.test/api/jobs/job%20with%20spaces%2Fslash/custom-narration-render/markdown/download"* ]] || fail "custom narration render markdown helper used wrong route"
+}
+
+test_custom_narration_render_summaries_are_metadata_only() {
+  cat >"$TMPDIR/custom-narration-render-preflight.json" <<'JSON'
+{
+  "jobId": "job-alpha",
+  "status": "ATTENTION",
+  "checks": [
+    { "key": "SCENE_BOARD", "label": "Scene board", "status": "WARN", "message": "Review scene board." }
+  ],
+  "segmentCount": 2,
+  "characterCount": 50,
+  "totalNarrationSeconds": 12.5,
+  "voiceSummary": "PRESET:demo",
+  "sceneBoardStatus": "ATTENTION",
+  "renderReviewStatus": "ATTENTION",
+  "evidenceStatus": "ATTENTION",
+  "providerMode": "demo",
+  "paidProvider": false,
+  "generateNarratedVideo": true,
+  "audioReady": false,
+  "videoReady": false,
+  "requiredAcknowledgements": ["VIDEO_RENDER"],
+  "safeNextCommand": "LINGUAFRAME_DEMO_JOB_ID=job-alpha scripts/demo/custom-narration-render.sh",
+  "safeRoutes": ["/api/jobs/job-alpha/custom-narration-render"],
+  "safetyNotes": ["Metadata only."]
+}
+JSON
+  print_custom_narration_render_preflight_summary_file "$TMPDIR/custom-narration-render-preflight.json" >"$TMPDIR/custom-narration-render-preflight.out"
+  local preflight_summary
+  preflight_summary="$(cat "$TMPDIR/custom-narration-render-preflight.out")"
+  [[ "$preflight_summary" == *"customNarrationRenderPreflightStatus=ATTENTION"* ]] || fail "custom narration preflight summary missed status"
+  [[ "$preflight_summary" == *"customNarrationRenderPreflightRequiredAcknowledgements=VIDEO_RENDER"* ]] || fail "custom narration preflight summary missed acknowledgements"
+  [[ "$preflight_summary" != *"/Users/example"* ]] || fail "custom narration preflight summary exposed local path"
+  [[ "$preflight_summary" != *"sk-"* ]] || fail "custom narration preflight summary exposed API key prefix"
+
+  cat >"$TMPDIR/custom-narration-render.json" <<'JSON'
+{
+  "jobId": "job-alpha",
+  "status": "READY",
+  "generateNarratedVideo": true,
+  "preflight": null,
+  "steps": [
+    { "key": "AUDIO", "label": "Generate audio", "status": "SUCCEEDED", "message": "Audio ready." }
+  ],
+  "narrationAudio": { "filename": "narration-audio.mp3" },
+  "narratedVideo": { "filename": "narrated-video.mp4" },
+  "renderReview": null,
+  "playbackReview": null,
+  "evidence": { "status": "READY" },
+  "deliveryPackage": { "status": "READY" },
+  "generatedArtifactCount": 2,
+  "nextAction": "Review playback."
+}
+JSON
+  print_custom_narration_render_summary_file "$TMPDIR/custom-narration-render.json" >"$TMPDIR/custom-narration-render.out"
+  local render_summary
+  render_summary="$(cat "$TMPDIR/custom-narration-render.out")"
+  [[ "$render_summary" == *"customNarrationRenderStatus=READY"* ]] || fail "custom narration render summary missed status"
+  [[ "$render_summary" == *"customNarrationRenderStep=AUDIO:SUCCEEDED"* ]] || fail "custom narration render summary missed step"
+  [[ "$render_summary" == *"customNarrationRenderGeneratedArtifactCount=2"* ]] || fail "custom narration render summary missed artifact count"
+  [[ "$render_summary" != *"provider payload"* ]] || fail "custom narration render summary exposed provider payload"
+  [[ "$render_summary" != *"raw narration text"* ]] || fail "custom narration render summary exposed narration text"
+}
+
 test_demo_curl_adds_token_header_when_configured
 test_demo_curl_omits_token_header_when_not_configured
 test_demo_base_url_uses_backend_port_from_env_file
@@ -3940,5 +4043,7 @@ test_private_demo_launch_rehearsal_helpers_are_metadata_only
 test_private_demo_evidence_gallery_helpers_are_metadata_only
 test_private_demo_run_archive_helpers_are_metadata_only
 test_private_demo_delivery_receipt_helpers_are_metadata_only
+test_custom_narration_render_helpers_use_backend_routes
+test_custom_narration_render_summaries_are_metadata_only
 
 echo "linguaframe-demo client tests passed"

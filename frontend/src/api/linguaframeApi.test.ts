@@ -82,8 +82,11 @@ import {
   downloadSubtitleReviewEvidenceZip,
   generateNarrationAudio,
   generateNarratedVideo,
+  downloadCustomNarrationRenderMarkdown,
+  preflightCustomNarrationRender,
   preflightNarrationDemoRender,
   previewNarrationSegment,
+  renderCustomNarration,
   renderNarrationDemo,
   importNarrationScriptPackage,
   getDemoSession,
@@ -958,6 +961,106 @@ describe('linguaframeApi', () => {
         generateNarratedVideo: false
       })
     });
+  });
+
+  test('preflights custom narration render with encoded route and acknowledgements', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job narration/render',
+        status: 'ATTENTION',
+        checks: [
+          {
+            key: 'SCENE_BOARD',
+            label: 'Scene board',
+            status: 'WARN',
+            message: 'Review scene-board status before render.'
+          }
+        ],
+        segmentCount: 2,
+        characterCount: 64,
+        totalNarrationSeconds: 12.5,
+        voiceSummary: 'PRESET:demo-voice',
+        sceneBoardStatus: 'ATTENTION',
+        renderReviewStatus: 'ATTENTION',
+        evidenceStatus: 'ATTENTION',
+        providerMode: 'demo',
+        paidProvider: false,
+        generateNarratedVideo: true,
+        audioReady: false,
+        videoReady: false,
+        requiredAcknowledgements: ['VIDEO_RENDER'],
+        safeNextCommand: 'LINGUAFRAME_DEMO_JOB_ID=job narration/render scripts/demo/custom-narration-render.sh',
+        safeRoutes: ['/api/jobs/job narration/render/custom-narration-render'],
+        safetyNotes: ['Metadata only.']
+      })
+    );
+
+    await preflightCustomNarrationRender('job narration/render', {
+      generateNarratedVideo: true,
+      acknowledgeProviderCost: false,
+      acknowledgeVideoRender: true
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Frender/custom-narration-render/preflight');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        generateNarratedVideo: true,
+        acknowledgeProviderCost: false,
+        acknowledgeVideoRender: true
+      })
+    });
+  });
+
+  test('renders custom narration and downloads metadata report with encoded routes', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        jsonResponse({
+          jobId: 'job narration/render',
+          status: 'PARTIAL',
+          generateNarratedVideo: true,
+          preflight: null,
+          steps: [
+            {
+              key: 'NARRATED_VIDEO',
+              label: 'Generate narrated video',
+              status: 'FAILED',
+              message: 'Video failed.'
+            }
+          ],
+          narrationAudio: null,
+          narratedVideo: null,
+          renderReview: null,
+          playbackReview: null,
+          evidence: null,
+          deliveryPackage: null,
+          generatedArtifactCount: 1,
+          nextAction: 'Retry video.'
+        })
+      )
+      .mockResolvedValueOnce(new Response('report', { headers: { 'Content-Type': 'text/markdown' } }));
+
+    await renderCustomNarration('job narration/render', {
+      generateNarratedVideo: true,
+      acknowledgeProviderCost: true,
+      acknowledgeVideoRender: true
+    });
+    await downloadCustomNarrationRenderMarkdown('job narration/render');
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/jobs/job%20narration%2Frender/custom-narration-render');
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({
+        generateNarratedVideo: true,
+        acknowledgeProviderCost: true,
+        acknowledgeVideoRender: true
+      })
+    });
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(
+      '/api/jobs/job%20narration%2Frender/custom-narration-render/markdown/download'
+    );
+    expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({ method: 'GET' });
   });
 
   test('loads, downloads, and imports narration script packages', async () => {

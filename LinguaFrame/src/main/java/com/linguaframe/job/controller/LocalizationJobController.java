@@ -2,6 +2,8 @@ package com.linguaframe.job.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.linguaframe.job.domain.dto.CustomNarrationRenderDto;
+import com.linguaframe.job.domain.dto.CustomNarrationRenderPreflightDto;
 import com.linguaframe.job.domain.dto.ImportNarrationScriptPackageDto;
 import com.linguaframe.job.domain.dto.ApplyNarrationDemoPresetDto;
 import com.linguaframe.job.domain.dto.NarrationDemoRenderPreflightRequestDto;
@@ -32,6 +34,8 @@ import com.linguaframe.job.domain.bo.StoredNarrationRecoveryHandoffPackageBo;
 import com.linguaframe.job.domain.bo.StoredNarrationScriptPackageBo;
 import com.linguaframe.job.domain.bo.StoredSubtitleReviewEvidencePackageBo;
 import com.linguaframe.job.domain.vo.JobArtifactVo;
+import com.linguaframe.job.domain.vo.CustomNarrationRenderPreflightVo;
+import com.linguaframe.job.domain.vo.CustomNarrationRenderVo;
 import com.linguaframe.job.domain.vo.DeliveryManifestVo;
 import com.linguaframe.job.domain.vo.DemoAcceptanceGateVo;
 import com.linguaframe.job.domain.vo.DemoCompletionCertificateVo;
@@ -101,6 +105,8 @@ import com.linguaframe.job.service.LocalizationJobProgressStreamService;
 import com.linguaframe.job.service.LocalizationJobQueryService;
 import com.linguaframe.job.service.LocalizationJobRetryService;
 import com.linguaframe.job.service.NarrationAudioService;
+import com.linguaframe.job.service.CustomNarrationRenderConsoleService;
+import com.linguaframe.job.service.CustomNarrationRenderReportService;
 import com.linguaframe.job.service.NarrationDemoPresetApplyService;
 import com.linguaframe.job.service.NarrationDemoRenderPreflightService;
 import com.linguaframe.job.service.NarrationDemoRenderService;
@@ -193,6 +199,8 @@ public class LocalizationJobController {
     private final SubtitleReviewEvidenceService subtitleReviewEvidenceService;
     private final SubtitleReviewService subtitleReviewService;
     private final NarrationAudioService narrationAudioService;
+    private final CustomNarrationRenderConsoleService customNarrationRenderConsoleService;
+    private final CustomNarrationRenderReportService customNarrationRenderReportService;
     private final NarrationDemoPresetApplyService narrationDemoPresetApplyService;
     private final NarrationDemoRenderPreflightService narrationDemoRenderPreflightService;
     private final NarrationDemoRenderService narrationDemoRenderService;
@@ -248,6 +256,8 @@ public class LocalizationJobController {
             SubtitleReviewEvidenceService subtitleReviewEvidenceService,
             SubtitleReviewService subtitleReviewService,
             NarrationAudioService narrationAudioService,
+            CustomNarrationRenderConsoleService customNarrationRenderConsoleService,
+            CustomNarrationRenderReportService customNarrationRenderReportService,
             NarrationDemoPresetApplyService narrationDemoPresetApplyService,
             NarrationDemoRenderPreflightService narrationDemoRenderPreflightService,
             NarrationDemoRenderService narrationDemoRenderService,
@@ -302,6 +312,8 @@ public class LocalizationJobController {
         this.subtitleReviewEvidenceService = subtitleReviewEvidenceService;
         this.subtitleReviewService = subtitleReviewService;
         this.narrationAudioService = narrationAudioService;
+        this.customNarrationRenderConsoleService = customNarrationRenderConsoleService;
+        this.customNarrationRenderReportService = customNarrationRenderReportService;
         this.narrationDemoPresetApplyService = narrationDemoPresetApplyService;
         this.narrationDemoRenderPreflightService = narrationDemoRenderPreflightService;
         this.narrationDemoRenderService = narrationDemoRenderService;
@@ -1848,6 +1860,59 @@ public class LocalizationJobController {
             @RequestBody(required = false) NarrationDemoRenderPreflightRequestDto request
     ) {
         return narrationDemoRenderPreflightService.preflight(jobId, request);
+    }
+
+    @PostMapping("/{jobId}/custom-narration-render/preflight")
+    @Operation(summary = "Preflight rendering the saved custom narration workspace without mutating the job")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Custom narration render preflight was built."),
+            @ApiResponse(responseCode = "400", description = "The custom narration render preflight request failed validation."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public CustomNarrationRenderPreflightVo preflightCustomNarrationRender(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) CustomNarrationRenderPreflightDto request
+    ) {
+        return customNarrationRenderConsoleService.preflight(jobId, request);
+    }
+
+    @PostMapping("/{jobId}/custom-narration-render")
+    @Operation(summary = "Render the saved custom narration workspace")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Custom narration render completed or returned partial progress."),
+            @ApiResponse(responseCode = "400", description = "The custom narration render request failed validation."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled."),
+            @ApiResponse(responseCode = "404", description = "No localization job exists for the supplied job id.")
+    })
+    public CustomNarrationRenderVo renderCustomNarration(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId,
+            @RequestBody(required = false) CustomNarrationRenderDto request
+    ) {
+        return customNarrationRenderConsoleService.render(jobId, request);
+    }
+
+    @GetMapping("/{jobId}/custom-narration-render/markdown/download")
+    @Operation(summary = "Download a metadata-only custom narration render Markdown report")
+    public ResponseEntity<String> downloadCustomNarrationRenderMarkdown(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        CustomNarrationRenderPreflightVo preflight = customNarrationRenderConsoleService.preflight(
+                jobId,
+                new CustomNarrationRenderPreflightDto(false, false, false)
+        );
+        CustomNarrationRenderVo render = customNarrationRenderReportService.reportOnly(jobId, preflight);
+        String markdown = customNarrationRenderReportService.renderMarkdown(render);
+        return ResponseEntity.ok()
+                .contentType(MediaType.valueOf("text/markdown;charset=UTF-8"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename("linguaframe-job-" + jobId + "-custom-narration-render.md")
+                        .build()
+                        .toString())
+                .body(markdown);
     }
 
     @GetMapping("/{jobId}/narration-script-package/markdown/download")

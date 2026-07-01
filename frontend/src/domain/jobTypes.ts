@@ -2592,6 +2592,71 @@ export interface NarrationDemoRenderResult {
   generatedArtifactCount: number;
 }
 
+export type CustomNarrationRenderStatus = 'READY' | 'PARTIAL' | 'FAILED';
+export type CustomNarrationRenderPreflightStatus = 'READY' | 'ATTENTION' | 'BLOCKED';
+export type CustomNarrationRenderCheckStatus = 'PASS' | 'WARN' | 'BLOCK';
+export type CustomNarrationRenderStepStatus = 'READY' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'SKIPPED';
+
+export interface CustomNarrationRenderRequest {
+  generateNarratedVideo: boolean;
+  acknowledgeProviderCost: boolean;
+  acknowledgeVideoRender: boolean;
+}
+
+export type CustomNarrationRenderPreflightRequest = CustomNarrationRenderRequest;
+
+export interface CustomNarrationRenderCheck {
+  key: string;
+  label: string;
+  status: CustomNarrationRenderCheckStatus;
+  message: string;
+}
+
+export interface CustomNarrationRenderPreflight {
+  jobId: string;
+  status: CustomNarrationRenderPreflightStatus;
+  checks: CustomNarrationRenderCheck[];
+  segmentCount: number;
+  characterCount: number;
+  totalNarrationSeconds: number;
+  voiceSummary: string;
+  sceneBoardStatus: string;
+  renderReviewStatus: string;
+  evidenceStatus: string;
+  providerMode: string;
+  paidProvider: boolean;
+  generateNarratedVideo: boolean;
+  audioReady: boolean;
+  videoReady: boolean;
+  requiredAcknowledgements: string[];
+  safeNextCommand: string;
+  safeRoutes: string[];
+  safetyNotes: string[];
+}
+
+export interface CustomNarrationRenderStep {
+  key: string;
+  label: string;
+  status: CustomNarrationRenderStepStatus;
+  message: string;
+}
+
+export interface CustomNarrationRenderResult {
+  jobId: string;
+  status: CustomNarrationRenderStatus;
+  generateNarratedVideo: boolean;
+  preflight: CustomNarrationRenderPreflight;
+  steps: CustomNarrationRenderStep[];
+  narrationAudio: NarrationGeneration | null;
+  narratedVideo: NarratedVideoGeneration | null;
+  renderReview: NarrationRenderReview | null;
+  playbackReview: NarrationPlaybackReview | null;
+  evidence: NarrationEvidence | null;
+  deliveryPackage: NarrationDeliveryPackage | null;
+  generatedArtifactCount: number;
+  nextAction: string;
+}
+
 export interface TranscriptSegment {
   index: number;
   startMs: number;

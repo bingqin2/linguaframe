@@ -26,6 +26,10 @@ import type {
   DemoSessionStatus,
   DemoUploadReadiness,
   DeliveryManifest,
+  CustomNarrationRenderPreflight,
+  CustomNarrationRenderPreflightRequest,
+  CustomNarrationRenderRequest,
+  CustomNarrationRenderResult,
   LocalizationJob,
   LocalizationJobList,
   LocalizationJobStatus,
@@ -1220,6 +1224,47 @@ export async function preflightNarrationDemoRender(
   );
 }
 
+export async function preflightCustomNarrationRender(
+  jobId: string,
+  request: CustomNarrationRenderPreflightRequest
+): Promise<CustomNarrationRenderPreflight> {
+  return requestJson<CustomNarrationRenderPreflight>(
+    `/api/jobs/${encodeURIComponent(jobId)}/custom-narration-render/preflight`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
+export async function renderCustomNarration(
+  jobId: string,
+  request: CustomNarrationRenderRequest
+): Promise<CustomNarrationRenderResult> {
+  return requestJson<CustomNarrationRenderResult>(
+    `/api/jobs/${encodeURIComponent(jobId)}/custom-narration-render`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    }
+  );
+}
+
+export async function downloadCustomNarrationRenderMarkdown(jobId: string): Promise<Blob> {
+  return requestBlob(
+    `/api/jobs/${encodeURIComponent(jobId)}/custom-narration-render/markdown/download`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function getNarrationEvidence(jobId: string): Promise<NarrationEvidence> {
   return requestJson<NarrationEvidence>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-evidence`,
@@ -1677,6 +1722,9 @@ export const linguaFrameApi = {
   getNarrationWaveform,
   preflightNarrationDemoRender,
   renderNarrationDemo,
+  preflightCustomNarrationRender,
+  renderCustomNarration,
+  downloadCustomNarrationRenderMarkdown,
   getNarrationEvidence,
   downloadNarrationEvidenceMarkdown,
   downloadNarrationEvidenceZip,

@@ -154,6 +154,12 @@ narration_status="$(printf '%s' "$(cat "$NARRATION_EVIDENCE_JSON_PATH")" | extra
 if [[ "$narration_status" == "BLOCKED" ]]; then
   echo "Narration evidence is BLOCKED; no narration segments have been saved for this run."
 else
+  if [[ "$narration_script_seeded" == "true" && "${LINGUAFRAME_RENDER_CUSTOM_NARRATION:-false}" == "true" ]]; then
+    LINGUAFRAME_DEMO_JOB_ID="$job_id" \
+      LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR="${LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR:-/tmp/linguaframe-demo/custom-narration-render}" \
+      "$SCRIPT_DIR/custom-narration-render.sh"
+    download_narration_evidence_json "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_JSON_PATH"
+  fi
   if [[ "${LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO:-false}" == "true" ]]; then
     narration_audio_ready="$(printf '%s' "$(cat "$NARRATION_EVIDENCE_JSON_PATH")" | extract_json_field narrationAudioReady)"
     if [[ "$narration_audio_ready" == "true" ]]; then

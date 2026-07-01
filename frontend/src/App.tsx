@@ -106,6 +106,8 @@ import type {
   MediaUploadDetail,
   MediaUploadValidation,
   ModelUsageLedger,
+  CustomNarrationRenderPreflight,
+  CustomNarrationRenderResult,
   NarrationDemoPreset,
   NarrationDemoRenderPreflight,
   NarrationDemoRenderResult,
@@ -523,6 +525,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [narrationDeliveryPackage, setNarrationDeliveryPackage] = useState<NarrationDeliveryPackage | null>(null);
   const [narrationDemoRenderPreflight, setNarrationDemoRenderPreflight] = useState<NarrationDemoRenderPreflight | null>(null);
   const [narrationDemoRenderResult, setNarrationDemoRenderResult] = useState<NarrationDemoRenderResult | null>(null);
+  const [customNarrationRenderPreflight, setCustomNarrationRenderPreflight] = useState<CustomNarrationRenderPreflight | null>(null);
+  const [customNarrationRenderResult, setCustomNarrationRenderResult] = useState<CustomNarrationRenderResult | null>(null);
   const [narrationError, setNarrationError] = useState<string | null>(null);
   const [narrationStatus, setNarrationStatus] = useState<string | null>(null);
   const [isSavingNarration, setIsSavingNarration] = useState(false);
@@ -531,6 +535,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isGeneratingNarratedVideo, setIsGeneratingNarratedVideo] = useState(false);
   const [isPreflightingNarrationDemo, setIsPreflightingNarrationDemo] = useState(false);
   const [isRenderingNarrationDemo, setIsRenderingNarrationDemo] = useState(false);
+  const [isPreflightingCustomNarration, setIsPreflightingCustomNarration] = useState(false);
+  const [isRenderingCustomNarration, setIsRenderingCustomNarration] = useState(false);
   const [promptTemplates, setPromptTemplates] = useState<PromptTemplate[]>([]);
   const [promptTemplateError, setPromptTemplateError] = useState<string | null>(null);
   const [operatorDashboard, setOperatorDashboard] = useState<OperatorDashboard | null>(null);
@@ -2528,6 +2534,89 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }
 
+  async function handlePreflightCustomNarrationRender(
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) {
+    if (!job) {
+      return;
+    }
+    setIsPreflightingCustomNarration(true);
+    try {
+      const result = await linguaFrameApi.preflightCustomNarrationRender(job.jobId, {
+        generateNarratedVideo,
+        acknowledgeProviderCost,
+        acknowledgeVideoRender
+      });
+      setCustomNarrationRenderPreflight(result);
+      setNarrationError(null);
+      setNarrationStatus(`Preflighted custom narration render: ${result.status}.`);
+    } catch (preflightError) {
+      setNarrationError(toErrorMessage(preflightError));
+    } finally {
+      setIsPreflightingCustomNarration(false);
+    }
+  }
+
+  async function handleRenderCustomNarration(
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) {
+    if (!job) {
+      return;
+    }
+    setIsRenderingCustomNarration(true);
+    try {
+      const result = await linguaFrameApi.renderCustomNarration(job.jobId, {
+        generateNarratedVideo,
+        acknowledgeProviderCost,
+        acknowledgeVideoRender
+      });
+      const [
+        refreshedWorkspace,
+        refreshedSceneBoard,
+        refreshedEvidence,
+        refreshedDeliveryPackage,
+        refreshedArtifacts
+      ] = await Promise.all([
+        linguaFrameApi.getNarrationWorkspace(job.jobId),
+        linguaFrameApi.getNarrationSceneBoard(job.jobId),
+        linguaFrameApi.getNarrationEvidence(job.jobId),
+        linguaFrameApi.getNarrationDeliveryPackage(job.jobId),
+        linguaFrameApi.listArtifacts(job.jobId)
+      ]);
+      setCustomNarrationRenderResult(result);
+      setCustomNarrationRenderPreflight(result.preflight);
+      setNarrationWorkspace(refreshedWorkspace);
+      setNarrationSceneBoard(refreshedSceneBoard);
+      setNarrationEvidence(refreshedEvidence ?? result.evidence);
+      setNarrationDeliveryPackage(refreshedDeliveryPackage ?? result.deliveryPackage);
+      setArtifacts(refreshedArtifacts);
+      setNarrationError(null);
+      setNarrationStatus(`Rendered custom narration: ${result.status}.`);
+    } catch (renderError) {
+      setNarrationError(toErrorMessage(renderError));
+    } finally {
+      setIsRenderingCustomNarration(false);
+    }
+  }
+
+  async function handleDownloadCustomNarrationRenderMarkdown() {
+    if (!job) {
+      return;
+    }
+    try {
+      const blob = await linguaFrameApi.downloadCustomNarrationRenderMarkdown(job.jobId);
+      downloadBlob(blob, `linguaframe-job-${sanitizeFilename(job.jobId)}-custom-narration-render.md`);
+      setNarrationStatus('Custom narration render Markdown downloaded.');
+      setNarrationError(null);
+    } catch (downloadError) {
+      setNarrationError(toErrorMessage(downloadError));
+    }
+  }
+
   async function handleSaveDemoToken(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const token = demoTokenInput.trim();
@@ -3269,6 +3358,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               isLoadingDemoHandoffPortal={isLoadingDemoHandoffPortal}
               isPreflightingNarrationDemo={isPreflightingNarrationDemo}
               isRenderingNarrationDemo={isRenderingNarrationDemo}
+              isPreflightingCustomNarration={isPreflightingCustomNarration}
+              isRenderingCustomNarration={isRenderingCustomNarration}
               onCancel={handleCancel}
               onClearNarrationWorkspace={handleClearNarrationWorkspace}
               onClearSubtitleDraft={handleClearSubtitleDraft}
@@ -3299,12 +3390,17 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               onApplyNarrationDemoPreset={handleApplyNarrationDemoPreset}
               onPreflightNarrationDemoRender={handlePreflightNarrationDemoRender}
               onRenderNarrationDemo={handleRenderNarrationDemo}
+              onPreflightCustomNarrationRender={handlePreflightCustomNarrationRender}
+              onRenderCustomNarration={handleRenderCustomNarration}
+              onDownloadCustomNarrationRenderMarkdown={handleDownloadCustomNarrationRenderMarkdown}
               onSaveNarrationMixSettings={handleSaveNarrationMixSettings}
               onSaveNarrationWorkspace={handleSaveNarrationWorkspace}
               onSaveSubtitleDraft={handleSaveSubtitleDraft}
               narrationError={narrationError}
               narrationDemoRenderPreflight={narrationDemoRenderPreflight}
               narrationDemoRenderResult={narrationDemoRenderResult}
+              customNarrationRenderPreflight={customNarrationRenderPreflight}
+              customNarrationRenderResult={customNarrationRenderResult}
               narrationEvidence={narrationEvidence}
               narrationDeliveryPackage={narrationDeliveryPackage}
               uploadNarrationLaunchpad={uploadNarrationLaunchpad}
@@ -6971,6 +7067,8 @@ function JobDetail({
   isLoadingDemoHandoffPortal,
   isPreflightingNarrationDemo,
   isRenderingNarrationDemo,
+  isPreflightingCustomNarration,
+  isRenderingCustomNarration,
   isGeneratingNarratedVideo,
   onCancel,
   onClearNarrationWorkspace,
@@ -7001,6 +7099,9 @@ function JobDetail({
   onImportNarrationScriptPackage,
   onPreflightNarrationDemoRender,
   onRenderNarrationDemo,
+  onPreflightCustomNarrationRender,
+  onRenderCustomNarration,
+  onDownloadCustomNarrationRenderMarkdown,
   onPublishReviewedSubtitles,
   onSaveNarrationMixSettings,
   onSaveNarrationWorkspace,
@@ -7008,6 +7109,8 @@ function JobDetail({
   narrationError,
   narrationDemoRenderPreflight,
   narrationDemoRenderResult,
+  customNarrationRenderPreflight,
+  customNarrationRenderResult,
   narrationEvidence,
   narrationDeliveryPackage,
   uploadNarrationLaunchpad,
@@ -7106,6 +7209,8 @@ function JobDetail({
   isLoadingDemoHandoffPortal: boolean;
   isPreflightingNarrationDemo: boolean;
   isRenderingNarrationDemo: boolean;
+  isPreflightingCustomNarration: boolean;
+  isRenderingCustomNarration: boolean;
   onCancel: () => void;
   onClearNarrationWorkspace: () => void;
   onClearSubtitleDraft: () => void;
@@ -7135,6 +7240,17 @@ function JobDetail({
   onImportNarrationScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onPreflightNarrationDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
   onRenderNarrationDemo: (presetId: string, generateNarratedVideo: boolean) => void;
+  onPreflightCustomNarrationRender: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
+  onRenderCustomNarration: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
+  onDownloadCustomNarrationRenderMarkdown: () => void;
   onPublishReviewedSubtitles: (includeBurnedVideo: boolean, releaseNotes: string) => void;
   onSaveNarrationMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   onSaveNarrationWorkspace: (segments: NarrationWorkspace['segments']) => void;
@@ -7148,6 +7264,8 @@ function JobDetail({
   narrationError: string | null;
   narrationDemoRenderPreflight: NarrationDemoRenderPreflight | null;
   narrationDemoRenderResult: NarrationDemoRenderResult | null;
+  customNarrationRenderPreflight: CustomNarrationRenderPreflight | null;
+  customNarrationRenderResult: CustomNarrationRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
   narrationDeliveryPackage: NarrationDeliveryPackage | null;
   uploadNarrationLaunchpad: UploadNarrationLaunchpad | null;
@@ -7467,6 +7585,8 @@ function JobDetail({
         isGeneratingVideo={isGeneratingNarratedVideo}
         isPreflightingDemo={isPreflightingNarrationDemo}
         isRenderingDemo={isRenderingNarrationDemo}
+        isPreflightingCustom={isPreflightingCustomNarration}
+        isRenderingCustom={isRenderingCustomNarration}
         isSaving={isSavingNarration}
         jobId={job.jobId}
         videoId={job.videoId}
@@ -7476,9 +7596,12 @@ function JobDetail({
         onApplyDemoPreset={onApplyNarrationDemoPreset}
         onImportScriptPackage={onImportNarrationScriptPackage}
         onPreflightDemoRender={onPreflightNarrationDemoRender}
+        onPreflightCustomRender={onPreflightCustomNarrationRender}
         onRefreshAcceptanceGate={onRefreshDemoAcceptanceGate}
         onRefreshEvidence={onRefreshNarrationEvidence}
         onRenderDemo={onRenderNarrationDemo}
+        onRenderCustom={onRenderCustomNarration}
+        onDownloadCustomRenderMarkdown={onDownloadCustomNarrationRenderMarkdown}
         onSave={onSaveNarrationWorkspace}
         onSaveMixSettings={onSaveNarrationMixSettings}
         scriptPackage={narrationScriptPackage}
@@ -7486,6 +7609,8 @@ function JobDetail({
         demoPresets={narrationDemoPresets}
         renderPreflight={narrationDemoRenderPreflight}
         renderResult={narrationDemoRenderResult}
+        customRenderPreflight={customNarrationRenderPreflight}
+        customRenderResult={customNarrationRenderResult}
         status={narrationStatus}
         workspace={narrationWorkspace}
       />
@@ -10509,6 +10634,8 @@ function NarrationWorkspacePanel({
   isGeneratingVideo,
   isPreflightingDemo,
   isRenderingDemo,
+  isPreflightingCustom,
+  isRenderingCustom,
   isSaving,
   jobId,
   videoId,
@@ -10519,13 +10646,18 @@ function NarrationWorkspacePanel({
   onGenerateVideo,
   onImportScriptPackage,
   onPreflightDemoRender,
+  onPreflightCustomRender,
   onRefreshAcceptanceGate,
   onRefreshEvidence,
   onRenderDemo,
+  onRenderCustom,
+  onDownloadCustomRenderMarkdown,
   onSave,
   onSaveMixSettings,
   renderResult,
   renderPreflight,
+  customRenderResult,
+  customRenderPreflight,
   scriptPackage,
   sceneBoard,
   status,
@@ -10543,6 +10675,8 @@ function NarrationWorkspacePanel({
   isGeneratingVideo: boolean;
   isPreflightingDemo: boolean;
   isRenderingDemo: boolean;
+  isPreflightingCustom: boolean;
+  isRenderingCustom: boolean;
   isSaving: boolean;
   jobId: string;
   videoId: string;
@@ -10553,13 +10687,26 @@ function NarrationWorkspacePanel({
   onGenerateVideo: () => void;
   onImportScriptPackage: (request: ImportNarrationScriptPackageRequest) => void;
   onPreflightDemoRender: (presetId: string, replaceExisting: boolean, generateNarratedVideo: boolean) => void;
+  onPreflightCustomRender: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
   onRefreshAcceptanceGate: () => void;
   onRefreshEvidence: () => void;
   onRenderDemo: (presetId: string, generateNarratedVideo: boolean) => void;
+  onRenderCustom: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
+  onDownloadCustomRenderMarkdown: () => void;
   onSave: (segments: NarrationWorkspace['segments'], mixKeyframes: NarrationMixKeyframe[]) => void;
   onSaveMixSettings: (settings: NarrationWorkspace['mixSettings']) => void;
   renderResult: NarrationDemoRenderResult | null;
   renderPreflight: NarrationDemoRenderPreflight | null;
+  customRenderResult: CustomNarrationRenderResult | null;
+  customRenderPreflight: CustomNarrationRenderPreflight | null;
   scriptPackage: NarrationScriptPackage | null;
   sceneBoard: NarrationSceneBoard | null;
   status: string | null;
@@ -11466,6 +11613,16 @@ function NarrationWorkspacePanel({
           presets={demoPresets}
           workspace={workspace}
           onApplyPreset={onApplyDemoPreset}
+        />
+        <CustomNarrationRenderPanel
+          isPreflighting={isPreflightingCustom}
+          isRendering={isRenderingCustom}
+          preflight={customRenderPreflight}
+          result={customRenderResult}
+          workspace={workspace}
+          onDownloadMarkdown={onDownloadCustomRenderMarkdown}
+          onPreflight={onPreflightCustomRender}
+          onRender={onRenderCustom}
         />
         <NarrationDemoRenderPanel
           isPreflighting={isPreflightingDemo}
@@ -13318,6 +13475,248 @@ function NarrationDemoRenderPanel({
       ) : (
         <p className="muted">No narration demo presets are available.</p>
       )}
+    </section>
+  );
+}
+
+function CustomNarrationRenderPanel({
+  isPreflighting,
+  isRendering,
+  onDownloadMarkdown,
+  onPreflight,
+  onRender,
+  preflight,
+  result,
+  workspace
+}: {
+  isPreflighting: boolean;
+  isRendering: boolean;
+  onDownloadMarkdown: () => void;
+  onPreflight: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
+  onRender: (
+    generateNarratedVideo: boolean,
+    acknowledgeProviderCost: boolean,
+    acknowledgeVideoRender: boolean
+  ) => void;
+  preflight: CustomNarrationRenderPreflight | null;
+  result: CustomNarrationRenderResult | null;
+  workspace: NarrationWorkspace | null;
+}) {
+  const [generateNarratedVideo, setGenerateNarratedVideo] = useState(true);
+  const [acknowledgeProviderCost, setAcknowledgeProviderCost] = useState(false);
+  const [acknowledgeVideoRender, setAcknowledgeVideoRender] = useState(false);
+
+  const preflightMatchesSelection = Boolean(preflight && preflight.generateNarratedVideo === generateNarratedVideo);
+  const providerCostRequired = preflight?.requiredAcknowledgements.includes('PAID_PROVIDER') ?? false;
+  const videoRenderRequired = generateNarratedVideo || (preflight?.requiredAcknowledgements.includes('VIDEO_RENDER') ?? false);
+  const providerCostSatisfied = !providerCostRequired || acknowledgeProviderCost;
+  const videoRenderSatisfied = !videoRenderRequired || acknowledgeVideoRender;
+  const preflightAllowsRender = preflightMatchesSelection && (preflight?.status === 'READY' || preflight?.status === 'ATTENTION');
+  const hasSavedNarration = Boolean(workspace && workspace.segmentCount > 0);
+  const canPreflight = hasSavedNarration && !isPreflighting && !isRendering;
+  const canRender = hasSavedNarration
+    && preflightAllowsRender
+    && providerCostSatisfied
+    && videoRenderSatisfied
+    && !isPreflighting
+    && !isRendering;
+  const statusClass = result?.status === 'READY'
+    ? 'ready'
+    : result?.status === 'PARTIAL'
+      ? 'warning'
+      : result
+        ? 'failed'
+        : 'neutral';
+
+  return (
+    <section className="nested-panel" aria-label="Render custom narration">
+      <div className="panel-heading compact">
+        <div>
+          <h4>Render custom narration</h4>
+          <p className="muted">Use the saved narration rows, generate TTS audio, optionally render narrated video, then refresh review evidence.</p>
+        </div>
+        {result ? <span className={`status-pill ${statusClass}`}>{result.status}</span> : null}
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Workspace</dt>
+          <dd>{workspace?.status ?? 'N/A'}</dd>
+        </div>
+        <div>
+          <dt>Rows</dt>
+          <dd>{workspace?.segmentCount ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Characters</dt>
+          <dd>{workspace?.totalCharacterCount ?? 0}</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>{formatSeconds(workspace?.totalDurationSeconds ?? 0)}</dd>
+        </div>
+        <div>
+          <dt>Outputs</dt>
+          <dd>{generateNarratedVideo ? 'Audio + video' : 'Audio only'}</dd>
+        </div>
+        <div>
+          <dt>Artifacts</dt>
+          <dd>{result?.generatedArtifactCount ?? 0}</dd>
+        </div>
+      </dl>
+      <label className="inline-checkbox">
+        <input
+          aria-label="Generate custom narrated video"
+          checked={generateNarratedVideo}
+          type="checkbox"
+          onChange={(event) => {
+            setGenerateNarratedVideo(event.target.checked);
+            setAcknowledgeVideoRender(false);
+          }}
+        />
+        Generate narrated video
+      </label>
+      <label className="inline-checkbox">
+        <input
+          aria-label="I understand custom narration can call TTS providers"
+          checked={acknowledgeProviderCost}
+          type="checkbox"
+          onChange={(event) => setAcknowledgeProviderCost(event.target.checked)}
+        />
+        I understand this can call TTS providers
+      </label>
+      <label className="inline-checkbox">
+        <input
+          aria-label="I understand custom narration video rendering can take longer"
+          checked={acknowledgeVideoRender}
+          type="checkbox"
+          onChange={(event) => setAcknowledgeVideoRender(event.target.checked)}
+        />
+        I understand video rendering can take longer
+      </label>
+      <div className="panel-actions">
+        <button
+          type="button"
+          disabled={!canPreflight}
+          onClick={() => onPreflight(generateNarratedVideo, acknowledgeProviderCost, acknowledgeVideoRender)}
+        >
+          {isPreflighting ? 'Preflighting...' : 'Run custom preflight'}
+        </button>
+        <button
+          type="button"
+          disabled={!canRender}
+          onClick={() => onRender(generateNarratedVideo, acknowledgeProviderCost, acknowledgeVideoRender)}
+        >
+          {isRendering ? 'Rendering...' : 'Render custom narration'}
+        </button>
+        <button type="button" className="secondary-button" onClick={onDownloadMarkdown}>
+          Download render report
+        </button>
+      </div>
+      {!hasSavedNarration ? <p className="muted">Save at least one narration row before rendering custom narration media.</p> : null}
+      <CustomNarrationRenderPreflightPanel preflight={preflight} matchesSelection={preflightMatchesSelection} />
+      {result ? (
+        <>
+          <p className="muted">{result.nextAction}</p>
+          <ul className="compact-list">
+            {result.steps.map((step) => (
+              <li key={step.key}>
+                <strong>{step.label}: {step.status}</strong> - {step.message}
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function CustomNarrationRenderPreflightPanel({
+  matchesSelection,
+  preflight
+}: {
+  matchesSelection: boolean;
+  preflight: CustomNarrationRenderPreflight | null;
+}) {
+  if (!preflight) {
+    return (
+      <section className="render-preflight-panel" aria-label="Custom narration render preflight">
+        <p className="muted">Run preflight before rendering saved custom narration rows.</p>
+      </section>
+    );
+  }
+
+  const statusClass = preflight.status === 'READY' ? 'ready' : preflight.status === 'ATTENTION' ? 'warning' : 'blocked';
+
+  return (
+    <section className="render-preflight-panel" aria-label="Custom narration render preflight">
+      <div className="compact-panel-heading">
+        <div>
+          <h5>Custom render preflight</h5>
+          <p className="muted">
+            {matchesSelection ? 'Current controls match this preflight.' : 'Output mode changed. Run preflight again before rendering.'}
+          </p>
+        </div>
+        <span className={`status-pill ${statusClass}`}>{preflight.status}</span>
+      </div>
+      <dl className="compact-metrics">
+        <div>
+          <dt>Provider</dt>
+          <dd>{preflight.providerMode}</dd>
+        </div>
+        <div>
+          <dt>Paid provider</dt>
+          <dd>{preflight.paidProvider ? 'Yes' : 'No'}</dd>
+        </div>
+        <div>
+          <dt>Rows</dt>
+          <dd>{preflight.segmentCount}</dd>
+        </div>
+        <div>
+          <dt>Characters</dt>
+          <dd>{preflight.characterCount}</dd>
+        </div>
+        <div>
+          <dt>Narration span</dt>
+          <dd>{formatSeconds(preflight.totalNarrationSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Scene board</dt>
+          <dd>{preflight.sceneBoardStatus}</dd>
+        </div>
+        <div>
+          <dt>Audio</dt>
+          <dd>{preflight.audioReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+        <div>
+          <dt>Video</dt>
+          <dd>{preflight.videoReady ? 'Ready' : 'Missing'}</dd>
+        </div>
+      </dl>
+      <code className="safe-command">{preflight.safeNextCommand}</code>
+      {preflight.requiredAcknowledgements.length > 0 ? (
+        <p className="muted">Required acknowledgements: {preflight.requiredAcknowledgements.join(', ')}</p>
+      ) : null}
+      <ul className="compact-list">
+        {preflight.checks.map((check) => (
+          <li key={check.key}>
+            <strong>{check.label}: {check.status}</strong> - {check.message}
+          </li>
+        ))}
+      </ul>
+      <ul className="compact-list evidence-routes">
+        {preflight.safeRoutes.map((route) => (
+          <li key={route}>{route}</li>
+        ))}
+      </ul>
+      <ul className="compact-list">
+        {preflight.safetyNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
     </section>
   );
 }

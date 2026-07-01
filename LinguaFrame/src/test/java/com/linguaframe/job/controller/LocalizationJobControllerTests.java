@@ -3311,6 +3311,119 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsCustomNarrationRenderPreflightForSavedWorkspace() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:42Z");
+        createJobWithDuration("video-custom-preflight", "job controller custom preflight", 300, createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-custom-preflight-base",
+                "job controller custom preflight",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-custom-preflight/base/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                3L,
+                "burned-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job controller custom preflight")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 0.000,
+                                      "endSeconds": 4.500,
+                                      "text": "Sensitive custom narration text",
+                                      "voice": "demo-voice"
+                                    },
+                                    {
+                                      "index": 1,
+                                      "startSeconds": 5.000,
+                                      "endSeconds": 9.000,
+                                      "text": "Another private narration note",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/jobs/{jobId}/custom-narration-render/preflight", "job controller custom preflight")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "generateNarratedVideo": false,
+                                  "acknowledgeProviderCost": false,
+                                  "acknowledgeVideoRender": true
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job controller custom preflight"))
+                .andExpect(jsonPath("$.status").value("ATTENTION"))
+                .andExpect(jsonPath("$.segmentCount").value(2))
+                .andExpect(jsonPath("$.characterCount").isNumber())
+                .andExpect(jsonPath("$.providerMode").value("demo"))
+                .andExpect(jsonPath("$.paidProvider").value(false))
+                .andExpect(jsonPath("$.generateNarratedVideo").value(false))
+                .andExpect(jsonPath("$.safeNextCommand").value("LINGUAFRAME_DEMO_JOB_ID=job controller custom preflight scripts/demo/custom-narration-render.sh"))
+                .andExpect(jsonPath("$.safeRoutes[0]").value("/api/jobs/job controller custom preflight/custom-narration-render"))
+                .andExpect(jsonPath("$.checks[0].key").value("WORKSPACE"))
+                .andExpect(jsonPath("$.checks[0].status").value("PASS"))
+                .andExpect(jsonPath("$.checks[3].key").value("VIDEO_ACKNOWLEDGEMENT"))
+                .andExpect(jsonPath("$.checks[3].status").value("WARN"))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Sensitive custom narration text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Another private narration note"))));
+    }
+
+    @Test
+    void rendersCustomNarrationWorkspaceAndDownloadsMetadataOnlyReport() throws Exception {
+        Instant createdAt = Instant.parse("2026-06-27T01:17:43Z");
+        createJobWithDuration("video-custom-render", "job-controller-custom-render", 300, createdAt);
+        artifactRepository.save(new JobArtifactRecord(
+                "job-controller-custom-render-base",
+                "job-controller-custom-render",
+                JobArtifactType.BURNED_VIDEO,
+                "job-artifacts/job-controller-custom-render/base/burned-video.mp4",
+                "burned-video.mp4",
+                "video/mp4",
+                3L,
+                "burned-video-hash",
+                false,
+                null,
+                createdAt.plusSeconds(1)
+        ));
+
+        mockMvc.perform(put("/api/jobs/{jobId}/narration-workspace", "job-controller-custom-render")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "segments": [
+                                    {
+                                      "index": 0,
+                                      "startSeconds": 0.000,
+                                      "endSeconds": 4.500,
+                                      "text": "Private render narration text",
+                                      "voice": "demo-voice"
+                                    }
+                                  ]
+                                }
+                                """))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/jobs/{jobId}/custom-narration-render/markdown/download", "job-controller-custom-render"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, org.hamcrest.Matchers.containsString("custom-narration-render.md")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("# Custom Narration Render")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Report-only download does not call TTS providers.")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Private render narration text"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("job-artifacts/"))));
+    }
+
+    @Test
     void rendersNarrationDemoPresetAudioAndVideoForLocalizationJob() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:17:45Z");
         createJobWithDuration("job-controller-video-demo-render", "job-controller-job-demo-render", 300, createdAt);

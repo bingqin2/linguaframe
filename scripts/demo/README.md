@@ -69,6 +69,30 @@ The script downloads `narration-render-review.json` and `narration-render-review
 
 Use `LINGUAFRAME_NARRATION_RENDER_REVIEW_REPORT_ONLY=true` when you want to export a `BLOCKED` review without failing the terminal command.
 
+## Custom Narration Render
+
+Render the saved upload-seeded or manually edited narration workspace without applying a demo preset:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/custom-narration-render.sh
+```
+
+The script writes `custom-narration-render-preflight.json`, `custom-narration-render.json`, `custom-narration-render.md`, refreshed narration evidence, and narration delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`. It requires explicit acknowledgements by default and prints only metadata: status, row counts, output mode, step status, artifact filenames, evidence status, delivery status, and safe next action.
+
+Useful modes:
+
+```bash
+LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true \
+LINGUAFRAME_DEMO_JOB_ID=<job-id> \
+scripts/demo/custom-narration-render.sh
+
+LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false \
+LINGUAFRAME_DEMO_JOB_ID=<job-id> \
+scripts/demo/custom-narration-render.sh
+```
+
+Set `LINGUAFRAME_RENDER_CUSTOM_NARRATION=true` with `scripts/demo/docker-e2e-success.sh` or `scripts/demo/docker-e2e-tears-of-steel-full.sh` to run this after a seeded narration upload. This path never replaces the workspace with a demo preset; use `scripts/demo/narration-demo-render.sh` for preset-driven demos.
+
 ## Narration Mix Automation
 
 Inspect effective narration mix automation values from an existing workspace:

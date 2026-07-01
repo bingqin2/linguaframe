@@ -1036,6 +1036,55 @@ preflight_narration_demo_render_json() {
     -o "$output_path"
 }
 
+preflight_custom_narration_render_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local generate_video="$3"
+  local acknowledge_provider_cost="$4"
+  local acknowledge_video_render="$5"
+  local output_path="$6"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"generateNarratedVideo\":$generate_video,\"acknowledgeProviderCost\":$acknowledge_provider_cost,\"acknowledgeVideoRender\":$acknowledge_video_render}" \
+    "$base_url/api/jobs/$encoded_job_id/custom-narration-render/preflight" \
+    -o "$output_path"
+}
+
+render_custom_narration_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local generate_video="$3"
+  local acknowledge_provider_cost="$4"
+  local acknowledge_video_render="$5"
+  local output_path="$6"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS \
+    -H "Content-Type: application/json" \
+    -X POST \
+    -d "{\"generateNarratedVideo\":$generate_video,\"acknowledgeProviderCost\":$acknowledge_provider_cost,\"acknowledgeVideoRender\":$acknowledge_video_render}" \
+    "$base_url/api/jobs/$encoded_job_id/custom-narration-render" \
+    -o "$output_path"
+}
+
+download_custom_narration_render_markdown() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/custom-narration-render/markdown/download" -o "$output_path"
+}
+
 generate_narrated_video_json() {
   local base_url="$1"
   local job_id="$2"
@@ -4969,6 +5018,131 @@ for check in preflight.get("checks", []):
 for route in preflight.get("evidenceRoutes", []):
     print("narrationDemoRenderPreflightEvidenceRoute=" + text(route))
 print("narrationDemoRenderPreflightJsonPath=" + str(path))
+PY
+}
+
+print_custom_narration_render_summary_file() {
+  local render_json_path="$1"
+
+  python3 - "$render_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+render = json.loads(path.read_text(encoding="utf-8"))
+
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+combined = json.dumps(render, ensure_ascii=False)
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Custom narration render output contains forbidden sensitive string: " + marker)
+
+audio = render.get("narrationAudio") or {}
+video = render.get("narratedVideo") or {}
+evidence = render.get("evidence") or {}
+delivery = render.get("deliveryPackage") or {}
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("customNarrationRenderJobId=" + text(render.get("jobId")))
+print("customNarrationRenderStatus=" + text(render.get("status")))
+print("customNarrationRenderGenerateNarratedVideo=" + text(render.get("generateNarratedVideo")).lower())
+print("customNarrationRenderStepCount=" + text(len(render.get("steps", []))))
+for step in render.get("steps", []):
+    print(
+        "customNarrationRenderStep="
+        + text(step.get("key"))
+        + ":"
+        + text(step.get("status"))
+    )
+print("customNarrationRenderAudioFilename=" + text(audio.get("filename")))
+print("customNarrationRenderNarratedVideoFilename=" + text(video.get("filename")))
+print("customNarrationRenderEvidenceStatus=" + text(evidence.get("status")))
+print("customNarrationRenderDeliveryStatus=" + text(delivery.get("status")))
+print("customNarrationRenderGeneratedArtifactCount=" + text(render.get("generatedArtifactCount", 0)))
+print("customNarrationRenderNextAction=" + text(render.get("nextAction")))
+print("customNarrationRenderJsonPath=" + str(path))
+PY
+}
+
+print_custom_narration_render_preflight_summary_file() {
+  local preflight_json_path="$1"
+
+  python3 - "$preflight_json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+preflight = json.loads(path.read_text(encoding="utf-8"))
+
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "bearer token",
+    "OPENAI_API_KEY",
+    "sk-",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw narration text",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+combined = json.dumps(preflight, ensure_ascii=False)
+for marker in forbidden:
+    if marker in combined:
+        raise SystemExit("Custom narration render preflight output contains forbidden sensitive string: " + marker)
+
+def text(value):
+    return "" if value is None else str(value)
+
+print("customNarrationRenderPreflightJobId=" + text(preflight.get("jobId")))
+print("customNarrationRenderPreflightStatus=" + text(preflight.get("status")))
+print("customNarrationRenderPreflightProviderMode=" + text(preflight.get("providerMode")))
+print("customNarrationRenderPreflightPaidProvider=" + text(preflight.get("paidProvider")).lower())
+print("customNarrationRenderPreflightSegmentCount=" + text(preflight.get("segmentCount")))
+print("customNarrationRenderPreflightCharacterCount=" + text(preflight.get("characterCount")))
+print("customNarrationRenderPreflightTotalNarrationSeconds=" + text(preflight.get("totalNarrationSeconds")))
+print("customNarrationRenderPreflightGenerateNarratedVideo=" + text(preflight.get("generateNarratedVideo")).lower())
+print("customNarrationRenderPreflightAudioReady=" + text(preflight.get("audioReady")).lower())
+print("customNarrationRenderPreflightVideoReady=" + text(preflight.get("videoReady")).lower())
+print("customNarrationRenderPreflightRequiredAcknowledgements=" + ",".join(preflight.get("requiredAcknowledgements", [])))
+print("customNarrationRenderPreflightSafeNextCommand=" + text(preflight.get("safeNextCommand")))
+for check in preflight.get("checks", []):
+    print(
+        "customNarrationRenderPreflightCheck="
+        + text(check.get("key"))
+        + "|"
+        + text(check.get("status"))
+        + "|"
+        + text(check.get("message"))
+    )
+for route in preflight.get("safeRoutes", []):
+    print("customNarrationRenderPreflightRoute=" + text(route))
+print("customNarrationRenderPreflightJsonPath=" + str(path))
 PY
 }
 

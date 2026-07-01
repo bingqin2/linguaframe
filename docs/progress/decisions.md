@@ -929,3 +929,11 @@ Decision: Add an upload narration launchpad before any upload-triggered TTS or r
 Reason: After a video upload seeds narration rows, operators need an immediate handoff that says what was seeded and what to do next, but the handoff must not expose narration text or spend provider credits.
 
 Impact: `GET /api/jobs/{jobId}/upload-narration-launchpad`, its Markdown download, the browser `Upload narration launchpad`, and `scripts/demo/upload-narration-launchpad.sh` summarize seeded row counts, voice coverage, scene-board readiness, safe links, and explicit next actions. The launchpad is metadata-only and does not save rows, call OpenAI/TTS providers, run FFmpeg, create artifacts, or generate media.
+
+## 2026-07-01
+
+Decision: Keep custom narration render separate from demo-preset render.
+
+Reason: Operators need to render upload-seeded or manually edited narration rows without accidentally replacing them with the built-in Tears showcase preset. The existing demo-preset renderer remains useful for repeatable demos, but its replacement semantics are the wrong default for operator-authored rows.
+
+Impact: `POST /api/jobs/{jobId}/custom-narration-render/preflight`, `POST /api/jobs/{jobId}/custom-narration-render`, the Markdown report download, browser `Render custom narration`, and `scripts/demo/custom-narration-render.sh` operate on the saved workspace only. Preflight is read-only and metadata-only; render explicitly acknowledges provider cost and optional video rendering, preserves partial audio success when video fails, and refreshes narration evidence and delivery-package outputs.

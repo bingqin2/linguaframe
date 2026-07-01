@@ -238,6 +238,15 @@ Set `LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase` when the terminal demo should u
 
 Set `LINGUAFRAME_DEMO_NARRATION_SCRIPT` or `LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE` when the upload should seed an editable narration workspace immediately. Rows use `START-END | VOICE | TEXT`, for example `00:15-00:28 | demo-voice | Explain this moment.` or `00:55-01:10 || Inherit the default voice.`. This only stores narration rows on the new job; TTS preview, narration audio generation, and narrated-video rendering still require explicit later actions. When script rows are seeded, `scripts/demo/docker-e2e-success.sh` also downloads `/tmp/linguaframe-demo/upload-narration-launchpad.json` and `.md`. To export the same launchpad later, run `LINGUAFRAME_DEMO_JOB_ID=<job-id> scripts/demo/upload-narration-launchpad.sh`.
 
+Use the custom narration renderer when you want the saved upload-seeded or manually edited rows to become media without applying a demo preset. In the browser, save the narration workspace, run `Render custom narration` preflight, acknowledge provider cost and video render time, then render. In the terminal:
+
+```bash
+LINGUAFRAME_DEMO_JOB_ID=<completed-job-id> \
+scripts/demo/custom-narration-render.sh
+```
+
+The script writes preflight JSON, render JSON, Markdown report, narration evidence, and narration delivery package files under `/tmp/linguaframe-demo/custom-narration-render/`. Use `LINGUAFRAME_CUSTOM_NARRATION_RENDER_REPORT_ONLY=true` to collect the preflight/report without rendering, `LINGUAFRAME_CUSTOM_NARRATION_RENDER_GENERATE_VIDEO=false` for audio-only output, or `LINGUAFRAME_RENDER_CUSTOM_NARRATION=true` with the short or full E2E scripts to run this step after a seeded upload.
+
 Expected output includes:
 
 ```text
@@ -448,6 +457,15 @@ To render the complete built-in narration demo in the full run, use the one-clic
 ```bash
 LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
 LINGUAFRAME_RENDER_NARRATION_DEMO=true \
+scripts/demo/docker-e2e-tears-of-steel-full.sh
+```
+
+To render the saved custom narration rows in the full run instead of applying the built-in preset, seed rows through upload and enable the custom renderer:
+
+```bash
+LINGUAFRAME_DEMO_PROFILE_ID=tears-showcase \
+LINGUAFRAME_DEMO_NARRATION_SCRIPT_FILE=/absolute/path/to/narration-script.txt \
+LINGUAFRAME_RENDER_CUSTOM_NARRATION=true \
 scripts/demo/docker-e2e-tears-of-steel-full.sh
 ```
 
