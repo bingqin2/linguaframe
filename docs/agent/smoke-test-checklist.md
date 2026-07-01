@@ -90,6 +90,22 @@ Expected:
 - The session evidence package includes `narration-production-board.json` and `narration-production-board.md`.
 - Browser and terminal exports stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
 
+For narration studio changes, run:
+
+```bash
+mvn -pl LinguaFrame -Dtest=NarrationStudioServiceTests,LocalizationJobControllerTests#returnsNarrationStudioGuidedWorkbenchMetadataOnlyState test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration studio|Narration studio"
+bash -n scripts/demo/narration-studio.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/test-linguaframe-demo-client.sh
+bash scripts/demo/test-linguaframe-demo-client.sh
+```
+
+Expected:
+
+- `GET /api/jobs/{jobId}/narration-studio` returns `EMPTY`, `ATTENTION`, `READY`, or `BLOCKED` guidance for author, preview, render, review, package, and handoff steps.
+- The browser `Narration studio` panel appears inside the selected job narration workspace and links to existing specialized panels.
+- `scripts/demo/narration-studio.sh` prints metadata-only `narrationStudio*` lines.
+- Studio exports do not call OpenAI, call TTS providers, run FFmpeg, save rows, upload media, mutate object storage, or print narration text, reviewer notes, transcripts, subtitles, local paths, object keys, provider payloads, tokens, API keys, or media bytes.
+
 For demo session cost-control board changes, run:
 
 ```bash

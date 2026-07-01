@@ -332,6 +332,41 @@ export interface NarrationRecoveryHandoff {
   safetyNotes: string[];
 }
 
+export type NarrationStudioStatus = 'EMPTY' | 'ATTENTION' | 'READY' | 'BLOCKED';
+
+export interface NarrationStudioStep {
+  key: string;
+  label: string;
+  status: string;
+  detail: string;
+  nextAction: string;
+  safeLink: string;
+}
+
+export interface NarrationStudioLink {
+  kind: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export interface NarrationStudio {
+  jobId: string;
+  videoId: string;
+  generatedAt: string;
+  overallStatus: NarrationStudioStatus;
+  phase: string;
+  recommendedNextAction: string;
+  segmentCount: number;
+  characterCount: number;
+  audioReady: boolean;
+  videoReady: boolean;
+  steps: NarrationStudioStep[];
+  links: NarrationStudioLink[];
+  safetyNotes: string[];
+}
+
 export type MediaUploadValidationCode =
   | 'READY'
   | 'MISSING_FILE'

@@ -5305,3 +5305,22 @@ Validation so far:
 - `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 599.42 kB bundle.
 - `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/custom-narration-render.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
 - `git diff --check` passed.
+
+Work:
+
+- Started the guided narration studio workbench feature slice from `docs/plans/179-narration-studio-guided-workbench.md`.
+- Added a metadata-only backend narration studio aggregate endpoint that composes workspace, upload launchpad, scene board, custom render, render review, playback resolution, delivery package, acceptance gate, reviewer workspace, and handoff portal status.
+- Added the browser `Narration studio` panel inside the narration workspace with a compact step rail, row/character/audio/video summary, next action, safety notes, and safe links to the specialized panels.
+- Added terminal `scripts/demo/narration-studio.sh`, shared Bash helper functions, route/redaction shell tests, and short/full E2E integration.
+- Updated README, Docker demo guidance, smoke checklist, roadmap, target-state, and decisions with the read-only studio boundary.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=NarrationStudioServiceTests,LocalizationJobControllerTests#returnsNarrationStudioGuidedWorkbenchMetadataOnlyState test` first exposed that missing custom render output was classified as `BLOCKED` by downstream playback/delivery gates; after gating downstream blockers behind custom render readiness, it passed with `Tests run: 4, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "narration studio|Narration studio"` first exposed missing `JobDetail` props and an overly broad repeated-text assertion, then passed with `Test Files 2 passed` and `Tests 2 passed | 275 skipped`.
+- `bash -n scripts/demo/narration-studio.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/docker-e2e-success.sh scripts/demo/docker-e2e-tears-of-steel-full.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 898, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 334 passed`; jsdom printed expected navigation warnings from blob/download fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing chunk-size warning for a 602.44 kB bundle.
+- `git diff --check` passed.

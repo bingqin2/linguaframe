@@ -1,0 +1,11 @@
+package com.linguaframe.job.domain.vo;
+
+public record NarrationStudioStepVo(
+        String key,
+        String label,
+        String status,
+        String detail,
+        String nextAction,
+        String safeLink
+) {
+}

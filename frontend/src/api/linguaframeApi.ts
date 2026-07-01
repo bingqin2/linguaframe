@@ -52,6 +52,7 @@ import type {
   NarrationScriptPackageImportResult,
   NarrationRenderReview,
   NarrationWaveform,
+  NarrationStudio,
   NarratedVideoGeneration,
   NarrationWorkspace,
   OpenAiReadinessEvidence,
@@ -1090,6 +1091,15 @@ export async function getNarrationWorkspace(jobId: string): Promise<NarrationWor
   );
 }
 
+export async function getNarrationStudio(jobId: string): Promise<NarrationStudio> {
+  return requestJson<NarrationStudio>(
+    `/api/jobs/${encodeURIComponent(jobId)}/narration-studio`,
+    {
+      method: 'GET'
+    }
+  );
+}
+
 export async function getNarrationSceneBoard(jobId: string): Promise<NarrationSceneBoard> {
   return requestJson<NarrationSceneBoard>(
     `/api/jobs/${encodeURIComponent(jobId)}/narration-scene-board`,
@@ -1710,6 +1720,7 @@ export const linguaFrameApi = {
   getSubtitleDraft,
   getReviewedSubtitleWorkflow,
   getSubtitleReviewEvidence,
+  getNarrationStudio,
   getNarrationWorkspace,
   saveNarrationWorkspace,
   clearNarrationWorkspace,

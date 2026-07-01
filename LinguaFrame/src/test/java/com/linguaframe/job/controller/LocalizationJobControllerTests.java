@@ -2473,6 +2473,54 @@ class LocalizationJobControllerTests {
     }
 
     @Test
+    void returnsNarrationStudioGuidedWorkbenchMetadataOnlyState() throws Exception {
+        Instant createdAt = Instant.parse("2026-07-01T01:30:00Z");
+        createJob(
+                "video-narration-studio",
+                "job-controller-narration-studio",
+                "narration-studio.mp4",
+                LocalizationJobStatus.COMPLETED,
+                createdAt
+        );
+        narrationSegmentRepository.replaceSegments("job-controller-narration-studio", List.of(
+                new NarrationSegmentRecord(
+                        "narration-studio-segment-1",
+                        "job-controller-narration-studio",
+                        0,
+                        new BigDecimal("15.000"),
+                        new BigDecimal("28.000"),
+                        "Private narration studio text should not leak.",
+                        "demo-voice",
+                        null,
+                        null,
+                        null,
+                        createdAt,
+                        createdAt
+                )
+        ));
+
+        String json = mockMvc.perform(get("/api/jobs/{jobId}/narration-studio", "job-controller-narration-studio"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.jobId").value("job-controller-narration-studio"))
+                .andExpect(jsonPath("$.videoId").value("video-narration-studio"))
+                .andExpect(jsonPath("$.overallStatus").value("ATTENTION"))
+                .andExpect(jsonPath("$.phase").value("NARRATION_STUDIO_NEEDS_ACTION"))
+                .andExpect(jsonPath("$.segmentCount").value(1))
+                .andExpect(jsonPath("$.steps[0].key").value("AUTHOR_ROWS"))
+                .andExpect(jsonPath("$.steps[2].key").value("RENDER_CUSTOM"))
+                .andExpect(jsonPath("$.links[?(@.kind == 'CUSTOM_NARRATION_RENDER_REPORT')]").exists())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(json)
+                .doesNotContain("Private narration studio text should not leak")
+                .doesNotContain("/Users/")
+                .doesNotContain("sk-test")
+                .doesNotContain("{\"provider\":\"payload\"}");
+    }
+
+    @Test
     void generatesNarrationAudioForLocalizationJobWithoutReplacingDeliveryArtifacts() throws Exception {
         Instant createdAt = Instant.parse("2026-06-27T01:12:00Z");
         createJob("job-controller-video-narration-audio", "job-controller-job-narration-audio", createdAt);

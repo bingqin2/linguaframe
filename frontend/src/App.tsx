@@ -120,6 +120,7 @@ import type {
   NarrationRecoveryHandoff,
   NarrationRenderReview,
   NarrationSceneBoard,
+  NarrationStudio,
   NarrationMixKeyframe,
   NarrationMixLane,
   NarrationWaveform,
@@ -517,6 +518,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [isClearingSubtitleDraft, setIsClearingSubtitleDraft] = useState(false);
   const [isPublishingReviewedSubtitles, setIsPublishingReviewedSubtitles] = useState(false);
   const [narrationWorkspace, setNarrationWorkspace] = useState<NarrationWorkspace | null>(null);
+  const [narrationStudio, setNarrationStudio] = useState<NarrationStudio | null>(null);
+  const [narrationStudioError, setNarrationStudioError] = useState<string | null>(null);
   const [narrationSceneBoard, setNarrationSceneBoard] = useState<NarrationSceneBoard | null>(null);
   const [uploadNarrationLaunchpad, setUploadNarrationLaunchpad] = useState<UploadNarrationLaunchpad | null>(null);
   const [uploadNarrationLaunchpadError, setUploadNarrationLaunchpadError] = useState<string | null>(null);
@@ -1271,6 +1274,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       workflowResult,
       evidenceResult,
       draftResult,
+      narrationStudioResult,
       narrationWorkspaceResult,
       narrationSceneBoardResult,
       uploadNarrationLaunchpadResult,
@@ -1286,6 +1290,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       linguaFrameApi.getReviewedSubtitleWorkflow(jobId),
       linguaFrameApi.getSubtitleReviewEvidence(jobId),
       linguaFrameApi.getSubtitleDraft(jobId, language),
+      linguaFrameApi.getNarrationStudio(jobId),
       linguaFrameApi.getNarrationWorkspace(jobId),
       linguaFrameApi.getNarrationSceneBoard(jobId),
       linguaFrameApi.getUploadNarrationLaunchpad(jobId),
@@ -1357,6 +1362,15 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       setSubtitleDraft(null);
       setSubtitleDraftError(toErrorMessage(draftResult.reason));
       errors.push(`Subtitle draft: ${toErrorMessage(draftResult.reason)}`);
+    }
+
+    if (narrationStudioResult.status === 'fulfilled') {
+      setNarrationStudio(narrationStudioResult.value);
+      setNarrationStudioError(null);
+    } else {
+      setNarrationStudio(null);
+      setNarrationStudioError(toErrorMessage(narrationStudioResult.reason));
+      errors.push(`Narration studio: ${toErrorMessage(narrationStudioResult.reason)}`);
     }
 
     if (narrationWorkspaceResult.status === 'fulfilled') {
@@ -3403,6 +3417,8 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
               customNarrationRenderResult={customNarrationRenderResult}
               narrationEvidence={narrationEvidence}
               narrationDeliveryPackage={narrationDeliveryPackage}
+              narrationStudio={narrationStudio}
+              narrationStudioError={narrationStudioError}
               uploadNarrationLaunchpad={uploadNarrationLaunchpad}
               uploadNarrationLaunchpadError={uploadNarrationLaunchpadError}
               narrationSceneBoard={narrationSceneBoard}
@@ -7113,6 +7129,8 @@ function JobDetail({
   customNarrationRenderResult,
   narrationEvidence,
   narrationDeliveryPackage,
+  narrationStudio,
+  narrationStudioError,
   uploadNarrationLaunchpad,
   uploadNarrationLaunchpadError,
   narrationDemoPresets,
@@ -7268,6 +7286,8 @@ function JobDetail({
   customNarrationRenderResult: CustomNarrationRenderResult | null;
   narrationEvidence: NarrationEvidence | null;
   narrationDeliveryPackage: NarrationDeliveryPackage | null;
+  narrationStudio: NarrationStudio | null;
+  narrationStudioError: string | null;
   uploadNarrationLaunchpad: UploadNarrationLaunchpad | null;
   uploadNarrationLaunchpadError: string | null;
   narrationDemoPresets: NarrationDemoPreset[];
@@ -7578,6 +7598,8 @@ function JobDetail({
         error={narrationError}
         evidence={narrationEvidence}
         deliveryPackage={narrationDeliveryPackage}
+        studio={narrationStudio}
+        studioError={narrationStudioError}
         uploadNarrationLaunchpad={uploadNarrationLaunchpad}
         uploadNarrationLaunchpadError={uploadNarrationLaunchpadError}
         isClearing={isClearingNarration}
@@ -10660,6 +10682,8 @@ function NarrationWorkspacePanel({
   artifacts,
   demoAcceptanceGate,
   deliveryPackage,
+  studio,
+  studioError,
   error,
   evidence,
   uploadNarrationLaunchpad,
@@ -10701,6 +10725,8 @@ function NarrationWorkspacePanel({
   artifacts: JobArtifact[];
   demoAcceptanceGate: DemoAcceptanceGate | null;
   deliveryPackage: NarrationDeliveryPackage | null;
+  studio: NarrationStudio | null;
+  studioError: string | null;
   error: string | null;
   evidence: NarrationEvidence | null;
   uploadNarrationLaunchpad: UploadNarrationLaunchpad | null;
@@ -11437,6 +11463,7 @@ function NarrationWorkspacePanel({
           {mixKeyframeValidation.map((message) => <li key={message}>{message}</li>)}
         </ul>
       ) : null}
+      <NarrationStudioPanel studio={studio} error={studioError} />
       <div className="narration-workbench">
         <div className="narration-table-wrap">
           <UploadNarrationLaunchpadPanel
@@ -11672,6 +11699,95 @@ function NarrationWorkspacePanel({
       </div>
     </section>
   );
+}
+
+function NarrationStudioPanel({
+  error,
+  studio
+}: {
+  error: string | null;
+  studio: NarrationStudio | null;
+}) {
+  const statusClass = statusPillClass(studio?.overallStatus ?? 'ATTENTION');
+
+  return (
+    <section className="narration-studio-panel" aria-label="Narration studio">
+      <div className="compact-panel-heading">
+        <div>
+          <h4>Narration studio</h4>
+          <p className="muted">
+            {studio
+              ? `${studio.phase} · ${studio.recommendedNextAction}`
+              : 'Guided narration state is loading.'}
+          </p>
+        </div>
+        <span className={statusClass}>{studio?.overallStatus ?? 'LOADING'}</span>
+      </div>
+      {error ? <p className="error-text">{error}</p> : null}
+      <div className="narration-studio-grid">
+        <ol className="narration-studio-steps" aria-label="Narration studio steps">
+          {(studio?.steps ?? []).map((step, index) => (
+            <li key={step.key}>
+              <span className="step-index">{index + 1}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <small>{step.nextAction}</small>
+              </div>
+              <span className={statusPillClass(step.status)}>{step.status}</span>
+            </li>
+          ))}
+          {!studio ? <li className="muted">No studio steps loaded.</li> : null}
+        </ol>
+        <div className="narration-studio-summary">
+          <dl className="compact-metrics narration-studio-metrics">
+            <div>
+              <dt>Rows</dt>
+              <dd>{studio?.segmentCount ?? 0}</dd>
+            </div>
+            <div>
+              <dt>Characters</dt>
+              <dd>{studio?.characterCount ?? 0}</dd>
+            </div>
+            <div>
+              <dt>Audio</dt>
+              <dd>{studio?.audioReady ? 'Ready' : 'Missing'}</dd>
+            </div>
+            <div>
+              <dt>Video</dt>
+              <dd>{studio?.videoReady ? 'Ready' : 'Missing'}</dd>
+            </div>
+          </dl>
+          <p className="narration-command-status">{studio?.recommendedNextAction ?? 'Load a job to inspect narration guidance.'}</p>
+          <ul className="compact-list">
+            {(studio?.safetyNotes ?? []).slice(0, 3).map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+        <aside className="narration-studio-links" aria-label="Narration studio safe links">
+          <h5>Safe links</h5>
+          <ul className="safe-link-list">
+            {(studio?.links ?? []).map((link) => (
+              <li key={`${link.kind}-${link.href}`}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.contentType} · {link.description}</small>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function statusPillClass(status: string) {
+  if (status === 'READY' || status === 'WATCH') {
+    return 'status-pill ready';
+  }
+  if (status === 'BLOCKED' || status === 'EMPTY') {
+    return 'status-pill blocked';
+  }
+  return 'status-pill attention';
 }
 
 function UploadNarrationLaunchpadPanel({

@@ -1558,6 +1558,18 @@ test_upload_narration_launchpad_helpers_use_backend_routes() {
   [[ "$markdown_output" == *"http://example.test/api/jobs/launchpad%20job%2Fslash/upload-narration-launchpad/markdown/download"* ]] || fail "upload narration launchpad Markdown helper used wrong route"
 }
 
+test_narration_studio_helper_uses_backend_route() {
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_narration_studio_json "http://example.test" "studio job/slash" "$TMPDIR/narration-studio.json" >"$TMPDIR/narration-studio-curl.out"
+
+  local output
+  output="$(cat "$TMPDIR/narration-studio-curl.out")"
+  [[ "$output" == *"http://example.test/api/jobs/studio%20job%2Fslash/narration-studio"* ]] || fail "narration studio helper used wrong route"
+}
+
 test_download_demo_replay_card_helper_uses_backend_route() {
   local fake_curl
   fake_curl="$(fake_curl_bin)"
@@ -2029,6 +2041,64 @@ JSON
   [[ "$output" != *"/Users/example"* ]] || fail "upload narration launchpad summary exposed local path"
   [[ "$output" != *"sk-test-secret"* ]] || fail "upload narration launchpad summary exposed token"
   [[ "$output" != *"raw-provider-body"* ]] || fail "upload narration launchpad summary exposed provider payload"
+}
+
+test_print_narration_studio_summary_is_metadata_only() {
+  cat >"$TMPDIR/narration-studio.json" <<'JSON'
+{
+  "jobId": "job-studio",
+  "videoId": "video-studio",
+  "generatedAt": "2026-07-01T05:15:00Z",
+  "overallStatus": "ATTENTION",
+  "phase": "NARRATION_STUDIO_NEEDS_ACTION",
+  "recommendedNextAction": "Run the custom narration render console before final handoff.",
+  "segmentCount": 2,
+  "characterCount": 49,
+  "audioReady": false,
+  "videoReady": false,
+  "steps": [
+    {
+      "key": "RENDER_CUSTOM",
+      "label": "Render custom narration",
+      "status": "ATTENTION",
+      "detail": "Custom render output is missing.",
+      "nextAction": "Run the custom narration render console before final handoff.",
+      "safeLink": "/api/jobs/job-studio/custom-narration-render/markdown/download"
+    }
+  ],
+  "links": [
+    {
+      "kind": "CUSTOM_NARRATION_RENDER_REPORT",
+      "label": "Custom narration render report",
+      "href": "/api/jobs/job-studio/custom-narration-render/markdown/download",
+      "contentType": "text/markdown",
+      "description": "Custom render report."
+    }
+  ],
+  "safetyNotes": ["Metadata only."],
+  "text": "Private narration text should not print.",
+  "reviewerNote": "Private reviewer note should not print.",
+  "sourceObjectKey": "job-artifacts/private/source.mp4",
+  "localPath": "/Users/example/private.mov",
+  "token": "sk-test-secret",
+  "providerPayload": "raw-provider-body"
+}
+JSON
+
+  print_narration_studio_summary_file "$TMPDIR/narration-studio.json" >"$TMPDIR/narration-studio.out"
+  local output
+  output="$(cat "$TMPDIR/narration-studio.out")"
+
+  [[ "$output" == *"narrationStudioStatus=ATTENTION"* ]] || fail "narration studio summary missed status"
+  [[ "$output" == *"narrationStudioPhase=NARRATION_STUDIO_NEEDS_ACTION"* ]] || fail "narration studio summary missed phase"
+  [[ "$output" == *"narrationStudioStep=RENDER_CUSTOM:ATTENTION:Run the custom narration render console before final handoff.:/api/jobs/job-studio/custom-narration-render/markdown/download"* ]] || fail "narration studio summary missed render step"
+  [[ "$output" == *"narrationStudioLink=CUSTOM_NARRATION_RENDER_REPORT:/api/jobs/job-studio/custom-narration-render/markdown/download:text/markdown"* ]] || fail "narration studio summary missed safe link"
+  [[ "$output" != *"Private narration text"* ]] || fail "narration studio summary exposed narration text"
+  [[ "$output" != *"Private reviewer note"* ]] || fail "narration studio summary exposed reviewer note"
+  [[ "$output" != *"job-artifacts/private"* ]] || fail "narration studio summary exposed object key"
+  [[ "$output" != *"/Users/example"* ]] || fail "narration studio summary exposed local path"
+  [[ "$output" != *"sk-test-secret"* ]] || fail "narration studio summary exposed token"
+  [[ "$output" != *"raw-provider-body"* ]] || fail "narration studio summary exposed provider payload"
 }
 
 test_print_demo_replay_card_summary_is_metadata_only() {
@@ -4006,6 +4076,7 @@ test_download_demo_run_matrix_helper_uses_backend_route
 test_print_demo_run_matrix_summary_is_metadata_only
 test_download_demo_presenter_pack_helper_uses_backend_route
 test_upload_narration_launchpad_helpers_use_backend_routes
+test_narration_studio_helper_uses_backend_route
 test_download_demo_replay_card_helper_uses_backend_route
 test_download_demo_completion_certificate_helper_uses_backend_route
 test_download_demo_acceptance_gate_helper_uses_backend_route
@@ -4017,6 +4088,7 @@ test_print_stuck_job_recovery_summary_is_metadata_only
 test_print_demo_share_sheet_summary_is_metadata_only
 test_print_demo_presenter_pack_summary_is_metadata_only
 test_print_upload_narration_launchpad_summary_is_metadata_only
+test_print_narration_studio_summary_is_metadata_only
 test_print_demo_replay_card_summary_is_metadata_only
 test_print_demo_completion_certificate_summary_is_metadata_only
 test_print_demo_acceptance_gate_summary_is_metadata_only

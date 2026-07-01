@@ -177,6 +177,11 @@ else
   echo "Set LINGUAFRAME_APPLY_NARRATION_DEMO_PRESET=true for the apply-only workflow."
 fi
 
+echo "Narration studio:"
+download_narration_studio_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-studio.json"
+print_narration_studio_summary_file "$OUTPUT_DIR/narration-studio.json"
+echo "Downloaded narration studio to $OUTPUT_DIR/narration-studio.json"
+
 if [[ "$RENDER_CUSTOM_NARRATION" == "true" ]]; then
   echo "Custom narration render:"
   LINGUAFRAME_DEMO_JOB_ID="$job_id" \
@@ -184,6 +189,9 @@ if [[ "$RENDER_CUSTOM_NARRATION" == "true" ]]; then
     "$SCRIPT_DIR/custom-narration-render.sh"
   cp "$OUTPUT_DIR/custom-narration-render/custom-narration-render.md" "$OUTPUT_DIR/custom-narration-render.md"
   echo "Custom narration render report exported to $OUTPUT_DIR/custom-narration-render.md"
+  download_narration_studio_json "$BASE_URL" "$job_id" "$OUTPUT_DIR/narration-studio.json"
+  print_narration_studio_summary_file "$OUTPUT_DIR/narration-studio.json"
+  echo "Refreshed narration studio after custom render at $OUTPUT_DIR/narration-studio.json"
 else
   echo "Skipping custom narration render. Set LINGUAFRAME_RENDER_CUSTOM_NARRATION=true to render saved upload-seeded or manually edited narration rows."
   echo "Run scripts/demo/custom-narration-render.sh with LINGUAFRAME_DEMO_JOB_ID=$job_id to preflight and render the saved custom workspace."

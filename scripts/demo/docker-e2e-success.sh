@@ -41,6 +41,7 @@ SUBTITLE_REVIEW_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_SUBTITLE_REVIEW_EVIDENCE_Z
 NARRATION_EVIDENCE_JSON_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_JSON_PATH:-/tmp/linguaframe-demo/narration-evidence.json}"
 NARRATION_EVIDENCE_MARKDOWN_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_MARKDOWN_PATH:-/tmp/linguaframe-demo/narration-evidence.md}"
 NARRATION_EVIDENCE_ZIP_PATH="${LINGUAFRAME_DEMO_NARRATION_EVIDENCE_ZIP_PATH:-/tmp/linguaframe-demo/narration-evidence.zip}"
+NARRATION_STUDIO_JSON_PATH="${LINGUAFRAME_DEMO_NARRATION_STUDIO_JSON_PATH:-/tmp/linguaframe-demo/narration-studio/narration-studio.json}"
 UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH="${LINGUAFRAME_DEMO_UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH:-/tmp/linguaframe-demo/upload-narration-launchpad.json}"
 UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH="${LINGUAFRAME_DEMO_UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH:-/tmp/linguaframe-demo/upload-narration-launchpad.md}"
 SOURCE_MEDIA_METADATA_PATH="${LINGUAFRAME_DEMO_SOURCE_MEDIA_METADATA_PATH:-/tmp/linguaframe-demo/source-media.json}"
@@ -66,6 +67,8 @@ if [[ "$narration_script_seeded" == "true" ]]; then
   download_upload_narration_launchpad_json "$BASE_URL" "$job_id" "$UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH"
   download_upload_narration_launchpad_markdown "$BASE_URL" "$job_id" "$UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
   print_upload_narration_launchpad_summary_file "$UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH" "$UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
+  download_narration_studio_json "$BASE_URL" "$job_id" "$NARRATION_STUDIO_JSON_PATH"
+  print_narration_studio_summary_file "$NARRATION_STUDIO_JSON_PATH"
 fi
 job_response="$(wait_for_job_status "$BASE_URL" "$job_id" COMPLETED)"
 video_id="$(printf '%s' "$job_response" | extract_json_field videoId)"
@@ -157,8 +160,10 @@ else
   if [[ "$narration_script_seeded" == "true" && "${LINGUAFRAME_RENDER_CUSTOM_NARRATION:-false}" == "true" ]]; then
     LINGUAFRAME_DEMO_JOB_ID="$job_id" \
       LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR="${LINGUAFRAME_CUSTOM_NARRATION_RENDER_OUTPUT_DIR:-/tmp/linguaframe-demo/custom-narration-render}" \
-      "$SCRIPT_DIR/custom-narration-render.sh"
+    "$SCRIPT_DIR/custom-narration-render.sh"
     download_narration_evidence_json "$BASE_URL" "$job_id" "$NARRATION_EVIDENCE_JSON_PATH"
+    download_narration_studio_json "$BASE_URL" "$job_id" "$NARRATION_STUDIO_JSON_PATH"
+    print_narration_studio_summary_file "$NARRATION_STUDIO_JSON_PATH"
   fi
   if [[ "${LINGUAFRAME_DEMO_GENERATE_NARRATED_VIDEO:-false}" == "true" ]]; then
     narration_audio_ready="$(printf '%s' "$(cat "$NARRATION_EVIDENCE_JSON_PATH")" | extract_json_field narrationAudioReady)"
@@ -214,6 +219,7 @@ echo "Downloaded subtitle review evidence ZIP to $SUBTITLE_REVIEW_EVIDENCE_ZIP_P
 if [[ "$narration_script_seeded" == "true" ]]; then
   echo "Downloaded upload narration launchpad JSON to $UPLOAD_NARRATION_LAUNCHPAD_JSON_PATH"
   echo "Downloaded upload narration launchpad Markdown to $UPLOAD_NARRATION_LAUNCHPAD_MARKDOWN_PATH"
+  echo "Downloaded narration studio JSON to $NARRATION_STUDIO_JSON_PATH"
 fi
 echo "Checked narration evidence JSON at $NARRATION_EVIDENCE_JSON_PATH"
 echo "Downloaded source video to $SOURCE_MEDIA_PATH"

@@ -26,6 +26,7 @@ import {
   getNarrationRenderReview,
   getNarrationSceneBoard,
   getNarrationScriptPackage,
+  getNarrationStudio,
   getNarrationWaveform,
   getNarrationWorkspace,
   getNarrationDemoPreset,
@@ -2642,6 +2643,55 @@ describe('linguaframeApi', () => {
       }
     });
     expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/jobs/job%20with%20spaces%2Fslash/narration-delivery-package/download', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('loads narration studio with encoded job id and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse({
+        jobId: 'job with spaces/slash',
+        videoId: 'video-studio',
+        generatedAt: '2026-07-01T05:15:00Z',
+        overallStatus: 'ATTENTION',
+        phase: 'NARRATION_STUDIO_NEEDS_ACTION',
+        recommendedNextAction: 'Run custom narration render.',
+        segmentCount: 2,
+        characterCount: 49,
+        audioReady: false,
+        videoReady: false,
+        steps: [
+          {
+            key: 'RENDER_CUSTOM',
+            label: 'Render custom narration',
+            status: 'ATTENTION',
+            detail: 'Custom render output is missing.',
+            nextAction: 'Run custom narration render.',
+            safeLink: '/api/jobs/job with spaces/slash/custom-narration-render/markdown/download'
+          }
+        ],
+        links: [
+          {
+            kind: 'CUSTOM_NARRATION_RENDER_REPORT',
+            label: 'Custom narration render report',
+            href: '/api/jobs/job with spaces/slash/custom-narration-render/markdown/download',
+            contentType: 'text/markdown',
+            description: 'Custom render report.'
+          }
+        ],
+        safetyNotes: ['Metadata only.']
+      })
+    );
+
+    const studio = await getNarrationStudio('job with spaces/slash');
+
+    expect(studio.phase).toBe('NARRATION_STUDIO_NEEDS_ACTION');
+    expect(studio.steps[0]?.key).toBe('RENDER_CUSTOM');
+    expect(fetchMock).toHaveBeenCalledWith('/api/jobs/job%20with%20spaces%2Fslash/narration-studio', {
       method: 'GET',
       headers: {
         'X-LinguaFrame-Demo-Token': 'private-demo-token'

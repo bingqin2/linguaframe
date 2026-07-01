@@ -790,6 +790,17 @@ download_upload_narration_launchpad_markdown() {
   demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/upload-narration-launchpad/markdown/download" -o "$output_path"
 }
 
+download_narration_studio_json() {
+  local base_url="$1"
+  local job_id="$2"
+  local output_path="$3"
+  local encoded_job_id
+  encoded_job_id="$(url_encode_path_segment "$job_id")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/jobs/$encoded_job_id/narration-studio" -o "$output_path"
+}
+
 download_demo_handoff_portal_json() {
   local base_url="$1"
   local job_id="$2"
@@ -2137,6 +2148,52 @@ for link in safe_links:
 print("uploadNarrationLaunchpadJsonPath=" + launchpad_path)
 print("uploadNarrationLaunchpadMarkdownPath=" + markdown_path)
 print("uploadNarrationLaunchpadSafety=Metadata-only summary; narration text, media paths, object keys, provider payloads, tokens, and secrets are not printed.")
+PY
+}
+
+print_narration_studio_summary_file() {
+  local studio_path="$1"
+
+  python3 - "$studio_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    studio = json.load(handle)
+
+def text(value):
+    return "N/A" if value is None else str(value)
+
+def flag(value):
+    return str(bool(value)).lower()
+
+print("narrationStudioJobId=" + text(studio.get("jobId")))
+print("narrationStudioVideoId=" + text(studio.get("videoId")))
+print("narrationStudioGeneratedAt=" + text(studio.get("generatedAt")))
+print("narrationStudioStatus=" + text(studio.get("overallStatus")))
+print("narrationStudioPhase=" + text(studio.get("phase")))
+print("narrationStudioNextAction=" + text(studio.get("recommendedNextAction")))
+print("narrationStudioSegmentCount=" + text(studio.get("segmentCount", 0)))
+print("narrationStudioCharacterCount=" + text(studio.get("characterCount", 0)))
+print("narrationStudioAudioReady=" + flag(studio.get("audioReady")))
+print("narrationStudioVideoReady=" + flag(studio.get("videoReady")))
+for step in studio.get("steps") or []:
+    print("narrationStudioStep=" + ":".join([
+        text(step.get("key")),
+        text(step.get("status")),
+        text(step.get("nextAction")),
+        text(step.get("safeLink")),
+    ]))
+for link in studio.get("links") or []:
+    print("narrationStudioLink=" + ":".join([
+        text(link.get("kind")),
+        text(link.get("href")),
+        text(link.get("contentType")),
+    ]))
+for note in studio.get("safetyNotes") or []:
+    print("narrationStudioSafetyNote=" + text(note))
+print("narrationStudioJsonPath=" + sys.argv[1])
+print("narrationStudioSafety=Metadata-only summary; narration text, reviewer notes, transcripts, subtitles, media paths, object keys, provider payloads, tokens, and secrets are not printed.")
 PY
 }
 

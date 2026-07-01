@@ -67,6 +67,7 @@ import com.linguaframe.job.domain.vo.NarrationSceneBoardVo;
 import com.linguaframe.job.domain.vo.NarrationSegmentPreviewVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageImportVo;
 import com.linguaframe.job.domain.vo.NarrationScriptPackageVo;
+import com.linguaframe.job.domain.vo.NarrationStudioVo;
 import com.linguaframe.job.domain.vo.NarrationWaveformVo;
 import com.linguaframe.job.domain.vo.NarrationWorkspaceVo;
 import com.linguaframe.job.domain.vo.NarratedVideoGenerationVo;
@@ -119,6 +120,7 @@ import com.linguaframe.job.service.NarrationRenderReviewService;
 import com.linguaframe.job.service.NarrationSceneBoardService;
 import com.linguaframe.job.service.NarrationSegmentPreviewService;
 import com.linguaframe.job.service.NarrationScriptPackageService;
+import com.linguaframe.job.service.NarrationStudioService;
 import com.linguaframe.job.service.NarrationWaveformService;
 import com.linguaframe.job.service.NarrationWorkspaceService;
 import com.linguaframe.job.service.NarratedVideoService;
@@ -213,6 +215,7 @@ public class LocalizationJobController {
     private final NarrationSceneBoardService narrationSceneBoardService;
     private final NarrationSegmentPreviewService narrationSegmentPreviewService;
     private final NarrationScriptPackageService narrationScriptPackageService;
+    private final NarrationStudioService narrationStudioService;
     private final NarrationWaveformService narrationWaveformService;
     private final NarrationWorkspaceService narrationWorkspaceService;
     private final NarratedVideoService narratedVideoService;
@@ -270,6 +273,7 @@ public class LocalizationJobController {
             NarrationSceneBoardService narrationSceneBoardService,
             NarrationSegmentPreviewService narrationSegmentPreviewService,
             NarrationScriptPackageService narrationScriptPackageService,
+            NarrationStudioService narrationStudioService,
             NarrationWaveformService narrationWaveformService,
             NarrationWorkspaceService narrationWorkspaceService,
             NarratedVideoService narratedVideoService,
@@ -326,6 +330,7 @@ public class LocalizationJobController {
         this.narrationSceneBoardService = narrationSceneBoardService;
         this.narrationSegmentPreviewService = narrationSegmentPreviewService;
         this.narrationScriptPackageService = narrationScriptPackageService;
+        this.narrationStudioService = narrationStudioService;
         this.narrationWaveformService = narrationWaveformService;
         this.narrationWorkspaceService = narrationWorkspaceService;
         this.narratedVideoService = narratedVideoService;
@@ -1537,6 +1542,15 @@ public class LocalizationJobController {
             @PathVariable String jobId
     ) {
         return uploadNarrationLaunchpadService.getLaunchpad(jobId);
+    }
+
+    @GetMapping("/{jobId}/narration-studio")
+    @Operation(summary = "Get metadata-only guided narration studio state")
+    public NarrationStudioVo narrationStudio(
+            @Parameter(in = ParameterIn.PATH, description = "Localization job id.", required = true)
+            @PathVariable String jobId
+    ) {
+        return narrationStudioService.getStudio(jobId);
     }
 
     @GetMapping("/{jobId}/narration-render-review")

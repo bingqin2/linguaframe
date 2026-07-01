@@ -945,3 +945,11 @@ Decision: Surface custom narration render proof through existing final handoff a
 Reason: Final demo reviewers need to see whether saved operator-authored narration rows were rendered, which output mode exists, and where to open the safe report, but adding a persistent custom-render artifact would duplicate the existing acceptance, reviewer, portal, closure, evidence, and delivery-package routes.
 
 Impact: Acceptance gate, reviewer workspace, handoff portal, evidence closure, and full Tears terminal summaries now include custom narration render status, output plan, row/character counts, audio/video readiness, next action, and safe report/evidence/delivery routes. These aggregate surfaces remain read-only and metadata-only; they do not call providers, run FFmpeg, save rows, upload media, or embed narration text, notes, local paths, object keys, secrets, provider payloads, or media bytes.
+
+## 2026-07-01
+
+Decision: Add a read-only narration studio aggregate instead of persisting a new narration session model.
+
+Reason: Operators already have specialized panels for upload seeding, workspace editing, TTS preview, custom render, playback review, delivery package, acceptance, reviewer workspace, and handoff portal. They need one guided entry point that shows the current step and safe links, but introducing a persisted session model would duplicate existing state and add ordering semantics before multi-user narration sessions exist.
+
+Impact: `GET /api/jobs/{jobId}/narration-studio`, the browser `Narration studio` panel, and `scripts/demo/narration-studio.sh` compose existing metadata into author, preview, render, review, package, and handoff steps. The aggregate is read-only and metadata-only; it does not call OpenAI/TTS providers, run FFmpeg, save rows, upload media, create artifacts, mutate object storage, or expose narration text, reviewer notes, transcripts, subtitles, local paths, object keys, provider payloads, secrets, or media bytes.

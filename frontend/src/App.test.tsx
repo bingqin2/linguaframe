@@ -45,6 +45,7 @@ import type {
   NarrationRenderReview,
   NarrationSceneBoard,
   NarrationScriptPackage,
+  NarrationStudio,
   NarrationWaveform,
   NarratedVideoGeneration,
   NarrationWorkspace,
@@ -153,6 +154,7 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReview').mockResolvedValue(narrationPlaybackReviewFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationPlaybackReviewResolution').mockResolvedValue(narrationPlaybackReviewResolutionFixture());
     vi.spyOn(linguaFrameApi, 'getNarrationDeliveryPackage').mockResolvedValue(narrationDeliveryPackageFixture());
+    vi.spyOn(linguaFrameApi, 'getNarrationStudio').mockResolvedValue(narrationStudioFixture());
     vi.spyOn(linguaFrameApi, 'getUploadNarrationLaunchpad').mockResolvedValue(uploadNarrationLaunchpadFixture());
     vi.spyOn(linguaFrameApi, 'downloadUploadNarrationLaunchpadMarkdown').mockResolvedValue(
       new Blob(['# Upload Narration Launchpad'], { type: 'text/markdown' })
@@ -2746,6 +2748,70 @@ describe('App', () => {
 
     expect(within(sceneBoard).getByText('Explain the second scene.')).toBeInTheDocument();
     expect(within(narrationPanel).getByText((_content, element) => element?.textContent === '55 s - 70.5 s')).toBeInTheDocument();
+  });
+
+  test('renders narration studio workbench for ready, attention, and empty states', async () => {
+    vi.spyOn(linguaFrameApi, 'getJob').mockResolvedValue(
+      jobFixture({ jobId: 'narration-studio-job', videoId: 'narration-studio-video', targetLanguage: 'zh-CN' })
+    );
+    vi.spyOn(linguaFrameApi, 'listTranscript').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listSubtitles').mockResolvedValue([]);
+    vi.spyOn(linguaFrameApi, 'listArtifacts').mockResolvedValue([]);
+    const getNarrationStudio = vi.spyOn(linguaFrameApi, 'getNarrationStudio')
+      .mockResolvedValueOnce(narrationStudioFixture({ jobId: 'narration-studio-job' }))
+      .mockResolvedValueOnce(narrationStudioFixture({
+        jobId: 'narration-studio-job',
+        overallStatus: 'ATTENTION',
+        phase: 'NARRATION_STUDIO_NEEDS_ACTION',
+        recommendedNextAction: 'Run the custom narration render console before final handoff.',
+        audioReady: false,
+        videoReady: false,
+        steps: narrationStudioFixture().steps.map((step) => (
+          step.key === 'RENDER_CUSTOM'
+            ? { ...step, status: 'ATTENTION', nextAction: 'Run the custom narration render console before final handoff.' }
+            : step
+        ))
+      }))
+      .mockResolvedValueOnce(narrationStudioFixture({
+        jobId: 'narration-studio-job',
+        overallStatus: 'EMPTY',
+        phase: 'NARRATION_STUDIO_EMPTY',
+        recommendedNextAction: 'Add rows in the narration workspace or seed them from upload quick script.',
+        segmentCount: 0,
+        characterCount: 0,
+        audioReady: false,
+        videoReady: false,
+        steps: narrationStudioFixture().steps.map((step) => (
+          step.key === 'AUTHOR_ROWS'
+            ? { ...step, status: 'EMPTY', nextAction: 'Add rows in the narration workspace or seed them from upload quick script.' }
+            : { ...step, status: 'EMPTY' }
+        ))
+      }));
+
+    render(<App />);
+
+    await userEvent.type(screen.getByLabelText(/open job id/i), 'narration-studio-job');
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+
+    const narrationPanel = await screen.findByRole('region', { name: /narration workspace/i });
+    const studio = within(narrationPanel).getByRole('region', { name: /narration studio/i });
+
+    expect(within(studio).getByText('NARRATION_STUDIO_READY · Open the final handoff links or share the delivery package.')).toBeInTheDocument();
+    expect(within(studio).getByText((_content, element) => element?.textContent === 'Rows2')).toBeInTheDocument();
+    expect(within(studio).getByRole('link', { name: /custom narration render report/i })).toHaveAttribute(
+      'href',
+      '/api/jobs/narration-studio-job/custom-narration-render/markdown/download'
+    );
+    expect(studio).not.toHaveTextContent('Private narration text');
+
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    expect(await within(studio).findByText(/NARRATION_STUDIO_NEEDS_ACTION/i)).toBeInTheDocument();
+    expect(within(studio).getAllByText(/Run the custom narration render console before final handoff/i).length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: /open job/i }));
+    expect(await within(studio).findByText(/NARRATION_STUDIO_EMPTY/i)).toBeInTheDocument();
+    expect(within(studio).getAllByText(/Add rows in the narration workspace/i).length).toBeGreaterThan(0);
+    expect(getNarrationStudio).toHaveBeenCalledWith('narration-studio-job');
   });
 
   test('shows timed narration audio bed and ducked narrated video status', async () => {
@@ -9361,6 +9427,100 @@ function uploadNarrationLaunchpadFixture(overrides: Partial<UploadNarrationLaunc
       }
     ],
     safetyNotes: ['Metadata only; seeded narration text stays in the workspace endpoint.'],
+    ...overrides
+  };
+}
+
+function narrationStudioFixture(overrides: Partial<NarrationStudio> = {}): NarrationStudio {
+  const jobId = overrides.jobId ?? 'narration-studio-job';
+  return {
+    jobId,
+    videoId: 'narration-studio-video',
+    generatedAt: '2026-07-01T05:15:00Z',
+    overallStatus: 'READY',
+    phase: 'NARRATION_STUDIO_READY',
+    recommendedNextAction: 'Open the final handoff links or share the delivery package.',
+    segmentCount: 2,
+    characterCount: 49,
+    audioReady: true,
+    videoReady: true,
+    steps: [
+      {
+        key: 'AUTHOR_ROWS',
+        label: 'Author rows',
+        status: 'READY',
+        detail: 'Saved rows=2; characters=49.',
+        nextAction: 'Preview or render the saved narration rows.',
+        safeLink: `/api/jobs/${jobId}/narration-workspace`
+      },
+      {
+        key: 'PREVIEW_TTS',
+        label: 'Preview TTS',
+        status: 'READY',
+        detail: 'Saved rows=2; selected launchpad row=0.',
+        nextAction: 'Preview selected rows before committing provider spend.',
+        safeLink: `/api/jobs/${jobId}/narration-segment-preview`
+      },
+      {
+        key: 'RENDER_CUSTOM',
+        label: 'Render custom narration',
+        status: 'READY',
+        detail: 'Custom render=READY; audioReady=true; videoReady=true.',
+        nextAction: 'Review rendered custom narration output.',
+        safeLink: `/api/jobs/${jobId}/custom-narration-render/markdown/download`
+      },
+      {
+        key: 'REVIEW_PLAYBACK',
+        label: 'Review playback',
+        status: 'READY',
+        detail: 'Resolution=READY; unresolved=0.',
+        nextAction: 'Playback review is resolved.',
+        safeLink: `/api/jobs/${jobId}/narration-playback-review/resolution`
+      },
+      {
+        key: 'PACKAGE_DELIVERY',
+        label: 'Package delivery',
+        status: 'READY',
+        detail: 'Delivery=READY; audioReady=true; videoReady=true.',
+        nextAction: 'Download the narration delivery package.',
+        safeLink: `/api/jobs/${jobId}/narration-delivery-package`
+      },
+      {
+        key: 'FINAL_HANDOFF',
+        label: 'Final handoff',
+        status: 'READY',
+        detail: 'Acceptance=READY; reviewer=READY; portal=READY.',
+        nextAction: 'Open reviewer workspace or handoff portal for final delivery.',
+        safeLink: `/api/jobs/${jobId}/demo-acceptance-gate`
+      }
+    ],
+    links: [
+      {
+        kind: 'NARRATION_WORKSPACE',
+        label: 'Narration workspace',
+        href: `/api/jobs/${jobId}/narration-workspace`,
+        contentType: 'application/json',
+        description: 'Saved narration workspace metadata.'
+      },
+      {
+        kind: 'CUSTOM_NARRATION_RENDER_REPORT',
+        label: 'Custom narration render report',
+        href: `/api/jobs/${jobId}/custom-narration-render/markdown/download`,
+        contentType: 'text/markdown',
+        description: 'Custom render report.'
+      },
+      {
+        kind: 'NARRATION_DELIVERY_PACKAGE',
+        label: 'Narration delivery package',
+        href: `/api/jobs/${jobId}/narration-delivery-package`,
+        contentType: 'application/json',
+        description: 'Narration delivery package.'
+      }
+    ],
+    safetyNotes: [
+      'Narration studio is read-only and generated from existing safe evidence services.',
+      'Narration text, reviewer notes, transcripts, subtitles, local paths, object keys, provider payloads, secrets, and media bytes are excluded.'
+    ],
     ...overrides
   };
 }
