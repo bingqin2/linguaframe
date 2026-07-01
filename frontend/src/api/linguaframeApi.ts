@@ -5,6 +5,7 @@ import type {
   DemoPresentationCockpit,
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
+  DemoSessionCostControlBoard,
   DemoSessionRecoveryBoard,
   SessionNarrationProductionBoard,
   DemoCompletionCertificate,
@@ -733,6 +734,28 @@ export async function downloadDemoSessionRecoveryBoardMarkdown(limit?: number): 
   }
   const suffix = query.toString() ? `?${query.toString()}` : '';
   return requestBlob(`/api/operator/demo-session-recovery-board/markdown/download${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function getDemoSessionCostControlBoard(limit?: number): Promise<DemoSessionCostControlBoard> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestJson<DemoSessionCostControlBoard>(`/api/operator/demo-session-cost-control-board${suffix}`, {
+    method: 'GET'
+  });
+}
+
+export async function downloadDemoSessionCostControlBoardMarkdown(limit?: number): Promise<Blob> {
+  const query = new URLSearchParams();
+  if (limit !== undefined) {
+    query.set('limit', String(limit));
+  }
+  const suffix = query.toString() ? `?${query.toString()}` : '';
+  return requestBlob(`/api/operator/demo-session-cost-control-board/markdown/download${suffix}`, {
     method: 'GET'
   });
 }
@@ -1563,6 +1586,8 @@ export const linguaFrameApi = {
   downloadDemoSessionEvidencePackageZip,
   getDemoSessionRecoveryBoard,
   downloadDemoSessionRecoveryBoardMarkdown,
+  getDemoSessionCostControlBoard,
+  downloadDemoSessionCostControlBoardMarkdown,
   getSessionNarrationProductionBoard,
   downloadSessionNarrationProductionBoardMarkdown,
   getPrivateDemoOperations,

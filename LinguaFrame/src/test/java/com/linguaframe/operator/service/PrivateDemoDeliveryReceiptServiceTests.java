@@ -6,6 +6,8 @@ import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterActionVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterEvidenceVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterRunVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlActionVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlLinkVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardActionVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardCheckVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardLinkVo;
@@ -286,6 +288,13 @@ class PrivateDemoDeliveryReceiptServiceTests {
                 "Narration production is ready.",
                 null,
                 List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
+                "READY",
+                new BigDecimal("0.01000000"),
+                new BigDecimal("0.01000000"),
+                0,
+                "Use cost control evidence.",
+                new DemoSessionCostControlActionVo("OPEN_MODEL_USAGE_LEDGER", "Open model usage ledger", "/api/operator/model-usage-ledger", "Inspect cost evidence.", true),
+                List.of(new DemoSessionCostControlLinkVo("MARKDOWN", "Demo session cost control Markdown", "/api/operator/demo-session-cost-control-board/markdown/download", "text/markdown", "Downloadable cost control report.")),
                 new BigDecimal("0.01000000"),
                 4,
                 0,

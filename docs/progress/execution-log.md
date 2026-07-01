@@ -6,6 +6,32 @@ This file records implementation progress, validation commands, failures, and fo
 
 Work:
 
+- Started the demo session cost-control board feature slice from `docs/plans/174-demo-session-cost-control-board.md`.
+- Added backend `DemoSessionCostControlBoardService`, VOs, JSON route, and Markdown download route that compose recent model usage, runtime budget posture, and owner quota preflight into one metadata-only run-day cost safety board.
+- Integrated cost-control status, spend, failed-call count, next action, phase readiness, links, and Markdown into the demo session command center.
+- Added `cost-control-board.json` and `cost-control-board.md` to the demo session evidence package ZIP and README/manifest coverage.
+- Added frontend API helpers, TypeScript types, a browser `Demo session cost control` panel, command-center cost summary, fixtures, and focused UI coverage.
+- Added `scripts/demo/demo-session-cost-control-board.sh`, CLI helper downloads/summaries, command-center cost-control summary lines, and evidence-package ZIP detection.
+- Updated README, demo script docs, smoke checklist, roadmap, target state, and this execution log with the cost-control workflow and test method.
+
+Validation so far:
+
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCostControlBoardServiceTests test` first failed at test compile because the new board service and interface did not exist; after adding the service and VOs, it passed with `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCostControlBoardServiceTests,DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,PrivateDemoDeliveryReceiptServiceTests test` first failed at test compile because command-center/evidence-package constructors and new VO fields were not wired yet; after integrating cost control, it passed with `Tests run: 23, Failures: 0, Errors: 0, Skipped: 0`.
+- `mvn -pl LinguaFrame -Dtest=OperatorDashboardControllerTests test` first failed because `/api/operator/demo-session-cost-control-board` returned `404`; after adding JSON/Markdown routes, it passed with `Tests run: 25, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm test -- --run src/api/linguaframeApi.test.ts -t "demo session cost control board"` first failed because `getDemoSessionCostControlBoard` and `downloadDemoSessionCostControlBoardMarkdown` did not exist; after adding API helpers and types, it passed with `Tests 2 passed | 113 skipped`.
+- `npm test -- --run src/App.test.tsx -t "cost control|command center"` first failed because the browser had no cost-control panel or command-center cost-control region; after adding the UI, it passed with `Tests 2 passed | 153 skipped`; jsdom printed expected navigation warnings from download/link fixtures.
+- `bash scripts/demo/test-linguaframe-demo-client.sh` first failed because the new route test invoked real `curl` instead of the fake curl binary; after using `LINGUAFRAME_DEMO_CURL_BIN`, it passed with `linguaframe-demo client tests passed`.
+- `bash -n scripts/demo/lib/linguaframe-demo.sh scripts/demo/demo-session-cost-control-board.sh scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/test-linguaframe-demo-client.sh` passed.
+- `mvn -pl LinguaFrame -Dtest=DemoSessionCostControlBoardServiceTests,DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests test` passed with `Tests run: 44, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run src/App.test.tsx src/api/linguaframeApi.test.ts -t "cost control|demo session command center|session evidence package"` passed with `Tests 8 passed | 262 skipped`; jsdom printed expected navigation warnings from download/link fixtures.
+- `mvn -pl LinguaFrame test` passed with `Tests run: 865, Failures: 0, Errors: 0, Skipped: 0`.
+- `npm --prefix frontend test -- --run` passed with `Test Files 12 passed` and `Tests 327 passed`; jsdom printed expected navigation warnings from download/link fixtures.
+- `npm --prefix frontend run build` passed; Vite reported the existing single large chunk warning.
+- `git diff --check` passed.
+
+Work:
+
 - Started the session narration command center integration feature slice from `docs/plans/173-session-narration-command-center-integration.md`.
 - Integrated `SessionNarrationProductionBoardService` into the demo session command center so narration production status, counts, recommended action, primary action, safe links, Markdown, and phase readiness are visible in the top-level run-day surface.
 - Added narration production JSON and Markdown entries to the demo session evidence package ZIP and manifest.

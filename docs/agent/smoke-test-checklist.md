@@ -90,6 +90,23 @@ Expected:
 - The session evidence package includes `narration-production-board.json` and `narration-production-board.md`.
 - Browser and terminal exports stay metadata-only and omit local paths, object keys, tokens, provider payloads, transcripts, subtitles, and media bytes.
 
+For demo session cost-control board changes, run:
+
+```bash
+mvn -pl LinguaFrame -Dtest=DemoSessionCostControlBoardServiceTests,DemoSessionCommandCenterServiceTests,DemoSessionEvidencePackageServiceTests,OperatorDashboardControllerTests test
+npm --prefix frontend test -- --run src/api/linguaframeApi.test.ts src/App.test.tsx -t "cost control|demo session command center|session evidence package"
+bash scripts/demo/test-linguaframe-demo-client.sh
+bash -n scripts/demo/demo-session-cost-control-board.sh scripts/demo/demo-session-command-center.sh scripts/demo/demo-session-evidence-package.sh scripts/demo/lib/linguaframe-demo.sh scripts/demo/test-linguaframe-demo-client.sh
+```
+
+Expected:
+
+- Browser run-day view shows `Demo session cost control` with recent spend, same-day spend, budget guard posture, failed calls, top jobs, top operations, checks, safe links, refresh, and Markdown download.
+- The command center includes cost-control status, recent/daily estimated cost, failed-call count, next action, and cost-control evidence links.
+- A `BLOCKED` cost-control board blocks command-center readiness; `ATTENTION` surfaces review work when nothing else blocks.
+- The session evidence package includes `cost-control-board.json` and `cost-control-board.md`.
+- Cost-control exports must not call OpenAI, call TTS providers, run FFmpeg, upload media, mutate budgets, edit `.env`, print prompts, expose object keys, expose local paths, expose provider payloads, expose tokens or API keys, or include media bytes.
+
 For worker logging changes, run:
 
 ```bash

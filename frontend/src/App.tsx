@@ -83,6 +83,7 @@ import type {
   DemoSessionRecoveryBoard,
   DemoSessionCommandCenter,
   DemoSessionCommandCenterStatus,
+  DemoSessionCostControlBoard,
   SessionNarrationProductionBoard,
   DeliveryManifest,
   DemoPresenterPack,
@@ -482,6 +483,9 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   const [demoSessionRecoveryBoard, setDemoSessionRecoveryBoard] = useState<DemoSessionRecoveryBoard | null>(null);
   const [demoSessionRecoveryBoardError, setDemoSessionRecoveryBoardError] = useState<string | null>(null);
   const [isLoadingDemoSessionRecoveryBoard, setIsLoadingDemoSessionRecoveryBoard] = useState(false);
+  const [demoSessionCostControlBoard, setDemoSessionCostControlBoard] = useState<DemoSessionCostControlBoard | null>(null);
+  const [demoSessionCostControlBoardError, setDemoSessionCostControlBoardError] = useState<string | null>(null);
+  const [isLoadingDemoSessionCostControlBoard, setIsLoadingDemoSessionCostControlBoard] = useState(false);
   const [sessionNarrationProductionBoard, setSessionNarrationProductionBoard] = useState<SessionNarrationProductionBoard | null>(null);
   const [sessionNarrationProductionBoardError, setSessionNarrationProductionBoardError] = useState<string | null>(null);
   const [isLoadingSessionNarrationProductionBoard, setIsLoadingSessionNarrationProductionBoard] = useState(false);
@@ -1124,6 +1128,22 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }
   }, []);
 
+  const loadDemoSessionCostControlBoard = useCallback(async (limit = 25) => {
+    setIsLoadingDemoSessionCostControlBoard(true);
+    try {
+      const board = await linguaFrameApi.getDemoSessionCostControlBoard(limit);
+      setDemoSessionCostControlBoard(board);
+      setDemoSessionCostControlBoardError(null);
+      return board;
+    } catch (boardLoadError) {
+      setDemoSessionCostControlBoard(null);
+      setDemoSessionCostControlBoardError(toErrorMessage(boardLoadError));
+      return null;
+    } finally {
+      setIsLoadingDemoSessionCostControlBoard(false);
+    }
+  }, []);
+
   const loadSessionNarrationProductionBoard = useCallback(async (limit = 25) => {
     setIsLoadingSessionNarrationProductionBoard(true);
     try {
@@ -1425,6 +1445,10 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
   }, [loadDemoSessionRecoveryBoard]);
 
   useEffect(() => {
+    void loadDemoSessionCostControlBoard();
+  }, [loadDemoSessionCostControlBoard]);
+
+  useEffect(() => {
     void loadSessionNarrationProductionBoard();
   }, [loadSessionNarrationProductionBoard]);
 
@@ -1526,6 +1550,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
+        void loadDemoSessionCostControlBoard();
         void loadSessionNarrationProductionBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
@@ -1534,7 +1559,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     }, pollIntervalMs);
 
     return () => window.clearTimeout(timer);
-  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
+  }, [isSseUnavailable, job, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoReviewerWorkspace, loadDemoSessionCommandCenter, loadDemoSessionCostControlBoard, loadDemoSessionRecoveryBoard, loadJob, loadOpenAiSmokeProof, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery, pollIntervalMs]);
 
   useEffect(() => {
     if (!job || TERMINAL_STATUSES.has(job.status) || !supportsEventSource() || isSseUnavailable) {
@@ -1554,6 +1579,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
         void loadDemoSessionCommandCenter(nextJob.jobId);
         void loadPrivateDemoDeliveryReceipt(nextJob.jobId);
         void loadDemoSessionRecoveryBoard();
+        void loadDemoSessionCostControlBoard();
         void loadSessionNarrationProductionBoard();
         void loadOpenAiSmokeProof(nextJob.jobId);
         void loadDemoReviewerWorkspace(nextJob.jobId);
@@ -1581,7 +1607,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     };
 
     return () => eventSource.close();
-  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery]);
+  }, [historyStatusFilter, isSseUnavailable, job, loadDemoAcceptanceGate, loadDemoCompletionCertificate, loadDemoHandoffPortal, loadDemoPresentationCockpit, loadDemoPresenterPack, loadDemoReplayCard, loadDemoReviewerWorkspace, loadDemoRunMatrix, loadDemoRunMonitor, loadDemoRunSnapshot, loadDemoSessionCommandCenter, loadDemoSessionCostControlBoard, loadDemoSessionRecoveryBoard, loadDemoShareSheet, loadHistory, loadOpenAiSmokeProof, loadPreviewData, loadPrivateDemoDeliveryReceipt, loadSessionNarrationProductionBoard, loadSourceMedia, loadStuckJobRecovery]);
 
   function getSelectedUploadFile(form: HTMLFormElement): File | null {
     const input = form.elements.namedItem('videoFile') as HTMLInputElement | null;
@@ -1859,6 +1885,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
       await loadDemoShareSheet(upload.jobId);
       await loadDemoPresentationCockpit(upload.jobId);
       await loadDemoSessionCommandCenter(upload.jobId);
+      await loadDemoSessionCostControlBoard();
       await loadPrivateDemoDeliveryReceipt(upload.jobId);
       await loadOpenAiSmokeProof(upload.jobId);
       await loadDemoReviewerWorkspace(upload.jobId);
@@ -1895,6 +1922,7 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
     await loadDemoShareSheet(jobId);
     await loadDemoPresentationCockpit(jobId);
     await loadDemoSessionCommandCenter(jobId);
+    await loadDemoSessionCostControlBoard();
     await loadPrivateDemoDeliveryReceipt(jobId);
     await loadOpenAiSmokeProof(jobId);
     await loadDemoReviewerWorkspace(jobId);
@@ -2967,6 +2995,13 @@ export function App({ pollIntervalMs = POLL_INTERVAL_MS }: { pollIntervalMs?: nu
             error={modelUsageLedgerError}
             isLoading={isLoadingModelUsageLedger}
             onRefresh={loadModelUsageLedger}
+          />
+
+          <DemoSessionCostControlBoardPanel
+            board={demoSessionCostControlBoard}
+            error={demoSessionCostControlBoardError}
+            isLoading={isLoadingDemoSessionCostControlBoard}
+            onRefresh={() => void loadDemoSessionCostControlBoard()}
           />
 
           <DemoSessionCommandCenterPanel
@@ -4933,6 +4968,36 @@ function DemoSessionCommandCenterPanel({
               </a>
             ) : null}
           </section>
+          <section className="command-center-recovery-summary" aria-label="Command center cost control">
+            <div className="operations-section-heading">
+              <strong>Cost control</strong>
+              <span className={demoSessionStatusClassName(commandCenter.costControlStatus)}>
+                {commandCenter.costControlStatus}
+              </span>
+            </div>
+            <dl className="status-grid compact-status-grid operations-summary-grid">
+              <div>
+                <dt>Recent spend</dt>
+                <dd>{formatLedgerCost(commandCenter.costControlRecentEstimatedCostUsd)}</dd>
+              </div>
+              <div>
+                <dt>Daily spend</dt>
+                <dd>{formatLedgerCost(commandCenter.costControlDailyEstimatedCostUsd)}</dd>
+              </div>
+              <div>
+                <dt>Failed calls</dt>
+                <dd>{commandCenter.costControlFailedModelCallCount} failed</dd>
+              </div>
+            </dl>
+            <p className={commandCenter.costControlStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+              {commandCenter.costControlRecommendedNextAction}
+            </p>
+            {commandCenter.costControlPrimaryAction ? (
+              <a className="text-link" href={commandCenter.costControlPrimaryAction.href}>
+                {commandCenter.costControlPrimaryAction.label}
+              </a>
+            ) : null}
+          </section>
           {focusRun ? (
             <div className="evidence-gallery-recommended">
               <h3>Run focus</h3>
@@ -5015,6 +5080,174 @@ function DemoSessionCommandCenterPanel({
             </button>
           </div>
           {!canCopy ? <p className="muted">Clipboard copy is unavailable in this browser.</p> : null}
+          {status ? <p className="muted">{status}</p> : null}
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function DemoSessionCostControlBoardPanel({
+  board,
+  error,
+  isLoading,
+  onRefresh
+}: {
+  board: DemoSessionCostControlBoard | null;
+  error: string | null;
+  isLoading: boolean;
+  onRefresh: () => void;
+}) {
+  const [status, setStatus] = useState<string | null>(null);
+
+  const handleDownload = async () => {
+    try {
+      const blob = await linguaFrameApi.downloadDemoSessionCostControlBoardMarkdown(25);
+      downloadBlob(blob, 'linguaframe-demo-session-cost-control-board.md');
+      setStatus('Cost control board Markdown downloaded.');
+    } catch (downloadError) {
+      setStatus(toErrorMessage(downloadError));
+    }
+  };
+
+  return (
+    <section className="panel private-demo-operations-panel" aria-label="Demo session cost control">
+      <div className="panel-heading">
+        <h2>Demo session cost control</h2>
+        {board ? <span className={demoSessionStatusClassName(board.overallStatus)}>{board.overallStatus}</span> : null}
+        <button type="button" className="secondary-button" disabled={isLoading} onClick={onRefresh}>
+          Refresh
+        </button>
+      </div>
+      {error ? (
+        <>
+          <p className="error-text">Demo session cost control unavailable</p>
+          <p className="muted">{error}</p>
+        </>
+      ) : null}
+      {isLoading && !board ? <p className="muted">Loading demo session cost control...</p> : null}
+      {board ? (
+        <>
+          <dl className="status-grid compact-status-grid operations-summary-grid">
+            <div>
+              <dt>Recent spend</dt>
+              <dd>{formatLedgerCost(board.summary.recentEstimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Daily spend</dt>
+              <dd>{formatLedgerCost(board.summary.dailyEstimatedCostUsd)}</dd>
+            </div>
+            <div>
+              <dt>Daily budget</dt>
+              <dd>{formatLedgerCost(board.summary.dailyBudgetUsd)}</dd>
+            </div>
+            <div>
+              <dt>Calls</dt>
+              <dd>{board.summary.recentModelCallCount} calls</dd>
+            </div>
+            <div>
+              <dt>Failures</dt>
+              <dd>
+                {board.summary.recentFailedModelCallCount} failed · {board.summary.failureRatePercent}%
+              </dd>
+            </div>
+            <div>
+              <dt>Budget date</dt>
+              <dd>{board.summary.dailyBudgetDate}</dd>
+            </div>
+          </dl>
+          <p className={board.overallStatus === 'BLOCKED' ? 'error-text' : 'muted'}>
+            {board.summary.recommendedNextAction}
+          </p>
+          {board.primaryAction ? (
+            <div className="command-highlight">
+              <h3>Primary cost action</h3>
+              <strong>{board.primaryAction.label}</strong>
+              <small>{board.primaryAction.detail}</small>
+              <a href={board.primaryAction.href}>Open action evidence</a>
+            </div>
+          ) : null}
+          <h3>Budgets</h3>
+          <ul className="operations-section-list" aria-label="Demo session cost budgets">
+            {board.budgets.map((budget) => (
+              <li key={budget.key}>
+                <div className="operations-section-heading">
+                  <strong>{budget.label}</strong>
+                  <span className={demoSessionStatusClassName(budget.status)}>{budget.status}</span>
+                </div>
+                <p>{budget.detail}</p>
+                <small>{budget.nextAction}</small>
+                {budget.blocking ? <small className="error-text">Blocking additional provider spend.</small> : null}
+              </li>
+            ))}
+          </ul>
+          <h3>Recent jobs</h3>
+          <ul className="operations-section-list" aria-label="Demo session cost jobs">
+            {board.jobs.map((costJob) => (
+              <li key={costJob.jobId}>
+                <div className="operations-section-heading">
+                  <strong>{costJob.jobId}</strong>
+                  <span>{formatLedgerCost(costJob.estimatedCostUsd)}</span>
+                </div>
+                <p>
+                  {costJob.jobStatus} · {costJob.modelCallCount} calls · {costJob.failedModelCallCount} failed
+                </p>
+                <small>{costJob.recommendedNextAction}</small>
+                {costJob.links.length > 0 ? (
+                  <ul className="link-list">
+                    {costJob.links.slice(0, 4).map((link) => (
+                      <li key={`${costJob.jobId}-${link}`}>
+                        <a href={link}>{link}</a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <h3>Operations</h3>
+          <ul className="compact-list">
+            {board.operations.map((operation) => (
+              <li key={`${operation.operation}-${operation.provider}-${operation.model}`}>
+                <strong>{operation.operation}</strong> · {operation.provider}/{operation.model} ·{' '}
+                {operation.modelCallCount} calls · {operation.failedModelCallCount} failed ·{' '}
+                {formatLedgerCost(operation.estimatedCostUsd)}
+              </li>
+            ))}
+          </ul>
+          <h3>Checks</h3>
+          <ul className="operations-section-list" aria-label="Demo session cost checks">
+            {board.checks.map((check) => (
+              <li key={check.key}>
+                <div className="operations-section-heading">
+                  <strong>{check.label}</strong>
+                  <span className={demoSessionStatusClassName(check.status)}>{check.status}</span>
+                </div>
+                <p>{check.detail}</p>
+                <small>{check.nextAction}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Session links</h3>
+          <ul className="link-list">
+            {board.links.map((link) => (
+              <li key={`${link.label}-${link.href}`}>
+                <a href={link.href}>{link.label}</a>
+                <small>{link.contentType} · {link.description}</small>
+              </li>
+            ))}
+          </ul>
+          <h3>Safety</h3>
+          <ul className="compact-list">
+            {board.safetyNotes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+          <div className="panel-actions">
+            <button type="button" className="secondary-button" onClick={() => void handleDownload()}>
+              Download cost control
+            </button>
+          </div>
           {status ? <p className="muted">{status}</p> : null}
         </>
       ) : null}
@@ -6304,6 +6537,15 @@ function formatDemoSessionCommandCenterNotes(commandCenter: DemoSessionCommandCe
     lines.push(`- ${safeMarkdownLine(phase.status)} ${safeMarkdownLine(phase.label)}: ${safeMarkdownLine(phase.detail)}`);
     lines.push(`  Next: ${safeMarkdownLine(phase.nextAction)}`);
   });
+  lines.push('', '## Cost Control');
+  lines.push(`- Status: ${safeMarkdownLine(commandCenter.costControlStatus)}`);
+  lines.push(`- Recent spend: ${safeMarkdownLine(formatLedgerCost(commandCenter.costControlRecentEstimatedCostUsd))}`);
+  lines.push(`- Daily spend: ${safeMarkdownLine(formatLedgerCost(commandCenter.costControlDailyEstimatedCostUsd))}`);
+  lines.push(`- Failed model calls: ${commandCenter.costControlFailedModelCallCount}`);
+  lines.push(`- Next: ${safeMarkdownLine(commandCenter.costControlRecommendedNextAction)}`);
+  if (commandCenter.costControlPrimaryAction) {
+    lines.push(`- Primary action: ${safeMarkdownLine(commandCenter.costControlPrimaryAction.label)} (${safeMarkdownLine(commandCenter.costControlPrimaryAction.href)})`);
+  }
   lines.push('', '## Actions');
   commandCenter.actions.forEach((action) => {
     lines.push(`- ${safeMarkdownLine(action.label)}: ${safeMarkdownLine(action.command)}`);

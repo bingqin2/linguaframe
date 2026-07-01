@@ -389,6 +389,49 @@ class OperatorDashboardControllerTests {
         }
 
         @Test
+        void returnsDemoSessionCostControlBoard() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:35:00Z");
+            createJob("cost-control-controller-video", "cost-control-controller-job", "cost-control.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("cost-control-controller-call", "cost-control-controller-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.overallStatus").exists())
+                    .andExpect(jsonPath("$.summary.ownerId").value("demo-owner"))
+                    .andExpect(jsonPath("$.summary.recentEstimatedCostUsd").exists())
+                    .andExpect(jsonPath("$.summary.dailyEstimatedCostUsd").exists())
+                    .andExpect(jsonPath("$.budgets[?(@.key == 'perJobBudget')]").exists())
+                    .andExpect(jsonPath("$.budgets[?(@.key == 'dailyBudget')]").exists())
+                    .andExpect(jsonPath("$.jobs[?(@.jobId == 'cost-control-controller-job')]").exists())
+                    .andExpect(jsonPath("$.links[?(@.href == '/api/operator/demo-session-cost-control-board/markdown/download')]").exists())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(result.getResponse().getContentAsString())
+                            .doesNotContain("source-videos/cost-control-controller-video")
+                            .doesNotContain("provider request payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
+        void downloadsDemoSessionCostControlBoardMarkdown() throws Exception {
+            Instant createdAt = Instant.parse("2026-06-27T08:40:00Z");
+            createJob("cost-control-markdown-video", "cost-control-markdown-job", "cost-control-markdown.mp4",
+                    LocalizationJobStatus.COMPLETED, createdAt);
+            saveModelCall("cost-control-markdown-call", "cost-control-markdown-job", createdAt.plusSeconds(1));
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board/markdown/download").param("limit", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getHeader("Content-Disposition")
+                    ).contains("demo-session-cost-control-board.md"))
+                    .andExpect(result -> org.assertj.core.api.Assertions.assertThat(
+                            result.getResponse().getContentAsString()
+                    ).contains("LinguaFrame Demo Session Cost Control Board", "cost-control-markdown-job")
+                            .doesNotContain("source-videos/cost-control-markdown-video")
+                            .doesNotContain("provider request payload")
+                            .doesNotContain("raw transcript text"));
+        }
+
+        @Test
         void returnsOpenAiReadinessEvidence() throws Exception {
             Instant createdAt = Instant.parse("2026-06-27T08:45:00Z");
             createJob("openai-readiness-controller-video", "openai-readiness-controller-job", "openai-readiness.mp4",
@@ -742,6 +785,20 @@ class OperatorDashboardControllerTests {
                     .andExpect(status().isUnauthorized());
 
             mockMvc.perform(get("/api/operator/model-usage-ledger/markdown/download")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board")
+                            .header("X-LinguaFrame-Demo-Token", "test-token"))
+                    .andExpect(status().isOk());
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board/markdown/download"))
+                    .andExpect(status().isUnauthorized());
+
+            mockMvc.perform(get("/api/operator/demo-session-cost-control-board/markdown/download")
                             .header("X-LinguaFrame-Demo-Token", "test-token"))
                     .andExpect(status().isOk());
 
