@@ -251,6 +251,40 @@ download_demo_session_recovery_board_markdown() {
   demo_curl -fsS "$base_url/api/operator/demo-session-recovery-board/markdown/download$query" -o "$output_path"
 }
 
+demo_session_cost_control_board_query() {
+  local limit="$1"
+
+  python3 - "$limit" <<'PY'
+import sys
+from urllib.parse import urlencode
+
+limit = sys.argv[1].strip()
+print("?" + urlencode({"limit": limit}))
+PY
+}
+
+download_demo_session_cost_control_board_json() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(demo_session_cost_control_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-session-cost-control-board$query" -o "$output_path"
+}
+
+download_demo_session_cost_control_board_markdown() {
+  local base_url="$1"
+  local limit="$2"
+  local output_path="$3"
+  local query
+  query="$(demo_session_cost_control_board_query "$limit")"
+
+  mkdir -p "$(dirname "$output_path")"
+  demo_curl -fsS "$base_url/api/operator/demo-session-cost-control-board/markdown/download$query" -o "$output_path"
+}
+
 session_narration_production_board_query() {
   local limit="$1"
 
@@ -1598,6 +1632,64 @@ print("sessionNarrationProductionBoardJsonPath=" + text(sys.argv[1]))
 PY
 }
 
+print_demo_session_cost_control_board_summary_file() {
+  local board_json_path="$1"
+
+  python3 - "$board_json_path" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    board = json.load(handle)
+
+combined = json.dumps(board, ensure_ascii=False)
+forbidden = [
+    "/Users/",
+    "source-videos/",
+    "job-artifacts/",
+    "objectKey",
+    "sourceObjectKey",
+    "demo-access-token",
+    "private-demo-token",
+    "sk-",
+    "OPENAI_API_KEY",
+    "raw transcript text",
+    "raw subtitle text",
+    "raw generated subtitle",
+    "raw corrected subtitle",
+    "provider payload",
+    "provider request payload",
+    "provider response body",
+]
+for value in forbidden:
+    if value in combined:
+        raise SystemExit("Demo session cost control board contains forbidden sensitive string: " + value)
+
+summary = board.get("summary") or {}
+jobs = board.get("jobs") or []
+primary_action = board.get("primaryAction") or {}
+first_failed = next((job for job in jobs if int(job.get("failedModelCallCount") or 0) > 0), {})
+
+def text(value):
+    if value is None:
+        return ""
+    return str(value).replace("\n", " ").replace("\r", " ").strip()
+
+print("demoSessionCostControlStatus=" + text(board.get("overallStatus", "")))
+print("demoSessionCostControlLedgerStatus=" + text(summary.get("ledgerStatus", "")))
+print("demoSessionCostControlRecentEstimatedCostUsd=" + text(summary.get("recentEstimatedCostUsd", "")))
+print("demoSessionCostControlDailyEstimatedCostUsd=" + text(summary.get("dailyEstimatedCostUsd", "")))
+print("demoSessionCostControlDailyBudgetUsd=" + text(summary.get("dailyBudgetUsd", "")))
+print("demoSessionCostControlFailedModelCallCount=" + text(summary.get("recentFailedModelCallCount", 0)))
+print("demoSessionCostControlFailureRatePercent=" + text(summary.get("failureRatePercent", "")))
+print("demoSessionCostControlNextAction=" + text(summary.get("recommendedNextAction", "")))
+print("demoSessionCostControlFirstFailedJobId=" + text(first_failed.get("jobId", "")))
+print("demoSessionCostControlPrimaryAction=" + text(primary_action.get("key", "")))
+print("demoSessionCostControlJobCount=" + text(len(jobs)))
+print("demoSessionCostControlJsonPath=" + text(sys.argv[1]))
+PY
+}
+
 print_demo_session_command_center_summary_file() {
   local command_center_json_path="$1"
   local markdown_path="${2:-}"
@@ -1639,6 +1731,11 @@ print("demoSessionCommandCenterNarrationNeedsRenderCount=" + text(command_center
 print("demoSessionCommandCenterNarrationNeedsAuthoringCount=" + text(command_center.get("narrationNeedsAuthoringCount", 0)))
 print("demoSessionCommandCenterNarrationBlockedCount=" + text(command_center.get("narrationBlockedCount", 0)))
 print("demoSessionCommandCenterNarrationNextAction=" + text(command_center.get("narrationRecommendedNextAction")))
+print("demoSessionCommandCenterCostControlStatus=" + text(command_center.get("costControlStatus")))
+print("demoSessionCommandCenterCostControlRecentEstimatedCostUsd=" + text(command_center.get("costControlRecentEstimatedCostUsd")))
+print("demoSessionCommandCenterCostControlDailyEstimatedCostUsd=" + text(command_center.get("costControlDailyEstimatedCostUsd")))
+print("demoSessionCommandCenterCostControlFailedModelCallCount=" + text(command_center.get("costControlFailedModelCallCount", 0)))
+print("demoSessionCommandCenterCostControlNextAction=" + text(command_center.get("costControlRecommendedNextAction")))
 print("demoSessionCommandCenterJsonPath=" + text(sys.argv[1]))
 if sys.argv[2]:
     print("demoSessionCommandCenterMarkdownPath=" + text(sys.argv[2]))
@@ -1675,6 +1772,7 @@ def text(value):
 entry_set = set(entries)
 has_recovery_board = {"recovery-board.json", "recovery-board.md"}.issubset(entry_set)
 has_narration_production_board = {"narration-production-board.json", "narration-production-board.md"}.issubset(entry_set)
+has_cost_control_board = {"cost-control-board.json", "cost-control-board.md"}.issubset(entry_set)
 
 print("demoSessionEvidencePackageStatus=" + text(command_center.get("overallStatus")))
 print("demoSessionEvidencePackagePhase=" + text(command_center.get("phase")))
@@ -1686,6 +1784,9 @@ print("demoSessionEvidencePackageHasRecoveryBoard=" + str(has_recovery_board).lo
 print("demoSessionEvidencePackageNarrationProductionStatus=" + text(command_center.get("narrationProductionStatus")))
 print("demoSessionEvidencePackageNarrationBlockedCount=" + text(command_center.get("narrationBlockedCount", 0)))
 print("demoSessionEvidencePackageHasNarrationProductionBoard=" + str(has_narration_production_board).lower())
+print("demoSessionEvidencePackageCostControlStatus=" + text(command_center.get("costControlStatus")))
+print("demoSessionEvidencePackageCostControlFailedModelCallCount=" + text(command_center.get("costControlFailedModelCallCount", 0)))
+print("demoSessionEvidencePackageHasCostControlBoard=" + str(has_cost_control_board).lower())
 print("demoSessionEvidencePackageJsonPath=" + text(sys.argv[1]))
 print("demoSessionEvidencePackageZipPath=" + text(sys.argv[2]))
 print("demoSessionEvidencePackageEntries=" + ",".join(entries))

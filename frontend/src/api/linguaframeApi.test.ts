@@ -43,6 +43,8 @@ import {
   getOperatorDashboard,
   getModelUsageLedger,
   downloadModelUsageLedgerMarkdown,
+  getDemoSessionCostControlBoard,
+  downloadDemoSessionCostControlBoardMarkdown,
   getDemoSessionCommandCenter,
   downloadDemoSessionCommandCenterMarkdown,
   downloadDemoSessionEvidencePackageZip,
@@ -2563,6 +2565,50 @@ describe('linguaframeApi', () => {
     );
   });
 
+  test('fetches demo session cost control board with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      jsonResponse(demoSessionCostControlBoardFixture())
+    );
+
+    const board = await getDemoSessionCostControlBoard(11);
+
+    expect(board.overallStatus).toBe('ATTENTION');
+    expect(board.summary.dailyEstimatedCostUsd).toBe('0.00420000');
+    expect(board.jobs[0]?.recommendedNextAction).toBe('Re-run failed translation only after checking the provider error.');
+    expect(fetchMock).toHaveBeenCalledWith('/api/operator/demo-session-cost-control-board?limit=11', {
+      method: 'GET',
+      headers: {
+        'X-LinguaFrame-Demo-Token': 'private-demo-token'
+      }
+    });
+  });
+
+  test('downloads demo session cost control board markdown with limit and demo token header', async () => {
+    writeDemoToken(window.localStorage, 'private-demo-token');
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('# LinguaFrame Demo Session Cost Control Board', {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/markdown'
+        }
+      })
+    );
+
+    const result = await downloadDemoSessionCostControlBoardMarkdown(11);
+
+    expect(await result.text()).toContain('Demo Session Cost Control Board');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/operator/demo-session-cost-control-board/markdown/download?limit=11',
+      {
+        method: 'GET',
+        headers: {
+          'X-LinguaFrame-Demo-Token': 'private-demo-token'
+        }
+      }
+    );
+  });
+
   test('fetches session narration production board with limit and demo token header', async () => {
     writeDemoToken(window.localStorage, 'private-demo-token');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
@@ -4290,6 +4336,27 @@ function demoSessionCommandCenterFixture() {
         description: 'Downloadable narration production report.'
       }
     ],
+    costControlStatus: 'ATTENTION',
+    costControlRecentEstimatedCostUsd: '0.00100000',
+    costControlDailyEstimatedCostUsd: '0.00420000',
+    costControlFailedModelCallCount: 1,
+    costControlRecommendedNextAction: 'Review failed provider calls before spending more.',
+    costControlPrimaryAction: {
+      key: 'OPEN_COST_CONTROL_BOARD',
+      label: 'Open cost control board',
+      href: '/api/operator/demo-session-cost-control-board',
+      detail: 'Inspect budgets and failed calls before continuing.',
+      primary: true
+    },
+    costControlLinks: [
+      {
+        key: 'COST_CONTROL_MARKDOWN',
+        label: 'Cost control Markdown',
+        href: '/api/operator/demo-session-cost-control-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable cost-control board.'
+      }
+    ],
     estimatedCostUsd: '0.00020000',
     modelCallCount: 2,
     failedModelCallCount: 0,
@@ -4297,6 +4364,89 @@ function demoSessionCommandCenterFixture() {
     averageLatencyMs: 120,
     providerCacheHitCount: 1,
     safetyNotes: ['Demo session command center is metadata-only and read-only.']
+  };
+}
+
+function demoSessionCostControlBoardFixture() {
+  return {
+    generatedAt: '2026-07-01T09:00:00Z',
+    overallStatus: 'ATTENTION',
+    summary: {
+      ledgerStatus: 'ATTENTION',
+      recentJobCount: 2,
+      recentModelCallCount: 5,
+      recentFailedModelCallCount: 1,
+      recentEstimatedCostUsd: '0.00100000',
+      dailyEstimatedCostUsd: '0.00420000',
+      dailyBudgetUsd: '0.01000000',
+      dailyBudgetDate: '2026-07-01',
+      failureRatePercent: '20.00',
+      recommendedNextAction: 'Review failed provider calls before spending more.'
+    },
+    budgets: [
+      {
+        key: 'daily-owner-budget',
+        label: 'Daily owner budget',
+        status: 'READY',
+        detail: '0.00420000 / 0.01000000 USD used.',
+        nextAction: 'Continue the demo.',
+        blocking: false
+      }
+    ],
+    jobs: [
+      {
+        jobId: 'job-cost',
+        videoId: 'video-cost',
+        jobStatus: 'FAILED',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        modelCallCount: 3,
+        failedModelCallCount: 1,
+        estimatedCostUsd: '0.00080000',
+        latestModelCallAt: '2026-07-01T08:55:00Z',
+        recommendedNextAction: 'Re-run failed translation only after checking the provider error.',
+        links: ['/api/jobs/job-cost']
+      }
+    ],
+    operations: [
+      {
+        operation: 'TRANSLATE',
+        provider: 'openai',
+        model: 'gpt-4.1-mini',
+        modelCallCount: 3,
+        failedModelCallCount: 1,
+        estimatedCostUsd: '0.00080000',
+        averageLatencyMs: 320
+      }
+    ],
+    checks: [
+      {
+        key: 'failed-model-calls',
+        label: 'Failed model calls',
+        status: 'ATTENTION',
+        detail: '1 failed calls in recent runs.',
+        nextAction: 'Inspect safe error summaries.',
+        blocking: false
+      }
+    ],
+    primaryAction: {
+      key: 'OPEN_LEDGER',
+      label: 'Open usage ledger',
+      href: '/api/operator/model-usage-ledger',
+      detail: 'Inspect recent model calls.',
+      primary: true
+    },
+    links: [
+      {
+        key: 'COST_CONTROL_MARKDOWN',
+        label: 'Cost control Markdown',
+        href: '/api/operator/demo-session-cost-control-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable cost-control board.'
+      }
+    ],
+    safetyNotes: ['Local cost estimates are not provider billing statements.'],
+    markdown: '# LinguaFrame Demo Session Cost Control Board'
   };
 }
 

@@ -709,6 +709,13 @@ export interface DemoSessionCommandCenter {
   narrationRecommendedNextAction: string;
   narrationPrimaryAction: SessionNarrationProductionAction | null;
   narrationProductionLinks: SessionNarrationProductionLink[];
+  costControlStatus: DemoSessionCostControlBoardStatus;
+  costControlRecentEstimatedCostUsd: string;
+  costControlDailyEstimatedCostUsd: string;
+  costControlFailedModelCallCount: number;
+  costControlRecommendedNextAction: string;
+  costControlPrimaryAction: DemoSessionCostControlAction | null;
+  costControlLinks: DemoSessionCostControlLink[];
   estimatedCostUsd: string;
   modelCallCount: number;
   failedModelCallCount: number;
@@ -889,6 +896,93 @@ export interface SessionNarrationProductionCheck {
 }
 
 export interface SessionNarrationProductionLink {
+  key: string;
+  label: string;
+  href: string;
+  contentType: string;
+  description: string;
+}
+
+export type DemoSessionCostControlBoardStatus = 'READY' | 'ATTENTION' | 'BLOCKED' | 'EMPTY';
+
+export interface DemoSessionCostControlBoard {
+  generatedAt: string;
+  overallStatus: DemoSessionCostControlBoardStatus;
+  summary: DemoSessionCostControlSummary;
+  budgets: DemoSessionCostControlBudget[];
+  jobs: DemoSessionCostControlJob[];
+  operations: DemoSessionCostControlOperation[];
+  checks: DemoSessionCostControlCheck[];
+  primaryAction: DemoSessionCostControlAction | null;
+  links: DemoSessionCostControlLink[];
+  safetyNotes: string[];
+  markdown: string;
+}
+
+export interface DemoSessionCostControlSummary {
+  ledgerStatus: DemoSessionCostControlBoardStatus;
+  recentJobCount: number;
+  recentModelCallCount: number;
+  recentFailedModelCallCount: number;
+  recentEstimatedCostUsd: string;
+  dailyEstimatedCostUsd: string;
+  dailyBudgetUsd: string;
+  dailyBudgetDate: string;
+  failureRatePercent: string;
+  recommendedNextAction: string;
+}
+
+export interface DemoSessionCostControlBudget {
+  key: string;
+  label: string;
+  status: DemoSessionCostControlBoardStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoSessionCostControlJob {
+  jobId: string;
+  videoId: string;
+  jobStatus: LocalizationJobStatus;
+  targetLanguage: string;
+  demoProfileId: string | null;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  estimatedCostUsd: string;
+  latestModelCallAt: string | null;
+  recommendedNextAction: string;
+  links: string[];
+}
+
+export interface DemoSessionCostControlOperation {
+  operation: string;
+  provider: string;
+  model: string;
+  modelCallCount: number;
+  failedModelCallCount: number;
+  estimatedCostUsd: string;
+  averageLatencyMs: number;
+}
+
+export interface DemoSessionCostControlCheck {
+  key: string;
+  label: string;
+  status: DemoSessionCostControlBoardStatus;
+  detail: string;
+  nextAction: string;
+  blocking: boolean;
+}
+
+export interface DemoSessionCostControlAction {
+  key: string;
+  label: string;
+  href: string;
+  detail: string;
+  primary: boolean;
+}
+
+export interface DemoSessionCostControlLink {
   key: string;
   label: string;
   href: string;

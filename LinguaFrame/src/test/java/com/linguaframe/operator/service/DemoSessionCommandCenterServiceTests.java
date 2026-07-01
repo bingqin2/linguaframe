@@ -7,6 +7,14 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitRunVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherCommandVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlActionVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBoardVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBudgetVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlCheckVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlJobVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlLinkVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlOperationVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlSummaryVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardActionVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardCheckVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardJobVo;
@@ -47,6 +55,7 @@ class DemoSessionCommandCenterServiceTests {
     private final StubModelUsageLedgerService ledgerService = new StubModelUsageLedgerService();
     private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
     private final StubSessionNarrationProductionBoardService narrationProductionBoardService = new StubSessionNarrationProductionBoardService();
+    private final StubDemoSessionCostControlBoardService costControlBoardService = new StubDemoSessionCostControlBoardService();
 
     private final DemoSessionCommandCenterService service = new DemoSessionCommandCenterServiceImpl(
             operationsService,
@@ -57,7 +66,8 @@ class DemoSessionCommandCenterServiceTests {
             archiveService,
             ledgerService,
             recoveryBoardService,
-            narrationProductionBoardService
+            narrationProductionBoardService,
+            costControlBoardService
     );
 
     @Test
@@ -73,7 +83,7 @@ class DemoSessionCommandCenterServiceTests {
         assertThat(center.modelCallCount()).isEqualTo(4);
         assertThat(center.estimatedCostUsd()).isEqualByComparingTo("0.01000000");
         assertThat(center.phases()).extracting("id")
-                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage", "recovery-board", "narration-production");
+                .containsExactly("operations", "launch", "launcher", "cockpit", "gallery", "archive", "model-usage", "recovery-board", "narration-production", "cost-control");
         assertThat(center.recoveryStatus()).isEqualTo("READY");
         assertThat(center.recoverNowCount()).isZero();
         assertThat(center.recoveryRecommendedNextAction()).contains("No recovery action");
@@ -81,11 +91,17 @@ class DemoSessionCommandCenterServiceTests {
         assertThat(center.narrationReadyCount()).isEqualTo(1);
         assertThat(center.narrationBlockedCount()).isZero();
         assertThat(center.narrationRecommendedNextAction()).contains("Narration production is ready");
+        assertThat(center.costControlStatus()).isEqualTo("READY");
+        assertThat(center.costControlRecentEstimatedCostUsd()).isEqualByComparingTo("0.01000000");
+        assertThat(center.costControlDailyEstimatedCostUsd()).isEqualByComparingTo("0.02000000");
+        assertThat(center.costControlFailedModelCallCount()).isZero();
+        assertThat(center.costControlRecommendedNextAction()).contains("local estimated cost evidence");
         assertThat(center.evidenceLinks()).extracting("href")
                 .contains(
                         "/api/operator/demo-session-command-center",
                         "/api/operator/demo-session-recovery-board",
                         "/api/operator/session-narration-production-board",
+                        "/api/operator/demo-session-cost-control-board",
                         "/api/operator/model-usage-ledger",
                         "/api/jobs/job-best/demo-run-package/download",
                         "/api/jobs/job-best/demo-evidence-closure/download"
@@ -217,6 +233,55 @@ class DemoSessionCommandCenterServiceTests {
     }
 
     @Test
+    void blocksWhenCostControlBoardIsBlocked() {
+        costControlBoardService.board = costControlBoard("BLOCKED", "0.60000000", "0.60000000", 0,
+                "Stop paid demo runs and resolve budget blockers.");
+
+        DemoSessionCommandCenterVo center = service.commandCenter(null);
+        String markdown = service.commandCenterMarkdown(null);
+
+        assertThat(center.overallStatus()).isEqualTo("BLOCKED");
+        assertThat(center.phase()).isEqualTo("BLOCKED");
+        assertThat(center.costControlStatus()).isEqualTo("BLOCKED");
+        assertThat(center.costControlDailyEstimatedCostUsd()).isEqualByComparingTo("0.60000000");
+        assertThat(center.costControlPrimaryAction().key()).isEqualTo("OPEN_UPLOAD_READINESS");
+        assertThat(center.costControlLinks()).extracting("href")
+                .contains("/api/operator/demo-session-cost-control-board/markdown/download");
+        assertThat(center.phases())
+                .filteredOn(phase -> phase.id().equals("cost-control"))
+                .singleElement()
+                .satisfies(phase -> {
+                    assertThat(phase.status()).isEqualTo("BLOCKED");
+                    assertThat(phase.blocking()).isTrue();
+                    assertThat(phase.nextAction()).contains("Stop paid demo runs");
+                });
+        assertThat(markdown)
+                .contains("## Cost Control")
+                .contains("Daily estimated cost USD: 0.60000000")
+                .contains("/api/operator/demo-session-cost-control-board");
+    }
+
+    @Test
+    void marksAttentionWhenCostControlNeedsReview() {
+        costControlBoardService.board = costControlBoard("ATTENTION", "0.04000000", "0.04000000", 0,
+                "Review budget guard settings before another paid demo run.");
+
+        DemoSessionCommandCenterVo center = service.commandCenter(null);
+
+        assertThat(center.overallStatus()).isEqualTo("ATTENTION");
+        assertThat(center.phase()).isEqualTo("NEEDS_REVIEW");
+        assertThat(center.costControlStatus()).isEqualTo("ATTENTION");
+        assertThat(center.costControlRecommendedNextAction()).contains("Review budget guard settings");
+        assertThat(center.phases())
+                .filteredOn(phase -> phase.id().equals("cost-control"))
+                .singleElement()
+                .satisfies(phase -> {
+                    assertThat(phase.status()).isEqualTo("ATTENTION");
+                    assertThat(phase.blocking()).isFalse();
+                });
+    }
+
+    @Test
     void selectedJobFocusesCommandCenter() {
         DemoSessionCommandCenterVo center = service.commandCenter("job-selected");
 
@@ -244,7 +309,8 @@ class DemoSessionCommandCenterServiceTests {
                 .contains("LinguaFrame Demo Session Command Center")
                 .contains("job-selected")
                 .contains("Model Usage")
-                .contains("Narration Production");
+                .contains("Narration Production")
+                .contains("Cost Control");
         assertThat(json)
                 .doesNotContain("OPENAI_API_KEY")
                 .doesNotContain("private-demo-token")
@@ -557,6 +623,49 @@ class DemoSessionCommandCenterServiceTests {
         );
     }
 
+    private static DemoSessionCostControlBoardVo costControlBoard(
+            String status,
+            String recentCost,
+            String dailyCost,
+            int failedCalls,
+            String nextAction
+    ) {
+        DemoSessionCostControlActionVo action = new DemoSessionCostControlActionVo(
+                "BLOCKED".equals(status) ? "OPEN_UPLOAD_READINESS" : "OPEN_MODEL_USAGE_LEDGER",
+                "BLOCKED".equals(status) ? "Open upload readiness" : "Open model usage ledger",
+                "BLOCKED".equals(status) ? "/api/media/uploads/readiness" : "/api/operator/model-usage-ledger",
+                "Inspect safe cost evidence.",
+                true
+        );
+        return new DemoSessionCostControlBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                status,
+                new DemoSessionCostControlSummaryVo(
+                        "demo-owner",
+                        "CONFIGURED_DEMO_OWNER",
+                        true,
+                        new BigDecimal(recentCost),
+                        new BigDecimal(dailyCost),
+                        java.time.LocalDate.parse("2026-06-29"),
+                        failedCalls == 0 ? 4 : 5,
+                        failedCalls,
+                        failedCalls == 0 ? BigDecimal.ZERO : new BigDecimal("20.00"),
+                        nextAction
+                ),
+                List.of(new DemoSessionCostControlBudgetVo("dailyBudget", "Daily budget guard", status, true, new BigDecimal("0.50000000"), new BigDecimal(dailyCost), "Daily budget evidence.", "BLOCKED".equals(status))),
+                List.of(new DemoSessionCostControlJobVo("job-best", "video-job-best", "COMPLETED", "zh-CN", "tears-showcase", 4, failedCalls, new BigDecimal(recentCost), Instant.parse("2026-06-29T08:00:00Z"), List.of("/api/jobs/job-best/ai-audit-package/download"))),
+                List.of(new DemoSessionCostControlOperationVo("TRANSLATION", "OPENAI", "gpt-test", "prompt-v1", 4, failedCalls, new BigDecimal(recentCost), 100L)),
+                List.of(new DemoSessionCostControlCheckVo("dailyBudget", "Daily budget guard", status, "Daily budget evidence.", nextAction, "BLOCKED".equals(status))),
+                action,
+                List.of(
+                        new DemoSessionCostControlLinkVo("JSON", "Demo session cost control board", "/api/operator/demo-session-cost-control-board", "application/json", "Cost control JSON."),
+                        new DemoSessionCostControlLinkVo("MARKDOWN", "Demo session cost control Markdown", "/api/operator/demo-session-cost-control-board/markdown/download", "text/markdown", "Cost control Markdown.")
+                ),
+                List.of("Estimated costs are local estimates."),
+                "# LinguaFrame Demo Session Cost Control Board"
+        );
+    }
+
     private final class StubPrivateDemoOperationsService implements PrivateDemoOperationsService {
         private PrivateDemoOperationsVo operations = DemoSessionCommandCenterServiceTests.operations("READY");
 
@@ -649,6 +758,21 @@ class DemoSessionCommandCenterServiceTests {
 
         @Override
         public SessionNarrationProductionBoardVo board(Integer limit) {
+            return board;
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return board.markdown();
+        }
+    }
+
+    private final class StubDemoSessionCostControlBoardService implements DemoSessionCostControlBoardService {
+        private DemoSessionCostControlBoardVo board = costControlBoard("READY", "0.01000000", "0.02000000", 0,
+                "Use this board as local estimated cost evidence.");
+
+        @Override
+        public DemoSessionCostControlBoardVo board(Integer limit) {
             return board;
         }
 

@@ -1078,6 +1078,74 @@ JSON
   fi
 }
 
+test_demo_session_cost_control_board_helpers_are_metadata_only() {
+  cat >"$TMPDIR/demo-session-cost-control-board.json" <<'JSON'
+{
+  "overallStatus": "ATTENTION",
+  "summary": {
+    "ledgerStatus": "ATTENTION",
+    "recentEstimatedCostUsd": "0.00100000",
+    "dailyEstimatedCostUsd": "0.00420000",
+    "dailyBudgetUsd": "0.01000000",
+    "recentFailedModelCallCount": 1,
+    "failureRatePercent": "20.00",
+    "recommendedNextAction": "Review failed provider calls before spending more."
+  },
+  "jobs": [
+    {
+      "jobId": "job-cost",
+      "failedModelCallCount": 1
+    }
+  ],
+  "primaryAction": {
+    "key": "OPEN_LEDGER"
+  }
+}
+JSON
+
+  print_demo_session_cost_control_board_summary_file \
+    "$TMPDIR/demo-session-cost-control-board.json" \
+    >"$TMPDIR/demo-session-cost-control-board.out"
+  local output
+  output="$(cat "$TMPDIR/demo-session-cost-control-board.out")"
+  [[ "$output" == *"demoSessionCostControlStatus=ATTENTION"* ]] || fail "cost control summary missed status"
+  [[ "$output" == *"demoSessionCostControlRecentEstimatedCostUsd=0.00100000"* ]] || fail "cost control summary missed recent spend"
+  [[ "$output" == *"demoSessionCostControlDailyEstimatedCostUsd=0.00420000"* ]] || fail "cost control summary missed daily spend"
+  [[ "$output" == *"demoSessionCostControlDailyBudgetUsd=0.01000000"* ]] || fail "cost control summary missed daily budget"
+  [[ "$output" == *"demoSessionCostControlFailedModelCallCount=1"* ]] || fail "cost control summary missed failed calls"
+  [[ "$output" == *"demoSessionCostControlNextAction=Review failed provider calls before spending more."* ]] || fail "cost control summary missed next action"
+  [[ "$output" == *"demoSessionCostControlFirstFailedJobId=job-cost"* ]] || fail "cost control summary missed first failed job"
+  [[ "$output" == *"demoSessionCostControlPrimaryAction=OPEN_LEDGER"* ]] || fail "cost control summary missed primary action"
+
+  cat >"$TMPDIR/demo-session-cost-control-board-unsafe.json" <<'JSON'
+{
+  "overallStatus": "READY",
+  "summary": {
+    "recentEstimatedCostUsd": "0.00010000"
+  },
+  "token": "private-demo-token",
+  "localPath": "/Users/example/private.mov",
+  "providerPayload": "raw provider payload",
+  "apiKey": "sk-example"
+}
+JSON
+  if print_demo_session_cost_control_board_summary_file "$TMPDIR/demo-session-cost-control-board-unsafe.json" \
+      >"$TMPDIR/demo-session-cost-control-board-unsafe.out" 2>&1; then
+    fail "cost control summary accepted unsafe content"
+  fi
+
+  local fake_curl
+  fake_curl="$(fake_curl_bin)"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_session_cost_control_board_json "http://example.test" "11" "$TMPDIR/demo-session-cost-control-board-route.json" \
+      >"$TMPDIR/demo-session-cost-control-board-json-curl.out"
+  LINGUAFRAME_DEMO_CURL_BIN="$fake_curl" \
+    download_demo_session_cost_control_board_markdown "http://example.test" "11" "$TMPDIR/demo-session-cost-control-board-route.md" \
+      >"$TMPDIR/demo-session-cost-control-board-md-curl.out"
+  [[ "$(cat "$TMPDIR/demo-session-cost-control-board-json-curl.out")" == *"http://example.test/api/operator/demo-session-cost-control-board?limit=11"* ]] || fail "cost control json helper used wrong route"
+  [[ "$(cat "$TMPDIR/demo-session-cost-control-board-md-curl.out")" == *"http://example.test/api/operator/demo-session-cost-control-board/markdown/download?limit=11"* ]] || fail "cost control markdown helper used wrong route"
+}
+
 test_demo_session_command_center_helpers_include_recovery_summary() {
   cat >"$TMPDIR/command-center.json" <<'JSON'
 {
@@ -1102,6 +1170,11 @@ test_demo_session_command_center_helpers_include_recovery_summary() {
   "narrationNeedsAuthoringCount": 1,
   "narrationBlockedCount": 0,
   "narrationRecommendedNextAction": "Finish narration render and review rows.",
+  "costControlStatus": "ATTENTION",
+  "costControlRecentEstimatedCostUsd": "0.00100000",
+  "costControlDailyEstimatedCostUsd": "0.00420000",
+  "costControlFailedModelCallCount": 1,
+  "costControlRecommendedNextAction": "Review failed provider calls before spending more.",
   "token": "private-demo-token",
   "localPath": "/Users/example/private.mov"
 }
@@ -1125,6 +1198,11 @@ JSON
   [[ "$output" == *"demoSessionCommandCenterNarrationNeedsAuthoringCount=1"* ]] || fail "command center summary missed narration authoring count"
   [[ "$output" == *"demoSessionCommandCenterNarrationBlockedCount=0"* ]] || fail "command center summary missed narration blocked count"
   [[ "$output" == *"demoSessionCommandCenterNarrationNextAction=Finish narration render and review rows."* ]] || fail "command center summary missed narration next action"
+  [[ "$output" == *"demoSessionCommandCenterCostControlStatus=ATTENTION"* ]] || fail "command center summary missed cost control status"
+  [[ "$output" == *"demoSessionCommandCenterCostControlRecentEstimatedCostUsd=0.00100000"* ]] || fail "command center summary missed cost control recent spend"
+  [[ "$output" == *"demoSessionCommandCenterCostControlDailyEstimatedCostUsd=0.00420000"* ]] || fail "command center summary missed cost control daily spend"
+  [[ "$output" == *"demoSessionCommandCenterCostControlFailedModelCallCount=1"* ]] || fail "command center summary missed cost control failed calls"
+  [[ "$output" == *"demoSessionCommandCenterCostControlNextAction=Review failed provider calls before spending more."* ]] || fail "command center summary missed cost control next action"
   [[ "$output" != *"private-source.mp4"* ]] || fail "command center summary exposed filename"
   [[ "$output" != *"private-demo-token"* ]] || fail "command center summary exposed demo token"
   [[ "$output" != *"/Users/example"* ]] || fail "command center summary exposed local path"
@@ -1144,6 +1222,8 @@ test_demo_session_evidence_package_helpers_include_recovery_board_entries() {
   "recoverNowCount": 1,
   "narrationProductionStatus": "BLOCKED",
   "narrationBlockedCount": 1,
+  "costControlStatus": "BLOCKED",
+  "costControlFailedModelCallCount": 2,
   "token": "private-demo-token",
   "localPath": "/Users/example/private.mov"
 }
@@ -1159,6 +1239,8 @@ with zipfile.ZipFile(sys.argv[1], "w") as package:
     package.writestr("recovery-board.md", "# Recovery")
     package.writestr("narration-production-board.json", "{}")
     package.writestr("narration-production-board.md", "# Session Narration Production Board")
+    package.writestr("cost-control-board.json", "{}")
+    package.writestr("cost-control-board.md", "# Cost Control")
 PY
 
   print_demo_session_evidence_package_summary_file \
@@ -1175,6 +1257,9 @@ PY
   [[ "$output" == *"demoSessionEvidencePackageNarrationProductionStatus=BLOCKED"* ]] || fail "evidence package summary missed narration production status"
   [[ "$output" == *"demoSessionEvidencePackageNarrationBlockedCount=1"* ]] || fail "evidence package summary missed narration blocked count"
   [[ "$output" == *"demoSessionEvidencePackageHasNarrationProductionBoard=true"* ]] || fail "evidence package summary missed narration production board entries"
+  [[ "$output" == *"demoSessionEvidencePackageCostControlStatus=BLOCKED"* ]] || fail "evidence package summary missed cost control status"
+  [[ "$output" == *"demoSessionEvidencePackageCostControlFailedModelCallCount=2"* ]] || fail "evidence package summary missed cost control failed calls"
+  [[ "$output" == *"demoSessionEvidencePackageHasCostControlBoard=true"* ]] || fail "evidence package summary missed cost control board entries"
   [[ "$output" != *"private-source.mp4"* ]] || fail "evidence package summary exposed filename"
   [[ "$output" != *"private-demo-token"* ]] || fail "evidence package summary exposed demo token"
   [[ "$output" != *"/Users/example"* ]] || fail "evidence package summary exposed local path"
@@ -3694,6 +3779,7 @@ test_demo_run_launcher_script_exits_on_blocked_state
 test_demo_presentation_cockpit_helpers_are_metadata_only
 test_demo_session_recovery_board_helpers_are_metadata_only
 test_session_narration_production_board_helpers_are_metadata_only
+test_demo_session_cost_control_board_helpers_are_metadata_only
 test_demo_session_command_center_helpers_include_recovery_summary
 test_demo_session_evidence_package_helpers_include_recovery_board_entries
 test_upload_demo_video_includes_subtitle_polishing_mode

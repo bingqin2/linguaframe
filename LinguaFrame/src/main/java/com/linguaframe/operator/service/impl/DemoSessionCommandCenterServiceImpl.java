@@ -5,6 +5,8 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitRunVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherCommandVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBoardVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlLinkVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardLinkVo;
 import com.linguaframe.operator.domain.vo.DemoSessionRecoveryBoardVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterActionVo;
@@ -23,6 +25,7 @@ import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
 import com.linguaframe.operator.domain.vo.SessionNarrationProductionLinkVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
+import com.linguaframe.operator.service.DemoSessionCostControlBoardService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.DemoSessionRecoveryBoardService;
 import com.linguaframe.operator.service.ModelUsageLedgerService;
@@ -57,6 +60,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
     private final ModelUsageLedgerService modelUsageLedgerService;
     private final DemoSessionRecoveryBoardService recoveryBoardService;
     private final SessionNarrationProductionBoardService narrationProductionBoardService;
+    private final DemoSessionCostControlBoardService costControlBoardService;
 
     public DemoSessionCommandCenterServiceImpl(
             PrivateDemoOperationsService operationsService,
@@ -67,7 +71,8 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             PrivateDemoRunArchiveService runArchiveService,
             ModelUsageLedgerService modelUsageLedgerService,
             DemoSessionRecoveryBoardService recoveryBoardService,
-            SessionNarrationProductionBoardService narrationProductionBoardService
+            SessionNarrationProductionBoardService narrationProductionBoardService,
+            DemoSessionCostControlBoardService costControlBoardService
     ) {
         this.operationsService = operationsService;
         this.launchRehearsalService = launchRehearsalService;
@@ -78,6 +83,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         this.modelUsageLedgerService = modelUsageLedgerService;
         this.recoveryBoardService = recoveryBoardService;
         this.narrationProductionBoardService = narrationProductionBoardService;
+        this.costControlBoardService = costControlBoardService;
     }
 
     @Override
@@ -91,17 +97,18 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         ModelUsageLedgerVo ledger = modelUsageLedgerService.ledger(20);
         DemoSessionRecoveryBoardVo recoveryBoard = recoveryBoardService.board(20);
         SessionNarrationProductionBoardVo narrationBoard = narrationProductionBoardService.board(25);
+        DemoSessionCostControlBoardVo costControlBoard = costControlBoardService.board(25);
 
         DemoSessionCommandCenterRunVo selected = run("SELECTED", cockpit.selectedRun());
         DemoSessionCommandCenterRunVo active = run("ACTIVE", cockpit.activeRun());
         DemoSessionCommandCenterRunVo recommended = recommendedRun(cockpit, archive);
         DemoSessionCommandCenterRunVo focus = focusRun(selected, active, recommended);
-        List<DemoSessionCommandCenterPhaseVo> phases = phases(operations, launch, launcher, cockpit, gallery, archive, ledger, recoveryBoard, narrationBoard);
+        List<DemoSessionCommandCenterPhaseVo> phases = phases(operations, launch, launcher, cockpit, gallery, archive, ledger, recoveryBoard, narrationBoard, costControlBoard);
         String overallStatus = overallStatus(phases, focus, ledger);
         String phase = phase(overallStatus, active, focus, gallery, ledger);
         String nextAction = nextAction(overallStatus, phase, cockpit, launch, launcher, focus);
         List<DemoSessionCommandCenterActionVo> actions = actions(launcher, launch, archive, focus);
-        List<DemoSessionCommandCenterEvidenceVo> evidenceLinks = evidenceLinks(cockpit, archive, ledger, recoveryBoard, narrationBoard, focus);
+        List<DemoSessionCommandCenterEvidenceVo> evidenceLinks = evidenceLinks(cockpit, archive, ledger, recoveryBoard, narrationBoard, costControlBoard, focus);
         ModelUsageLedgerSummaryVo usage = ledger.summary();
 
         return new DemoSessionCommandCenterVo(
@@ -134,6 +141,13 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
                 safe(narrationBoard.recommendedNextAction()),
                 narrationBoard.primaryAction(),
                 narrationBoard.links(),
+                safeStatus(costControlBoard.overallStatus()),
+                costControlBoard.summary().recentEstimatedCostUsd(),
+                costControlBoard.summary().dailyEstimatedCostUsd(),
+                costControlBoard.summary().failedModelCallCount(),
+                safe(costControlBoard.summary().recommendedNextAction()),
+                costControlBoard.primaryAction(),
+                costControlBoard.links(),
                 usage.estimatedCostUsd(),
                 usage.modelCallCount(),
                 usage.failedModelCallCount(),
@@ -175,6 +189,16 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
         markdown.append("- Not applicable: ").append(center.narrationNotApplicableCount()).append('\n');
         markdown.append("- Next action: ").append(center.narrationRecommendedNextAction()).append("\n\n");
         for (SessionNarrationProductionLinkVo link : center.narrationProductionLinks()) {
+            markdown.append("- ").append(link.label()).append(": ").append(link.href()).append('\n');
+        }
+        markdown.append('\n');
+        markdown.append("## Cost Control\n\n");
+        markdown.append("- Status: ").append(center.costControlStatus()).append('\n');
+        markdown.append("- Recent estimated cost USD: ").append(center.costControlRecentEstimatedCostUsd()).append('\n');
+        markdown.append("- Daily estimated cost USD: ").append(center.costControlDailyEstimatedCostUsd()).append('\n');
+        markdown.append("- Failed model calls: ").append(center.costControlFailedModelCallCount()).append('\n');
+        markdown.append("- Next action: ").append(center.costControlRecommendedNextAction()).append("\n\n");
+        for (DemoSessionCostControlLinkVo link : center.costControlLinks()) {
             markdown.append("- ").append(link.label()).append(": ").append(link.href()).append('\n');
         }
         markdown.append('\n');
@@ -225,7 +249,8 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             PrivateDemoRunArchiveVo archive,
             ModelUsageLedgerVo ledger,
             DemoSessionRecoveryBoardVo recoveryBoard,
-            SessionNarrationProductionBoardVo narrationBoard
+            SessionNarrationProductionBoardVo narrationBoard,
+            DemoSessionCostControlBoardVo costControlBoard
     ) {
         List<DemoSessionCommandCenterPhaseVo> phases = new ArrayList<>();
         phases.add(phase("operations", "Operations readiness", operations.overallStatus(),
@@ -265,6 +290,11 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
                         + ", authoring " + narrationBoard.needsAuthoringCount() + ", blocked " + narrationBoard.blockedCount() + ".",
                 narrationBoard.recommendedNextAction(),
                 BLOCKED.equals(narrationBoard.overallStatus())));
+        phases.add(phase("cost-control", "Cost control", costControlBoard.overallStatus(),
+                "Recent cost " + costControlBoard.summary().recentEstimatedCostUsd() + ", daily cost " + costControlBoard.summary().dailyEstimatedCostUsd()
+                        + ", failed calls " + costControlBoard.summary().failedModelCallCount() + ".",
+                costControlBoard.summary().recommendedNextAction(),
+                BLOCKED.equals(costControlBoard.overallStatus())));
         return List.copyOf(phases);
     }
 
@@ -364,6 +394,7 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             ModelUsageLedgerVo ledger,
             DemoSessionRecoveryBoardVo recoveryBoard,
             SessionNarrationProductionBoardVo narrationBoard,
+            DemoSessionCostControlBoardVo costControlBoard,
             DemoSessionCommandCenterRunVo focus
     ) {
         Map<String, DemoSessionCommandCenterEvidenceVo> links = new LinkedHashMap<>();
@@ -375,6 +406,9 @@ public class DemoSessionCommandCenterServiceImpl implements DemoSessionCommandCe
             add(links, evidence(link.label(), link.href(), link.contentType(), link.description()));
         }
         for (SessionNarrationProductionLinkVo link : narrationBoard.links()) {
+            add(links, evidence(link.label(), link.href(), link.contentType(), link.description()));
+        }
+        for (DemoSessionCostControlLinkVo link : costControlBoard.links()) {
             add(links, evidence(link.label(), link.href(), link.contentType(), link.description()));
         }
         add(links, evidence("Model usage ledger", "/api/operator/model-usage-ledger", "application/json",

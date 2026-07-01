@@ -1,6 +1,7 @@
 package com.linguaframe.operator.controller;
 
 import com.linguaframe.operator.domain.bo.DemoSessionEvidencePackageBo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBoardVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
 import com.linguaframe.operator.domain.vo.DemoRunLauncherVo;
 import com.linguaframe.operator.domain.vo.DemoSampleMediaCatalogVo;
@@ -18,6 +19,7 @@ import com.linguaframe.operator.domain.vo.SessionNarrationProductionBoardVo;
 import com.linguaframe.operator.service.DemoPresentationCockpitService;
 import com.linguaframe.operator.service.DemoRunLauncherService;
 import com.linguaframe.operator.service.DemoSampleMediaCatalogService;
+import com.linguaframe.operator.service.DemoSessionCostControlBoardService;
 import com.linguaframe.operator.service.DemoSessionCommandCenterService;
 import com.linguaframe.operator.service.DemoSessionEvidencePackageService;
 import com.linguaframe.operator.service.DemoSessionRecoveryBoardService;
@@ -63,6 +65,7 @@ public class OperatorDashboardController {
     private final DemoSessionRecoveryBoardService demoSessionRecoveryBoardService;
     private final OpenAiReadinessEvidenceService openAiReadinessEvidenceService;
     private final SessionNarrationProductionBoardService sessionNarrationProductionBoardService;
+    private final DemoSessionCostControlBoardService demoSessionCostControlBoardService;
 
     public OperatorDashboardController(
             OperatorDashboardService dashboardService,
@@ -79,7 +82,8 @@ public class OperatorDashboardController {
             DemoSessionEvidencePackageService demoSessionEvidencePackageService,
             DemoSessionRecoveryBoardService demoSessionRecoveryBoardService,
             OpenAiReadinessEvidenceService openAiReadinessEvidenceService,
-            SessionNarrationProductionBoardService sessionNarrationProductionBoardService
+            SessionNarrationProductionBoardService sessionNarrationProductionBoardService,
+            DemoSessionCostControlBoardService demoSessionCostControlBoardService
     ) {
         this.dashboardService = dashboardService;
         this.operationsService = operationsService;
@@ -96,6 +100,7 @@ public class OperatorDashboardController {
         this.demoSessionRecoveryBoardService = demoSessionRecoveryBoardService;
         this.openAiReadinessEvidenceService = openAiReadinessEvidenceService;
         this.sessionNarrationProductionBoardService = sessionNarrationProductionBoardService;
+        this.demoSessionCostControlBoardService = demoSessionCostControlBoardService;
     }
 
     @GetMapping("/dashboard")
@@ -247,6 +252,29 @@ public class OperatorDashboardController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"model-usage-ledger.md\"")
                 .contentType(MediaType.TEXT_MARKDOWN)
                 .body(modelUsageLedgerService.ledgerMarkdown(limit));
+    }
+
+    @GetMapping("/demo-session-cost-control-board")
+    @Operation(summary = "Get demo session cost control board")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session cost control board was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public DemoSessionCostControlBoardVo demoSessionCostControlBoard(@RequestParam(required = false) Integer limit) {
+        return demoSessionCostControlBoardService.board(limit);
+    }
+
+    @GetMapping(value = "/demo-session-cost-control-board/markdown/download", produces = MediaType.TEXT_MARKDOWN_VALUE)
+    @Operation(summary = "Download demo session cost control board markdown")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Demo session cost control board markdown was returned."),
+            @ApiResponse(responseCode = "401", description = "The private demo token is missing or invalid when demo access is enabled.")
+    })
+    public ResponseEntity<String> demoSessionCostControlBoardMarkdown(@RequestParam(required = false) Integer limit) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"demo-session-cost-control-board.md\"")
+                .contentType(MediaType.TEXT_MARKDOWN)
+                .body(demoSessionCostControlBoardService.boardMarkdown(limit));
     }
 
     @GetMapping("/demo-session-command-center")

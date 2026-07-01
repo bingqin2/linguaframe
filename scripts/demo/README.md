@@ -34,6 +34,19 @@ The script writes `session-narration-production-board.json` and `.md` to `/tmp/l
 
 The same production summary is also surfaced by `scripts/demo/demo-session-command-center.sh` through `demoSessionCommandCenterNarration*` lines. `scripts/demo/demo-session-evidence-package.sh` includes `narration-production-board.json` and `narration-production-board.md` in the session ZIP so the run-day handoff contains narration readiness evidence without opening the standalone board first.
 
+## Demo Session Cost Control Board
+
+Export the run-day cost safety overview before another paid demo:
+
+```bash
+scripts/demo/demo-session-cost-control-board.sh
+LINGUAFRAME_DEMO_SESSION_COST_CONTROL_BOARD_REPORT_ONLY=true scripts/demo/demo-session-cost-control-board.sh
+```
+
+The script writes `demo-session-cost-control-board.json` and `.md` to `/tmp/linguaframe-demo/demo-session-cost-control-board/`, prints recent estimated spend, same-day estimated spend, configured daily budget, failed model-call count, first failed job id, primary action, and the Markdown path. It is read-only and metadata-only: it does not call OpenAI, call TTS providers, run FFmpeg, upload media, edit `.env`, mutate budgets, print prompts, print provider payloads, expose object keys, expose local paths, expose tokens or API keys, or include media bytes. By default it exits non-zero when the board is `BLOCKED`; set report-only mode to export the board without failing.
+
+The same cost-control summary is surfaced by `scripts/demo/demo-session-command-center.sh` through `demoSessionCommandCenterCostControl*` lines. `scripts/demo/demo-session-evidence-package.sh` includes `cost-control-board.json` and `cost-control-board.md` in the session ZIP so the run-day handoff contains cost safety evidence without opening the standalone board first.
+
 ## Narration Render Review
 
 Export the metadata-only narration cue sheet after saving narration or running the demo render:

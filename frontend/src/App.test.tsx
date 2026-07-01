@@ -16,6 +16,7 @@ import type {
   DemoRunLauncher,
   DemoSampleMediaCatalog,
   DemoSessionCommandCenter,
+  DemoSessionCostControlBoard,
   DemoSessionRecoveryBoard,
   SessionNarrationProductionBoard,
   DemoRunMonitor,
@@ -160,6 +161,9 @@ describe('App', () => {
     vi.spyOn(linguaFrameApi, 'getDemoSessionCommandCenter').mockResolvedValue(
       demoSessionCommandCenterFixture()
     );
+    vi.spyOn(linguaFrameApi, 'getDemoSessionCostControlBoard').mockResolvedValue(
+      demoSessionCostControlBoardFixture()
+    );
     vi.spyOn(linguaFrameApi, 'getDemoSessionRecoveryBoard').mockResolvedValue(
       demoSessionRecoveryBoardFixture()
     );
@@ -171,6 +175,9 @@ describe('App', () => {
     );
     vi.spyOn(linguaFrameApi, 'downloadDemoSessionRecoveryBoardMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Demo Session Recovery Board'], { type: 'text/markdown' })
+    );
+    vi.spyOn(linguaFrameApi, 'downloadDemoSessionCostControlBoardMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Session Cost Control Board'], { type: 'text/markdown' })
     );
     vi.spyOn(linguaFrameApi, 'downloadSessionNarrationProductionBoardMarkdown').mockResolvedValue(
       new Blob(['# LinguaFrame Session Narration Production Board'], { type: 'text/markdown' })
@@ -821,6 +828,18 @@ describe('App', () => {
       'href',
       '/api/operator/session-narration-production-board'
     );
+    const costControl = within(panel).getByRole('region', {
+      name: /command center cost control/i
+    });
+    expect(within(costControl).getByText('ATTENTION')).toBeInTheDocument();
+    expect(within(costControl).getByText('$0.00100000')).toBeInTheDocument();
+    expect(within(costControl).getByText('$0.00420000')).toBeInTheDocument();
+    expect(within(costControl).getByText('1 failed')).toBeInTheDocument();
+    expect(within(costControl).getByText('Review failed provider calls before spending more.')).toBeInTheDocument();
+    expect(within(costControl).getByRole('link', { name: /Open cost control board/i })).toHaveAttribute(
+      'href',
+      '/api/operator/demo-session-cost-control-board'
+    );
     expect(within(panel).getAllByText('LINGUAFRAME_DEMO_JOB_ID=job-session scripts/demo/demo-session-command-center.sh').length)
       .toBeGreaterThan(0);
     expect(within(panel).getByRole('link', { name: /Command center Markdown/i })).toHaveAttribute(
@@ -835,12 +854,47 @@ describe('App', () => {
       'href',
       '/api/operator/session-narration-production-board/markdown/download'
     );
+    expect(within(panel).getByRole('link', { name: /Cost control Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/demo-session-cost-control-board/markdown/download'
+    );
     await userEvent.click(within(panel).getByRole('button', { name: /download command center/i }));
     expect(downloadSpy).toHaveBeenCalledWith('job-session');
     await userEvent.click(within(panel).getByRole('button', { name: /download session package/i }));
     expect(packageSpy).toHaveBeenCalledWith('job-session');
     expect(panel).not.toHaveTextContent('raw transcript text');
     expect(panel).not.toHaveTextContent('private-demo-token');
+  });
+
+  test('shows demo session cost control board with budgets and markdown export', async () => {
+    const downloadSpy = vi.spyOn(linguaFrameApi, 'downloadDemoSessionCostControlBoardMarkdown').mockResolvedValue(
+      new Blob(['# LinguaFrame Demo Session Cost Control Board'], { type: 'text/markdown' })
+    );
+
+    render(<App />);
+
+    const panel = await screen.findByRole('region', {
+      name: /demo session cost control/i
+    });
+    expect(within(panel).getAllByText('ATTENTION').length).toBeGreaterThan(0);
+    expect(within(panel).getByText('$0.00100000')).toBeInTheDocument();
+    expect(within(panel).getByText('$0.00420000')).toBeInTheDocument();
+    expect(within(panel).getByText('$0.01000000')).toBeInTheDocument();
+    expect(within(panel).getByText('Review failed provider calls before spending more.')).toBeInTheDocument();
+    expect(within(panel).getByText('Daily owner budget')).toBeInTheDocument();
+    expect(within(panel).getByText('job-cost')).toBeInTheDocument();
+    expect(within(panel).getByText('TRANSLATE')).toBeInTheDocument();
+    expect(within(panel).getByText('Failed model calls')).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: /Cost control Markdown/i })).toHaveAttribute(
+      'href',
+      '/api/operator/demo-session-cost-control-board/markdown/download'
+    );
+
+    await userEvent.click(within(panel).getByRole('button', { name: /download cost control/i }));
+    expect(downloadSpy).toHaveBeenCalledWith(25);
+    expect(panel).not.toHaveTextContent('raw transcript text');
+    expect(panel).not.toHaveTextContent('private-demo-token');
+    expect(panel).not.toHaveTextContent('/Users/');
   });
 
   test('shows demo session recovery board with grouped jobs and markdown export', async () => {
@@ -6905,6 +6959,12 @@ function demoSessionCommandCenterFixture(
         description: 'Downloadable narration production report.'
       },
       {
+        label: 'Cost control Markdown',
+        href: '/api/operator/demo-session-cost-control-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable cost-control board.'
+      },
+      {
         label: 'Model usage ledger',
         href: '/api/operator/model-usage-ledger',
         contentType: 'application/json',
@@ -6957,6 +7017,27 @@ function demoSessionCommandCenterFixture(
         description: 'Downloadable narration production report.'
       }
     ],
+    costControlStatus: 'ATTENTION',
+    costControlRecentEstimatedCostUsd: '0.00100000',
+    costControlDailyEstimatedCostUsd: '0.00420000',
+    costControlFailedModelCallCount: 1,
+    costControlRecommendedNextAction: 'Review failed provider calls before spending more.',
+    costControlPrimaryAction: {
+      key: 'OPEN_COST_CONTROL_BOARD',
+      label: 'Open cost control board',
+      href: '/api/operator/demo-session-cost-control-board',
+      detail: 'Inspect budgets and failed model calls.',
+      primary: true
+    },
+    costControlLinks: [
+      {
+        key: 'COST_CONTROL_MARKDOWN',
+        label: 'Cost control Markdown',
+        href: '/api/operator/demo-session-cost-control-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable cost-control board.'
+      }
+    ],
     estimatedCostUsd: '0.00020000',
     modelCallCount: 2,
     failedModelCallCount: 0,
@@ -6964,6 +7045,92 @@ function demoSessionCommandCenterFixture(
     averageLatencyMs: 120,
     providerCacheHitCount: 1,
     safetyNotes: ['Demo session command center is metadata-only and read-only.'],
+    ...overrides
+  };
+}
+
+function demoSessionCostControlBoardFixture(
+  overrides: Partial<DemoSessionCostControlBoard> = {}
+): DemoSessionCostControlBoard {
+  return {
+    generatedAt: '2026-07-01T09:00:00Z',
+    overallStatus: 'ATTENTION',
+    summary: {
+      ledgerStatus: 'ATTENTION',
+      recentJobCount: 2,
+      recentModelCallCount: 5,
+      recentFailedModelCallCount: 1,
+      recentEstimatedCostUsd: '0.00100000',
+      dailyEstimatedCostUsd: '0.00420000',
+      dailyBudgetUsd: '0.01000000',
+      dailyBudgetDate: '2026-07-01',
+      failureRatePercent: '20.00',
+      recommendedNextAction: 'Review failed provider calls before spending more.'
+    },
+    budgets: [
+      {
+        key: 'daily-owner-budget',
+        label: 'Daily owner budget',
+        status: 'READY',
+        detail: '0.00420000 / 0.01000000 USD used.',
+        nextAction: 'Continue the demo.',
+        blocking: false
+      }
+    ],
+    jobs: [
+      {
+        jobId: 'job-cost',
+        videoId: 'video-cost',
+        jobStatus: 'FAILED',
+        targetLanguage: 'zh-CN',
+        demoProfileId: 'tears-showcase',
+        modelCallCount: 3,
+        failedModelCallCount: 1,
+        estimatedCostUsd: '0.00080000',
+        latestModelCallAt: '2026-07-01T08:55:00Z',
+        recommendedNextAction: 'Re-run failed translation only after checking the provider error.',
+        links: ['/api/jobs/job-cost']
+      }
+    ],
+    operations: [
+      {
+        operation: 'TRANSLATE',
+        provider: 'openai',
+        model: 'gpt-4.1-mini',
+        modelCallCount: 3,
+        failedModelCallCount: 1,
+        estimatedCostUsd: '0.00080000',
+        averageLatencyMs: 320
+      }
+    ],
+    checks: [
+      {
+        key: 'failed-model-calls',
+        label: 'Failed model calls',
+        status: 'ATTENTION',
+        detail: '1 failed calls in recent runs.',
+        nextAction: 'Inspect safe error summaries.',
+        blocking: false
+      }
+    ],
+    primaryAction: {
+      key: 'OPEN_LEDGER',
+      label: 'Open usage ledger',
+      href: '/api/operator/model-usage-ledger',
+      detail: 'Inspect recent model calls.',
+      primary: true
+    },
+    links: [
+      {
+        key: 'COST_CONTROL_MARKDOWN',
+        label: 'Cost control Markdown',
+        href: '/api/operator/demo-session-cost-control-board/markdown/download',
+        contentType: 'text/markdown',
+        description: 'Downloadable cost-control board.'
+      }
+    ],
+    safetyNotes: ['Local cost estimates are not provider billing statements.'],
+    markdown: '# LinguaFrame Demo Session Cost Control Board',
     ...overrides
   };
 }

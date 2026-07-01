@@ -7,6 +7,14 @@ import com.linguaframe.operator.domain.vo.DemoPresentationCockpitCheckVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitLinkVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitRunVo;
 import com.linguaframe.operator.domain.vo.DemoPresentationCockpitVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlActionVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBoardVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlBudgetVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlCheckVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlJobVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlLinkVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlOperationVo;
+import com.linguaframe.operator.domain.vo.DemoSessionCostControlSummaryVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterActionVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterEvidenceVo;
 import com.linguaframe.operator.domain.vo.DemoSessionCommandCenterPhaseVo;
@@ -61,6 +69,7 @@ class DemoSessionEvidencePackageServiceTests {
     private final StubPrivateDemoRunArchiveService archiveService = new StubPrivateDemoRunArchiveService();
     private final StubDemoSessionRecoveryBoardService recoveryBoardService = new StubDemoSessionRecoveryBoardService();
     private final StubSessionNarrationProductionBoardService narrationProductionBoardService = new StubSessionNarrationProductionBoardService();
+    private final StubDemoSessionCostControlBoardService costControlBoardService = new StubDemoSessionCostControlBoardService();
 
     private final DemoSessionEvidencePackageService service = new DemoSessionEvidencePackageServiceImpl(
             objectMapper,
@@ -72,7 +81,8 @@ class DemoSessionEvidencePackageServiceTests {
             galleryService,
             archiveService,
             recoveryBoardService,
-            narrationProductionBoardService
+            narrationProductionBoardService,
+            costControlBoardService
     );
 
     @Test
@@ -98,6 +108,8 @@ class DemoSessionEvidencePackageServiceTests {
                 "recovery-board.md",
                 "narration-production-board.json",
                 "narration-production-board.md",
+                "cost-control-board.json",
+                "cost-control-board.md",
                 "presentation-cockpit.json",
                 "presentation-cockpit.md",
                 "evidence-gallery.json",
@@ -110,12 +122,14 @@ class DemoSessionEvidencePackageServiceTests {
         assertThat(manifest.path("packageType").asText()).isEqualTo("DEMO_SESSION_EVIDENCE_PACKAGE");
         assertThat(manifest.path("overallStatus").asText()).isEqualTo("READY");
         assertThat(manifest.path("phase").asText()).isEqualTo("READY_TO_PRESENT");
-        assertThat(manifest.path("entryCount").asInt()).isEqualTo(20);
-        assertThat(manifest.path("entries").toString()).contains("narration-production-board.json", "narration-production-board.md");
+        assertThat(manifest.path("entryCount").asInt()).isEqualTo(22);
+        assertThat(manifest.path("entries").toString())
+                .contains("narration-production-board.json", "narration-production-board.md", "cost-control-board.json", "cost-control-board.md");
         assertThat(entries.get("README.md")).contains("LinguaFrame Demo Session Evidence Package");
         assertThat(entries.get("command-center.md")).contains("Command center Markdown");
         assertThat(entries.get("recovery-board.md")).contains("Recovery Board");
         assertThat(entries.get("narration-production-board.md")).contains("Session Narration Production Board");
+        assertThat(entries.get("cost-control-board.md")).contains("Demo Session Cost Control Board");
         assertThat(entries.get("operations.md")).contains("Private Demo Operations");
         assertThat(entries.get("model-usage-ledger.md")).contains("Model Usage Ledger");
     }
@@ -210,6 +224,13 @@ class DemoSessionEvidencePackageServiceTests {
                 "Open blocked narration production rows.",
                 new SessionNarrationProductionActionVo("OPEN_SCENE_BOARD", "Open scene board", "/api/jobs/job-narration-blocked/narration-scene-board", "Inspect blocked scene-board checks.", true),
                 List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
+                "READY",
+                new BigDecimal("0.00020000"),
+                new BigDecimal("0.00020000"),
+                0,
+                "Use cost control evidence.",
+                new DemoSessionCostControlActionVo("OPEN_MODEL_USAGE_LEDGER", "Open model usage ledger", "/api/operator/model-usage-ledger", "Inspect cost evidence.", true),
+                List.of(new DemoSessionCostControlLinkVo("MARKDOWN", "Demo session cost control Markdown", "/api/operator/demo-session-cost-control-board/markdown/download", "text/markdown", "Downloadable cost control report.")),
                 new BigDecimal("0.00020000"),
                 2,
                 0,
@@ -273,6 +294,33 @@ class DemoSessionEvidencePackageServiceTests {
                 List.of(new SessionNarrationProductionLinkVo("MARKDOWN", "Session narration production Markdown", "/api/operator/session-narration-production-board/markdown/download", "text/markdown", "Downloadable narration production report.")),
                 List.of("Metadata only."),
                 "# Session Narration Production Board\n\n- Blocked: 1\n"
+        );
+    }
+
+    private static DemoSessionCostControlBoardVo costControlBoard() {
+        return new DemoSessionCostControlBoardVo(
+                Instant.parse("2026-06-29T08:00:00Z"),
+                "READY",
+                new DemoSessionCostControlSummaryVo(
+                        "demo-owner",
+                        "CONFIGURED_DEMO_OWNER",
+                        true,
+                        new BigDecimal("0.00020000"),
+                        new BigDecimal("0.00020000"),
+                        java.time.LocalDate.parse("2026-06-29"),
+                        2,
+                        0,
+                        BigDecimal.ZERO,
+                        "Use cost control evidence."
+                ),
+                List.of(new DemoSessionCostControlBudgetVo("dailyBudget", "Daily budget guard", "READY", true, new BigDecimal("1.00000000"), new BigDecimal("0.00020000"), "Daily budget evidence.", false)),
+                List.of(new DemoSessionCostControlJobVo("job-session", "video-session", "COMPLETED", "zh-CN", "tears-showcase", 2, 0, new BigDecimal("0.00020000"), Instant.parse("2026-06-29T08:00:00Z"), List.of("/api/jobs/job-session/ai-audit-package/download"))),
+                List.of(new DemoSessionCostControlOperationVo("TRANSLATION", "OPENAI", "gpt-test", "prompt-v1", 2, 0, new BigDecimal("0.00020000"), 100L)),
+                List.of(new DemoSessionCostControlCheckVo("costTracking", "Estimated cost tracking", "READY", "Cost tracking enabled.", "Use board evidence.", false)),
+                new DemoSessionCostControlActionVo("OPEN_MODEL_USAGE_LEDGER", "Open model usage ledger", "/api/operator/model-usage-ledger", "Inspect cost evidence.", true),
+                List.of(new DemoSessionCostControlLinkVo("MARKDOWN", "Demo session cost control Markdown", "/api/operator/demo-session-cost-control-board/markdown/download", "text/markdown", "Downloadable cost control report.")),
+                List.of("Estimated costs are local estimates."),
+                "# LinguaFrame Demo Session Cost Control Board\n\n- Status: READY\n"
         );
     }
 
@@ -563,6 +611,18 @@ class DemoSessionEvidencePackageServiceTests {
         @Override
         public String boardMarkdown(Integer limit) {
             return "# Session Narration Production Board\n\n- Blocked: 1\n";
+        }
+    }
+
+    private static final class StubDemoSessionCostControlBoardService implements DemoSessionCostControlBoardService {
+        @Override
+        public DemoSessionCostControlBoardVo board(Integer limit) {
+            return DemoSessionEvidencePackageServiceTests.costControlBoard();
+        }
+
+        @Override
+        public String boardMarkdown(Integer limit) {
+            return "# LinguaFrame Demo Session Cost Control Board\n\n- Status: READY\n";
         }
     }
 }
